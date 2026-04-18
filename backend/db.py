@@ -1,0 +1,174 @@
+"""
+Database schema and connection management for AccountIQ Learning Agent.
+SQLite via aiosqlite for async FastAPI compatibility.
+"""
+import sqlite3
+import aiosqlite
+import json
+from pathlib import Path
+
+DB_PATH = Path(__file__).parent.parent / "data" / "accountiq_learning.db"
+
+SCHEMA = """
+PRAGMA journal_mode=WAL;
+PRAGMA foreign_keys=ON;
+
+-- Companies master table
+CREATE TABLE IF NOT EXISTS companies (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL,
+    ticker      TEXT,                        -- e.g. "AIR" for Air NZ
+    exchange    TEXT,                        -- NZX / ASX / Private
+    sector      TEXT,
+    country     TEXT    DEFAULT 'NZ',
+    created_at  TEXT    DEFAULT (datetime('now')),
+    UNIQUE(name, exchange)
+);
+
+-- Every uploaded PDF document
+CREATE TABLE IF NOT EXISTS documents (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id      INTEGER REFERENCES companies(id),
+    filename        TEXT    NOT NULL,
+    filepath        TEXT    NOT NULL UNIQUE,
+    report_type     TEXT,                    -- 'annual_report' | 'compilation' | 'management_accounts'
+    entity_type     TEXT,                    -- 'listed' | 'sme'
+    fiscal_year_end TEXT,                    -- e.g. '2025-03-31'
+    page_count      INTEGER,
+    has_ocr         INTEGER DEFAULT 0,       -- 1 if OCR was needed
+    extraction_status TEXT DEFAULT 'pending', -- pending | processing | done | failed
+    extraction_model  TEXT,                  -- claude model used
+    raw_claude_response TEXT,               -- full JSON from Claude
+    confidence_score  REAL,                 -- 0–1 overall confidence
+    created_at      TEXT    DEFAULT (datetime('now')),
+    updated_at      TEXT    DEFAULT (datetime('now'))
+);
+
+-- Individual financial rows extracted (P&L + BS rows)
+CREATE TABLE IF NOT EXISTS financial_rows (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_id INTEGER REFERENCES documents(id) ON DELETE CASCADE,
+    company_id  INTEGER REFERENCES companies(id),
+    statement   TEXT    NOT NULL,    -- 'pnl' | 'bs'
+    row_key     TEXT    NOT NULL,    -- canonical key e.g. 'revenue', 'cash_and_bank'
+    row_label   TEXT    NOT NULL,    -- display label e.g. 'Revenue', 'Cash & bank'
+    period      TEXT    NOT NULL,    -- e.g. '2025', '2024'
+    value       REAL,                -- null = not found / dash
+    currency    TEXT    DEFAULT 'NZD',
+    unit        TEXT    DEFAULT 'whole',  -- 'whole' | 'thousands' | 'millions'
+    source_text TEXT,                -- raw line from PDF that produced this value
+    confidence  REAL,                -- per-row confidence 0–1
+    created_at  TEXT    DEFAULT (datetime('now'))
+);
+
+-- Label patterns: what raw PDF labels map to canonical row keys
+CREATE TABLE IF NOT EXISTS label_patterns (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    canonical_key   TEXT    NOT NULL,   -- e.g. 'revenue'
+    statement       TEXT    NOT NULL,   -- 'pnl' | 'bs'
+    raw_label       TEXT    NOT NULL,   -- normalised label found in PDF
+    entity_type     TEXT,               -- 'listed' | 'sme' | null (any)
+    exchange        TEXT,               -- 'NZX' | 'ASX' | null (any)
+    match_count     INTEGER DEFAULT 1,  -- how many docs confirmed this mapping
+    last_seen       TEXT    DEFAULT (datetime('now')),
+    UNIQUE(canonical_key, raw_label)
+);
+
+-- Per-document extraction log for debugging
+CREATE TABLE IF NOT EXISTS extraction_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_id INTEGER REFERENCES documents(id) ON DELETE CASCADE,
+    level       TEXT    DEFAULT 'info',   -- info | warn | error
+    message     TEXT,
+    created_at  TEXT    DEFAULT (datetime('now'))
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_fin_rows_doc    ON financial_rows(document_id);
+CREATE INDEX IF NOT EXISTS idx_fin_rows_company ON financial_rows(company_id);
+CREATE INDEX IF NOT EXISTS idx_fin_rows_key    ON financial_rows(row_key, period);
+CREATE INDEX IF NOT EXISTS idx_patterns_key    ON label_patterns(canonical_key);
+CREATE INDEX IF NOT EXISTS idx_patterns_raw    ON label_patterns(raw_label);
+"""
+
+
+def get_sync_conn() -> sqlite3.Connection:
+    """Synchronous connection used for one-off setup."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+async def get_db() -> aiosqlite.Connection:
+    """Async dependency for FastAPI routes."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute("PRAGMA journal_mode=WAL")
+        await db.execute("PRAGMA foreign_keys=ON")
+        yield db
+
+
+def init_db():
+    """Create all tables if they don't exist (called at startup)."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = get_sync_conn()
+    try:
+        conn.executescript(SCHEMA)
+        conn.commit()
+        print(f"[DB] Initialised at {DB_PATH}")
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Pattern helpers
+# ---------------------------------------------------------------------------
+
+def normalise_label(text: str) -> str:
+    """Lower-case, collapse whitespace, strip punctuation for matching."""
+    import re
+    text = text.lower().strip()
+    text = re.sub(r"[^a-z0-9\s]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+async def record_patterns(db: aiosqlite.Connection, mappings: list[dict]):
+    """
+    Upsert label→canonical_key patterns learned from a document.
+    mappings: [{"canonical_key": str, "statement": str, "raw_label": str,
+                "entity_type": str|None, "exchange": str|None}]
+    """
+    for m in mappings:
+        raw = normalise_label(m["raw_label"])
+        if not raw:
+            continue
+        await db.execute("""
+            INSERT INTO label_patterns (canonical_key, statement, raw_label, entity_type, exchange)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(canonical_key, raw_label) DO UPDATE SET
+                match_count = match_count + 1,
+                last_seen   = datetime('now')
+        """, (m["canonical_key"], m["statement"], raw,
+              m.get("entity_type"), m.get("exchange")))
+    await db.commit()
+
+
+async def get_pattern_library(db: aiosqlite.Connection) -> dict:
+    """
+    Return pattern library as {statement: {canonical_key: [raw_labels]}}
+    ordered by match_count descending.
+    """
+    async with db.execute("""
+        SELECT statement, canonical_key, raw_label, match_count
+        FROM label_patterns
+        ORDER BY match_count DESC
+    """) as cur:
+        rows = await cur.fetchall()
+
+    lib: dict = {}
+    for row in rows:
+        stmt = row["statement"]
+        key  = row["canonical_key"]
+        lib.setdefault(stmt, {}).setdefault(key, []).append(row["raw_label"])
+    return lib

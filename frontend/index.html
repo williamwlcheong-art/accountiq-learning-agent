@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AccountIQ Learning Agent</title>
+<style>
+  :root {
+    --navy:#0d1b2a; --blue:#1565c0; --accent:#2196f3;
+    --green:#2e7d32; --amber:#f57c00; --red:#c62828;
+    --bg:#f5f7fa; --card:#fff; --border:#e0e4ea;
+    --text:#1a1a2e; --muted:#607080;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  /* Nav */
+  nav{background:var(--navy);color:#fff;padding:0 2rem;display:flex;align-items:center;gap:2rem;height:56px}
+  nav h1{font-size:1.1rem;font-weight:700;letter-spacing:-.5px}
+  nav span{font-size:.75rem;opacity:.55;font-weight:400}
+  .nav-tabs{display:flex;gap:.25rem;margin-left:auto}
+  .nav-tab{padding:.4rem 1rem;border-radius:6px;border:none;background:transparent;color:#fff;opacity:.65;cursor:pointer;font-size:.85rem;transition:all .15s}
+  .nav-tab.active,.nav-tab:hover{opacity:1;background:rgba(255,255,255,.12)}
+  /* Layout */
+  .page{display:none;padding:2rem;max-width:1400px;margin:0 auto}
+  .page.active{display:block}
+  /* Cards */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem}
+  .card h2{font-size:1rem;font-weight:600;margin-bottom:1rem;color:var(--navy)}
+  /* Stats row */
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1.2rem;text-align:center}
+  .stat-card .val{font-size:2rem;font-weight:700;color:var(--blue)}
+  .stat-card .lbl{font-size:.75rem;color:var(--muted);margin-top:.25rem}
+  /* Forms */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  .form-group{display:flex;flex-direction:column;gap:.4rem}
+  label{font-size:.8rem;font-weight:600;color:var(--muted)}
+  input,select,textarea{padding:.5rem .75rem;border:1px solid var(--border);border-radius:6px;font-size:.9rem;width:100%;outline:none;transition:border .15s}
+  input:focus,select:focus{border-color:var(--accent)}
+  .btn{padding:.55rem 1.2rem;border:none;border-radius:7px;font-size:.875rem;font-weight:600;cursor:pointer;transition:all .15s}
+  .btn-primary{background:var(--blue);color:#fff}
+  .btn-primary:hover{background:#1976d2}
+  .btn-sm{padding:.35rem .8rem;font-size:.8rem}
+  .btn-success{background:var(--green);color:#fff}
+  .btn-danger{background:var(--red);color:#fff}
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:.85rem}
+  th{background:#f0f4f8;padding:.6rem .8rem;text-align:left;font-weight:600;font-size:.75rem;color:var(--muted);border-bottom:2px solid var(--border)}
+  td{padding:.6rem .8rem;border-bottom:1px solid var(--border)}
+  tr:hover td{background:#f8fafc}
+  /* Status badges */
+  .badge{display:inline-block;padding:.2rem .6rem;border-radius:12px;font-size:.72rem;font-weight:600}
+  .badge-done{background:#e8f5e9;color:var(--green)}
+  .badge-processing{background:#e3f2fd;color:var(--blue)}
+  .badge-pending{background:#fff8e1;color:var(--amber)}
+  .badge-failed{background:#ffebee;color:var(--red)}
+  .badge-listed{background:#e8eaf6;color:#3949ab}
+  .badge-sme{background:#fce4ec;color:#c2185b}
+  /* Drop zone */
+  .drop-zone{border:2px dashed var(--border);border-radius:10px;padding:2rem;text-align:center;cursor:pointer;transition:all .15s}
+  .drop-zone.drag-over{border-color:var(--accent);background:#e3f2fd}
+  .drop-zone .icon{font-size:2rem;margin-bottom:.5rem}
+  .drop-zone p{color:var(--muted);font-size:.875rem}
+  /* Progress */
+  .progress-bar{height:6px;background:#e0e4ea;border-radius:3px;overflow:hidden;margin:.5rem 0}
+  .progress-fill{height:100%;background:var(--blue);border-radius:3px;transition:width .3s}
+  /* Patterns */
+  .pattern-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:.75rem}
+  .pattern-item{background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:.75rem}
+  .pattern-item .key{font-size:.75rem;font-weight:700;color:var(--blue)}
+  .pattern-item .raw{font-size:.8rem;color:var(--text);margin-top:.25rem}
+  .pattern-item .count{font-size:.7rem;color:var(--muted);float:right}
+  /* Log */
+  .log-box{background:#0d1b2a;color:#a8d8a8;font-family:'Fira Code',monospace;font-size:.78rem;padding:1rem;border-radius:8px;max-height:300px;overflow-y:auto;white-space:pre-wrap}
+  /* Utility */
+  .flex{display:flex;align-items:center;gap:.75rem}
+  .ml-auto{margin-left:auto}
+  .mt{margin-top:1rem}
+  .text-muted{color:var(--muted);font-size:.85rem}
+  .section-title{font-size:1.1rem;font-weight:700;margin-bottom:1rem;color:var(--navy)}
+  .empty{text-align:center;padding:3rem;color:var(--muted)}
+  .conf-bar{display:inline-block;width:60px;height:6px;background:#e0e4ea;border-radius:3px;vertical-align:middle;overflow:hidden}
+  .conf-fill{height:100%;background:var(--green);border-radius:3px}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .alert{padding:.75rem 1rem;border-radius:7px;font-size:.875rem;margin-bottom:1rem}
+  .alert-success{background:#e8f5e9;color:var(--green);border:1px solid #a5d6a7}
+  .alert-error{background:#ffebee;color:var(--red);border:1px solid #ef9a9a}
+  .alert-info{background:#e3f2fd;color:var(--blue);border:1px solid #90caf9}
+</style>
+</head>
+<body>
+
+<nav>
+  <h1>AccountIQ <span>Learning Agent</span></h1>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('companies')">Companies</button>
+    <button class="nav-tab" onclick="showPage('upload')">Upload</button>
+    <button class="nav-tab" onclick="showPage('documents')">Documents</button>
+    <button class="nav-tab" onclick="showPage('patterns')">Patterns</button>
+    <button class="nav-tab" onclick="showPage('financials')">Financials</button>
+    <button class="nav-tab" onclick="showPage('settings')" id="settings-tab">⚙ Settings</button>
+  </div>
+  <div id="api-key-warning" style="display:none;margin-left:1rem;background:#f57c00;color:#fff;font-size:.75rem;padding:.25rem .7rem;border-radius:12px;cursor:pointer" onclick="showPage('settings')">
+    ⚠ API key not set
+  </div>
+</nav>
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div class="section-title">Overview</div>
+  <div class="stats-row" id="stats-row">
+    <div class="stat-card"><div class="val" id="stat-companies">—</div><div class="lbl">Companies</div></div>
+    <div class="stat-card"><div class="val" id="stat-documents">—</div><div class="lbl">Documents</div></div>
+    <div class="stat-card"><div class="val" id="stat-done">—</div><div class="lbl">Processed</div></div>
+    <div class="stat-card"><div class="val" id="stat-rows">—</div><div class="lbl">Financial Rows</div></div>
+    <div class="stat-card"><div class="val" id="stat-patterns">—</div><div class="lbl">Label Patterns</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+    <div class="card">
+      <h2>Coverage by Exchange</h2>
+      <div id="exchange-list" class="text-muted">Loading…</div>
+    </div>
+    <div class="card">
+      <h2>Lowest Confidence Rows</h2>
+      <div id="conf-list" class="text-muted">Loading…</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Quick Upload</h2>
+    <p class="text-muted">Go to <a href="#" onclick="showPage('upload')">Upload tab</a> to ingest new financial PDFs.</p>
+  </div>
+</div>
+
+<!-- COMPANIES -->
+<div id="page-companies" class="page">
+  <div class="flex" style="margin-bottom:1.5rem">
+    <div class="section-title" style="margin:0">Companies</div>
+    <button class="btn btn-primary ml-auto" onclick="toggleAddCompany()">+ Add Company</button>
+  </div>
+
+  <div class="card" id="add-company-card" style="display:none">
+    <h2>Add Company</h2>
+    <div id="company-alert"></div>
+    <div class="form-grid">
+      <div class="form-group"><label>Company Name *</label><input id="co-name" placeholder="e.g. Air New Zealand"/></div>
+      <div class="form-group"><label>Ticker</label><input id="co-ticker" placeholder="e.g. AIR"/></div>
+      <div class="form-group"><label>Exchange</label>
+        <select id="co-exchange">
+          <option value="">Private</option>
+          <option value="NZX">NZX</option>
+          <option value="ASX">ASX</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Sector</label><input id="co-sector" placeholder="e.g. Aviation"/></div>
+      <div class="form-group"><label>Country</label>
+        <select id="co-country"><option value="NZ">NZ</option><option value="AU">AU</option><option value="Other">Other</option></select>
+      </div>
+    </div>
+    <div class="mt flex">
+      <button class="btn btn-primary" onclick="addCompany()">Save Company</button>
+      <button class="btn" style="background:#eee" onclick="toggleAddCompany()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead><tr>
+        <th>Company</th><th>Ticker</th><th>Exchange</th><th>Sector</th><th>Country</th><th>Documents</th><th></th>
+      </tr></thead>
+      <tbody id="companies-tbody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- UPLOAD -->
+<div id="page-upload" class="page">
+  <div class="section-title">Upload Financial PDF</div>
+  <div class="card">
+    <div id="upload-alert"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Company *</label>
+        <select id="up-company"><option value="">Select company…</option></select>
+      </div>
+      <div class="form-group">
+        <label>Entity Type *</label>
+        <select id="up-entity">
+          <option value="listed">Listed (IFRS)</option>
+          <option value="sme">Private SME (Compilation)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Report Type</label>
+        <select id="up-report">
+          <option value="annual_report">Annual Report</option>
+          <option value="compilation">Compilation Report</option>
+          <option value="management_accounts">Management Accounts</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Fiscal Year End (e.g. 2025-03-31)</label>
+        <input id="up-fy" placeholder="2025-03-31" type="text"/>
+      </div>
+    </div>
+    <div class="mt">
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('up-file').click()">
+        <div class="icon">📄</div>
+        <p><strong>Click or drag PDF here</strong></p>
+        <p>Annual reports, compilation reports, management accounts</p>
+        <input type="file" id="up-file" accept=".pdf" style="display:none" onchange="handleFileSelect(this)"/>
+      </div>
+      <div id="selected-file" class="text-muted mt" style="display:none"></div>
+    </div>
+    <div class="mt">
+      <button class="btn btn-primary" onclick="uploadFile()" id="up-btn">Upload & Ingest</button>
+    </div>
+  </div>
+
+  <!-- Active jobs -->
+  <div class="card" id="jobs-card" style="display:none">
+    <h2>Active Ingestion Jobs</h2>
+    <div id="jobs-list"></div>
+  </div>
+</div>
+
+<!-- DOCUMENTS -->
+<div id="page-documents" class="page">
+  <div class="flex" style="margin-bottom:1.5rem">
+    <div class="section-title" style="margin:0">Documents</div>
+    <select id="doc-company-filter" style="width:200px" onchange="loadDocuments()">
+      <option value="">All companies</option>
+    </select>
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr>
+        <th>Company</th><th>File</th><th>Type</th><th>Entity</th><th>FY End</th><th>Pages</th><th>Status</th><th>Confidence</th><th></th>
+      </tr></thead>
+      <tbody id="documents-tbody"><tr><td colspan="9" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PATTERNS -->
+<div id="page-patterns" class="page">
+  <div class="flex" style="margin-bottom:1.5rem">
+    <div class="section-title" style="margin:0">Label Pattern Library</div>
+    <select id="pat-stmt-filter" style="width:160px" onchange="loadPatterns()">
+      <option value="">All statements</option>
+      <option value="pnl">P&amp;L</option>
+      <option value="bs">Balance Sheet</option>
+    </select>
+    <button class="btn btn-success ml-auto btn-sm" onclick="exportPatterns()">Export JSON</button>
+  </div>
+  <div class="text-muted" style="margin-bottom:1rem" id="pattern-count">Loading…</div>
+  <div class="pattern-grid" id="pattern-grid"></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="page-settings" class="page">
+  <div class="section-title">Settings</div>
+  <div class="card" style="max-width:600px">
+    <h2>Claude API Key</h2>
+    <p class="text-muted" style="margin-bottom:1rem">
+      Required for PDF extraction. Get yours at
+      <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>.
+    </p>
+    <div id="settings-alert"></div>
+    <div id="settings-status" class="text-muted" style="margin-bottom:1rem">Loading…</div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>API Key (sk-ant-…)</label>
+      <input id="s-api-key" type="password" placeholder="sk-ant-api03-…" autocomplete="off"/>
+    </div>
+    <div class="form-group" style="margin-bottom:1.5rem">
+      <label>Claude Model</label>
+      <select id="s-model">
+        <option value="claude-opus-4-5">claude-opus-4-5 (best quality)</option>
+        <option value="claude-sonnet-4-5">claude-sonnet-4-5 (faster)</option>
+        <option value="claude-haiku-4-5">claude-haiku-4-5 (cheapest)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="saveSettings()">Save &amp; Apply</button>
+  </div>
+
+  <div class="card" style="max-width:600px">
+    <h2>About the Learning Agent</h2>
+    <p class="text-muted" style="line-height:1.7">
+      Every PDF you ingest teaches the agent new label synonyms. The <strong>Pattern Library</strong>
+      grows with each document — raw PDF labels (e.g. <em>"Total operating revenue"</em>) are linked
+      to canonical row keys (e.g. <em>revenue</em>) and fed back into Claude's prompt on the next run,
+      improving accuracy over time.<br/><br/>
+      Use <strong>Patterns → Export JSON</strong> to download the learned patterns and import them
+      into the AccountIQ standalone SPA.
+    </p>
+  </div>
+</div>
+
+<!-- FINANCIALS -->
+<div id="page-financials" class="page">
+  <div class="flex" style="margin-bottom:1.5rem">
+    <div class="section-title" style="margin:0">Financial Data</div>
+    <select id="fin-company" style="width:220px" onchange="loadFinancials()">
+      <option value="">Select company…</option>
+    </select>
+    <select id="fin-stmt" style="width:160px" onchange="loadFinancials()">
+      <option value="">Both statements</option>
+      <option value="pnl">P&amp;L</option>
+      <option value="bs">Balance Sheet</option>
+    </select>
+  </div>
+  <div class="card">
+    <div id="fin-table-wrap"><div class="empty">Select a company above.</div></div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8765';
+let activeJobs = {};
+
+// ---------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------
+const PAGES = ['dashboard','companies','upload','documents','patterns','financials','settings'];
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  const idx = PAGES.indexOf(name);
+  if (idx >= 0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  if (name === 'dashboard')   loadDashboard();
+  if (name === 'companies')   loadCompanies();
+  if (name === 'upload')      populateCompanySelects();
+  if (name === 'documents')   loadDocuments();
+  if (name === 'patterns')    loadPatterns();
+  if (name === 'financials')  populateCompanySelects();
+  if (name === 'settings')    loadSettings();
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------------------
+async function loadDashboard() {
+  const ov = await apiFetch('/analytics/overview');
+  if (!ov) return;
+  document.getElementById('stat-companies').textContent = ov.companies;
+  document.getElementById('stat-documents').textContent = ov.documents;
+  document.getElementById('stat-done').textContent = ov.docs_done;
+  document.getElementById('stat-rows').textContent = ov.financial_rows.toLocaleString();
+  document.getElementById('stat-patterns').textContent = ov.label_patterns;
+  document.getElementById('exchange-list').innerHTML = ov.by_exchange.map(e =>
+    `<div class="flex" style="padding:.4rem 0;border-bottom:1px solid var(--border)">
+      <span>${e.exchange || 'Private'}</span>
+      <span class="ml-auto" style="font-weight:700">${e.n}</span>
+    </div>`
+  ).join('') || '<span>No data yet.</span>';
+
+  const conf = await apiFetch('/analytics/confidence');
+  if (conf && conf.length) {
+    document.getElementById('conf-list').innerHTML = conf.slice(0,8).map(r =>
+      `<div class="flex" style="padding:.3rem 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:.8rem">${r.row_key}</span>
+        <div class="ml-auto flex" style="gap:.5rem">
+          <div class="conf-bar"><div class="conf-fill" style="width:${(r.avg_conf*100).toFixed(0)}%"></div></div>
+          <span style="font-size:.75rem;color:var(--muted)">${(r.avg_conf*100).toFixed(0)}%</span>
+        </div>
+      </div>`
+    ).join('');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Companies
+// ---------------------------------------------------------------------------
+async function loadCompanies() {
+  const data = await apiFetch('/companies');
+  if (!data) return;
+  const tbody = document.getElementById('companies-tbody');
+  if (!data.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No companies yet. Add one above.</td></tr>'; return; }
+  tbody.innerHTML = data.map(c => `<tr>
+    <td><strong>${c.name}</strong></td>
+    <td>${c.ticker || '—'}</td>
+    <td>${c.exchange ? `<span class="badge badge-listed">${c.exchange}</span>` : '<span class="badge badge-sme">Private</span>'}</td>
+    <td>${c.sector || '—'}</td>
+    <td>${c.country || '—'}</td>
+    <td>${c.doc_count}</td>
+    <td><button class="btn btn-sm btn-primary" onclick="showPage('upload');setUploadCompany(${c.id})">Upload PDF</button></td>
+  </tr>`).join('');
+}
+
+function toggleAddCompany() {
+  const card = document.getElementById('add-company-card');
+  card.style.display = card.style.display === 'none' ? 'block' : 'none';
+}
+
+async function addCompany() {
+  const name = document.getElementById('co-name').value.trim();
+  if (!name) { showAlert('company-alert','Company name is required.','error'); return; }
+  const fd = new FormData();
+  fd.append('name', name);
+  fd.append('ticker',   document.getElementById('co-ticker').value);
+  fd.append('exchange', document.getElementById('co-exchange').value);
+  fd.append('sector',   document.getElementById('co-sector').value);
+  fd.append('country',  document.getElementById('co-country').value);
+  const res = await apiPost('/companies', fd);
+  if (res) {
+    showAlert('company-alert', `Company "${name}" added.`, 'success');
+    document.getElementById('co-name').value = '';
+    loadCompanies();
+    populateCompanySelects();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Upload
+// ---------------------------------------------------------------------------
+let selectedFile = null;
+
+function handleFileSelect(input) {
+  selectedFile = input.files[0];
+  if (selectedFile) {
+    document.getElementById('selected-file').style.display = 'block';
+    document.getElementById('selected-file').textContent = `Selected: ${selectedFile.name} (${(selectedFile.size/1024/1024).toFixed(1)} MB)`;
+  }
+}
+
+async function populateCompanySelects() {
+  const companies = await apiFetch('/companies');
+  if (!companies) return;
+  const opts = companies.map(c => `<option value="${c.id}">${c.name} ${c.exchange ? `(${c.exchange})` : '(Private)'}</option>`).join('');
+  const empOpt = '<option value="">Select company…</option>';
+  document.getElementById('up-company').innerHTML = empOpt + opts;
+  document.getElementById('fin-company').innerHTML = empOpt + opts;
+  document.getElementById('doc-company-filter').innerHTML = '<option value="">All companies</option>' + opts;
+}
+
+async function uploadFile() {
+  const companyId = document.getElementById('up-company').value;
+  if (!companyId) { showAlert('upload-alert','Please select a company.','error'); return; }
+  if (!selectedFile) { showAlert('upload-alert','Please select a PDF file.','error'); return; }
+
+  const fd = new FormData();
+  fd.append('file',           selectedFile);
+  fd.append('company_id',     companyId);
+  fd.append('entity_type',    document.getElementById('up-entity').value);
+  fd.append('report_type',    document.getElementById('up-report').value);
+  fd.append('fiscal_year_end', document.getElementById('up-fy').value);
+
+  document.getElementById('up-btn').disabled = true;
+  document.getElementById('up-btn').textContent = 'Uploading…';
+
+  const res = await apiPost('/documents/upload', fd);
+  document.getElementById('up-btn').disabled = false;
+  document.getElementById('up-btn').textContent = 'Upload & Ingest';
+
+  if (res) {
+    showAlert('upload-alert', `Uploaded "${res.filename}" (doc #${res.document_id}). Ingestion running…`, 'success');
+    selectedFile = null;
+    document.getElementById('up-file').value = '';
+    document.getElementById('selected-file').style.display = 'none';
+    startJobPolling(res.document_id, res.filename);
+  }
+}
+
+function startJobPolling(docId, filename) {
+  document.getElementById('jobs-card').style.display = 'block';
+  activeJobs[docId] = { filename, status: 'processing' };
+  renderJobs();
+  const iv = setInterval(async () => {
+    const doc = await apiFetch(`/documents/${docId}/status`);
+    if (!doc) return;
+    activeJobs[docId] = { filename, status: doc.extraction_status, logs: doc.logs };
+    renderJobs();
+    if (doc.extraction_status === 'done' || doc.extraction_status === 'failed') {
+      clearInterval(iv);
+    }
+  }, 3000);
+}
+
+function renderJobs() {
+  document.getElementById('jobs-list').innerHTML = Object.entries(activeJobs).map(([id, job]) => `
+    <div style="margin-bottom:1rem">
+      <div class="flex">
+        <strong style="font-size:.875rem">#${id} — ${job.filename}</strong>
+        <span class="badge badge-${job.status} ml-auto">${job.status}</span>
+      </div>
+      ${job.status === 'processing' ? '<div class="progress-bar"><div class="progress-fill" style="width:60%;animation:none;background:linear-gradient(90deg,var(--blue) 0%,var(--accent) 50%,var(--blue) 100%);background-size:200%;animation:shimmer 1.5s infinite"></div></div>' : ''}
+      ${job.logs ? `<div class="log-box" style="margin-top:.5rem;max-height:120px">${job.logs.slice(0,5).map(l => `[${l.level}] ${l.message}`).join('\n')}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+// ---------------------------------------------------------------------------
+// Documents
+// ---------------------------------------------------------------------------
+async function loadDocuments() {
+  const companyId = document.getElementById('doc-company-filter').value;
+  const url = companyId ? `/documents?company_id=${companyId}` : '/documents';
+  const data = await apiFetch(url);
+  if (!data) return;
+  const tbody = document.getElementById('documents-tbody');
+  if (!data.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty">No documents yet.</td></tr>'; return; }
+  tbody.innerHTML = data.map(d => `<tr>
+    <td>${d.company_name || '—'}</td>
+    <td style="font-size:.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${d.filename}">${d.filename}</td>
+    <td>${d.report_type || '—'}</td>
+    <td><span class="badge badge-${d.entity_type}">${d.entity_type}</span></td>
+    <td>${d.fiscal_year_end || '—'}</td>
+    <td>${d.page_count || '—'}${d.has_ocr ? ' 🔍' : ''}</td>
+    <td><span class="badge badge-${d.extraction_status}">${d.extraction_status}</span></td>
+    <td>${d.confidence_score != null ? (d.confidence_score*100).toFixed(0)+'%' : '—'}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-sm" style="background:#eee" onclick="viewDocLog(${d.id})">Logs</button>
+      ${d.extraction_status === 'failed' ? `<button class="btn btn-sm btn-primary" style="margin-left:.3rem" onclick="retryDoc(${d.id})">Retry</button>` : ''}
+    </td>
+  </tr>`).join('');
+}
+
+async function viewDocLog(docId) {
+  const doc = await apiFetch(`/documents/${docId}/status`);
+  if (!doc) return;
+  alert(doc.logs.map(l => `[${l.level.toUpperCase()}] ${l.message}`).join('\n'));
+}
+
+async function retryDoc(docId) {
+  const res = await fetch(`${API}/documents/${docId}/retry`, { method: 'POST' });
+  if (res.ok) {
+    startJobPolling(docId, `Document #${docId}`);
+    loadDocuments();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Patterns
+// ---------------------------------------------------------------------------
+async function loadPatterns() {
+  const stmt = document.getElementById('pat-stmt-filter').value;
+  const url = stmt ? `/patterns?statement=${stmt}` : '/patterns';
+  const data = await apiFetch(url);
+  if (!data) return;
+
+  // Group by canonical_key
+  const grouped = {};
+  data.forEach(p => {
+    const k = `${p.statement}::${p.canonical_key}`;
+    if (!grouped[k]) grouped[k] = { key: p.canonical_key, stmt: p.statement, patterns: [] };
+    grouped[k].patterns.push({ label: p.raw_label, count: p.match_count });
+  });
+
+  document.getElementById('pattern-count').textContent =
+    `${data.length} patterns across ${Object.keys(grouped).length} canonical keys`;
+
+  document.getElementById('pattern-grid').innerHTML =
+    Object.values(grouped).map(g => `
+      <div class="pattern-item">
+        <div class="flex">
+          <span class="key">${g.stmt.toUpperCase()} › ${g.key}</span>
+          <span class="count">${g.patterns.length} labels</span>
+        </div>
+        ${g.patterns.slice(0,6).map(p =>
+          `<div class="raw" style="margin-top:.3rem;font-size:.78rem">
+            "${p.label}" <span style="color:var(--muted);font-size:.7rem">×${p.count}</span>
+          </div>`
+        ).join('')}
+        ${g.patterns.length > 6 ? `<div class="text-muted" style="font-size:.72rem;margin-top:.3rem">+${g.patterns.length-6} more</div>` : ''}
+      </div>
+    `).join('');
+}
+
+async function exportPatterns() {
+  window.open(`${API}/patterns/export`, '_blank');
+}
+
+// ---------------------------------------------------------------------------
+// Financials
+// ---------------------------------------------------------------------------
+async function loadFinancials() {
+  const companyId = document.getElementById('fin-company').value;
+  const stmt = document.getElementById('fin-stmt').value;
+  if (!companyId) return;
+  const url = stmt ? `/financials/${companyId}?statement=${stmt}` : `/financials/${companyId}`;
+  const data = await apiFetch(url);
+  if (!data || !data.length) {
+    document.getElementById('fin-table-wrap').innerHTML = '<div class="empty">No financial data for this company yet.</div>';
+    return;
+  }
+
+  // Pivot: rows by (statement, row_label) × period columns
+  const periods = [...new Set(data.map(r => r.period))].sort().reverse();
+  const rowMap = {};
+  data.forEach(r => {
+    const k = `${r.statement}::${r.row_label}`;
+    if (!rowMap[k]) rowMap[k] = { stmt: r.statement, label: r.row_label, vals: {} };
+    rowMap[k].vals[r.period] = r.value;
+  });
+
+  const fmtNum = v => v == null ? '—' : v < 0
+    ? `<span style="color:var(--red)">(${Math.abs(v).toLocaleString()})</span>`
+    : v.toLocaleString();
+
+  let html = `<table>
+    <thead><tr><th>Statement</th><th>Row</th>${periods.map(p=>`<th style="text-align:right">${p}</th>`).join('')}</tr></thead>
+    <tbody>`;
+
+  const order = ['pnl','bs'];
+  order.forEach(stmt => {
+    const stmtRows = Object.values(rowMap).filter(r => r.stmt === stmt);
+    if (!stmtRows.length) return;
+    html += `<tr><td colspan="${periods.length+2}" style="background:#f0f4f8;font-weight:700;font-size:.75rem;color:var(--muted);padding:.4rem .8rem">${stmt === 'pnl' ? 'PROFIT & LOSS' : 'BALANCE SHEET'}</td></tr>`;
+    stmtRows.forEach(r => {
+      html += `<tr><td></td><td>${r.label}</td>${periods.map(p=>`<td style="text-align:right">${fmtNum(r.vals[p])}</td>`).join('')}</tr>`;
+    });
+  });
+  html += '</tbody></table>';
+  document.getElementById('fin-table-wrap').innerHTML = html;
+}
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+async function loadSettings() {
+  const s = await apiFetch('/settings');
+  if (!s) return;
+  const el = document.getElementById('settings-status');
+  if (s.api_key_set) {
+    el.innerHTML = `<span style="color:var(--green)">✓ API key configured</span> — <code style="font-size:.8rem">${s.api_key_preview}</code>`;
+    document.getElementById('api-key-warning').style.display = 'none';
+  } else {
+    el.innerHTML = `<span style="color:var(--red)">✗ No valid API key set</span> — enter one below.`;
+    document.getElementById('api-key-warning').style.display = 'inline-block';
+  }
+  document.getElementById('s-model').value = s.claude_model || 'claude-opus-4-5';
+}
+
+async function saveSettings() {
+  const key   = document.getElementById('s-api-key').value.trim();
+  const model = document.getElementById('s-model').value;
+  const fd = new FormData();
+  if (key) fd.append('api_key', key);
+  fd.append('claude_model', model);
+
+  try {
+    const res = await fetch(`${API}/settings`, { method: 'POST', body: fd });
+    const json = await res.json();
+    if (res.ok) {
+      showAlert('settings-alert', json.message, 'success');
+      document.getElementById('s-api-key').value = '';
+      loadSettings();
+    } else {
+      showAlert('settings-alert', json.detail || 'Error', 'error');
+    }
+  } catch(e) {
+    showAlert('settings-alert', e.message, 'error');
+  }
+}
+
+async function checkApiKey() {
+  const s = await apiFetch('/settings');
+  if (!s) return;
+  if (!s.api_key_set) {
+    document.getElementById('api-key-warning').style.display = 'inline-block';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+async function apiFetch(path) {
+  try {
+    const res = await fetch(API + path);
+    if (!res.ok) { console.error(await res.text()); return null; }
+    return res.json();
+  } catch(e) { console.error(e); return null; }
+}
+
+async function apiPost(path, formData) {
+  try {
+    const res = await fetch(API + path, { method: 'POST', body: formData });
+    const json = await res.json();
+    if (!res.ok) { showAlert('upload-alert', json.detail || 'Error', 'error'); return null; }
+    return json;
+  } catch(e) { showAlert('upload-alert', e.message, 'error'); return null; }
+}
+
+function showAlert(containerId, msg, type) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  if (type !== 'error') setTimeout(() => { el.innerHTML = ''; }, 5000);
+}
+
+function setUploadCompany(id) {
+  document.getElementById('up-company').value = id;
+}
+
+// Drag and drop
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.pdf')) {
+    selectedFile = file;
+    document.getElementById('selected-file').style.display = 'block';
+    document.getElementById('selected-file').textContent = `Selected: ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
+  }
+});
+
+// Init
+loadDashboard();
+checkApiKey();
+</script>
+</body>
+</html>

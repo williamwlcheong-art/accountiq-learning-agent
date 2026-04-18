@@ -1,0 +1,31 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Environment — NEVER commit secrets
+.env
+
+# Database (large, generated at runtime)
+data/accountiq_learning.db
+data/accountiq_learning.db-wal
+data/accountiq_learning.db-shm
+
+# Uploaded PDFs (large binary files)
+data/pdfs/
+
+# Exported pattern files (generated)
+data/exports/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
