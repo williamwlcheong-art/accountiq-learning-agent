@@ -151,8 +151,9 @@ async def upload_document(
     fiscal_year_end: str = Form(""),
     db: aiosqlite.Connection = Depends(get_db),
 ):
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(400, "Only PDF files are accepted.")
+    allowed = {".pdf", ".xlsx", ".xls", ".xlsm"}
+    if Path(file.filename).suffix.lower() not in allowed:
+        raise HTTPException(400, f"Only PDF and Excel files are accepted. Got: {Path(file.filename).suffix}")
 
     # Verify company exists
     async with db.execute("SELECT id, exchange FROM companies WHERE id=?", (company_id,)) as cur:
@@ -359,7 +360,7 @@ async def get_settings():
     return {
         "api_key_set": bool(key and not key.startswith("sk-ant-YOUR")),
         "api_key_preview": (key[:12] + "…" + key[-4:]) if len(key) > 20 else ("" if not key else "set"),
-        "claude_model": ing.CLAUDE_MODEL,
+        "claude_model": os.environ.get("CLAUDE_MODEL") or ing.CLAUDE_MODEL,
         "env_file": str(ENV_PATH),
     }
 

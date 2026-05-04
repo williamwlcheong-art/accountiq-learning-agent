@@ -108,6 +108,19 @@ async def get_db() -> aiosqlite.Connection:
         yield db
 
 
+def _migrate_db(conn: sqlite3.Connection):
+    """Add columns introduced in v2 — safe to run on an existing database."""
+    for sql in [
+        "ALTER TABLE documents ADD COLUMN narrative TEXT",
+        "ALTER TABLE documents ADD COLUMN reporting_standard TEXT DEFAULT 'UNKNOWN'",
+    ]:
+        try:
+            conn.execute(sql)
+        except sqlite3.OperationalError:
+            pass  # column already exists
+    conn.commit()
+
+
 def init_db():
     """Create all tables if they don't exist (called at startup)."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -115,6 +128,7 @@ def init_db():
     try:
         conn.executescript(SCHEMA)
         conn.commit()
+        _migrate_db(conn)
         print(f"[DB] Initialised at {DB_PATH}")
     finally:
         conn.close()
