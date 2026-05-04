@@ -85,15 +85,16 @@
 
 | Requirement | Phase |
 |-------------|-------|
-| AUTH-01–03  | TBD — Security & Auth Foundation |
-| AUTH-04–08  | TBD — Security & Auth Foundation |
-| EXTR-01–05  | TBD — Extraction Quality |
-| FILE-01–02  | TBD — Extraction Quality |
-| PROF-01–04  | TBD — Business Profile Intake |
-| REPT-01–06  | TBD — Report Generation Engine |
-| PAY-01–03   | TBD — Payment Integration |
-| DELIV-01–03 | TBD — PDF Rendering & Delivery |
-| DATA-01     | TBD — Security & Auth Foundation |
+| AUTH-01–03  | Phase 1 — Security & Auth Foundation |
+| AUTH-04–06, AUTH-08 | Phase 1 — Security & Auth Foundation |
+| AUTH-07     | Phase 2 — Multi-User Data Isolation |
+| DATA-01     | Phase 2 — Multi-User Data Isolation |
+| PROF-01–04  | Phase 3 — Business Profile Intake |
+| EXTR-01–05  | Phase 4 — Extraction Quality |
+| FILE-01–02  | Phase 4 — Extraction Quality |
+| REPT-01–06  | Phase 5 — Report Generation Engine |
+| PAY-01–03   | Phase 6 — Payment Integration |
+| DELIV-01–03 | Phase 7 — PDF Rendering & Delivery |
 
 ---
 
