@@ -1,0 +1,102 @@
+# Research Summary — AccountIQ
+
+*Synthesised: 2026-05-04*
+
+---
+
+## Executive Summary
+
+AccountIQ is a pay-per-report financial intelligence platform for SME business owners. The domain research confirms the product is viable but sits at the intersection of three hard problems: financial data extraction from messy SME documents, AI-generated narrative reports that must meet professional quality standards, and a payment flow where the money and the generation job must be tightly sequenced. All three must work reliably before the product can be shown to external users.
+
+The recommended approach is to extend the existing FastAPI + SQLite + Vanilla JS stack rather than introduce new infrastructure. The only net-new libraries needed are `python-jose` + `passlib` for auth, `stripe` for payments, `weasyprint` for PDF rendering, and `python-docx` for Word ingestion — everything else either already exists or is a deliberate defer. The architecture is deliberately simple: background tasks with DB-backed job state, stateless JWT auth, and Stripe webhooks as the authoritative trigger for report generation. The key constraint is that security gaps (no auth, wildcard CORS, unsanitised filenames, innerHTML XSS) must be closed in Phase 1 — the codebase is not safe for external users in its current state.
+
+The two highest-quality risks are extraction failures on SME-format documents and report quality failures from missing EBITDA normalisation. Both are mitigated by building the business profile intake (Phase 3) before the report engine (Phase 5), and by hardening extraction (Phase 4) before generation runs on its output. The phase order in the architecture research is the right build sequence — follow it.
+
+---
+
+## Recommended Stack Additions
+
+- **`python-jose[cryptography]` ~3.3** — JWT encoding/decoding for stateless auth (no Redis session store)
+- **`passlib[bcrypt]` ~1.7** — Password hashing; bcrypt is the FastAPI ecosystem standard
+- **`stripe` ~11.x** — Stripe Python SDK for PaymentIntent creation and webhook verification
+- **`weasyprint` ~62.x** — HTML/CSS to PDF renderer; enables designer-editable report templates
+- **`python-docx` ~1.x** — Word document ingestion; critical for SME accounts distributed as .docx
+- **`jinja2` ~3.x** — HTML template engine for report templates (already installed as FastAPI dependency, no new install)
+
+Do NOT add: SQLAlchemy/Alembic, Redis, Celery, React/Next.js, PostgreSQL. These would require rewrites or infrastructure that is not justified at v1 scale.
+
+Pin all new dependencies to exact minor versions in `requirements.txt` (e.g., `stripe==11.4.0`).
+
+---
+
+## Build Order
+
+1. **Phase 1 — Security & Auth Foundation** — Close existing security holes (CORS, XSS, filenames) and add JWT login/registration before any external user touches the system.
+
+2. **Phase 2 — Data Isolation** — Add `user_id` to `companies` and `documents`; filter all routes by authenticated user to prevent cross-user data leakage.
+
+3. **Phase 3 — Business Profile Intake** — Capture industry/sector, management team, and EBITDA add-backs before report generation is built; without this input, reports are generic and valuations are meaningless.
+
+4. **Phase 4 — Extraction Quality** — Fix sign convention handling, multi-page statement aggregation, period attribution, and add Word (.docx) ingestion; bad extraction produces bad reports regardless of prompt quality.
+
+5. **Phase 5 — Report Generation Engine** — Build the Claude prompt pipeline (one per report type), DB-backed job state, retry logic with exponential backoff, and industry multiple lookup table.
+
+6. **Phase 6 — Payment Integration** — Stripe PaymentIntent + webhook handler; webhook is the authoritative trigger for generation (never the client-side callback).
+
+7. **Phase 7 — PDF Rendering & Delivery** — WeasyPrint + Jinja2 templates, PDF download endpoint, web viewer (user reviews before download), and mandatory disclaimer/watermark footer on every page.
+
+---
+
+## Table Stakes Features
+
+Users will immediately reject the product or demand refunds if any of these are missing:
+
+- **Accurate financial data extraction** — errors in a paid report destroy trust on first use
+- **Professional visual formatting** — must look like a Big 4 document, not a plain Word export
+- **3+ years of historical financials** — single-year analysis is not credible for valuation or lending
+- **Normalised / adjusted EBITDA** — the signature SME value-add; without it, valuation reports are useless
+- **Industry context and benchmarks** — sector-specific multiples and commentary; generic outputs feel like a template
+- **Narrative text throughout** — numbers without interpretation are not a report
+- **PDF download** — must be shareable with banks, advisors, and investors without app access
+- **Disclaimer / indicative-only language** — both legal protection and user expectation management
+- **Watermark on every PDF** — "Generated by AccountIQ — Indicative Only — Not a Certified Financial Report"
+
+---
+
+## Critical Pitfalls to Avoid
+
+1. **Generating reports before payment confirmed** — Never trigger generation from the client-side success callback; wait for the Stripe `payment_intent.succeeded` webhook. Race conditions here mean free reports.
+
+2. **No EBITDA normalisation = meaningless valuation** — Block report generation if the business profile has no add-backs and EBITDA looks suspiciously low vs revenue; show adjusted vs unadjusted side by side.
+
+3. **Wrong industry multiple applied** — Require the user to confirm their industry/sector before generation; apply multiples from a curated lookup table keyed to standardised sector codes, not a generic range.
+
+4. **SME document formats breaking extraction** — SME accounts use Xero exports, MYOB layouts, accountant-prepared one-pagers, and non-standard line item labels ("Directors Fees", "Owners Drawings"). The extraction pipeline must handle these explicitly; multi-page statement aggregation must be fixed (current rule extractor picks only the highest-scoring single page).
+
+5. **Sign convention inconsistency** — Costs of sales and expenses must be stored as negatives (income statement normal form); parenthetical negatives `(1,234)` and explicit negatives `−1,234` must both be handled. Validate: Revenue − COGS must produce a positive Gross Profit.
+
+6. **Blocking sync calls in async event loop** — WeasyPrint, pdfplumber, and pandas are all synchronous. Wrap in `asyncio.get_running_loop().run_in_executor(None, ...)` to avoid blocking the FastAPI async loop.
+
+7. **Silent background task failures with no retry** — Claude calls take 30-60s and will fail transiently (429 rate limit, 529 overload). Add `retry_count` to the `reports` table, retry up to 3x with exponential backoff, and surface the error reason in the UI.
+
+---
+
+## Open Questions
+
+These are ambiguities that require a product or user decision before the relevant phase can be planned:
+
+1. **Pricing per report type** — What is the price (in AUD cents) for each of the 5 report types? Required to populate `reports.price_cents` and the Stripe PaymentIntent amount. Flat fee or tiered by report type?
+
+2. **Report generation time expectation** — Is the user expected to wait on-screen (30-120s), or is an async "notify when ready" flow acceptable for v1? This determines whether email notifications (Resend SDK) are a v1 requirement or a defer.
+
+3. **Industry multiple data source and update cadence** — Who owns the `industry_multiples` seed table, and how often should it be updated? Quarterly manual update is the plan; someone must own this.
+
+4. **Existing data migration** — Existing `companies` and `documents` rows have no `user_id`. Assign to an admin/seed user, or delete during Phase 2 migration? Decision needed before Phase 2 can be executed.
+
+5. **Capital raising and IM non-financial inputs** — These report types require team bios, use of funds, reason for sale, and asking price. Does Phase 3 business profile intake need to capture all of these in v1, or are placeholders acceptable in first-draft output?
+
+6. **Refund policy** — No-refund-after-PDF-download must be in the Terms of Service before the payment flow ships. Has this been reviewed?
+
+---
+
+*Sources: STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md — all researched 2026-05-04*
