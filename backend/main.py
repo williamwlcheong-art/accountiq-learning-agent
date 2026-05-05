@@ -34,7 +34,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:8765"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -164,16 +165,17 @@ async def upload_document(
     # Save file
     company_dir = PDF_DIR / str(company_id)
     company_dir.mkdir(exist_ok=True)
-    dest = company_dir / file.filename
+    dest = company_dir / Path(file.filename).name
     with open(dest, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
     # Create document record
+    safe_name = Path(file.filename).name
     async with db.execute("""
         INSERT INTO documents
             (company_id, filename, filepath, report_type, entity_type, fiscal_year_end)
         VALUES (?, ?, ?, ?, ?, ?)
-    """, (company_id, file.filename, str(dest),
+    """, (company_id, safe_name, str(dest),
           report_type, entity_type, fiscal_year_end)) as cur:
         document_id = cur.lastrowid
     await db.commit()
@@ -186,7 +188,7 @@ async def upload_document(
 
     return {
         "document_id": document_id,
-        "filename": file.filename,
+        "filename": safe_name,
         "status": "processing",
         "message": "Ingestion started in background. Poll /documents/{id}/status for progress."
     }
