@@ -4,26 +4,26 @@
 
 ---
 
-## Phase 1: Security & Auth Foundation
+## Phase 1: Security & Auth Foundation ✅ Complete (2026-05-06)
 
 **Goal:** The application is hardened against known vulnerabilities and users can register, log in, and manage their account.
 
 **Requirements:** AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, AUTH-08
 
 **Success Criteria:**
-1. A request from an unknown origin to a write endpoint receives a CORS error (not 200)
-2. Uploading a file with a path-traversal filename (e.g. `../../evil.py`) saves only to the intended directory
-3. Claude-generated narrative text displayed in the UI contains no executable script even when the source text includes `<script>` tags
-4. A new user can register with email + password and receive a JWT token
-5. A logged-in user's session persists after browser refresh and expires after 7 days
-6. A logged-out user is redirected to the login page when accessing any protected route
+1. ✅ A request from an unknown origin to a write endpoint receives a CORS error (not 200)
+2. ✅ Uploading a file with a path-traversal filename (e.g. `../../evil.py`) saves only to the intended directory
+3. ✅ Claude-generated narrative text displayed in the UI contains no executable script even when the source text includes `<script>` tags
+4. ✅ A new user can register with email + password and receive a JWT token
+5. ✅ A logged-in user's session persists after browser refresh and expires after 7 days
+6. ✅ A logged-out user is redirected to the login page when accessing any protected route
 
 **UI hint:** yes
 
 **Plans:**
-- Fix CORS wildcard, filename sanitisation, and innerHTML XSS vulnerabilities
-- Build user registration, login, and JWT auth middleware
-- Add logout flow and account/purchase-history page to frontend
+- ✅ Fix CORS wildcard, filename sanitisation, and innerHTML XSS vulnerabilities
+- ✅ Build user registration, login, and JWT auth middleware
+- ✅ Add logout flow and account/purchase-history page to frontend
 
 ---
 
