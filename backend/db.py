@@ -83,12 +83,21 @@ CREATE TABLE IF NOT EXISTS extraction_log (
     created_at  TEXT    DEFAULT (datetime('now'))
 );
 
+-- Authenticated users
+CREATE TABLE IF NOT EXISTS users (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    email       TEXT    NOT NULL UNIQUE,
+    hashed_pw   TEXT    NOT NULL,
+    created_at  TEXT    DEFAULT (datetime('now'))
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_fin_rows_doc    ON financial_rows(document_id);
 CREATE INDEX IF NOT EXISTS idx_fin_rows_company ON financial_rows(company_id);
 CREATE INDEX IF NOT EXISTS idx_fin_rows_key    ON financial_rows(row_key, period);
 CREATE INDEX IF NOT EXISTS idx_patterns_key    ON label_patterns(canonical_key);
 CREATE INDEX IF NOT EXISTS idx_patterns_raw    ON label_patterns(raw_label);
+CREATE INDEX IF NOT EXISTS idx_users_email     ON users(email);
 """
 
 

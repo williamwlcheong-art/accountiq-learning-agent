@@ -21,6 +21,7 @@ load_dotenv(ENV_PATH, override=True)
 
 from db import init_db, get_db, get_pattern_library, DB_PATH
 from ingestion import ingest_document, ALL_ROWS
+from auth import auth_router, get_current_user
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -39,6 +40,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 DATA_DIR   = Path(__file__).parent.parent / "data"
 PDF_DIR    = DATA_DIR / "pdfs"
@@ -73,7 +76,10 @@ async def health():
 # ---------------------------------------------------------------------------
 
 @app.get("/companies")
-async def list_companies(db: aiosqlite.Connection = Depends(get_db)):
+async def list_companies(
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     async with db.execute("""
         SELECT c.*, COUNT(d.id) as doc_count
         FROM companies c
@@ -93,6 +99,7 @@ async def create_company(
     sector:   str = Form(None),
     country:  str = Form("NZ"),
     db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     try:
         async with db.execute("""
@@ -109,7 +116,11 @@ async def create_company(
 
 
 @app.get("/companies/{company_id}")
-async def get_company(company_id: int, db: aiosqlite.Connection = Depends(get_db)):
+async def get_company(
+    company_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     async with db.execute("SELECT * FROM companies WHERE id=?", (company_id,)) as cur:
         row = await cur.fetchone()
     if not row:
@@ -125,6 +136,7 @@ async def get_company(company_id: int, db: aiosqlite.Connection = Depends(get_db
 async def list_documents(
     company_id: Optional[int] = None,
     db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     query = """
         SELECT d.*, c.name as company_name, c.exchange
@@ -151,6 +163,7 @@ async def upload_document(
     entity_type:    str  = Form("listed"),          # listed | sme
     fiscal_year_end: str = Form(""),
     db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     allowed = {".pdf", ".xlsx", ".xls", ".xlsm"}
     if Path(file.filename).suffix.lower() not in allowed:
@@ -209,7 +222,11 @@ async def _run_ingestion(document_id, company_id, filepath, entity_type, exchang
 
 
 @app.get("/documents/{document_id}/status")
-async def document_status(document_id: int, db: aiosqlite.Connection = Depends(get_db)):
+async def document_status(
+    document_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     async with db.execute("""
         SELECT d.*, c.name as company_name
         FROM documents d LEFT JOIN companies c ON c.id=d.company_id
@@ -230,7 +247,11 @@ async def document_status(document_id: int, db: aiosqlite.Connection = Depends(g
 
 
 @app.get("/documents/{document_id}/rows")
-async def document_rows(document_id: int, db: aiosqlite.Connection = Depends(get_db)):
+async def document_rows(
+    document_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     async with db.execute("""
         SELECT * FROM financial_rows WHERE document_id=?
         ORDER BY statement, row_key, period
@@ -248,6 +269,7 @@ async def company_financials(
     company_id: int,
     statement:  Optional[str] = None,   # 'pnl' | 'bs'
     db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     """Return all financial rows for a company, aggregated across documents."""
     query = """
@@ -278,6 +300,7 @@ async def company_financials(
 async def list_patterns(
     statement: Optional[str] = None,
     db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     query = """
         SELECT canonical_key, statement, raw_label, entity_type, exchange,
@@ -296,7 +319,10 @@ async def list_patterns(
 
 
 @app.get("/patterns/export")
-async def export_patterns(db: aiosqlite.Connection = Depends(get_db)):
+async def export_patterns(
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     """Export patterns as JSON suitable for importing into the standalone SPA."""
     lib = await get_pattern_library(db)
     export_path = EXPORT_DIR / "patterns_export.json"
@@ -312,7 +338,10 @@ async def export_patterns(db: aiosqlite.Connection = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 @app.get("/analytics/overview")
-async def analytics_overview(db: aiosqlite.Connection = Depends(get_db)):
+async def analytics_overview(
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     async with db.execute("SELECT COUNT(*) as n FROM companies") as cur:
         companies = (await cur.fetchone())["n"]
     async with db.execute("SELECT COUNT(*) as n FROM documents") as cur:
@@ -339,7 +368,10 @@ async def analytics_overview(db: aiosqlite.Connection = Depends(get_db)):
 
 
 @app.get("/analytics/confidence")
-async def confidence_stats(db: aiosqlite.Connection = Depends(get_db)):
+async def confidence_stats(
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     async with db.execute("""
         SELECT row_key, AVG(confidence) as avg_conf, COUNT(*) as n
         FROM financial_rows
@@ -355,7 +387,7 @@ async def confidence_stats(db: aiosqlite.Connection = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 @app.get("/settings")
-async def get_settings():
+async def get_settings(current_user: dict = Depends(get_current_user)):
     """Return current settings (API key masked)."""
     key = os.environ.get("ANTHROPIC_API_KEY", "")
     import ingestion as ing
@@ -371,6 +403,7 @@ async def get_settings():
 async def update_settings(
     api_key:      str = Form(None),
     claude_model: str = Form(None),
+    current_user: dict = Depends(get_current_user),
 ):
     """Persist settings to .env and reload into the running process."""
     import ingestion as ing
@@ -399,6 +432,7 @@ async def retry_document(
     document_id: int,
     background_tasks: BackgroundTasks,
     db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     """Re-run ingestion on a previously failed or pending document."""
     # Join companies to get exchange

@@ -12,6 +12,20 @@ from httpx import AsyncClient, ASGITransport
 BACKEND_DIR = Path(__file__).resolve().parent.parent / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
+# Load .env before any module imports so SECRET_KEY and ANTHROPIC_API_KEY are available.
+# Walk up from the tests/ dir to find the .env (handles both worktree and main-repo runs).
+_HERE = Path(__file__).resolve().parent
+for _candidate in [
+    _HERE.parent / ".env",
+    _HERE.parent.parent / ".env",
+    _HERE.parent.parent.parent / ".env",
+    _HERE.parent.parent.parent.parent / ".env",  # main repo root when running in a git worktree
+]:
+    if _candidate.exists():
+        from dotenv import load_dotenv as _load_dotenv
+        _load_dotenv(_candidate, override=False)  # override=False: env vars already set by CI take precedence
+        break
+
 # CRITICAL: override DB_PATH BEFORE importing main (which imports db at module level)
 _TMP_DB_FD, _TMP_DB_PATH = tempfile.mkstemp(suffix="_test.db")
 os.close(_TMP_DB_FD)
