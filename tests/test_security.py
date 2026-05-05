@@ -42,7 +42,7 @@ async def test_cors_allowed_origin_localhost(client):
 # ------------------------------------------------------------------
 
 async def test_filename_traversal_basename_only(client, tmp_path, monkeypatch):
-    """Uploading with filename '../../evil.py' must save to basename 'evil.py' only."""
+    """Uploading with filename '../../evil.pdf' must save to basename 'evil.pdf' only."""
     # Need a company first — create one (this also exercises auth in later phases)
     cr = await client.post(
         "/companies",
@@ -54,7 +54,9 @@ async def test_filename_traversal_basename_only(client, tmp_path, monkeypatch):
         pytest.skip("Auth gate active — re-run after authenticated upload helper added")
     company_id = cr.json()["id"]
 
-    evil_name = "../../evil.py"
+    # Use a .pdf extension so the upload extension allowlist passes;
+    # the traversal components (../../) must be stripped by Path(...).name.
+    evil_name = "../../evil.pdf"
     files = {"file": (evil_name, io.BytesIO(b"%PDF-1.4 fake"), "application/pdf")}
     r = await client.post(
         "/documents/upload",
@@ -75,4 +77,4 @@ async def test_filename_traversal_basename_only(client, tmp_path, monkeypatch):
     assert ".." not in body["filename"], (
         f"filename leaked traversal: {body['filename']!r}"
     )
-    assert body["filename"] == "evil.py"
+    assert body["filename"] == "evil.pdf"
