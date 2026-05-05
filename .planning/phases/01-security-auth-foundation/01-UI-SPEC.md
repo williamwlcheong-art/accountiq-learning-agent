@@ -1,10 +1,11 @@
 ---
 phase: 1
 slug: security-auth-foundation
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-05-05
+reviewed_at: 2026-05-05
 ---
 
 # Phase 1 — UI Design Contract
@@ -62,14 +63,15 @@ All sizes derived from existing frontend/index.html patterns. No new type sizes 
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Body | 14px (0.875rem) | 400 | 1.5 | Form field values, general text, alert messages |
-| Label | 12.8px (0.8rem) | 600 | 1.4 | Form labels (matches existing `label` rule) |
+| Label | 12.8px (0.8rem) | 400 | 1.4 | Form labels, field errors, user email, brand subtext (matches existing `label` rule) |
 | Heading | 16px (1rem) | 600 | 1.3 | Card h2 headings (matches existing `.card h2`) |
-| Section title | 17.6px (1.1rem) | 700 | 1.2 | Page section headings (matches existing `.section-title`) |
+| Section title | 17.6px (1.1rem) | 600 | 1.2 | Page section headings, nav brand (matches existing `.section-title`) |
 
 Notes:
-- Nav brand: 17.6px (1.1rem) weight 700 — keep as-is
-- User email in header: 12px (0.75rem) weight 400, opacity 0.85 — matches existing `nav span` style
-- Do not introduce new font sizes. All auth UI uses sizes from this table.
+- Nav brand: 17.6px (1.1rem) weight 600 — keep as-is (consolidated from 700)
+- User email in header: 12.8px (0.8rem) weight 400, opacity 0.85 — matches Label scale
+- Auth card brand subtext: 12.8px (0.8rem) weight 400 — matches Label scale
+- Do not introduce new font sizes. All auth UI uses sizes from this table (2 weights: 400 body/label, 600 heading/display).
 
 ---
 
@@ -115,7 +117,7 @@ All new components follow existing patterns exactly. No new CSS classes unless s
 **Layout:**
 - `position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:200`
 - Centered card: `max-width:400px; width:90%; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:2rem`
-- Brand heading inside card: "AccountIQ" at 1.1rem weight 700 color var(--navy), subtext "Financial Intelligence Platform" at 0.75rem color var(--muted)
+- Brand heading inside card: "AccountIQ" at 1.1rem weight 600 color var(--navy), subtext "Financial Intelligence Platform" at 0.8rem color var(--muted)
 
 **Login form fields (default state):**
 - Email: `<input type="email">` with label "Email address" — uses existing `input` rule
@@ -125,7 +127,7 @@ All new components follow existing patterns exactly. No new CSS classes unless s
 
 **Register form fields (toggled state):**
 - Email: same as login
-- Password: `<input type="password">` with label "Password" and helper text "Minimum 8 characters" at 0.75rem var(--muted)
+- Password: `<input type="password">` with label "Password" and helper text "Minimum 8 characters" at 0.8rem var(--muted)
 - Confirm password: `<input type="password">` with label "Confirm password"
 - Submit: `<button class="btn btn-primary">` full width — label "Create account"
 - Toggle link: "Already have an account? Sign in" — "Sign in" part is an `<a>` styled same as above
@@ -148,7 +150,7 @@ All new components follow existing patterns exactly. No new CSS classes unless s
 
 **User email display:**
 - Element: `<span id="user-email">` 
-- Style: `font-size:0.75rem; opacity:0.85; color:#fff; margin-left:0.5rem`
+- Style: `font-size:0.8rem; opacity:0.85; color:#fff; margin-left:0.5rem`
 - Content set via `element.textContent = user.email` (never innerHTML)
 
 **Logout button:**
@@ -349,11 +351,11 @@ No third-party blocks. No vetting required.
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-05-05
