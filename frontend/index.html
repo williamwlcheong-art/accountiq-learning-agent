@@ -99,6 +99,19 @@
   .alert-success{background:#e8f5e9;color:var(--green);border:1px solid #a5d6a7}
   .alert-error{background:#ffebee;color:var(--red);border:1px solid #ef9a9a}
   .alert-info{background:#e3f2fd;color:var(--blue);border:1px solid #90caf9}
+  /* Auth wall (Phase 1) */
+  .auth-page{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem}
+  .auth-card{width:400px;max-width:95vw;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:2rem}
+  .auth-card h2{font-size:1.1rem;font-weight:600;color:var(--navy);margin-bottom:.25rem}
+  .auth-card .auth-subtext{font-size:.8rem;color:var(--muted);margin-bottom:1.25rem}
+  .auth-toggle{text-align:center;margin-top:1rem;font-size:.85rem;color:var(--muted)}
+  .auth-toggle a{color:var(--blue);cursor:pointer;text-decoration:none}
+  .auth-toggle a:hover{text-decoration:underline}
+  .auth-field-error{font-size:.8rem;color:var(--red);margin-top:.25rem;display:none}
+  .btn-ghost-light{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)}
+  .btn-ghost-light:hover{background:rgba(255,255,255,.25)}
+  #user-header{display:none;align-items:center;gap:.75rem;margin-left:.75rem}
+  #user-email{font-size:.8rem;opacity:.85;color:#fff}
 </style>
 </head>
 <body>
@@ -112,6 +125,58 @@
   </div>
 </div>
 
+<!-- Auth wall (Phase 1 — D-01) -->
+<div id="auth-page" class="auth-page" style="display:none">
+  <div class="auth-card">
+    <h2>AccountIQ</h2>
+    <div class="auth-subtext">Financial Intelligence Platform</div>
+    <div id="auth-alert"></div>
+
+    <!-- Login form (default visible) -->
+    <div id="login-form">
+      <h3 style="font-size:.95rem;color:var(--navy);margin-bottom:1rem;font-weight:600">Sign in to AccountIQ</h3>
+      <div class="form-group" style="margin-bottom:1rem">
+        <label for="auth-email">Email address</label>
+        <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="username"/>
+      </div>
+      <div class="form-group" style="margin-bottom:1rem">
+        <label for="auth-password">Password</label>
+        <input id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button id="login-submit" class="btn btn-primary" style="width:100%" onclick="submitLogin()">Sign in</button>
+      <div class="auth-toggle">
+        Don't have an account? <a onclick="toggleAuthForm()">Create account</a>
+      </div>
+    </div>
+
+    <!-- Register form (hidden by default) -->
+    <div id="register-form" style="display:none">
+      <h3 style="font-size:.95rem;color:var(--navy);margin-bottom:1rem;font-weight:600">Create your account</h3>
+      <div class="form-group" style="margin-bottom:1rem">
+        <label for="reg-email">Email address</label>
+        <input id="reg-email" type="email" placeholder="you@example.com" autocomplete="username"/>
+      </div>
+      <div class="form-group" style="margin-bottom:.75rem">
+        <label for="reg-password">Password</label>
+        <input id="reg-password" type="password" placeholder="••••••••" autocomplete="new-password"/>
+        <div class="text-muted" style="font-size:.75rem;margin-top:.25rem">Minimum 8 characters</div>
+        <div id="reg-password-error" class="auth-field-error"></div>
+      </div>
+      <div class="form-group" style="margin-bottom:1rem">
+        <label for="reg-password-confirm">Confirm password</label>
+        <input id="reg-password-confirm" type="password" placeholder="••••••••" autocomplete="new-password"/>
+        <div id="reg-confirm-error" class="auth-field-error"></div>
+      </div>
+      <button id="register-submit" class="btn btn-primary" style="width:100%" onclick="submitRegister()">Create account</button>
+      <div class="auth-toggle">
+        Already have an account? <a onclick="toggleAuthForm()">Sign in</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="main-app" style="display:none">
+
 <nav>
   <h1>AccountIQ <span>Learning Agent</span></h1>
   <div class="nav-tabs">
@@ -121,10 +186,15 @@
     <button class="nav-tab" onclick="showPage('documents')">Documents</button>
     <button class="nav-tab" onclick="showPage('patterns')">Patterns</button>
     <button class="nav-tab" onclick="showPage('financials')">Financials</button>
+    <button class="nav-tab" onclick="showPage('account')">Account</button>
     <button class="nav-tab" onclick="showPage('settings')" id="settings-tab">⚙ Settings</button>
   </div>
   <div id="api-key-warning" style="display:none;margin-left:1rem;background:#f57c00;color:#fff;font-size:.75rem;padding:.25rem .7rem;border-radius:12px;cursor:pointer" onclick="showPage('settings')">
     ⚠ API key not set
+  </div>
+  <div id="user-header">
+    <span id="user-email"></span>
+    <button id="logout-btn" class="btn btn-sm btn-ghost-light" onclick="doLogout()">Sign out</button>
   </div>
 </nav>
 
@@ -338,6 +408,31 @@
   </div>
 </div>
 
+<!-- ACCOUNT (AUTH-08) -->
+<div id="page-account" class="page">
+  <div class="section-title">Account</div>
+
+  <div class="card" style="max-width:720px">
+    <h2>Account Details</h2>
+    <div class="form-grid" style="grid-template-columns:140px 1fr">
+      <label style="align-self:center">Email address</label>
+      <div id="acct-email" style="font-size:.875rem">—</div>
+      <label style="align-self:center">Member since</label>
+      <div id="acct-created" style="font-size:.875rem">—</div>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:720px">
+    <h2>Report Purchase History</h2>
+    <div class="empty">
+      <div style="font-weight:600;margin-bottom:.25rem">No reports yet</div>
+      <div style="font-size:.85rem">Your purchased reports will appear here. Reports are available after uploading financial statements.</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /#main-app -->
+
 <script>
 const API = 'http://localhost:8765';
 let activeJobs = {};
@@ -345,7 +440,7 @@ let activeJobs = {};
 // ---------------------------------------------------------------------------
 // Navigation
 // ---------------------------------------------------------------------------
-const PAGES = ['dashboard','companies','upload','documents','patterns','financials','settings'];
+const PAGES = ['dashboard','companies','upload','documents','patterns','financials','account','settings'];
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -358,6 +453,7 @@ function showPage(name) {
   if (name === 'documents')   loadDocuments();
   if (name === 'patterns')    loadPatterns();
   if (name === 'financials')  populateCompanySelects();
+  if (name === 'account')     loadAccount();
   if (name === 'settings')    loadSettings();
 }
 
@@ -723,7 +819,8 @@ async function viewDocLog(docId) {
 }
 
 async function retryDoc(docId) {
-  const res = await fetch(`${API}/documents/${docId}/retry`, { method: 'POST' });
+  const res = await fetch(`${API}/documents/${docId}/retry`, { method: 'POST', credentials: 'include' });
+  if (res.status === 401) { showAuthWall(true); return; }
   if (res.ok) {
     startJobPolling(docId, `Document #${docId}`);
     loadDocuments();
@@ -911,7 +1008,8 @@ async function saveSettings() {
   fd.append('claude_model', model);
 
   try {
-    const res = await fetch(`${API}/settings`, { method: 'POST', body: fd });
+    const res = await fetch(`${API}/settings`, { method: 'POST', body: fd, credentials: 'include' });
+    if (res.status === 401) { showAuthWall(true); return; }
     const json = await res.json();
     if (res.ok) {
       showAlert('settings-alert', json.message, 'success');
@@ -938,7 +1036,8 @@ async function checkApiKey() {
 // ---------------------------------------------------------------------------
 async function apiFetch(path) {
   try {
-    const res = await fetch(API + path);
+    const res = await fetch(API + path, { credentials: 'include' });
+    if (res.status === 401) { showAuthWall(true); return null; }
     if (!res.ok) { console.error(await res.text()); return null; }
     return res.json();
   } catch(e) { console.error(e); return null; }
@@ -946,7 +1045,8 @@ async function apiFetch(path) {
 
 async function apiPost(path, formData) {
   try {
-    const res = await fetch(API + path, { method: 'POST', body: formData });
+    const res = await fetch(API + path, { method: 'POST', body: formData, credentials: 'include' });
+    if (res.status === 401) { showAuthWall(true); return null; }
     const json = await res.json();
     if (!res.ok) { showAlert('upload-alert', json.detail || 'Error', 'error'); return null; }
     return json;
@@ -1015,9 +1115,195 @@ function closeNarrativeBtn() {
   document.getElementById('narrative-modal').classList.remove('open');
 }
 
-// Init
-loadDashboard();
-checkApiKey();
+// ---------------------------------------------------------------------------
+// Auth (Phase 1)
+// ---------------------------------------------------------------------------
+
+function showAuthWall(expired) {
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('user-header').style.display = 'none';
+  const authPage = document.getElementById('auth-page');
+  authPage.style.display = 'flex';
+  // Reset to login form
+  document.getElementById('login-form').style.display = '';
+  document.getElementById('register-form').style.display = 'none';
+  // Clear any sensitive field values from prior session
+  const pw = document.getElementById('auth-password');
+  if (pw) pw.value = '';
+  const regPw = document.getElementById('reg-password');
+  if (regPw) regPw.value = '';
+  const regPwConfirm = document.getElementById('reg-password-confirm');
+  if (regPwConfirm) regPwConfirm.value = '';
+  // Session-expired alert
+  const alertBox = document.getElementById('auth-alert');
+  alertBox.innerHTML = '';
+  if (expired) {
+    const div = document.createElement('div');
+    div.className = 'alert alert-info';
+    div.textContent = 'Your session has expired. Please sign in again.';
+    alertBox.appendChild(div);
+  }
+}
+
+function showMainApp(user) {
+  document.getElementById('auth-page').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  document.getElementById('user-email').textContent = user.email;
+  document.getElementById('user-header').style.display = 'flex';
+  // Clear auth alerts
+  const alertBox = document.getElementById('auth-alert');
+  alertBox.innerHTML = '';
+  // Land user on Dashboard (D-03)
+  showPage('dashboard');
+  // Existing app initialisation
+  checkApiKey();
+}
+
+function toggleAuthForm() {
+  const login = document.getElementById('login-form');
+  const reg = document.getElementById('register-form');
+  const isLogin = login.style.display !== 'none';
+  login.style.display = isLogin ? 'none' : '';
+  reg.style.display = isLogin ? '' : 'none';
+  // Clear alerts on toggle
+  document.getElementById('auth-alert').innerHTML = '';
+  // Clear field-level errors
+  document.querySelectorAll('.auth-field-error').forEach(el => { el.style.display = 'none'; el.textContent = ''; });
+}
+
+function _setAuthAlert(msg, type) {
+  const box = document.getElementById('auth-alert');
+  box.innerHTML = '';
+  if (!msg) return;
+  const div = document.createElement('div');
+  div.className = `alert alert-${type}`;
+  div.textContent = msg;
+  box.appendChild(div);
+}
+
+async function submitLogin() {
+  const email = document.getElementById('auth-email').value.trim();
+  const pw = document.getElementById('auth-password').value;
+  if (!email || !pw) {
+    _setAuthAlert('Email and password are required.', 'error');
+    return;
+  }
+  const btn = document.getElementById('login-submit');
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'Signing in…';
+  try {
+    const fd = new FormData();
+    fd.append('email', email);
+    fd.append('password', pw);
+    const res = await fetch(`${API}/auth/login`, { method: 'POST', body: fd, credentials: 'include' });
+    if (res.status === 200) {
+      const user = await res.json();
+      showMainApp(user);
+      return;
+    }
+    if (res.status === 401) {
+      _setAuthAlert('Incorrect email or password. Try again.', 'error');
+    } else {
+      let detail = 'Sign in failed.';
+      try { detail = (await res.json()).detail || detail; } catch (e) {}
+      _setAuthAlert(detail, 'error');
+    }
+  } catch (e) {
+    _setAuthAlert('Connection error. Check your network and try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+async function submitRegister() {
+  const email = document.getElementById('reg-email').value.trim();
+  const pw = document.getElementById('reg-password').value;
+  const pwConfirm = document.getElementById('reg-password-confirm').value;
+  const pwErr = document.getElementById('reg-password-error');
+  const confErr = document.getElementById('reg-confirm-error');
+  pwErr.style.display = 'none'; pwErr.textContent = '';
+  confErr.style.display = 'none'; confErr.textContent = '';
+  if (!email) { _setAuthAlert('Email is required.', 'error'); return; }
+  if (pw.length < 8) {
+    pwErr.textContent = 'Password must be at least 8 characters.';
+    pwErr.style.display = 'block';
+    return;
+  }
+  if (pw !== pwConfirm) {
+    confErr.textContent = 'Passwords do not match.';
+    confErr.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('register-submit');
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'Creating account…';
+  try {
+    const fd = new FormData();
+    fd.append('email', email);
+    fd.append('password', pw);
+    const res = await fetch(`${API}/auth/register`, { method: 'POST', body: fd, credentials: 'include' });
+    if (res.status === 200 || res.status === 201) {
+      const user = await res.json();
+      showMainApp(user);
+      return;
+    }
+    if (res.status === 409) {
+      _setAuthAlert('An account with this email already exists.', 'error');
+    } else if (res.status === 400 || res.status === 422) {
+      let detail = 'Password must be at least 8 characters.';
+      try { detail = (await res.json()).detail || detail; } catch (e) {}
+      _setAuthAlert(detail, 'error');
+    } else {
+      let detail = 'Could not create account.';
+      try { detail = (await res.json()).detail || detail; } catch (e) {}
+      _setAuthAlert(detail, 'error');
+    }
+  } catch (e) {
+    _setAuthAlert('Connection error. Check your network and try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+async function doLogout() {
+  try {
+    await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include' });
+  } catch (e) { /* ignore — we're logging out either way */ }
+  showAuthWall(false);
+}
+
+async function loadAccount() {
+  const user = await apiFetch('/auth/me');
+  if (!user) return;  // 401 already triggers showAuthWall via apiFetch
+  document.getElementById('acct-email').textContent = user.email;
+  // Format created_at "May 2026" — input is SQLite datetime('now') format like "2026-05-05 12:34:56"
+  let created = '—';
+  if (user.created_at) {
+    const d = new Date(user.created_at.replace(' ', 'T') + 'Z');
+    if (!isNaN(d)) {
+      created = d.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+    }
+  }
+  document.getElementById('acct-created').textContent = created;
+}
+
+async function initApp() {
+  const user = await apiFetch('/auth/me');
+  if (!user) {
+    // apiFetch already called showAuthWall(true) on 401 — but on first load it should be 401 with no "expired" framing
+    // Override the framing for first load:
+    showAuthWall(false);
+    return;
+  }
+  showMainApp(user);
+}
+
+// Init — entrypoint
+initApp();
 </script>
 </body>
 </html>
