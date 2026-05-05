@@ -504,17 +504,19 @@ async function apiFetch(path) {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Account details page (AUTH-08)**
    - What we know: AUTH-08 requires user to view account details and report purchase history. No reports exist yet (Phase 5). The "purchase history" will be empty.
    - What's unclear: Does the planner implement a placeholder account page that shows just `email` + `created_at`, or defer the full page to Phase 5/6?
    - Recommendation: Implement a minimal account tab/page with email + registration date. Add a "No reports yet" placeholder for purchase history. This satisfies AUTH-08 without blocking on non-existent data.
+   - RESOLVED: Plan 04 implements an Account tab showing `email` + `created_at` with a "No reports purchased yet" placeholder. AUTH-08 satisfied without dependency on Phase 5/6.
 
 2. **CORS `allow_credentials` requirement**
    - What we know: HTTP-only cookies with `credentials: 'include'` require `allow_credentials=True` in `CORSMiddleware` when requests come from a different origin.
    - What's unclear: Since the frontend is served from the same origin (`localhost:8765/app`), same-origin requests do NOT trigger CORS. The `CORSMiddleware` with `allow_credentials=True` is only needed if the frontend is ever served separately.
    - Recommendation: Set `allow_credentials=True` now when restricting origins, as a future-proofing measure. It is harmless for same-origin requests and correct for any future separation.
+   - RESOLVED: Plan 02 Task 1 sets `allow_credentials=True` alongside `allow_origins=["http://localhost:8765"]` as a future-proofing measure per the recommendation.
 
 ---
 
