@@ -1,0 +1,53 @@
+"""Shared pytest fixtures for AccountIQ tests."""
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+import pytest
+import pytest_asyncio
+from httpx import AsyncClient, ASGITransport
+
+# Ensure backend/ is importable
+BACKEND_DIR = Path(__file__).resolve().parent.parent / "backend"
+sys.path.insert(0, str(BACKEND_DIR))
+
+# CRITICAL: override DB_PATH BEFORE importing main (which imports db at module level)
+_TMP_DB_FD, _TMP_DB_PATH = tempfile.mkstemp(suffix="_test.db")
+os.close(_TMP_DB_FD)
+
+import db as _db_module  # noqa: E402
+_db_module.DB_PATH = Path(_TMP_DB_PATH)
+
+# Now safe to import main (it will use the patched DB_PATH)
+import main as _main_module  # noqa: E402
+
+# Also patch main.DB_PATH (main imports DB_PATH by value, not by reference)
+_main_module.DB_PATH = Path(_TMP_DB_PATH)
+
+# Initialise schema in the temp DB
+_db_module.init_db()
+
+
+@pytest_asyncio.fixture
+async def client():
+    """AsyncClient wired to the FastAPI app with isolated DB."""
+    async with AsyncClient(
+        transport=ASGITransport(app=_main_module.app),
+        base_url="http://test",
+    ) as ac:
+        yield ac
+
+
+@pytest_asyncio.fixture
+async def fresh_db():
+    """Truncate users table between tests that need a clean slate."""
+    import aiosqlite
+    async with aiosqlite.connect(_TMP_DB_PATH) as conn:
+        # Best-effort: only DELETE if table exists (auth plan creates it)
+        try:
+            await conn.execute("DELETE FROM users")
+            await conn.commit()
+        except Exception:
+            pass
+    yield
