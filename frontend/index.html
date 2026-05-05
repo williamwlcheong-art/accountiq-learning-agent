@@ -819,7 +819,8 @@ async function viewDocLog(docId) {
 }
 
 async function retryDoc(docId) {
-  const res = await fetch(`${API}/documents/${docId}/retry`, { method: 'POST' });
+  const res = await fetch(`${API}/documents/${docId}/retry`, { method: 'POST', credentials: 'include' });
+  if (res.status === 401) { showAuthWall(true); return; }
   if (res.ok) {
     startJobPolling(docId, `Document #${docId}`);
     loadDocuments();
@@ -1007,7 +1008,8 @@ async function saveSettings() {
   fd.append('claude_model', model);
 
   try {
-    const res = await fetch(`${API}/settings`, { method: 'POST', body: fd });
+    const res = await fetch(`${API}/settings`, { method: 'POST', body: fd, credentials: 'include' });
+    if (res.status === 401) { showAuthWall(true); return; }
     const json = await res.json();
     if (res.ok) {
       showAlert('settings-alert', json.message, 'success');
@@ -1034,7 +1036,8 @@ async function checkApiKey() {
 // ---------------------------------------------------------------------------
 async function apiFetch(path) {
   try {
-    const res = await fetch(API + path);
+    const res = await fetch(API + path, { credentials: 'include' });
+    if (res.status === 401) { showAuthWall(true); return null; }
     if (!res.ok) { console.error(await res.text()); return null; }
     return res.json();
   } catch(e) { console.error(e); return null; }
@@ -1042,7 +1045,8 @@ async function apiFetch(path) {
 
 async function apiPost(path, formData) {
   try {
-    const res = await fetch(API + path, { method: 'POST', body: formData });
+    const res = await fetch(API + path, { method: 'POST', body: formData, credentials: 'include' });
+    if (res.status === 401) { showAuthWall(true); return null; }
     const json = await res.json();
     if (!res.ok) { showAlert('upload-alert', json.detail || 'Error', 'error'); return null; }
     return json;
