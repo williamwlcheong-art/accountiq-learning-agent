@@ -372,24 +372,56 @@ async function loadDashboard() {
   document.getElementById('stat-done').textContent = ov.docs_done;
   document.getElementById('stat-rows').textContent = ov.financial_rows.toLocaleString();
   document.getElementById('stat-patterns').textContent = ov.label_patterns;
-  document.getElementById('exchange-list').innerHTML = ov.by_exchange.map(e =>
-    `<div class="flex" style="padding:.4rem 0;border-bottom:1px solid var(--border)">
-      <span>${e.exchange || 'Private'}</span>
-      <span class="ml-auto" style="font-weight:700">${e.n}</span>
-    </div>`
-  ).join('') || '<span>No data yet.</span>';
+  const exList = document.getElementById('exchange-list');
+  exList.innerHTML = '';
+  if (!ov.by_exchange.length) {
+    exList.textContent = 'No data yet.';
+  } else {
+    ov.by_exchange.forEach(e => {
+      const row = document.createElement('div');
+      row.className = 'flex';
+      row.style.cssText = 'padding:.4rem 0;border-bottom:1px solid var(--border)';
+      const lbl = document.createElement('span');
+      lbl.textContent = e.exchange || 'Private';
+      const cnt = document.createElement('span');
+      cnt.className = 'ml-auto';
+      cnt.style.fontWeight = '700';
+      cnt.textContent = e.n;
+      row.appendChild(lbl);
+      row.appendChild(cnt);
+      exList.appendChild(row);
+    });
+  }
 
   const conf = await apiFetch('/analytics/confidence');
   if (conf && conf.length) {
-    document.getElementById('conf-list').innerHTML = conf.slice(0,8).map(r =>
-      `<div class="flex" style="padding:.3rem 0;border-bottom:1px solid var(--border)">
-        <span style="font-size:.8rem">${r.row_key}</span>
-        <div class="ml-auto flex" style="gap:.5rem">
-          <div class="conf-bar"><div class="conf-fill" style="width:${(r.avg_conf*100).toFixed(0)}%"></div></div>
-          <span style="font-size:.75rem;color:var(--muted)">${(r.avg_conf*100).toFixed(0)}%</span>
-        </div>
-      </div>`
-    ).join('');
+    const confList = document.getElementById('conf-list');
+    confList.innerHTML = '';
+    conf.slice(0, 8).forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'flex';
+      row.style.cssText = 'padding:.3rem 0;border-bottom:1px solid var(--border)';
+      const key = document.createElement('span');
+      key.style.fontSize = '.8rem';
+      key.textContent = r.row_key;
+      const right = document.createElement('div');
+      right.className = 'ml-auto flex';
+      right.style.gap = '.5rem';
+      const bar = document.createElement('div');
+      bar.className = 'conf-bar';
+      const fill = document.createElement('div');
+      fill.className = 'conf-fill';
+      fill.style.width = `${(r.avg_conf * 100).toFixed(0)}%`;
+      bar.appendChild(fill);
+      const pct = document.createElement('span');
+      pct.style.cssText = 'font-size:.75rem;color:var(--muted)';
+      pct.textContent = `${(r.avg_conf * 100).toFixed(0)}%`;
+      right.appendChild(bar);
+      right.appendChild(pct);
+      row.appendChild(key);
+      row.appendChild(right);
+      confList.appendChild(row);
+    });
   }
 }
 
@@ -401,15 +433,53 @@ async function loadCompanies() {
   if (!data) return;
   const tbody = document.getElementById('companies-tbody');
   if (!data.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No companies yet. Add one above.</td></tr>'; return; }
-  tbody.innerHTML = data.map(c => `<tr>
-    <td><strong>${c.name}</strong></td>
-    <td>${c.ticker || '—'}</td>
-    <td>${c.exchange ? `<span class="badge badge-listed">${c.exchange}</span>` : '<span class="badge badge-sme">Private</span>'}</td>
-    <td>${c.sector || '—'}</td>
-    <td>${c.country || '—'}</td>
-    <td>${c.doc_count}</td>
-    <td><button class="btn btn-sm btn-primary" onclick="showPage('upload');setUploadCompany(${c.id})">Upload PDF</button></td>
-  </tr>`).join('');
+  tbody.innerHTML = '';
+  data.forEach(c => {
+    const tr = document.createElement('tr');
+    const tdName = document.createElement('td');
+    const strong = document.createElement('strong');
+    strong.textContent = c.name;
+    tdName.appendChild(strong);
+    tr.appendChild(tdName);
+
+    const tdTicker = document.createElement('td');
+    tdTicker.textContent = c.ticker || '—';
+    tr.appendChild(tdTicker);
+
+    const tdEx = document.createElement('td');
+    const exBadge = document.createElement('span');
+    if (c.exchange) {
+      exBadge.className = 'badge badge-listed';
+      exBadge.textContent = c.exchange;
+    } else {
+      exBadge.className = 'badge badge-sme';
+      exBadge.textContent = 'Private';
+    }
+    tdEx.appendChild(exBadge);
+    tr.appendChild(tdEx);
+
+    const tdSec = document.createElement('td');
+    tdSec.textContent = c.sector || '—';
+    tr.appendChild(tdSec);
+
+    const tdCo = document.createElement('td');
+    tdCo.textContent = c.country || '—';
+    tr.appendChild(tdCo);
+
+    const tdCount = document.createElement('td');
+    tdCount.textContent = c.doc_count;
+    tr.appendChild(tdCount);
+
+    const tdAct = document.createElement('td');
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-sm btn-primary';
+    btn.textContent = 'Upload PDF';
+    btn.onclick = () => { showPage('upload'); setUploadCompany(c.id); };
+    tdAct.appendChild(btn);
+    tr.appendChild(tdAct);
+
+    tbody.appendChild(tr);
+  });
 }
 
 function toggleAddCompany() {
@@ -451,11 +521,25 @@ function handleFileSelect(input) {
 async function populateCompanySelects() {
   const companies = await apiFetch('/companies');
   if (!companies) return;
-  const opts = companies.map(c => `<option value="${c.id}">${c.name} ${c.exchange ? `(${c.exchange})` : '(Private)'}</option>`).join('');
-  const empOpt = '<option value="">Select company…</option>';
-  document.getElementById('up-company').innerHTML = empOpt + opts;
-  document.getElementById('fin-company').innerHTML = empOpt + opts;
-  document.getElementById('doc-company-filter').innerHTML = '<option value="">All companies</option>' + opts;
+  const targets = [
+    { id: 'up-company', empty: 'Select company…' },
+    { id: 'fin-company', empty: 'Select company…' },
+    { id: 'doc-company-filter', empty: 'All companies' },
+  ];
+  targets.forEach(t => {
+    const sel = document.getElementById(t.id);
+    sel.innerHTML = '';
+    const empty = document.createElement('option');
+    empty.value = '';
+    empty.textContent = t.empty;
+    sel.appendChild(empty);
+    companies.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = `${c.name} ${c.exchange ? `(${c.exchange})` : '(Private)'}`;
+      sel.appendChild(opt);
+    });
+  });
 }
 
 async function uploadFile() {
@@ -502,16 +586,40 @@ function startJobPolling(docId, filename) {
 }
 
 function renderJobs() {
-  document.getElementById('jobs-list').innerHTML = Object.entries(activeJobs).map(([id, job]) => `
-    <div style="margin-bottom:1rem">
-      <div class="flex">
-        <strong style="font-size:.875rem">#${id} — ${job.filename}</strong>
-        <span class="badge badge-${job.status} ml-auto">${job.status}</span>
-      </div>
-      ${job.status === 'processing' ? '<div class="progress-bar"><div class="progress-fill" style="width:60%;animation:none;background:linear-gradient(90deg,var(--blue) 0%,var(--accent) 50%,var(--blue) 100%);background-size:200%;animation:shimmer 1.5s infinite"></div></div>' : ''}
-      ${job.logs ? `<div class="log-box" style="margin-top:.5rem;max-height:120px">${job.logs.slice(0,5).map(l => `[${l.level}] ${l.message}`).join('\n')}</div>` : ''}
-    </div>
-  `).join('');
+  const list = document.getElementById('jobs-list');
+  list.innerHTML = '';
+  Object.entries(activeJobs).forEach(([id, job]) => {
+    const wrap = document.createElement('div');
+    wrap.style.marginBottom = '1rem';
+    const head = document.createElement('div');
+    head.className = 'flex';
+    const title = document.createElement('strong');
+    title.style.fontSize = '.875rem';
+    title.textContent = `#${id} — ${job.filename}`;
+    const badge = document.createElement('span');
+    badge.className = `badge badge-${job.status} ml-auto`;
+    badge.textContent = job.status;
+    head.appendChild(title);
+    head.appendChild(badge);
+    wrap.appendChild(head);
+    if (job.status === 'processing') {
+      const bar = document.createElement('div');
+      bar.className = 'progress-bar';
+      const fill = document.createElement('div');
+      fill.className = 'progress-fill';
+      fill.style.cssText = 'width:60%;animation:none;background:linear-gradient(90deg,var(--blue) 0%,var(--accent) 50%,var(--blue) 100%);background-size:200%;animation:shimmer 1.5s infinite';
+      bar.appendChild(fill);
+      wrap.appendChild(bar);
+    }
+    if (job.logs) {
+      const log = document.createElement('div');
+      log.className = 'log-box';
+      log.style.cssText = 'margin-top:.5rem;max-height:120px';
+      log.textContent = job.logs.slice(0, 5).map(l => `[${l.level}] ${l.message}`).join('\n');
+      wrap.appendChild(log);
+    }
+    list.appendChild(wrap);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -524,26 +632,88 @@ async function loadDocuments() {
   if (!data) return;
   const tbody = document.getElementById('documents-tbody');
   if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">No documents yet.</td></tr>'; return; }
-  tbody.innerHTML = data.map(d => {
+  tbody.innerHTML = '';
+  data.forEach(d => {
+    const tr = document.createElement('tr');
+    const append = (text, opts = {}) => {
+      const td = document.createElement('td');
+      if (opts.style) td.style.cssText = opts.style;
+      if (opts.title != null) td.title = opts.title;
+      td.textContent = text;
+      tr.appendChild(td);
+      return td;
+    };
+    append(d.company_name || '—');
+    append(d.filename, {
+      style: 'font-size:.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis',
+      title: d.filename,
+    });
+    append(d.report_type || '—');
+
+    const tdEntity = document.createElement('td');
+    const entBadge = document.createElement('span');
+    entBadge.className = `badge badge-${d.entity_type}`;
+    entBadge.textContent = d.entity_type;
+    tdEntity.appendChild(entBadge);
+    tr.appendChild(tdEntity);
+
     const std = (d.reporting_standard || 'UNKNOWN').toUpperCase();
-    const stdBadge = std === 'UNKNOWN' ? '' : `<span class="badge badge-${std.toLowerCase()}">${std}</span>`;
-    return `<tr>
-    <td>${d.company_name || '—'}</td>
-    <td style="font-size:.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${d.filename}">${d.filename}</td>
-    <td>${d.report_type || '—'}</td>
-    <td><span class="badge badge-${d.entity_type}">${d.entity_type}</span></td>
-    <td>${stdBadge || '—'}</td>
-    <td>${d.fiscal_year_end || '—'}</td>
-    <td>${d.page_count || '—'}${d.has_ocr ? ' 🔍' : ''}</td>
-    <td><span class="badge badge-${d.extraction_status}">${d.extraction_status}</span></td>
-    <td>${d.confidence_score != null ? (d.confidence_score*100).toFixed(0)+'%' : '—'}</td>
-    <td style="white-space:nowrap">
-      ${d.narrative ? `<button class="btn btn-sm" style="background:#e3f2fd;color:var(--blue);margin-right:.3rem" onclick="viewNarrative(${d.id},'${(d.company_name||'').replace(/'/g,"\\'")} — ${d.fiscal_year_end||''}','${encodeURIComponent(d.narrative)}')">Summary</button>` : ''}
-      <button class="btn btn-sm" style="background:#eee" onclick="viewDocLog(${d.id})">Logs</button>
-      ${d.extraction_status === 'failed' ? `<button class="btn btn-sm btn-primary" style="margin-left:.3rem" onclick="retryDoc(${d.id})">Retry</button>` : ''}
-    </td>
-  </tr>`;
-  }).join('');
+    const tdStd = document.createElement('td');
+    if (std !== 'UNKNOWN') {
+      const stdBadge = document.createElement('span');
+      stdBadge.className = `badge badge-${std.toLowerCase()}`;
+      stdBadge.textContent = std;
+      tdStd.appendChild(stdBadge);
+    } else {
+      tdStd.textContent = '—';
+    }
+    tr.appendChild(tdStd);
+
+    append(d.fiscal_year_end || '—');
+
+    const tdPages = document.createElement('td');
+    tdPages.textContent = `${d.page_count || '—'}${d.has_ocr ? ' 🔍' : ''}`;
+    tr.appendChild(tdPages);
+
+    const tdStatus = document.createElement('td');
+    const statusBadge = document.createElement('span');
+    statusBadge.className = `badge badge-${d.extraction_status}`;
+    statusBadge.textContent = d.extraction_status;
+    tdStatus.appendChild(statusBadge);
+    tr.appendChild(tdStatus);
+
+    append(d.confidence_score != null ? `${(d.confidence_score * 100).toFixed(0)}%` : '—');
+
+    const tdActions = document.createElement('td');
+    tdActions.style.whiteSpace = 'nowrap';
+    if (d.narrative) {
+      const sumBtn = document.createElement('button');
+      sumBtn.className = 'btn btn-sm';
+      sumBtn.style.cssText = 'background:#e3f2fd;color:var(--blue);margin-right:.3rem';
+      sumBtn.textContent = 'Summary';
+      // Pass values directly — no string interpolation, no encodeURIComponent round-trip
+      const titleStr = `${d.company_name || ''} — ${d.fiscal_year_end || ''}`;
+      sumBtn.onclick = () => viewNarrative(d.id, titleStr, d.narrative);
+      tdActions.appendChild(sumBtn);
+    }
+    const logBtn = document.createElement('button');
+    logBtn.className = 'btn btn-sm';
+    logBtn.style.background = '#eee';
+    logBtn.textContent = 'Logs';
+    logBtn.onclick = () => viewDocLog(d.id);
+    tdActions.appendChild(logBtn);
+    if (d.extraction_status === 'failed') {
+      const retryBtn = document.createElement('button');
+      retryBtn.className = 'btn btn-sm btn-primary';
+      retryBtn.style.marginLeft = '.3rem';
+      retryBtn.textContent = 'Retry';
+      retryBtn.onclick = () => retryDoc(d.id);
+      tdActions.appendChild(retryBtn);
+    }
+    tr.appendChild(tdActions);
+
+    tbody.appendChild(tr);
+  });
 }
 
 async function viewDocLog(docId) {
@@ -580,21 +750,42 @@ async function loadPatterns() {
   document.getElementById('pattern-count').textContent =
     `${data.length} patterns across ${Object.keys(grouped).length} canonical keys`;
 
-  document.getElementById('pattern-grid').innerHTML =
-    Object.values(grouped).map(g => `
-      <div class="pattern-item">
-        <div class="flex">
-          <span class="key">${g.stmt.toUpperCase()} › ${g.key}</span>
-          <span class="count">${g.patterns.length} labels</span>
-        </div>
-        ${g.patterns.slice(0,6).map(p =>
-          `<div class="raw" style="margin-top:.3rem;font-size:.78rem">
-            "${p.label}" <span style="color:var(--muted);font-size:.7rem">×${p.count}</span>
-          </div>`
-        ).join('')}
-        ${g.patterns.length > 6 ? `<div class="text-muted" style="font-size:.72rem;margin-top:.3rem">+${g.patterns.length-6} more</div>` : ''}
-      </div>
-    `).join('');
+  const grid = document.getElementById('pattern-grid');
+  grid.innerHTML = '';
+  Object.values(grouped).forEach(g => {
+    const item = document.createElement('div');
+    item.className = 'pattern-item';
+    const head = document.createElement('div');
+    head.className = 'flex';
+    const key = document.createElement('span');
+    key.className = 'key';
+    key.textContent = `${g.stmt.toUpperCase()} › ${g.key}`;
+    const count = document.createElement('span');
+    count.className = 'count';
+    count.textContent = `${g.patterns.length} labels`;
+    head.appendChild(key);
+    head.appendChild(count);
+    item.appendChild(head);
+    g.patterns.slice(0, 6).forEach(p => {
+      const raw = document.createElement('div');
+      raw.className = 'raw';
+      raw.style.cssText = 'margin-top:.3rem;font-size:.78rem';
+      raw.textContent = `"${p.label}"`;
+      const cnt = document.createElement('span');
+      cnt.style.cssText = 'color:var(--muted);font-size:.7rem';
+      cnt.textContent = ` ×${p.count}`;
+      raw.appendChild(cnt);
+      item.appendChild(raw);
+    });
+    if (g.patterns.length > 6) {
+      const more = document.createElement('div');
+      more.className = 'text-muted';
+      more.style.cssText = 'font-size:.72rem;margin-top:.3rem';
+      more.textContent = `+${g.patterns.length - 6} more`;
+      item.appendChild(more);
+    }
+    grid.appendChild(item);
+  });
 }
 
 async function exportPatterns() {
@@ -610,12 +801,12 @@ async function loadFinancials() {
   if (!companyId) return;
   const url = stmt ? `/financials/${companyId}?statement=${stmt}` : `/financials/${companyId}`;
   const data = await apiFetch(url);
+  const wrap = document.getElementById('fin-table-wrap');
   if (!data || !data.length) {
-    document.getElementById('fin-table-wrap').innerHTML = '<div class="empty">No financial data for this company yet.</div>';
+    wrap.innerHTML = '<div class="empty">No financial data for this company yet.</div>';
     return;
   }
 
-  // Pivot: rows by (statement, row_label) × period columns
   const periods = [...new Set(data.map(r => r.period))].sort().reverse();
   const rowMap = {};
   data.forEach(r => {
@@ -624,25 +815,62 @@ async function loadFinancials() {
     rowMap[k].vals[r.period] = r.value;
   });
 
-  const fmtNum = v => v == null ? '—' : v < 0
-    ? `<span style="color:var(--red)">(${Math.abs(v).toLocaleString()})</span>`
-    : v.toLocaleString();
+  // Helper — number cell with red parens for negatives
+  const numCell = v => {
+    const td = document.createElement('td');
+    td.style.textAlign = 'right';
+    if (v == null) {
+      td.textContent = '—';
+    } else if (v < 0) {
+      const span = document.createElement('span');
+      span.style.color = 'var(--red)';
+      span.textContent = `(${Math.abs(v).toLocaleString()})`;
+      td.appendChild(span);
+    } else {
+      td.textContent = v.toLocaleString();
+    }
+    return td;
+  };
 
-  let html = `<table>
-    <thead><tr><th>Statement</th><th>Row</th>${periods.map(p=>`<th style="text-align:right">${p}</th>`).join('')}</tr></thead>
-    <tbody>`;
+  wrap.innerHTML = '';
+  const table = document.createElement('table');
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  const thStmt = document.createElement('th'); thStmt.textContent = 'Statement'; trh.appendChild(thStmt);
+  const thRow = document.createElement('th'); thRow.textContent = 'Row'; trh.appendChild(thRow);
+  periods.forEach(p => {
+    const th = document.createElement('th');
+    th.style.textAlign = 'right';
+    th.textContent = p;
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  table.appendChild(thead);
+  const tbody = document.createElement('tbody');
 
-  const order = ['pnl','bs'];
-  order.forEach(stmt => {
-    const stmtRows = Object.values(rowMap).filter(r => r.stmt === stmt);
+  ['pnl', 'bs'].forEach(stmtKey => {
+    const stmtRows = Object.values(rowMap).filter(r => r.stmt === stmtKey);
     if (!stmtRows.length) return;
-    html += `<tr><td colspan="${periods.length+2}" style="background:#f0f4f8;font-weight:700;font-size:.75rem;color:var(--muted);padding:.4rem .8rem">${stmt === 'pnl' ? 'PROFIT & LOSS' : 'BALANCE SHEET'}</td></tr>`;
+    const sectionTr = document.createElement('tr');
+    const sectionTd = document.createElement('td');
+    sectionTd.colSpan = periods.length + 2;
+    sectionTd.style.cssText = 'background:#f0f4f8;font-weight:700;font-size:.75rem;color:var(--muted);padding:.4rem .8rem';
+    sectionTd.textContent = stmtKey === 'pnl' ? 'PROFIT & LOSS' : 'BALANCE SHEET';
+    sectionTr.appendChild(sectionTd);
+    tbody.appendChild(sectionTr);
     stmtRows.forEach(r => {
-      html += `<tr><td></td><td>${r.label}</td>${periods.map(p=>`<td style="text-align:right">${fmtNum(r.vals[p])}</td>`).join('')}</tr>`;
+      const tr = document.createElement('tr');
+      tr.appendChild(document.createElement('td'));  // empty stmt col
+      const lblTd = document.createElement('td');
+      lblTd.textContent = r.label;
+      tr.appendChild(lblTd);
+      periods.forEach(p => tr.appendChild(numCell(r.vals[p])));
+      tbody.appendChild(tr);
     });
   });
-  html += '</tbody></table>';
-  document.getElementById('fin-table-wrap').innerHTML = html;
+
+  table.appendChild(tbody);
+  wrap.appendChild(table);
 }
 
 // ---------------------------------------------------------------------------
@@ -652,11 +880,24 @@ async function loadSettings() {
   const s = await apiFetch('/settings');
   if (!s) return;
   const el = document.getElementById('settings-status');
+  el.innerHTML = '';
   if (s.api_key_set) {
-    el.innerHTML = `<span style="color:var(--green)">✓ API key configured</span> — <code style="font-size:.8rem">${s.api_key_preview}</code>`;
+    const ok = document.createElement('span');
+    ok.style.color = 'var(--green)';
+    ok.textContent = '✓ API key configured';
+    el.appendChild(ok);
+    el.appendChild(document.createTextNode(' — '));
+    const code = document.createElement('code');
+    code.style.fontSize = '.8rem';
+    code.textContent = s.api_key_preview;
+    el.appendChild(code);
     document.getElementById('api-key-warning').style.display = 'none';
   } else {
-    el.innerHTML = `<span style="color:var(--red)">✗ No valid API key set</span> — enter one below.`;
+    const bad = document.createElement('span');
+    bad.style.color = 'var(--red)';
+    bad.textContent = '✗ No valid API key set';
+    el.appendChild(bad);
+    el.appendChild(document.createTextNode(' — enter one below.'));
     document.getElementById('api-key-warning').style.display = 'inline-block';
   }
   document.getElementById('s-model').value = s.claude_model || 'claude-opus-4-5';
@@ -715,7 +956,11 @@ async function apiPost(path, formData) {
 function showAlert(containerId, msg, type) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  el.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = `alert alert-${type}`;
+  div.textContent = msg;
+  el.appendChild(div);
   if (type !== 'error') setTimeout(() => { el.innerHTML = ''; }, 5000);
 }
 
