@@ -984,13 +984,27 @@ dz.addEventListener('drop', e => {
 });
 
 // Narrative modal
-function viewNarrative(docId, title, encodedText) {
+function viewNarrative(docId, title, text) {
   document.getElementById('narrative-title').textContent = title || 'Executive Summary';
-  const text = decodeURIComponent(encodedText);
-  document.getElementById('narrative-body').innerHTML = text
-    .split(/\n\n+/)
-    .map(p => `<p>${p.replace(/\n/g,'<br/>')}</p>`)
-    .join('');
+  const container = document.getElementById('narrative-body');
+  container.innerHTML = '';
+  if (!text) {
+    document.getElementById('narrative-modal').classList.add('open');
+    return;
+  }
+  // Split on double-newlines into paragraphs; preserve single newlines via <br>.
+  // Use .textContent on each <p> to neutralise any HTML/script in the AI text.
+  text.split(/\n\n+/).forEach(para => {
+    if (!para.trim()) return;
+    const p = document.createElement('p');
+    // Preserve single \n as <br> by splitting and inserting br elements between spans
+    const lines = para.split('\n');
+    lines.forEach((line, idx) => {
+      p.appendChild(document.createTextNode(line));
+      if (idx < lines.length - 1) p.appendChild(document.createElement('br'));
+    });
+    container.appendChild(p);
+  });
   document.getElementById('narrative-modal').classList.add('open');
 }
 function closeNarrative(e) {
