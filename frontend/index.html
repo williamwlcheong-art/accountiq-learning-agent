@@ -1115,9 +1115,195 @@ function closeNarrativeBtn() {
   document.getElementById('narrative-modal').classList.remove('open');
 }
 
-// Init
-loadDashboard();
-checkApiKey();
+// ---------------------------------------------------------------------------
+// Auth (Phase 1)
+// ---------------------------------------------------------------------------
+
+function showAuthWall(expired) {
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('user-header').style.display = 'none';
+  const authPage = document.getElementById('auth-page');
+  authPage.style.display = 'flex';
+  // Reset to login form
+  document.getElementById('login-form').style.display = '';
+  document.getElementById('register-form').style.display = 'none';
+  // Clear any sensitive field values from prior session
+  const pw = document.getElementById('auth-password');
+  if (pw) pw.value = '';
+  const regPw = document.getElementById('reg-password');
+  if (regPw) regPw.value = '';
+  const regPwConfirm = document.getElementById('reg-password-confirm');
+  if (regPwConfirm) regPwConfirm.value = '';
+  // Session-expired alert
+  const alertBox = document.getElementById('auth-alert');
+  alertBox.innerHTML = '';
+  if (expired) {
+    const div = document.createElement('div');
+    div.className = 'alert alert-info';
+    div.textContent = 'Your session has expired. Please sign in again.';
+    alertBox.appendChild(div);
+  }
+}
+
+function showMainApp(user) {
+  document.getElementById('auth-page').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  document.getElementById('user-email').textContent = user.email;
+  document.getElementById('user-header').style.display = 'flex';
+  // Clear auth alerts
+  const alertBox = document.getElementById('auth-alert');
+  alertBox.innerHTML = '';
+  // Land user on Dashboard (D-03)
+  showPage('dashboard');
+  // Existing app initialisation
+  checkApiKey();
+}
+
+function toggleAuthForm() {
+  const login = document.getElementById('login-form');
+  const reg = document.getElementById('register-form');
+  const isLogin = login.style.display !== 'none';
+  login.style.display = isLogin ? 'none' : '';
+  reg.style.display = isLogin ? '' : 'none';
+  // Clear alerts on toggle
+  document.getElementById('auth-alert').innerHTML = '';
+  // Clear field-level errors
+  document.querySelectorAll('.auth-field-error').forEach(el => { el.style.display = 'none'; el.textContent = ''; });
+}
+
+function _setAuthAlert(msg, type) {
+  const box = document.getElementById('auth-alert');
+  box.innerHTML = '';
+  if (!msg) return;
+  const div = document.createElement('div');
+  div.className = `alert alert-${type}`;
+  div.textContent = msg;
+  box.appendChild(div);
+}
+
+async function submitLogin() {
+  const email = document.getElementById('auth-email').value.trim();
+  const pw = document.getElementById('auth-password').value;
+  if (!email || !pw) {
+    _setAuthAlert('Email and password are required.', 'error');
+    return;
+  }
+  const btn = document.getElementById('login-submit');
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'Signing in…';
+  try {
+    const fd = new FormData();
+    fd.append('email', email);
+    fd.append('password', pw);
+    const res = await fetch(`${API}/auth/login`, { method: 'POST', body: fd, credentials: 'include' });
+    if (res.status === 200) {
+      const user = await res.json();
+      showMainApp(user);
+      return;
+    }
+    if (res.status === 401) {
+      _setAuthAlert('Incorrect email or password. Try again.', 'error');
+    } else {
+      let detail = 'Sign in failed.';
+      try { detail = (await res.json()).detail || detail; } catch (e) {}
+      _setAuthAlert(detail, 'error');
+    }
+  } catch (e) {
+    _setAuthAlert('Connection error. Check your network and try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+async function submitRegister() {
+  const email = document.getElementById('reg-email').value.trim();
+  const pw = document.getElementById('reg-password').value;
+  const pwConfirm = document.getElementById('reg-password-confirm').value;
+  const pwErr = document.getElementById('reg-password-error');
+  const confErr = document.getElementById('reg-confirm-error');
+  pwErr.style.display = 'none'; pwErr.textContent = '';
+  confErr.style.display = 'none'; confErr.textContent = '';
+  if (!email) { _setAuthAlert('Email is required.', 'error'); return; }
+  if (pw.length < 8) {
+    pwErr.textContent = 'Password must be at least 8 characters.';
+    pwErr.style.display = 'block';
+    return;
+  }
+  if (pw !== pwConfirm) {
+    confErr.textContent = 'Passwords do not match.';
+    confErr.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('register-submit');
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'Creating account…';
+  try {
+    const fd = new FormData();
+    fd.append('email', email);
+    fd.append('password', pw);
+    const res = await fetch(`${API}/auth/register`, { method: 'POST', body: fd, credentials: 'include' });
+    if (res.status === 200 || res.status === 201) {
+      const user = await res.json();
+      showMainApp(user);
+      return;
+    }
+    if (res.status === 409) {
+      _setAuthAlert('An account with this email already exists.', 'error');
+    } else if (res.status === 400 || res.status === 422) {
+      let detail = 'Password must be at least 8 characters.';
+      try { detail = (await res.json()).detail || detail; } catch (e) {}
+      _setAuthAlert(detail, 'error');
+    } else {
+      let detail = 'Could not create account.';
+      try { detail = (await res.json()).detail || detail; } catch (e) {}
+      _setAuthAlert(detail, 'error');
+    }
+  } catch (e) {
+    _setAuthAlert('Connection error. Check your network and try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+async function doLogout() {
+  try {
+    await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include' });
+  } catch (e) { /* ignore — we're logging out either way */ }
+  showAuthWall(false);
+}
+
+async function loadAccount() {
+  const user = await apiFetch('/auth/me');
+  if (!user) return;  // 401 already triggers showAuthWall via apiFetch
+  document.getElementById('acct-email').textContent = user.email;
+  // Format created_at "May 2026" — input is SQLite datetime('now') format like "2026-05-05 12:34:56"
+  let created = '—';
+  if (user.created_at) {
+    const d = new Date(user.created_at.replace(' ', 'T') + 'Z');
+    if (!isNaN(d)) {
+      created = d.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+    }
+  }
+  document.getElementById('acct-created').textContent = created;
+}
+
+async function initApp() {
+  const user = await apiFetch('/auth/me');
+  if (!user) {
+    // apiFetch already called showAuthWall(true) on 401 — but on first load it should be 401 with no "expired" framing
+    // Override the framing for first load:
+    showAuthWall(false);
+    return;
+  }
+  showMainApp(user);
+}
+
+// Init — entrypoint
+initApp();
 </script>
 </body>
 </html>
