@@ -84,9 +84,10 @@ async def list_companies(
         SELECT c.*, COUNT(d.id) as doc_count
         FROM companies c
         LEFT JOIN documents d ON d.company_id = c.id
+        WHERE c.user_id = ?
         GROUP BY c.id
         ORDER BY c.name
-    """) as cur:
+    """, (current_user["id"],)) as cur:
         rows = await cur.fetchall()
     return [dict(r) for r in rows]
 
@@ -103,9 +104,9 @@ async def create_company(
 ):
     try:
         async with db.execute("""
-            INSERT INTO companies (name, ticker, exchange, sector, country)
-            VALUES (?, ?, ?, ?, ?)
-        """, (name, ticker, exchange, sector, country)) as cur:
+            INSERT INTO companies (name, ticker, exchange, sector, country, user_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (name, ticker, exchange, sector, country, current_user["id"])) as cur:
             company_id = cur.lastrowid
         await db.commit()
         return {"id": company_id, "name": name}
@@ -121,7 +122,10 @@ async def get_company(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    async with db.execute("SELECT * FROM companies WHERE id=?", (company_id,)) as cur:
+    async with db.execute(
+        "SELECT * FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
         row = await cur.fetchone()
     if not row:
         raise HTTPException(404, "Company not found")
@@ -142,10 +146,11 @@ async def list_documents(
         SELECT d.*, c.name as company_name, c.exchange
         FROM documents d
         LEFT JOIN companies c ON c.id = d.company_id
+        WHERE d.user_id = ?
     """
-    params = []
+    params = [current_user["id"]]
     if company_id:
-        query += " WHERE d.company_id = ?"
+        query += " AND d.company_id = ?"
         params.append(company_id)
     query += " ORDER BY d.created_at DESC"
 
@@ -169,8 +174,11 @@ async def upload_document(
     if Path(file.filename).suffix.lower() not in allowed:
         raise HTTPException(400, f"Only PDF and Excel files are accepted. Got: {Path(file.filename).suffix}")
 
-    # Verify company exists
-    async with db.execute("SELECT id, exchange FROM companies WHERE id=?", (company_id,)) as cur:
+    # Verify company exists and belongs to current user
+    async with db.execute(
+        "SELECT id, exchange FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
         company = await cur.fetchone()
     if not company:
         raise HTTPException(404, f"Company {company_id} not found.")
@@ -186,10 +194,10 @@ async def upload_document(
     safe_name = Path(file.filename).name
     async with db.execute("""
         INSERT INTO documents
-            (company_id, filename, filepath, report_type, entity_type, fiscal_year_end)
-        VALUES (?, ?, ?, ?, ?, ?)
+            (company_id, filename, filepath, report_type, entity_type, fiscal_year_end, user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     """, (company_id, safe_name, str(dest),
-          report_type, entity_type, fiscal_year_end)) as cur:
+          report_type, entity_type, fiscal_year_end, current_user["id"])) as cur:
         document_id = cur.lastrowid
     await db.commit()
 
@@ -230,8 +238,8 @@ async def document_status(
     async with db.execute("""
         SELECT d.*, c.name as company_name
         FROM documents d LEFT JOIN companies c ON c.id=d.company_id
-        WHERE d.id=?
-    """, (document_id,)) as cur:
+        WHERE d.id=? AND d.user_id=?
+    """, (document_id, current_user["id"])) as cur:
         doc = await cur.fetchone()
     if not doc:
         raise HTTPException(404, "Document not found")
@@ -253,9 +261,11 @@ async def document_rows(
     current_user: dict = Depends(get_current_user),
 ):
     async with db.execute("""
-        SELECT * FROM financial_rows WHERE document_id=?
-        ORDER BY statement, row_key, period
-    """, (document_id,)) as cur:
+        SELECT fr.* FROM financial_rows fr
+        JOIN documents d ON d.id = fr.document_id
+        WHERE fr.document_id=? AND d.user_id=?
+        ORDER BY fr.statement, fr.row_key, fr.period
+    """, (document_id, current_user["id"])) as cur:
         rows = await cur.fetchall()
     return [dict(r) for r in rows]
 
@@ -279,9 +289,11 @@ async def company_financials(
                COUNT(*) as source_count
         FROM financial_rows fr
         JOIN documents d ON d.id = fr.document_id
+        JOIN companies c ON c.id = fr.company_id
         WHERE fr.company_id = ? AND d.extraction_status = 'done'
+          AND c.user_id = ?
     """
-    params = [company_id]
+    params = [company_id, current_user["id"]]
     if statement:
         query += " AND fr.statement = ?"
         params.append(statement)
@@ -342,19 +354,35 @@ async def analytics_overview(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    async with db.execute("SELECT COUNT(*) as n FROM companies") as cur:
+    async with db.execute(
+        "SELECT COUNT(*) as n FROM companies WHERE user_id=?",
+        (current_user["id"],)
+    ) as cur:
         companies = (await cur.fetchone())["n"]
-    async with db.execute("SELECT COUNT(*) as n FROM documents") as cur:
+    async with db.execute("""
+        SELECT COUNT(*) as n FROM documents d
+        JOIN companies c ON c.id = d.company_id
+        WHERE c.user_id=?
+    """, (current_user["id"],)) as cur:
         documents = (await cur.fetchone())["n"]
-    async with db.execute("SELECT COUNT(*) as n FROM documents WHERE extraction_status='done'") as cur:
+    async with db.execute("""
+        SELECT COUNT(*) as n FROM documents d
+        JOIN companies c ON c.id = d.company_id
+        WHERE d.extraction_status='done' AND c.user_id=?
+    """, (current_user["id"],)) as cur:
         done = (await cur.fetchone())["n"]
-    async with db.execute("SELECT COUNT(*) as n FROM financial_rows") as cur:
+    async with db.execute("""
+        SELECT COUNT(*) as n FROM financial_rows fr
+        JOIN companies c ON c.id = fr.company_id
+        WHERE c.user_id=?
+    """, (current_user["id"],)) as cur:
         fin_rows = (await cur.fetchone())["n"]
     async with db.execute("SELECT COUNT(*) as n FROM label_patterns") as cur:
         patterns = (await cur.fetchone())["n"]
     async with db.execute("""
-        SELECT exchange, COUNT(*) as n FROM companies GROUP BY exchange
-    """) as cur:
+        SELECT exchange, COUNT(*) as n FROM companies
+        WHERE user_id=? GROUP BY exchange
+    """, (current_user["id"],)) as cur:
         by_exchange = [dict(r) for r in await cur.fetchall()]
 
     return {
@@ -373,11 +401,13 @@ async def confidence_stats(
     current_user: dict = Depends(get_current_user),
 ):
     async with db.execute("""
-        SELECT row_key, AVG(confidence) as avg_conf, COUNT(*) as n
-        FROM financial_rows
-        GROUP BY row_key
+        SELECT fr.row_key, AVG(fr.confidence) as avg_conf, COUNT(*) as n
+        FROM financial_rows fr
+        JOIN companies c ON c.id = fr.company_id
+        WHERE c.user_id=?
+        GROUP BY fr.row_key
         ORDER BY avg_conf ASC
-    """) as cur:
+    """, (current_user["id"],)) as cur:
         rows = await cur.fetchall()
     return [dict(r) for r in rows]
 
@@ -439,8 +469,8 @@ async def retry_document(
     async with db.execute("""
         SELECT d.*, c.exchange FROM documents d
         LEFT JOIN companies c ON c.id = d.company_id
-        WHERE d.id=?
-    """, (document_id,)) as cur:
+        WHERE d.id=? AND d.user_id=?
+    """, (document_id, current_user["id"])) as cur:
         doc = await cur.fetchone()
     if not doc:
         raise HTTPException(404, "Document not found")
