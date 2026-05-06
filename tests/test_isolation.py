@@ -212,3 +212,52 @@ async def test_upload_to_other_users_company_rejected(client, fresh_all_db):
         assert r.status_code == 404, (
             f"Bob should not be able to upload to Alice's company. Got {r.status_code}: {r.text}"
         )
+
+
+# ---------------------------------------------------------------------------
+# SC-1: Cross-user financial row access is blocked
+# AUTH-07: GET /documents/{id}/rows and GET /financials/{company_id}
+# ---------------------------------------------------------------------------
+
+async def test_cross_user_financial_rows_isolation(client, fresh_all_db):
+    """AUTH-07 SC-1: User B cannot access User A's financial rows via document or company endpoints."""
+    import io
+
+    await _register(client, "alice5@test.com")
+    alice_co = await _create_company(client, "Alice Fin Corp", "NZX")
+
+    # Alice uploads a minimal fake PDF to create a document record.
+    fake_pdf = io.BytesIO(b"%PDF-1.4 fake content for testing")
+    r = await client.post(
+        "/documents/upload",
+        data={
+            "company_id": str(alice_co),
+            "report_type": "annual_report",
+            "entity_type": "sme",
+            "fiscal_year_end": "2024-03-31",
+        },
+        files={"file": ("alice_fin.pdf", fake_pdf, "application/pdf")},
+    )
+    assert r.status_code == 200, f"Alice upload failed: {r.text}"
+    alice_doc_id = r.json()["document_id"]
+
+    async with _make_bob_client() as bob:
+        await _register(bob, "bob5@test.com")
+
+        # Bob tries to access Alice's document rows by guessed document_id — must get 404.
+        r = await bob.get(f"/documents/{alice_doc_id}/rows")
+        assert r.status_code == 404, (
+            f"IDOR: Bob accessed Alice's document rows for doc {alice_doc_id}. "
+            f"Got {r.status_code}: {r.text}"
+        )
+
+        # Bob tries to access Alice's financials by guessed company_id — must get empty list.
+        # The endpoint returns 200 with [] rather than 404 (same as list_documents behaviour).
+        r = await bob.get(f"/financials/{alice_co}")
+        assert r.status_code == 200, (
+            f"GET /financials/{alice_co} should return 200 for Bob; got {r.status_code}: {r.text}"
+        )
+        assert r.json() == [], (
+            f"IDOR: Bob received non-empty financials for Alice's company {alice_co}. "
+            f"Got: {r.json()}"
+        )

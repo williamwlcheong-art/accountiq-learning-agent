@@ -265,12 +265,19 @@ async def document_rows(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    # Verify ownership first — return 404 if the document does not belong to this user.
+    async with db.execute(
+        "SELECT id FROM documents WHERE id=? AND user_id=?",
+        (document_id, current_user["id"])
+    ) as cur:
+        if not await cur.fetchone():
+            raise HTTPException(404, "Document not found")
+
     async with db.execute("""
         SELECT fr.* FROM financial_rows fr
-        JOIN documents d ON d.id = fr.document_id
-        WHERE fr.document_id=? AND d.user_id=?
+        WHERE fr.document_id=?
         ORDER BY fr.statement, fr.row_key, fr.period
-    """, (document_id, current_user["id"])) as cur:
+    """, (document_id,)) as cur:
         rows = await cur.fetchall()
     return [dict(r) for r in rows]
 
