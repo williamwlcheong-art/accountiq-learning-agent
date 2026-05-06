@@ -141,33 +141,48 @@ def _migrate_db(conn: sqlite3.Connection):
     schema_sql = schema_row[0] if schema_row else ""
 
     if "UNIQUE(name, exchange, user_id)" not in schema_sql:
-        # Clean up any failed previous attempt
-        cur2 = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='companies_new'"
-        )
-        if cur2.fetchone():
-            conn.execute("DROP TABLE companies_new")
+        # Clean up any failed previous attempt — use try/except so a missing
+        # companies_new table doesn't abort the whole migration.
+        try:
+            cur2 = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='companies_new'"
+            )
+            if cur2.fetchone():
+                conn.execute("DROP TABLE companies_new")
+        except sqlite3.OperationalError:
+            pass
 
-        conn.executescript("""
-            BEGIN;
-            CREATE TABLE companies_new (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                name        TEXT    NOT NULL,
-                ticker      TEXT,
-                exchange    TEXT,
-                sector      TEXT,
-                country     TEXT    DEFAULT 'NZ',
-                created_at  TEXT    DEFAULT (datetime('now')),
-                user_id     INTEGER,
-                UNIQUE(name, exchange, user_id)
-            );
-            INSERT INTO companies_new
-                SELECT id, name, ticker, exchange, sector, country, created_at, user_id
-                FROM companies;
-            DROP TABLE companies;
-            ALTER TABLE companies_new RENAME TO companies;
-            COMMIT;
-        """)
+        # Use individual conn.execute() calls inside an explicit transaction so
+        # the ALTER TABLE changes made above are NOT committed before this block
+        # runs.  executescript() issues an implicit COMMIT before it starts,
+        # which can leave the DB partially migrated on a crash between the two
+        # phases.
+        conn.execute("BEGIN")
+        try:
+            conn.execute("""
+                CREATE TABLE companies_new (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name        TEXT    NOT NULL,
+                    ticker      TEXT,
+                    exchange    TEXT,
+                    sector      TEXT,
+                    country     TEXT    DEFAULT 'NZ',
+                    created_at  TEXT    DEFAULT (datetime('now')),
+                    user_id     INTEGER,
+                    UNIQUE(name, exchange, user_id)
+                )
+            """)
+            conn.execute("""
+                INSERT INTO companies_new
+                    SELECT id, name, ticker, exchange, sector, country, created_at, user_id
+                    FROM companies
+            """)
+            conn.execute("DROP TABLE companies")
+            conn.execute("ALTER TABLE companies_new RENAME TO companies")
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
 
     # Phase 2: indexes for user_id query performance
     for idx_sql in [
