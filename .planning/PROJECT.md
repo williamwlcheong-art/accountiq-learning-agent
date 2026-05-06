@@ -21,6 +21,12 @@ A business owner uploads their financials, answers a few questions about their b
 - ✓ Pattern learning (label → canonical key mapping improves over time) — existing
 - ✓ Company and document management (CRUD + upload flow) — existing
 - ✓ Basic frontend UI (companies, documents, financials, patterns, analytics, settings tabs) — existing
+- ✓ CORS restricted to localhost:8765 (no wildcard) — Phase 1
+- ✓ Filename sanitisation via Path(file.filename).name — Phase 1
+- ✓ XSS eliminated: all server/AI data uses textContent/createTextNode — Phase 1
+- ✓ User registration + login with Argon2-hashed passwords and HttpOnly/SameSite=Lax cookies — Phase 1
+- ✓ JWT session cookies (7-day expiry, 15 protected routes) — Phase 1
+- ✓ Frontend auth wall gates entire app UI behind /auth/me — Phase 1
 
 ### Active
 
@@ -45,7 +51,7 @@ A business owner uploads their financials, answers a few questions about their b
 - [ ] User can enter EBITDA add-backs / owner adjustments
 
 **Authentication & accounts:**
-- [ ] User can create an account and log in
+- ✓ User can create an account and log in — Validated in Phase 1: Security & Auth Foundation
 - [ ] Each user's companies and documents are isolated (no cross-user data leakage)
 - [ ] User can manage their account and report purchase history
 
@@ -72,7 +78,7 @@ A business owner uploads their financials, answers a few questions about their b
 
 - The backend is Python FastAPI with SQLite (aiosqlite). The frontend is a single vanilla JS/HTML file served as a static mount. Both are in a single repo.
 - Extraction already uses Claude (claude-sonnet-4-6) with forced tool-use and a GAAP/IFRS system prompt. The same Claude API will power report generation.
-- The codebase has zero test coverage and several known security gaps (no auth, wildcard CORS, unsanitised filenames, innerHTML XSS). These must be addressed before external users can access the system.
+- Security gaps from pre-Phase 1 (wildcard CORS, unsanitised filenames, innerHTML XSS, no auth) are now fixed. 4 code review criticals remain (empty SECRET_KEY, exception message leakage, env path disclosure, unvalidated claude_model write) — flagged for Phase 1 gap closure before external launch.
 - The codebase map is at `.planning/codebase/` — read it before planning any backend phase.
 
 ## Constraints
@@ -110,4 +116,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-04 after initialization*
+*Last updated: 2026-05-06 — Phase 1 complete*
