@@ -84,9 +84,10 @@ async def list_companies(
         SELECT c.*, COUNT(d.id) as doc_count
         FROM companies c
         LEFT JOIN documents d ON d.company_id = c.id
+        WHERE c.user_id = ?
         GROUP BY c.id
         ORDER BY c.name
-    """) as cur:
+    """, (current_user["id"],)) as cur:
         rows = await cur.fetchall()
     return [dict(r) for r in rows]
 
@@ -103,9 +104,9 @@ async def create_company(
 ):
     try:
         async with db.execute("""
-            INSERT INTO companies (name, ticker, exchange, sector, country)
-            VALUES (?, ?, ?, ?, ?)
-        """, (name, ticker, exchange, sector, country)) as cur:
+            INSERT INTO companies (name, ticker, exchange, sector, country, user_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (name, ticker, exchange, sector, country, current_user["id"])) as cur:
             company_id = cur.lastrowid
         await db.commit()
         return {"id": company_id, "name": name}
@@ -121,7 +122,10 @@ async def get_company(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    async with db.execute("SELECT * FROM companies WHERE id=?", (company_id,)) as cur:
+    async with db.execute(
+        "SELECT * FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
         row = await cur.fetchone()
     if not row:
         raise HTTPException(404, "Company not found")
