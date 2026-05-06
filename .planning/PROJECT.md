@@ -52,7 +52,7 @@ A business owner uploads their financials, answers a few questions about their b
 
 **Authentication & accounts:**
 - ✓ User can create an account and log in — Validated in Phase 1: Security & Auth Foundation
-- [ ] Each user's companies and documents are isolated (no cross-user data leakage)
+- ✓ Each user's companies and documents are isolated (no cross-user data leakage) — Validated in Phase 2: Multi-User Data Isolation
 - [ ] User can manage their account and report purchase history
 
 **Report generation:**
@@ -79,6 +79,7 @@ A business owner uploads their financials, answers a few questions about their b
 - The backend is Python FastAPI with SQLite (aiosqlite). The frontend is a single vanilla JS/HTML file served as a static mount. Both are in a single repo.
 - Extraction already uses Claude (claude-sonnet-4-6) with forced tool-use and a GAAP/IFRS system prompt. The same Claude API will power report generation.
 - Security gaps from pre-Phase 1 (wildcard CORS, unsanitised filenames, innerHTML XSS, no auth) are now fixed. 4 code review criticals remain (empty SECRET_KEY, exception message leakage, env path disclosure, unvalidated claude_model write) — flagged for Phase 1 gap closure before external launch.
+- Phase 2 isolation: all company/document routes enforce `WHERE user_id=?` filters; IDOR returns 404 not 403 (D-01); analytics scoped per-user; `label_patterns` intentionally global (D-03). 3 code review criticals remain (retry_document write scope, analytics/overview label_patterns leakage, executescript transaction split) — flagged for gap closure.
 - The codebase map is at `.planning/codebase/` — read it before planning any backend phase.
 
 ## Constraints
@@ -116,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-06 — Phase 1 complete*
+*Last updated: 2026-05-07 — Phase 2 complete*
