@@ -29,22 +29,24 @@
 
 ## Phase 2: Multi-User Data Isolation
 
-**Goal:** Every user sees only their own companies and documents; existing rows are preserved as shared demo data visible to all authenticated users.
+**Goal:** Every user sees only their own companies and documents. Existing NULL user_id rows become invisible to all users (D-02). The `label_patterns` table remains global.
 
 **Requirements:** AUTH-07, DATA-01
 
 **Success Criteria:**
 1. User A cannot retrieve User B's companies or documents via any API endpoint (even with a valid JWT and guessed IDs)
-2. Existing companies and documents (with no owner) are visible to all logged-in users as demo data
+2. Existing companies and documents (with no owner, NULL user_id) are not visible to any authenticated user
 3. A newly registered user's uploaded documents are not visible to any other user
 4. All API routes that return companies or documents enforce the user_id filter
 
 **UI hint:** no
 
-**Plans:**
-- Add `user_id` column to `companies` and `documents` tables; mark existing rows as shared demo
-- Update all API route handlers to filter by authenticated user's `user_id`
-- Add integration smoke test: two users each create a company, verify neither can see the other's
+**Plans:** 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Add user_id columns to companies and documents; rebuild UNIQUE constraint; add indexes
+- [ ] 02-02-PLAN.md — Update all API route handlers to filter by authenticated user's user_id
+- [ ] 02-03-PLAN.md — Add fresh_all_db fixture and cross-user IDOR integration smoke tests
 
 ---
 
