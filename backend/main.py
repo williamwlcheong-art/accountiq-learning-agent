@@ -3,6 +3,7 @@ AccountIQ Learning Agent — FastAPI backend
 Run with: uvicorn main:app --reload --port 8765
 """
 import os
+import json
 import shutil
 import asyncio
 from pathlib import Path
@@ -11,7 +12,7 @@ from typing import Optional
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 import aiosqlite
 
 # Load .env from project root (one level up from backend/)
@@ -341,12 +342,15 @@ async def export_patterns(
 ):
     """Export patterns as JSON suitable for importing into the standalone SPA."""
     lib = await get_pattern_library(db)
-    export_path = EXPORT_DIR / "patterns_export.json"
-    import json
-    with open(export_path, "w") as f:
-        json.dump(lib, f, indent=2)
-    return FileResponse(str(export_path), media_type="application/json",
-                        filename="accountiq_patterns.json")
+    # Stream the response in-memory: avoids shared-file races and keeps I/O
+    # off the event loop without needing run_in_executor for a small JSON blob.
+    loop = asyncio.get_running_loop()
+    buf = await loop.run_in_executor(None, lambda: json.dumps(lib, indent=2))
+    return Response(
+        content=buf,
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=accountiq_patterns.json"},
+    )
 
 
 # ---------------------------------------------------------------------------
