@@ -77,6 +77,7 @@ async def fresh_all_db():
     """
     import aiosqlite
     async with aiosqlite.connect(_TMP_DB_PATH) as conn:
+        await conn.execute("PRAGMA foreign_keys=ON")
         for table in ["financial_rows", "extraction_log", "documents", "companies", "users"]:
             try:
                 await conn.execute(f"DELETE FROM {table}")
