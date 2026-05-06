@@ -475,13 +475,19 @@ async def retry_document(
     if not doc:
         raise HTTPException(404, "Document not found")
 
-    # Reset status and clear old data
+    # Reset status and clear old data — include user_id in every write to prevent TOCTOU/IDOR
     await db.execute(
-        "UPDATE documents SET extraction_status='pending', updated_at=datetime('now') WHERE id=?",
-        (document_id,)
+        "UPDATE documents SET extraction_status='pending', updated_at=datetime('now') WHERE id=? AND user_id=?",
+        (document_id, current_user["id"])
     )
-    await db.execute("DELETE FROM financial_rows WHERE document_id=?", (document_id,))
-    await db.execute("DELETE FROM extraction_log WHERE document_id=?", (document_id,))
+    await db.execute(
+        "DELETE FROM financial_rows WHERE document_id=? AND document_id IN (SELECT id FROM documents WHERE user_id=?)",
+        (document_id, current_user["id"])
+    )
+    await db.execute(
+        "DELETE FROM extraction_log WHERE document_id=? AND document_id IN (SELECT id FROM documents WHERE user_id=?)",
+        (document_id, current_user["id"])
+    )
     await db.commit()
 
     background_tasks.add_task(
