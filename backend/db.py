@@ -118,15 +118,67 @@ async def get_db() -> aiosqlite.Connection:
 
 
 def _migrate_db(conn: sqlite3.Connection):
-    """Add columns introduced in v2 — safe to run on an existing database."""
+    """Add columns introduced in v2/v3 — safe to run on an existing database."""
     for sql in [
         "ALTER TABLE documents ADD COLUMN narrative TEXT",
         "ALTER TABLE documents ADD COLUMN reporting_standard TEXT DEFAULT 'UNKNOWN'",
+        # Phase 2: user ownership columns
+        "ALTER TABLE companies ADD COLUMN user_id INTEGER",
+        "ALTER TABLE documents ADD COLUMN user_id INTEGER",
     ]:
         try:
             conn.execute(sql)
         except sqlite3.OperationalError:
             pass  # column already exists
+
+    # Phase 2: rebuild companies UNIQUE constraint to include user_id.
+    # SQLite cannot ALTER a UNIQUE constraint — must use table-rename pattern.
+    # Idempotency guard: skip if UNIQUE(name, exchange, user_id) already present.
+    cur = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='companies'"
+    )
+    schema_row = cur.fetchone()
+    schema_sql = schema_row[0] if schema_row else ""
+
+    if "UNIQUE(name, exchange, user_id)" not in schema_sql:
+        # Clean up any failed previous attempt
+        cur2 = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='companies_new'"
+        )
+        if cur2.fetchone():
+            conn.execute("DROP TABLE companies_new")
+
+        conn.executescript("""
+            BEGIN;
+            CREATE TABLE companies_new (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                name        TEXT    NOT NULL,
+                ticker      TEXT,
+                exchange    TEXT,
+                sector      TEXT,
+                country     TEXT    DEFAULT 'NZ',
+                created_at  TEXT    DEFAULT (datetime('now')),
+                user_id     INTEGER,
+                UNIQUE(name, exchange, user_id)
+            );
+            INSERT INTO companies_new
+                SELECT id, name, ticker, exchange, sector, country, created_at, user_id
+                FROM companies;
+            DROP TABLE companies;
+            ALTER TABLE companies_new RENAME TO companies;
+            COMMIT;
+        """)
+
+    # Phase 2: indexes for user_id query performance
+    for idx_sql in [
+        "CREATE INDEX IF NOT EXISTS idx_companies_user ON companies(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_documents_user  ON documents(user_id)",
+    ]:
+        try:
+            conn.execute(idx_sql)
+        except sqlite3.OperationalError:
+            pass
+
     conn.commit()
 
 
