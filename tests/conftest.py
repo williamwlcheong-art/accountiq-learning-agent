@@ -65,3 +65,25 @@ async def fresh_db():
         except Exception:
             pass
     yield
+
+
+@pytest_asyncio.fixture
+async def fresh_all_db():
+    """Truncate all tables between isolation tests.
+
+    Deletion order respects FK constraints (children before parents):
+    financial_rows and extraction_log reference documents;
+    documents references companies; companies and documents reference users.
+    """
+    import aiosqlite
+    async with aiosqlite.connect(_TMP_DB_PATH) as conn:
+        for table in ["financial_rows", "extraction_log", "documents", "companies", "users"]:
+            try:
+                await conn.execute(f"DELETE FROM {table}")
+            except Exception:
+                pass
+        try:
+            await conn.commit()
+        except Exception:
+            pass
+    yield
