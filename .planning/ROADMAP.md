@@ -46,7 +46,7 @@
 Plans:
 - [x] 02-01-PLAN.md — Add user_id columns to companies and documents; rebuild UNIQUE constraint; add indexes
 - [x] 02-02-PLAN.md — Update all API route handlers to filter by authenticated user's user_id
-- [ ] 02-03-PLAN.md — Add fresh_all_db fixture and cross-user IDOR integration smoke tests
+- [x] 02-03-PLAN.md — Add fresh_all_db fixture and cross-user IDOR integration smoke tests
 
 ---
 
