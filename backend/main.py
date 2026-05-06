@@ -377,20 +377,19 @@ async def analytics_overview(
         WHERE c.user_id=?
     """, (current_user["id"],)) as cur:
         fin_rows = (await cur.fetchone())["n"]
-    async with db.execute("SELECT COUNT(*) as n FROM label_patterns") as cur:
-        patterns = (await cur.fetchone())["n"]
     async with db.execute("""
         SELECT exchange, COUNT(*) as n FROM companies
         WHERE user_id=? GROUP BY exchange
     """, (current_user["id"],)) as cur:
         by_exchange = [dict(r) for r in await cur.fetchall()]
 
+    # label_patterns is global shared ML data (D-03) — not exposed here to avoid
+    # leaking information about other users' data volume.  Use GET /patterns for counts.
     return {
         "companies":   companies,
         "documents":   documents,
         "docs_done":   done,
         "financial_rows": fin_rows,
-        "label_patterns": patterns,
         "by_exchange": by_exchange,
     }
 
