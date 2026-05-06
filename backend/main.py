@@ -244,11 +244,15 @@ async def document_status(
     if not doc:
         raise HTTPException(404, "Document not found")
 
-    # Fetch logs
+    # Fetch logs — join documents to enforce ownership so this query is
+    # self-contained and safe if ever reused outside the outer guard.
     async with db.execute("""
-        SELECT level, message, created_at FROM extraction_log
-        WHERE document_id=? ORDER BY id DESC LIMIT 30
-    """, (document_id,)) as cur:
+        SELECT el.level, el.message, el.created_at
+        FROM extraction_log el
+        JOIN documents d ON d.id = el.document_id
+        WHERE el.document_id=? AND d.user_id=?
+        ORDER BY el.id DESC LIMIT 30
+    """, (document_id, current_user["id"])) as cur:
         logs = [dict(r) for r in await cur.fetchall()]
 
     return {**dict(doc), "logs": logs}
