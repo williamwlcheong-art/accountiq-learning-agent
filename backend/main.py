@@ -359,17 +359,15 @@ async def analytics_overview(
         (current_user["id"],)
     ) as cur:
         companies = (await cur.fetchone())["n"]
-    async with db.execute("""
-        SELECT COUNT(*) as n FROM documents d
-        JOIN companies c ON c.id = d.company_id
-        WHERE c.user_id=?
-    """, (current_user["id"],)) as cur:
+    async with db.execute(
+        "SELECT COUNT(*) as n FROM documents d WHERE d.user_id=?",
+        (current_user["id"],)
+    ) as cur:
         documents = (await cur.fetchone())["n"]
-    async with db.execute("""
-        SELECT COUNT(*) as n FROM documents d
-        JOIN companies c ON c.id = d.company_id
-        WHERE d.extraction_status='done' AND c.user_id=?
-    """, (current_user["id"],)) as cur:
+    async with db.execute(
+        "SELECT COUNT(*) as n FROM documents d WHERE d.extraction_status='done' AND d.user_id=?",
+        (current_user["id"],)
+    ) as cur:
         done = (await cur.fetchone())["n"]
     async with db.execute("""
         SELECT COUNT(*) as n FROM financial_rows fr
