@@ -220,8 +220,10 @@ async def test_ebitda_bridge_calculation(client, fresh_all_db):
     assert body["has_financials"] is False, body
     assert body["reported_ebitda"] is None, body
     # Insert financial_rows directly via DB to simulate prior extraction
-    import aiosqlite, conftest
-    db_path = conftest._TMP_DB_PATH
+    # Use the patched DB_PATH from the db module (set by conftest before test startup)
+    import aiosqlite
+    import db as _db_module
+    db_path = _db_module.DB_PATH
     async with aiosqlite.connect(db_path) as conn:
         # Need a document_id — insert a dummy document
         cur = await conn.execute(
