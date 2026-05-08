@@ -256,6 +256,192 @@ async def profile_status(
     }
 
 
+# --- Management team CRUD -----------------------------------------------
+
+@app.get("/companies/{company_id}/management-team")
+async def list_management_team(
+    company_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    async with db.execute(
+        "SELECT id FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
+        if not await cur.fetchone():
+            raise HTTPException(404, "Company not found")
+    async with db.execute(
+        "SELECT id, name, title, bio FROM management_team WHERE company_id=? ORDER BY id ASC",
+        (company_id,)
+    ) as cur:
+        rows = await cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.post("/companies/{company_id}/management-team", status_code=201)
+async def add_management_team_member(
+    company_id: int,
+    name:  str           = Form(...),
+    title: Optional[str] = Form(None),
+    bio:   Optional[str] = Form(None),
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    async with db.execute(
+        "SELECT id FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
+        if not await cur.fetchone():
+            raise HTTPException(404, "Company not found")
+    async with db.execute(
+        "INSERT INTO management_team (company_id, name, title, bio) VALUES (?, ?, ?, ?)",
+        (company_id, name, title, bio)
+    ) as cur:
+        member_id = cur.lastrowid
+    await db.commit()
+    return {"id": member_id, "name": name, "title": title, "bio": bio}
+
+
+@app.put("/companies/{company_id}/management-team/{member_id}")
+async def update_management_team_member(
+    company_id: int,
+    member_id: int,
+    name:  str           = Form(...),
+    title: Optional[str] = Form(None),
+    bio:   Optional[str] = Form(None),
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    async with db.execute(
+        "SELECT id FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
+        if not await cur.fetchone():
+            raise HTTPException(404, "Company not found")
+    async with db.execute(
+        "UPDATE management_team SET name=?, title=?, bio=? WHERE id=? AND company_id=?",
+        (name, title, bio, member_id, company_id)
+    ) as cur:
+        if cur.rowcount == 0:
+            raise HTTPException(404, "Member not found")
+    await db.commit()
+    return {"id": member_id, "name": name, "title": title, "bio": bio}
+
+
+@app.delete("/companies/{company_id}/management-team/{member_id}", status_code=204)
+async def delete_management_team_member(
+    company_id: int,
+    member_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    async with db.execute(
+        "SELECT id FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
+        if not await cur.fetchone():
+            raise HTTPException(404, "Company not found")
+    await db.execute(
+        "DELETE FROM management_team WHERE id=? AND company_id=?",
+        (member_id, company_id)
+    )
+    await db.commit()
+    return Response(status_code=204)
+
+
+# --- EBITDA adjustments CRUD --------------------------------------------
+
+@app.get("/companies/{company_id}/ebitda-adjustments")
+async def list_ebitda_adjustments(
+    company_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    async with db.execute(
+        "SELECT id FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
+        if not await cur.fetchone():
+            raise HTTPException(404, "Company not found")
+    async with db.execute(
+        "SELECT id, label, amount, rationale FROM ebitda_adjustments WHERE company_id=? ORDER BY id ASC",
+        (company_id,)
+    ) as cur:
+        rows = await cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.post("/companies/{company_id}/ebitda-adjustments", status_code=201)
+async def add_ebitda_adjustment(
+    company_id: int,
+    label:     str           = Form(...),
+    amount:    float         = Form(...),
+    rationale: Optional[str] = Form(None),
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    async with db.execute(
+        "SELECT id FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
+        if not await cur.fetchone():
+            raise HTTPException(404, "Company not found")
+    async with db.execute(
+        "INSERT INTO ebitda_adjustments (company_id, label, amount, rationale) VALUES (?, ?, ?, ?)",
+        (company_id, label, amount, rationale)
+    ) as cur:
+        adj_id = cur.lastrowid
+    await db.commit()
+    return {"id": adj_id, "label": label, "amount": amount, "rationale": rationale}
+
+
+@app.put("/companies/{company_id}/ebitda-adjustments/{adj_id}")
+async def update_ebitda_adjustment(
+    company_id: int,
+    adj_id: int,
+    label:     str           = Form(...),
+    amount:    float         = Form(...),
+    rationale: Optional[str] = Form(None),
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    async with db.execute(
+        "SELECT id FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
+        if not await cur.fetchone():
+            raise HTTPException(404, "Company not found")
+    async with db.execute(
+        "UPDATE ebitda_adjustments SET label=?, amount=?, rationale=? WHERE id=? AND company_id=?",
+        (label, amount, rationale, adj_id, company_id)
+    ) as cur:
+        if cur.rowcount == 0:
+            raise HTTPException(404, "Adjustment not found")
+    await db.commit()
+    return {"id": adj_id, "label": label, "amount": amount, "rationale": rationale}
+
+
+@app.delete("/companies/{company_id}/ebitda-adjustments/{adj_id}", status_code=204)
+async def delete_ebitda_adjustment(
+    company_id: int,
+    adj_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    async with db.execute(
+        "SELECT id FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
+        if not await cur.fetchone():
+            raise HTTPException(404, "Company not found")
+    await db.execute(
+        "DELETE FROM ebitda_adjustments WHERE id=? AND company_id=?",
+        (adj_id, company_id)
+    )
+    await db.commit()
+    return Response(status_code=204)
+
+
 # ---------------------------------------------------------------------------
 # Documents — upload & ingest
 # ---------------------------------------------------------------------------
