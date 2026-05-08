@@ -125,6 +125,8 @@ def _migrate_db(conn: sqlite3.Connection):
         # Phase 2: user ownership columns
         "ALTER TABLE companies ADD COLUMN user_id INTEGER",
         "ALTER TABLE documents ADD COLUMN user_id INTEGER",
+        # Phase 3: business profile description
+        "ALTER TABLE companies ADD COLUMN description TEXT",
     ]:
         try:
             conn.execute(sql)
@@ -188,6 +190,37 @@ def _migrate_db(conn: sqlite3.Connection):
     for idx_sql in [
         "CREATE INDEX IF NOT EXISTS idx_companies_user ON companies(user_id)",
         "CREATE INDEX IF NOT EXISTS idx_documents_user  ON documents(user_id)",
+    ]:
+        try:
+            conn.execute(idx_sql)
+        except sqlite3.OperationalError:
+            pass
+
+    # Phase 3: business profile child tables (ownership via company_id, no user_id column)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS management_team (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id  INTEGER REFERENCES companies(id) ON DELETE CASCADE,
+            name        TEXT NOT NULL,
+            title       TEXT,
+            bio         TEXT,
+            created_at  TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS ebitda_adjustments (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id  INTEGER REFERENCES companies(id) ON DELETE CASCADE,
+            label       TEXT NOT NULL,
+            amount      REAL NOT NULL,
+            rationale   TEXT,
+            created_at  TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    # Index for fast child-list queries by company
+    for idx_sql in [
+        "CREATE INDEX IF NOT EXISTS idx_mgmt_team_company ON management_team(company_id)",
+        "CREATE INDEX IF NOT EXISTS idx_ebitda_adj_company ON ebitda_adjustments(company_id)",
     ]:
         try:
             conn.execute(idx_sql)
