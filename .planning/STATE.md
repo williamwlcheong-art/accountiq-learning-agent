@@ -12,7 +12,7 @@ progress:
   percent: 54
 current_phase: 3
 current_phase_name: Business Profile Intake
-current_plan: 03-01
+current_plan: 03-03
 ---
 
 # AccountIQ — Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 |-------|------|--------|
 | 1 | Security & Auth Foundation | ✅ Complete (2026-05-06) |
 | 2 | Multi-User Data Isolation | ✅ Complete |
-| 3 | Business Profile Intake | 🔄 In progress (Wave 1/3) |
+| 3 | Business Profile Intake | 🔄 In progress (Wave 3/3) |
 | 4 | Extraction Quality | ⬜ Not started |
 | 5 | Report Generation Engine | ⬜ Not started |
 | 6 | Payment Integration | ⬜ Not started |
@@ -40,7 +40,7 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 
 **Phase 3 — Business Profile Intake** — In progress (3 plans, 3 waves)
 
-Executing Wave 1: schema migrations + test stubs (03-01).
+Executing Wave 3: frontend accordion UI (03-03) — human-verify checkpoint pending.
 
 ## Decision Log
 

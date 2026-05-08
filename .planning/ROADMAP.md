@@ -73,7 +73,7 @@ Plans:
 - [x] 03-01-PLAN.md — Extend `_migrate_db` (description column + management_team + ebitda_adjustments tables); update fresh_all_db fixture; add 9 RED test stubs for PROF-01..PROF-04, D-05, D-06
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 03-02-PLAN.md — Add backend CRUD: profile patch, management-team CRUD, ebitda-adjustments CRUD, profile-status (gate + EBITDA bridge); enrich GET /companies with description + sections_complete
+- [x] 03-02-PLAN.md — Add backend CRUD: profile patch, management-team CRUD, ebitda-adjustments CRUD, profile-status (gate + EBITDA bridge); enrich GET /companies with description + sections_complete
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 03-03-PLAN.md — Build frontend accordion: completion badge, Industry/Description/Mgmt Team/EBITDA forms with running bridge; apiDelete helper; human-verify checkpoint
