@@ -1,7 +1,7 @@
 ---
 phase: 3
 slug: business-profile-intake
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-05-07
@@ -29,6 +29,14 @@ No shadcn gate applies. This is not a React/Next.js/Vite project.
 
 ---
 
+## Visuals
+
+**Primary focal point:** The profile completion badge on each company row (e.g., `2/4 complete`) is the first element that draws attention when a user lands on the Companies tab after Phase 3. It signals incomplete profiles and anchors the "Edit Profile" CTA as the obvious next action.
+
+**Visual hierarchy within the accordion panel:** Panel heading "Business Profile" → four stacked sub-section titles → form fields → save button → feedback alert. Depth is communicated by section title size (`.8rem` uppercase muted) vs body content (`.875rem` regular).
+
+---
+
 ## Spacing Scale
 
 All new components use these existing values from the project's implicit 8-point scale. No new tokens are introduced.
@@ -43,11 +51,11 @@ All new components use these existing values from the project's implicit 8-point
 | 2xl | 48px | Not used in this phase |
 | 3xl | 64px | Not used in this phase |
 
-Exceptions:
-- Accordion expand/collapse panel: `padding: 1.5rem` (24px) top/bottom, `padding: 1rem` (16px) left/right — matches existing `.card` padding pattern.
-- EBITDA bridge table rows: `padding: 0.4rem 0.8rem` (6.4px / 12.8px) — matches existing `td` rule.
-- Profile completion badge on company row: `padding: 0.2rem 0.6rem` — matches existing `.badge` rule.
-- Touch target minimum for add/remove buttons: 32px height via `btn-sm` class (existing `.btn-sm` rule: `padding: .35rem .8rem`).
+Exceptions (Phase 3–introduced values only):
+- Accordion expand/collapse panel: `padding: 1.5rem` (24px) top/bottom, `padding: 1rem` (16px) left/right — matches existing `.card` padding pattern. Both are multiples of 4.
+- EBITDA bridge table rows: `padding: 4px 8px` — both multiples of 4 (4-point grid alignment).
+- Profile completion badge: reuses pre-existing `.badge` class — no new spacing token introduced by Phase 3.
+- Touch target minimum for add/remove buttons: reuses pre-existing `.btn-sm` class — 32px minimum height achieved via existing rule, no new spacing token introduced by Phase 3.
 
 ---
 
@@ -63,6 +71,8 @@ All sizes are taken directly from the existing stylesheet — no new type sizes 
 | Heading (card h2) | 16px (1rem) | 600 | 1.2 | Accordion sub-section titles: "Industry & Sector", "Business Description", "Management Team", "EBITDA Add-Backs" |
 
 No new font sizes are permitted. The four sizes above map exactly to sizes already present in the stylesheet.
+
+**Note on 12px vs 12.8px distinction:** These sizes are 0.8px apart and are not visually distinguishable by size alone. The distinction is achieved through weight (Label is 600 semibold + uppercase, Small/Muted is 400 regular + normal case), not size. Executors must apply both size *and* weight/transform to produce the intended hierarchy.
 
 ---
 
@@ -115,14 +125,14 @@ No new CSS classes are introduced where an existing class already covers the use
 
 /* EBITDA bridge */
 .ebitda-bridge { background: #f0f4f8; border-radius: 8px; padding: .75rem 1rem; margin-top: .75rem; }
-.ebitda-bridge table { font-size: .85rem; }
-.ebitda-bridge .bridge-total td { font-weight: 700; color: var(--blue); border-top: 2px solid var(--border); }
+.ebitda-bridge table { font-size: 0.875rem; }
+.ebitda-bridge .bridge-total td { font-weight: 600; color: var(--blue); border-top: 2px solid var(--border); }
 
 /* Inline list (management team / add-back items) */
 .inline-list-item { display: flex; align-items: flex-start; gap: .75rem; padding: .6rem 0; border-bottom: 1px solid var(--border); }
 .inline-list-item:last-child { border-bottom: none; }
 .inline-list-item .item-body { flex: 1; min-width: 0; }
-.inline-list-item .item-actions { display: flex; gap: .4rem; flex-shrink: 0; }
+.inline-list-item .item-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
 /* Profile completion badge on company row */
 .badge-profile-complete { background: #e8f5e9; color: var(--green); }
@@ -507,11 +517,11 @@ These are consumed by Phase 3 UI — listed so the executor knows exactly which 
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: FLAG (non-blocking — 12px vs 12.8px rely on weight+transform for distinction, not size)
+- [x] Dimension 5 Spacing: FLAG (non-blocking — all scale tokens are multiples of 4)
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-05-08
