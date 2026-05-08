@@ -66,11 +66,17 @@ Plans:
 
 **UI hint:** yes
 
-**Plans:**
-- Create `business_profiles` DB table and CRUD API endpoints
-- Build industry/sector picker and business description form in frontend
-- Build management team entry UI (add/edit/remove team members)
-- Build EBITDA add-backs entry UI with running normalised EBITDA total
+**Plans:** 3 plans
+
+Plans:
+**Wave 1**
+- [ ] 03-01-PLAN.md — Extend `_migrate_db` (description column + management_team + ebitda_adjustments tables); update fresh_all_db fixture; add 9 RED test stubs for PROF-01..PROF-04, D-05, D-06
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 03-02-PLAN.md — Add backend CRUD: profile patch, management-team CRUD, ebitda-adjustments CRUD, profile-status (gate + EBITDA bridge); enrich GET /companies with description + sections_complete
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 03-03-PLAN.md — Build frontend accordion: completion badge, Industry/Description/Mgmt Team/EBITDA forms with running bridge; apiDelete helper; human-verify checkpoint
 
 ---
 
