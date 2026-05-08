@@ -82,7 +82,13 @@ async def list_companies(
     current_user: dict = Depends(get_current_user),
 ):
     async with db.execute("""
-        SELECT c.*, COUNT(d.id) as doc_count
+        SELECT c.*,
+               COUNT(DISTINCT d.id) as doc_count,
+               (CASE WHEN c.sector IS NOT NULL AND c.sector != '' THEN 1 ELSE 0 END
+                + CASE WHEN c.description IS NOT NULL AND LENGTH(TRIM(c.description)) >= 50 THEN 1 ELSE 0 END
+                + CASE WHEN (SELECT COUNT(*) FROM management_team mt WHERE mt.company_id = c.id) > 0 THEN 1 ELSE 0 END
+                + CASE WHEN (SELECT COUNT(*) FROM ebitda_adjustments ea WHERE ea.company_id = c.id) > 0 THEN 1 ELSE 0 END
+               ) as sections_complete
         FROM companies c
         LEFT JOIN documents d ON d.company_id = c.id
         WHERE c.user_id = ?
@@ -131,6 +137,123 @@ async def get_company(
     if not row:
         raise HTTPException(404, "Company not found")
     return dict(row)
+
+
+# ---------------------------------------------------------------------------
+# Business profile (Phase 3)
+# ---------------------------------------------------------------------------
+
+@app.post("/companies/{company_id}/profile")
+async def update_company_profile(
+    company_id: int,
+    sector:      Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Patch sector and/or description on a company. Either field may be omitted."""
+    async with db.execute(
+        "SELECT id FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
+        if not await cur.fetchone():
+            raise HTTPException(404, "Company not found")
+    if sector is not None:
+        await db.execute(
+            "UPDATE companies SET sector=? WHERE id=?",
+            (sector, company_id)
+        )
+    if description is not None:
+        await db.execute(
+            "UPDATE companies SET description=? WHERE id=?",
+            (description, company_id)
+        )
+    await db.commit()
+    async with db.execute(
+        "SELECT sector, description FROM companies WHERE id=?",
+        (company_id,)
+    ) as cur:
+        row = await cur.fetchone()
+    return dict(row)
+
+
+@app.get("/companies/{company_id}/profile-status")
+async def profile_status(
+    company_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Return profile completion status + EBITDA bridge inputs for a company.
+    Used by Phase 5 to gate report generation and by the frontend completion badge."""
+    async with db.execute(
+        "SELECT sector, description FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"])
+    ) as cur:
+        company = await cur.fetchone()
+    if not company:
+        raise HTTPException(404, "Company not found")
+
+    # Section 1: industry / sector
+    sector_complete = bool(company["sector"])
+
+    # Section 2: description (>= 50 chars after trim)
+    desc = company["description"] or ""
+    desc_complete = len(desc.strip()) >= 50
+
+    # Section 3: management team — at least one row
+    async with db.execute(
+        "SELECT COUNT(*) as n FROM management_team WHERE company_id=?",
+        (company_id,)
+    ) as cur:
+        mgmt_count = (await cur.fetchone())["n"]
+    mgmt_complete = mgmt_count > 0
+
+    # Section 4: EBITDA adjustments — at least one row
+    async with db.execute(
+        "SELECT COUNT(*) as n FROM ebitda_adjustments WHERE company_id=?",
+        (company_id,)
+    ) as cur:
+        adj_count = (await cur.fetchone())["n"]
+    ebitda_complete = adj_count > 0
+
+    # EBITDA bridge: most recent period with net_profit / depreciation_amortisation / depreciation
+    reported_ebitda = None
+    has_financials = False
+    async with db.execute("""
+        SELECT MAX(period) as max_period FROM financial_rows
+        WHERE company_id=? AND row_key IN ('net_profit', 'depreciation_amortisation', 'depreciation')
+    """, (company_id,)) as cur:
+        period_row = await cur.fetchone()
+    max_period = period_row["max_period"] if period_row else None
+    if max_period:
+        has_financials = True
+        async with db.execute("""
+            SELECT row_key, value FROM financial_rows
+            WHERE company_id=? AND period=?
+              AND row_key IN ('net_profit', 'depreciation_amortisation', 'depreciation')
+        """, (company_id, max_period)) as cur:
+            fin_rows = {r["row_key"]: r["value"] for r in await cur.fetchall()}
+        net_profit = fin_rows.get("net_profit") or 0
+        # Prefer depreciation_amortisation; fall back to depreciation alone
+        da = fin_rows.get("depreciation_amortisation")
+        if da is None:
+            da = fin_rows.get("depreciation") or 0
+        reported_ebitda = net_profit + da
+
+    sections_complete = sum([sector_complete, desc_complete, mgmt_complete, ebitda_complete])
+    can_generate = sector_complete and ebitda_complete
+
+    return {
+        "sections_complete": sections_complete,
+        "total": 4,
+        "sector_complete": sector_complete,
+        "description_complete": desc_complete,
+        "management_complete": mgmt_complete,
+        "ebitda_complete": ebitda_complete,
+        "can_generate": can_generate,
+        "reported_ebitda": reported_ebitda,
+        "has_financials": has_financials,
+    }
 
 
 # ---------------------------------------------------------------------------

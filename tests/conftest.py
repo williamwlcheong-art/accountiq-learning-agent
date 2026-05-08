@@ -12,6 +12,12 @@ from httpx import AsyncClient, ASGITransport
 BACKEND_DIR = Path(__file__).resolve().parent.parent / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
+# Ensure tests/ itself is importable so test modules can do `import conftest`
+# to access shared test state like _TMP_DB_PATH.
+_TESTS_DIR = Path(__file__).resolve().parent
+if str(_TESTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_TESTS_DIR))
+
 # Load .env before any module imports so SECRET_KEY and ANTHROPIC_API_KEY are available.
 # Walk up from the tests/ dir to find the .env (handles both worktree and main-repo runs).
 _HERE = Path(__file__).resolve().parent

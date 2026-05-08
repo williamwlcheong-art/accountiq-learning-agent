@@ -171,12 +171,13 @@ def _migrate_db(conn: sqlite3.Connection):
                     country     TEXT    DEFAULT 'NZ',
                     created_at  TEXT    DEFAULT (datetime('now')),
                     user_id     INTEGER,
+                    description TEXT,
                     UNIQUE(name, exchange, user_id)
                 )
             """)
             conn.execute("""
                 INSERT INTO companies_new
-                    SELECT id, name, ticker, exchange, sector, country, created_at, user_id
+                    SELECT id, name, ticker, exchange, sector, country, created_at, user_id, description
                     FROM companies
             """)
             conn.execute("DROP TABLE companies")
