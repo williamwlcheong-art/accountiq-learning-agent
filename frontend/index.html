@@ -112,6 +112,36 @@
   .btn-ghost-light:hover{background:rgba(255,255,255,.25)}
   #user-header{display:none;align-items:center;gap:.75rem;margin-left:.75rem}
   #user-email{font-size:.8rem;opacity:.85;color:#fff}
+
+  /* ===== Phase 3: Business profile accordion ===== */
+  .profile-panel-row { display: none; }
+  .profile-panel-row.open { display: table-row; }
+  .profile-panel-td { padding: 0; border-bottom: 2px solid var(--border); }
+  .profile-panel-inner { padding: 1.5rem 1rem; background: var(--card); }
+  .profile-section { margin-bottom: 1.5rem; }
+  .profile-section:last-child { margin-bottom: 0; }
+  .profile-section-title {
+    font-size: .8rem; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .04em; margin-bottom: .75rem;
+  }
+  .profile-section-title.flex { display: flex; align-items: center; }
+
+  /* Profile completion badge variants on company row */
+  .badge-profile-complete { background: #e8f5e9; color: var(--green); }
+  .badge-profile-partial  { background: #e3f2fd; color: var(--blue); }
+  .badge-profile-empty    { background: #fff8e1; color: var(--amber); }
+
+  /* EBITDA bridge */
+  .ebitda-bridge { background: #f0f4f8; border-radius: 8px; padding: .75rem 1rem; margin-top: .75rem; }
+  .ebitda-bridge table { width: 100%; font-size: 0.875rem; border-collapse: collapse; }
+  .ebitda-bridge td { padding: 4px 8px; }
+  .ebitda-bridge .bridge-total td { font-weight: 600; color: var(--blue); border-top: 2px solid var(--border); }
+
+  /* Inline list rows for management team / add-back items */
+  .inline-list-item { display: flex; align-items: flex-start; gap: .75rem; padding: .6rem 0; border-bottom: 1px solid var(--border); }
+  .inline-list-item:last-child { border-bottom: none; }
+  .inline-list-item .item-body { flex: 1; min-width: 0; }
+  .inline-list-item .item-actions { display: flex; gap: 4px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -260,9 +290,9 @@
   <div class="card">
     <table>
       <thead><tr>
-        <th>Company</th><th>Ticker</th><th>Exchange</th><th>Sector</th><th>Country</th><th>Documents</th><th></th>
+        <th>Company</th><th>Ticker</th><th>Exchange</th><th>Sector</th><th>Country</th><th>Documents</th><th>Profile</th><th></th>
       </tr></thead>
-      <tbody id="companies-tbody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+      <tbody id="companies-tbody"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -1034,6 +1064,34 @@ async function checkApiKey() {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// ===== Phase 3: Business profile =====
+const INDUSTRY_OPTIONS = [
+  "Retail",
+  "Construction",
+  "Professional Services",
+  "Hospitality & Food Service",
+  "Healthcare & Medical",
+  "Manufacturing",
+  "Technology & Software",
+  "Agriculture & Horticulture",
+  "Transport & Logistics",
+  "Property & Real Estate",
+  "Wholesale & Distribution",
+  "Financial Services",
+  "Media & Communications",
+  "Education & Training",
+  "Other",
+];
+
+async function apiDelete(path) {
+  try {
+    const res = await fetch(API + path, { method: 'DELETE', credentials: 'include' });
+    if (res.status === 401) { showAuthWall(true); return false; }
+    return res.ok;
+  } catch (e) { console.error(e); return false; }
+}
+
 async function apiFetch(path) {
   try {
     const res = await fetch(API + path, { credentials: 'include' });
