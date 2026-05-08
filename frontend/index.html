@@ -557,8 +557,12 @@ async function loadDashboard() {
 async function loadCompanies() {
   const data = await apiFetch('/companies');
   if (!data) return;
+  window.__companiesCache = data;  // exposed for loadProfilePanel
   const tbody = document.getElementById('companies-tbody');
-  if (!data.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No companies yet. Add one above.</td></tr>'; return; }
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">No companies yet. Add one above.</td></tr>';
+    return;
+  }
   tbody.innerHTML = '';
   data.forEach(c => {
     const tr = document.createElement('tr');
@@ -596,15 +600,46 @@ async function loadCompanies() {
     tdCount.textContent = c.doc_count;
     tr.appendChild(tdCount);
 
+    // NEW: Profile completion badge column
+    const tdProfile = document.createElement('td');
+    const sc = (typeof c.sections_complete === 'number') ? c.sections_complete : 0;
+    const profBadge = document.createElement('span');
+    profBadge.className = 'badge ' + (sc === 4 ? 'badge-profile-complete'
+                                     : sc > 0  ? 'badge-profile-partial'
+                                     :           'badge-profile-empty');
+    profBadge.textContent = `${sc}/4 complete`;
+    tdProfile.appendChild(profBadge);
+    tr.appendChild(tdProfile);
+
+    // Action column — Upload PDF + Edit Profile
     const tdAct = document.createElement('td');
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-sm btn-primary';
-    btn.textContent = 'Upload PDF';
-    btn.onclick = () => { showPage('upload'); setUploadCompany(c.id); };
-    tdAct.appendChild(btn);
+    tdAct.style.whiteSpace = 'nowrap';
+    const upBtn = document.createElement('button');
+    upBtn.className = 'btn btn-sm btn-primary';
+    upBtn.textContent = 'Upload PDF';
+    upBtn.onclick = () => { showPage('upload'); setUploadCompany(c.id); };
+    tdAct.appendChild(upBtn);
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-sm btn-primary';
+    editBtn.style.marginLeft = '.5rem';
+    editBtn.textContent = 'Edit Profile';
+    editBtn.onclick = () => toggleProfilePanel(c.id);
+    tdAct.appendChild(editBtn);
     tr.appendChild(tdAct);
 
     tbody.appendChild(tr);
+
+    // Accordion row (hidden by default)
+    const panelRow = document.createElement('tr');
+    panelRow.id = `profile-panel-${c.id}`;
+    panelRow.className = 'profile-panel-row';
+    panelRow.dataset.companyId = String(c.id);
+    const panelTd = document.createElement('td');
+    panelTd.colSpan = 8;
+    panelTd.className = 'profile-panel-td';
+    panelTd.id = `profile-panel-td-${c.id}`;
+    panelRow.appendChild(panelTd);
+    tbody.appendChild(panelRow);
   });
 }
 
@@ -629,6 +664,670 @@ async function addCompany() {
     loadCompanies();
     populateCompanySelects();
   }
+}
+
+// ===== Phase 3: Business profile panel =====
+
+function toggleProfilePanel(companyId) {
+  document.querySelectorAll('.profile-panel-row').forEach(p => {
+    if (parseInt(p.dataset.companyId, 10) !== companyId) p.classList.remove('open');
+  });
+  const row = document.getElementById(`profile-panel-${companyId}`);
+  if (!row) return;
+  const isOpen = row.classList.toggle('open');
+  if (isOpen) loadProfilePanel(companyId);
+}
+
+function _findCachedCompany(companyId) {
+  const cache = window.__companiesCache || [];
+  return cache.find(c => c.id === companyId) || null;
+}
+
+async function loadProfilePanel(companyId) {
+  const td = document.getElementById(`profile-panel-td-${companyId}`);
+  if (!td) return;
+  // Loading placeholder
+  td.textContent = '';
+  const loading = document.createElement('div');
+  loading.className = 'profile-panel-inner';
+  loading.textContent = 'Loading…';
+  td.appendChild(loading);
+
+  const [members, adjustments, status] = await Promise.all([
+    apiFetch(`/companies/${companyId}/management-team`),
+    apiFetch(`/companies/${companyId}/ebitda-adjustments`),
+    apiFetch(`/companies/${companyId}/profile-status`),
+  ]);
+  if (!members || !adjustments || !status) return;
+  const company = _findCachedCompany(companyId) || {};
+
+  td.textContent = '';
+  const inner = document.createElement('div');
+  inner.className = 'profile-panel-inner';
+
+  // Panel header with Close button
+  const header = document.createElement('div');
+  header.className = 'flex';
+  header.style.marginBottom = '1rem';
+  const headerTitle = document.createElement('div');
+  headerTitle.style.fontSize = '1rem';
+  headerTitle.style.fontWeight = '600';
+  headerTitle.style.color = 'var(--navy)';
+  headerTitle.textContent = 'Business Profile';
+  header.appendChild(headerTitle);
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn btn-sm ml-auto';
+  closeBtn.style.background = '#eee';
+  closeBtn.textContent = 'Close';
+  closeBtn.onclick = () => toggleProfilePanel(companyId);
+  header.appendChild(closeBtn);
+  inner.appendChild(header);
+
+  inner.appendChild(_renderIndustrySection(companyId, company));
+  inner.appendChild(_renderDescriptionSection(companyId, company));
+  inner.appendChild(_renderManagementTeamSection(companyId, members));
+  inner.appendChild(_renderEbitdaSection(companyId, adjustments, status));
+
+  td.appendChild(inner);
+}
+
+function _sectionWrapper(titleText) {
+  const wrap = document.createElement('div');
+  wrap.className = 'profile-section';
+  const title = document.createElement('div');
+  title.className = 'profile-section-title';
+  title.textContent = titleText;
+  wrap.appendChild(title);
+  return wrap;
+}
+
+// --- Industry section ---
+function _renderIndustrySection(companyId, company) {
+  const wrap = _sectionWrapper('Industry & Sector');
+  const fg = document.createElement('div');
+  fg.className = 'form-group';
+  fg.style.maxWidth = '320px';
+  const label = document.createElement('label');
+  label.textContent = 'Industry *';
+  fg.appendChild(label);
+  const sel = document.createElement('select');
+  sel.id = `prof-industry-${companyId}`;
+  const empty = document.createElement('option');
+  empty.value = '';
+  empty.textContent = 'Select industry…';
+  sel.appendChild(empty);
+  INDUSTRY_OPTIONS.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt;
+    o.textContent = opt;
+    sel.appendChild(o);
+  });
+  // Pitfall 4: legacy free-text sector falls back to "" if not in canonical list
+  if (company.sector && INDUSTRY_OPTIONS.includes(company.sector)) {
+    sel.value = company.sector;
+  } else {
+    sel.value = '';
+  }
+  fg.appendChild(sel);
+  wrap.appendChild(fg);
+
+  const alertDiv = document.createElement('div');
+  alertDiv.id = `prof-industry-alert-${companyId}`;
+  alertDiv.style.marginTop = '.5rem';
+  wrap.appendChild(alertDiv);
+
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-primary btn-sm';
+  btn.textContent = 'Save Industry';
+  btn.style.marginTop = '.5rem';
+  btn.onclick = () => saveIndustry(companyId);
+  wrap.appendChild(btn);
+  return wrap;
+}
+
+async function saveIndustry(companyId) {
+  const sel = document.getElementById(`prof-industry-${companyId}`);
+  const fd = new FormData();
+  fd.append('sector', sel.value || '');
+  const res = await apiPost(`/companies/${companyId}/profile`, fd);
+  if (res) {
+    showAlert(`prof-industry-alert-${companyId}`, 'Industry saved.', 'success');
+    loadCompanies();  // refresh badge counts
+  }
+}
+
+// --- Description section ---
+function _renderDescriptionSection(companyId, company) {
+  const wrap = _sectionWrapper('Business Description');
+  const fg = document.createElement('div');
+  fg.className = 'form-group';
+  const label = document.createElement('label');
+  label.textContent = 'Description ';
+  const labelHint = document.createElement('span');
+  labelHint.className = 'text-muted';
+  labelHint.style.fontWeight = '400';
+  labelHint.textContent = '(min 50 characters)';
+  label.appendChild(labelHint);
+  fg.appendChild(label);
+  const ta = document.createElement('textarea');
+  ta.id = `prof-desc-${companyId}`;
+  ta.rows = 4;
+  ta.setAttribute('minlength', '50');
+  ta.placeholder = 'Describe the business — products or services, customer base, operating geography, and key competitive advantages…';
+  ta.style.resize = 'vertical';
+  ta.style.lineHeight = '1.75';
+  ta.value = company.description || '';
+  fg.appendChild(ta);
+  const counter = document.createElement('div');
+  counter.id = `prof-desc-chars-${companyId}`;
+  counter.className = 'text-muted';
+  counter.style.fontSize = '.75rem';
+  counter.style.textAlign = 'right';
+  counter.style.marginTop = '.25rem';
+  const updateCounter = () => {
+    const n = ta.value.length;
+    counter.textContent = (n >= 50) ? `${n} characters` : `${n} / 50 minimum`;
+  };
+  ta.addEventListener('input', updateCounter);
+  updateCounter();
+  fg.appendChild(counter);
+  wrap.appendChild(fg);
+
+  const alertDiv = document.createElement('div');
+  alertDiv.id = `prof-desc-alert-${companyId}`;
+  alertDiv.style.marginTop = '.5rem';
+  wrap.appendChild(alertDiv);
+
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-primary btn-sm';
+  btn.textContent = 'Save Description';
+  btn.style.marginTop = '.5rem';
+  btn.onclick = () => saveDescription(companyId);
+  wrap.appendChild(btn);
+  return wrap;
+}
+
+async function saveDescription(companyId) {
+  const ta = document.getElementById(`prof-desc-${companyId}`);
+  if (ta.value.trim().length < 50) {
+    showAlert(`prof-desc-alert-${companyId}`, 'Description must be at least 50 characters.', 'error');
+    return;
+  }
+  const fd = new FormData();
+  fd.append('description', ta.value);
+  const res = await apiPost(`/companies/${companyId}/profile`, fd);
+  if (res) {
+    showAlert(`prof-desc-alert-${companyId}`, 'Description saved.', 'success');
+    loadCompanies();
+  }
+}
+
+// --- Management team section ---
+function _renderManagementTeamSection(companyId, members) {
+  const wrap = _sectionWrapper('Management Team');
+  // Title-row add button
+  const titleRow = wrap.querySelector('.profile-section-title');
+  titleRow.classList.add('flex');
+  const addBtn = document.createElement('button');
+  addBtn.className = 'btn btn-sm btn-primary ml-auto';
+  addBtn.textContent = '+ Add Member';
+  addBtn.onclick = () => _showAddMemberForm(companyId);
+  titleRow.appendChild(addBtn);
+
+  const formHolder = document.createElement('div');
+  formHolder.id = `prof-team-form-${companyId}`;
+  wrap.appendChild(formHolder);
+
+  const list = document.createElement('div');
+  list.id = `prof-team-list-${companyId}`;
+  if (!members.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.style.padding = '1.5rem';
+    empty.style.textAlign = 'center';
+    empty.style.color = 'var(--muted)';
+    empty.style.fontSize = '.875rem';
+    empty.textContent = 'No team members added yet.';
+    list.appendChild(empty);
+  } else {
+    members.forEach(m => list.appendChild(_renderMemberItem(companyId, m)));
+  }
+  wrap.appendChild(list);
+
+  const alertDiv = document.createElement('div');
+  alertDiv.id = `prof-team-alert-${companyId}`;
+  alertDiv.style.marginTop = '.5rem';
+  wrap.appendChild(alertDiv);
+  return wrap;
+}
+
+function _renderMemberItem(companyId, m) {
+  const item = document.createElement('div');
+  item.className = 'inline-list-item';
+  const body = document.createElement('div');
+  body.className = 'item-body';
+  const top = document.createElement('div');
+  const nameSpan = document.createElement('strong');
+  nameSpan.textContent = m.name;          // .textContent — no innerHTML
+  top.appendChild(nameSpan);
+  if (m.title) {
+    const sep = document.createTextNode(' — ');
+    top.appendChild(sep);
+    const titleSpan = document.createElement('span');
+    titleSpan.style.color = 'var(--muted)';
+    titleSpan.style.fontSize = '.8rem';
+    titleSpan.textContent = m.title;     // .textContent
+    top.appendChild(titleSpan);
+  }
+  body.appendChild(top);
+  if (m.bio) {
+    const bio = document.createElement('div');
+    bio.style.fontSize = '.8rem';
+    bio.style.color = 'var(--muted)';
+    bio.style.lineHeight = '1.5';
+    bio.style.marginTop = '.25rem';
+    bio.textContent = m.bio;             // .textContent
+    body.appendChild(bio);
+  }
+  item.appendChild(body);
+  const actions = document.createElement('div');
+  actions.className = 'item-actions';
+  const editBtn = document.createElement('button');
+  editBtn.className = 'btn btn-sm';
+  editBtn.style.background = '#eee';
+  editBtn.textContent = 'Edit';
+  editBtn.onclick = () => _showEditMemberForm(companyId, m);
+  actions.appendChild(editBtn);
+  const rmBtn = document.createElement('button');
+  rmBtn.className = 'btn btn-sm btn-danger';
+  rmBtn.textContent = 'Remove';
+  rmBtn.onclick = () => removeMember(companyId, m.id, m.name);
+  actions.appendChild(rmBtn);
+  item.appendChild(actions);
+  return item;
+}
+
+function _showAddMemberForm(companyId) {
+  _showMemberForm(companyId, null);
+}
+function _showEditMemberForm(companyId, member) {
+  _showMemberForm(companyId, member);
+}
+
+function _showMemberForm(companyId, existing) {
+  const holder = document.getElementById(`prof-team-form-${companyId}`);
+  holder.textContent = '';
+  const grid = document.createElement('div');
+  grid.className = 'form-grid';
+  grid.style.gridTemplateColumns = '1fr 1fr';
+  grid.style.marginBottom = '.75rem';
+
+  const fgName = document.createElement('div');
+  fgName.className = 'form-group';
+  const lblName = document.createElement('label');
+  lblName.textContent = 'Name *';
+  fgName.appendChild(lblName);
+  const inName = document.createElement('input');
+  inName.type = 'text';
+  inName.placeholder = 'e.g. Jane Smith';
+  if (existing) inName.value = existing.name || '';
+  fgName.appendChild(inName);
+  grid.appendChild(fgName);
+
+  const fgTitle = document.createElement('div');
+  fgTitle.className = 'form-group';
+  const lblTitle = document.createElement('label');
+  lblTitle.textContent = 'Title';
+  fgTitle.appendChild(lblTitle);
+  const inTitle = document.createElement('input');
+  inTitle.type = 'text';
+  inTitle.placeholder = 'e.g. Managing Director';
+  if (existing) inTitle.value = existing.title || '';
+  fgTitle.appendChild(inTitle);
+  grid.appendChild(fgTitle);
+
+  const fgBio = document.createElement('div');
+  fgBio.className = 'form-group';
+  fgBio.style.gridColumn = '1 / -1';
+  const lblBio = document.createElement('label');
+  lblBio.textContent = 'Bio';
+  fgBio.appendChild(lblBio);
+  const inBio = document.createElement('textarea');
+  inBio.rows = 2;
+  inBio.placeholder = 'Brief professional background…';
+  inBio.style.resize = 'vertical';
+  if (existing) inBio.value = existing.bio || '';
+  fgBio.appendChild(inBio);
+  grid.appendChild(fgBio);
+  holder.appendChild(grid);
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'flex';
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'btn btn-primary btn-sm';
+  saveBtn.textContent = existing ? 'Save Changes' : 'Add Member';
+  saveBtn.onclick = async () => {
+    if (!inName.value.trim()) {
+      showAlert(`prof-team-alert-${companyId}`, 'Name is required.', 'error');
+      return;
+    }
+    const fd = new FormData();
+    fd.append('name', inName.value);
+    fd.append('title', inTitle.value);
+    fd.append('bio', inBio.value);
+    const url = existing
+      ? `/companies/${companyId}/management-team/${existing.id}`
+      : `/companies/${companyId}/management-team`;
+    let res;
+    if (existing) {
+      // PUT via raw fetch since apiPost defaults to POST
+      try {
+        const r = await fetch(API + url, { method: 'PUT', body: fd, credentials: 'include' });
+        if (r.status === 401) { showAuthWall(true); return; }
+        if (!r.ok) { showAlert(`prof-team-alert-${companyId}`, 'Unable to save. Please try again.', 'error'); return; }
+        res = await r.json();
+      } catch (e) {
+        showAlert(`prof-team-alert-${companyId}`, 'Unable to save. Please try again.', 'error');
+        return;
+      }
+    } else {
+      res = await apiPost(url, fd);
+    }
+    if (res) {
+      showAlert(`prof-team-alert-${companyId}`, existing ? 'Team member updated.' : 'Team member added.', 'success');
+      loadProfilePanel(companyId);
+      loadCompanies();
+    }
+  };
+  btnRow.appendChild(saveBtn);
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn btn-sm';
+  cancelBtn.style.background = '#eee';
+  cancelBtn.style.marginLeft = '.5rem';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.onclick = () => { holder.textContent = ''; };
+  btnRow.appendChild(cancelBtn);
+  holder.appendChild(btnRow);
+}
+
+async function removeMember(companyId, memberId, memberName) {
+  if (!window.confirm(`Remove ${memberName} from the management team?`)) return;
+  const ok = await apiDelete(`/companies/${companyId}/management-team/${memberId}`);
+  if (ok) {
+    showAlert(`prof-team-alert-${companyId}`, 'Team member removed.', 'success');
+    loadProfilePanel(companyId);
+    loadCompanies();
+  } else {
+    showAlert(`prof-team-alert-${companyId}`, 'Unable to save. Please try again.', 'error');
+  }
+}
+
+// --- EBITDA add-backs section + bridge ---
+function _renderEbitdaSection(companyId, adjustments, status) {
+  const wrap = _sectionWrapper('EBITDA Add-Backs');
+  const titleRow = wrap.querySelector('.profile-section-title');
+  titleRow.classList.add('flex');
+  const addBtn = document.createElement('button');
+  addBtn.className = 'btn btn-sm btn-primary ml-auto';
+  addBtn.textContent = '+ Add Adjustment';
+  addBtn.onclick = () => _showAdjustmentForm(companyId, null);
+  titleRow.appendChild(addBtn);
+
+  const formHolder = document.createElement('div');
+  formHolder.id = `prof-addbacks-form-${companyId}`;
+  wrap.appendChild(formHolder);
+
+  const list = document.createElement('div');
+  list.id = `prof-addbacks-list-${companyId}`;
+  if (!adjustments.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.style.padding = '1rem';
+    empty.style.textAlign = 'center';
+    empty.style.color = 'var(--muted)';
+    empty.style.fontSize = '.875rem';
+    empty.textContent = 'No adjustments added yet.';
+    list.appendChild(empty);
+  } else {
+    adjustments.forEach(a => list.appendChild(_renderAdjustmentItem(companyId, a)));
+  }
+  wrap.appendChild(list);
+
+  const alertDiv = document.createElement('div');
+  alertDiv.id = `prof-addbacks-alert-${companyId}`;
+  alertDiv.style.marginTop = '.5rem';
+  wrap.appendChild(alertDiv);
+
+  const bridge = document.createElement('div');
+  bridge.id = `prof-bridge-${companyId}`;
+  wrap.appendChild(bridge);
+  renderEbitdaBridge(bridge, status, adjustments);
+  return wrap;
+}
+
+function _formatAmount(v) {
+  // Returns a span that mirrors numCell formatting (red parens for negative)
+  const span = document.createElement('span');
+  if (v == null) { span.textContent = '—'; return span; }
+  if (v < 0) {
+    span.style.color = 'var(--red)';
+    span.textContent = `($${Math.abs(v).toLocaleString()})`;
+  } else {
+    span.textContent = `$${v.toLocaleString()}`;
+  }
+  return span;
+}
+
+function _renderAdjustmentItem(companyId, a) {
+  const item = document.createElement('div');
+  item.className = 'inline-list-item';
+  const body = document.createElement('div');
+  body.className = 'item-body';
+  const top = document.createElement('div');
+  top.style.display = 'flex';
+  top.style.justifyContent = 'space-between';
+  const lbl = document.createElement('strong');
+  lbl.textContent = a.label;     // .textContent
+  top.appendChild(lbl);
+  top.appendChild(_formatAmount(a.amount));
+  body.appendChild(top);
+  if (a.rationale) {
+    const r = document.createElement('div');
+    r.style.fontSize = '.8rem';
+    r.style.color = 'var(--muted)';
+    r.style.marginTop = '.25rem';
+    r.textContent = a.rationale;  // .textContent
+    body.appendChild(r);
+  }
+  item.appendChild(body);
+  const actions = document.createElement('div');
+  actions.className = 'item-actions';
+  const editBtn = document.createElement('button');
+  editBtn.className = 'btn btn-sm';
+  editBtn.style.background = '#eee';
+  editBtn.textContent = 'Edit';
+  editBtn.onclick = () => _showAdjustmentForm(companyId, a);
+  actions.appendChild(editBtn);
+  const rmBtn = document.createElement('button');
+  rmBtn.className = 'btn btn-sm btn-danger';
+  rmBtn.textContent = 'Remove';
+  rmBtn.onclick = () => removeAdjustment(companyId, a.id, a.label);
+  actions.appendChild(rmBtn);
+  item.appendChild(actions);
+  return item;
+}
+
+function _showAdjustmentForm(companyId, existing) {
+  const holder = document.getElementById(`prof-addbacks-form-${companyId}`);
+  holder.textContent = '';
+  const grid = document.createElement('div');
+  grid.className = 'form-grid';
+  grid.style.gridTemplateColumns = '1fr 1fr';
+  grid.style.marginBottom = '.75rem';
+
+  const fgLabel = document.createElement('div');
+  fgLabel.className = 'form-group';
+  const lblLabel = document.createElement('label');
+  lblLabel.textContent = 'Label *';
+  fgLabel.appendChild(lblLabel);
+  const inLabel = document.createElement('input');
+  inLabel.type = 'text';
+  inLabel.placeholder = 'e.g. Owner salary above market rate';
+  if (existing) inLabel.value = existing.label || '';
+  fgLabel.appendChild(inLabel);
+  grid.appendChild(fgLabel);
+
+  const fgAmt = document.createElement('div');
+  fgAmt.className = 'form-group';
+  const lblAmt = document.createElement('label');
+  lblAmt.textContent = 'Amount ($) *';
+  fgAmt.appendChild(lblAmt);
+  const inAmt = document.createElement('input');
+  inAmt.type = 'number';
+  inAmt.step = 'any';
+  inAmt.placeholder = 'e.g. 80000 or -15000';
+  if (existing) inAmt.value = existing.amount;
+  fgAmt.appendChild(inAmt);
+  grid.appendChild(fgAmt);
+
+  const fgRat = document.createElement('div');
+  fgRat.className = 'form-group';
+  fgRat.style.gridColumn = '1 / -1';
+  const lblRat = document.createElement('label');
+  lblRat.textContent = 'Rationale';
+  fgRat.appendChild(lblRat);
+  const inRat = document.createElement('input');
+  inRat.type = 'text';
+  inRat.placeholder = 'Why this amount is added back or subtracted';
+  if (existing) inRat.value = existing.rationale || '';
+  fgRat.appendChild(inRat);
+  grid.appendChild(fgRat);
+  holder.appendChild(grid);
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'flex';
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'btn btn-primary btn-sm';
+  saveBtn.textContent = existing ? 'Save Changes' : 'Add Adjustment';
+  saveBtn.onclick = async () => {
+    if (!inLabel.value.trim() || inAmt.value === '') {
+      showAlert(`prof-addbacks-alert-${companyId}`, 'Label and Amount are required.', 'error');
+      return;
+    }
+    const fd = new FormData();
+    fd.append('label', inLabel.value);
+    fd.append('amount', inAmt.value);
+    fd.append('rationale', inRat.value);
+    const url = existing
+      ? `/companies/${companyId}/ebitda-adjustments/${existing.id}`
+      : `/companies/${companyId}/ebitda-adjustments`;
+    let res;
+    if (existing) {
+      try {
+        const r = await fetch(API + url, { method: 'PUT', body: fd, credentials: 'include' });
+        if (r.status === 401) { showAuthWall(true); return; }
+        if (!r.ok) { showAlert(`prof-addbacks-alert-${companyId}`, 'Unable to save. Please try again.', 'error'); return; }
+        res = await r.json();
+      } catch (e) {
+        showAlert(`prof-addbacks-alert-${companyId}`, 'Unable to save. Please try again.', 'error');
+        return;
+      }
+    } else {
+      res = await apiPost(url, fd);
+    }
+    if (res) {
+      showAlert(`prof-addbacks-alert-${companyId}`, existing ? 'Adjustment updated.' : 'Adjustment added.', 'success');
+      loadProfilePanel(companyId);  // re-renders both list AND bridge (Pitfall 3)
+      loadCompanies();
+    }
+  };
+  btnRow.appendChild(saveBtn);
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn btn-sm';
+  cancelBtn.style.background = '#eee';
+  cancelBtn.style.marginLeft = '.5rem';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.onclick = () => { holder.textContent = ''; };
+  btnRow.appendChild(cancelBtn);
+  holder.appendChild(btnRow);
+}
+
+async function removeAdjustment(companyId, adjId, label) {
+  if (!window.confirm(`Remove adjustment "${label}"?`)) return;
+  const ok = await apiDelete(`/companies/${companyId}/ebitda-adjustments/${adjId}`);
+  if (ok) {
+    showAlert(`prof-addbacks-alert-${companyId}`, 'Adjustment removed.', 'success');
+    loadProfilePanel(companyId);   // refreshes list AND bridge (Pitfall 3)
+    loadCompanies();
+  } else {
+    showAlert(`prof-addbacks-alert-${companyId}`, 'Unable to save. Please try again.', 'error');
+  }
+}
+
+function renderEbitdaBridge(container, status, adjustments) {
+  container.textContent = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'ebitda-bridge';
+  if (!status.has_financials) {
+    const note = document.createElement('div');
+    note.className = 'text-muted';
+    note.style.fontSize = '.875rem';
+    note.style.padding = '.5rem 0';
+    note.textContent = 'Upload financials first to see your Normalised EBITDA.';
+    wrap.appendChild(note);
+    container.appendChild(wrap);
+    return;
+  }
+  const titleEl = document.createElement('div');
+  titleEl.style.fontSize = '.8rem';
+  titleEl.style.fontWeight = '600';
+  titleEl.style.color = 'var(--muted)';
+  titleEl.style.textTransform = 'uppercase';
+  titleEl.style.marginBottom = '.5rem';
+  titleEl.textContent = 'EBITDA Bridge';
+  wrap.appendChild(titleEl);
+
+  const table = document.createElement('table');
+  const tbody = document.createElement('tbody');
+  // Reported EBITDA row
+  const trReported = document.createElement('tr');
+  const tdLbl = document.createElement('td');
+  tdLbl.textContent = 'Reported EBITDA';
+  trReported.appendChild(tdLbl);
+  const tdVal = document.createElement('td');
+  tdVal.style.textAlign = 'right';
+  tdVal.appendChild(_formatAmount(status.reported_ebitda));
+  trReported.appendChild(tdVal);
+  tbody.appendChild(trReported);
+  // Adjustment rows
+  let total = status.reported_ebitda || 0;
+  adjustments.forEach(a => {
+    const tr = document.createElement('tr');
+    const td1 = document.createElement('td');
+    td1.textContent = `+ ${a.label}`;     // .textContent — concatenation OK because no HTML
+    tr.appendChild(td1);
+    const td2 = document.createElement('td');
+    td2.style.textAlign = 'right';
+    td2.appendChild(_formatAmount(a.amount));
+    tr.appendChild(td2);
+    tbody.appendChild(tr);
+    total += (a.amount || 0);
+  });
+  // Total row
+  const trTotal = document.createElement('tr');
+  trTotal.className = 'bridge-total';
+  const tdTotalLbl = document.createElement('td');
+  tdTotalLbl.textContent = 'Normalised EBITDA';
+  trTotal.appendChild(tdTotalLbl);
+  const tdTotalVal = document.createElement('td');
+  tdTotalVal.style.textAlign = 'right';
+  tdTotalVal.appendChild(_formatAmount(total));
+  trTotal.appendChild(tdTotalVal);
+  tbody.appendChild(trTotal);
+
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  container.appendChild(wrap);
 }
 
 // ---------------------------------------------------------------------------
