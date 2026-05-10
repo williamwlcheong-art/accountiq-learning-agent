@@ -607,6 +607,7 @@ async function loadCompanies() {
     const tdProfile = document.createElement('td');
     const sc = (typeof c.sections_complete === 'number') ? c.sections_complete : 0;
     const profBadge = document.createElement('span');
+    profBadge.id = `profile-badge-${c.id}`;
     profBadge.className = 'badge ' + (sc === 4 ? 'badge-profile-complete'
                                      : sc > 0  ? 'badge-profile-partial'
                                      :           'badge-profile-empty');
@@ -670,6 +671,21 @@ async function addCompany() {
 }
 
 // ===== Phase 3: Business profile panel =====
+
+async function _refreshBadge(companyId) {
+  const status = await apiFetch(`/companies/${companyId}/profile-status`);
+  if (!status) return;
+  const badge = document.getElementById(`profile-badge-${companyId}`);
+  if (!badge) return;
+  const sc = status.sections_complete || 0;
+  badge.className = 'badge ' + (sc === 4 ? 'badge-profile-complete'
+                               : sc > 0  ? 'badge-profile-partial'
+                               :           'badge-profile-empty');
+  badge.textContent = `${sc}/4 complete`;
+  // Keep the cache in sync so toggling another panel sees fresh data
+  const cached = (window.__companiesCache || []).find(c => c.id === companyId);
+  if (cached) cached.sections_complete = sc;
+}
 
 function toggleProfilePanel(companyId) {
   document.querySelectorAll('.profile-panel-row').forEach(p => {
@@ -795,7 +811,7 @@ async function saveIndustry(companyId) {
   const res = await apiPost(`/companies/${companyId}/profile`, fd);
   if (res) {
     showAlert(`prof-industry-alert-${companyId}`, 'Industry saved.', 'success');
-    loadCompanies();  // refresh badge counts
+    _refreshBadge(companyId);
   }
 }
 
@@ -861,7 +877,7 @@ async function saveDescription(companyId) {
   const res = await apiPost(`/companies/${companyId}/profile`, fd);
   if (res) {
     showAlert(`prof-desc-alert-${companyId}`, 'Description saved.', 'success');
-    loadCompanies();
+    _refreshBadge(companyId);
   }
 }
 
@@ -1039,7 +1055,7 @@ function _showMemberForm(companyId, existing) {
     if (res) {
       showAlert(`prof-team-alert-${companyId}`, existing ? 'Team member updated.' : 'Team member added.', 'success');
       loadProfilePanel(companyId);
-      loadCompanies();
+      _refreshBadge(companyId);
     }
   };
   btnRow.appendChild(saveBtn);
@@ -1059,7 +1075,7 @@ async function removeMember(companyId, memberId, memberName) {
   if (ok) {
     showAlert(`prof-team-alert-${companyId}`, 'Team member removed.', 'success');
     loadProfilePanel(companyId);
-    loadCompanies();
+    _refreshBadge(companyId);
   } else {
     showAlert(`prof-team-alert-${companyId}`, 'Unable to save. Please try again.', 'error');
   }
@@ -1241,7 +1257,7 @@ function _showAdjustmentForm(companyId, existing) {
     if (res) {
       showAlert(`prof-addbacks-alert-${companyId}`, existing ? 'Adjustment updated.' : 'Adjustment added.', 'success');
       loadProfilePanel(companyId);  // re-renders both list AND bridge (Pitfall 3)
-      loadCompanies();
+      _refreshBadge(companyId);
     }
   };
   btnRow.appendChild(saveBtn);
@@ -1261,7 +1277,7 @@ async function removeAdjustment(companyId, adjId, label) {
   if (ok) {
     showAlert(`prof-addbacks-alert-${companyId}`, 'Adjustment removed.', 'success');
     loadProfilePanel(companyId);   // refreshes list AND bridge (Pitfall 3)
-    loadCompanies();
+    _refreshBadge(companyId);
   } else {
     showAlert(`prof-addbacks-alert-${companyId}`, 'Unable to save. Please try again.', 'error');
   }
