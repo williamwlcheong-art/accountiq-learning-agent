@@ -1692,10 +1692,22 @@ async function loadFinancials() {
   }
 
   const periods = [...new Set(data.map(r => r.period))].sort().reverse();
+
+  // Canonical display order — mirrors ingestion.py PNL_ROWS / BS_ROWS
+  const ROW_ORDER = {
+    pnl: ['revenue','cogs','gross_profit','operating_expenses','ebitda',
+          'depreciation','ebit','interest_expense','pbt','tax','net_profit'],
+    bs:  ['cash_and_bank','trade_debtors','inventory','other_current_assets',
+          'total_current_assets','fixed_assets_net','other_noncurrent_assets',
+          'total_assets','trade_creditors','short_term_debt','other_current_liab',
+          'total_current_liab','long_term_debt','other_noncurrent_liab',
+          'total_liabilities','shareholders_equity'],
+  };
+
   const rowMap = {};
   data.forEach(r => {
-    const k = `${r.statement}::${r.row_label}`;
-    if (!rowMap[k]) rowMap[k] = { stmt: r.statement, label: r.row_label, vals: {} };
+    const k = `${r.statement}::${r.row_key}`;
+    if (!rowMap[k]) rowMap[k] = { stmt: r.statement, key: r.row_key, label: r.row_label, vals: {} };
     rowMap[k].vals[r.period] = r.value;
   });
 
@@ -1733,7 +1745,18 @@ async function loadFinancials() {
   const tbody = document.createElement('tbody');
 
   ['pnl', 'bs'].forEach(stmtKey => {
-    const stmtRows = Object.values(rowMap).filter(r => r.stmt === stmtKey);
+    const order = ROW_ORDER[stmtKey] || [];
+    const stmtRows = Object.values(rowMap)
+      .filter(r => r.stmt === stmtKey)
+      .sort((a, b) => {
+        const ai = order.indexOf(a.key);
+        const bi = order.indexOf(b.key);
+        // Known rows sorted by canonical position; unknowns pushed to end
+        if (ai === -1 && bi === -1) return a.label.localeCompare(b.label);
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+      });
     if (!stmtRows.length) return;
     const sectionTr = document.createElement('tr');
     const sectionTd = document.createElement('td');
