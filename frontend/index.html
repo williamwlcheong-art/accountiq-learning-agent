@@ -302,10 +302,13 @@
   <div class="section-title">Upload Financial Statement</div>
   <div class="card">
     <div id="upload-alert"></div>
+    <input id="up-company-id-hidden" type="hidden" value="" />
+    <div id="up-company-preselect" class="alert alert-info" style="display:none;margin-bottom:.75rem"></div>
     <div class="form-grid">
-      <div class="form-group">
-        <label>Company *</label>
-        <select id="up-company"><option value="">Select company…</option></select>
+      <div class="form-group" id="up-company-name-group" style="display:none">
+        <label>Company Name *</label>
+        <input id="up-company-name" type="text" placeholder="e.g. Acme Ltd" />
+        <small class="text-muted">Required for Excel uploads — extracted automatically for PDF</small>
       </div>
       <div class="form-group">
         <label>Entity Type *</label>
@@ -482,7 +485,7 @@ function showPage(name) {
   if (name === 'upload')      populateCompanySelects();
   if (name === 'documents')   loadDocuments();
   if (name === 'patterns')    loadPatterns();
-  if (name === 'financials')  populateCompanySelects();
+  if (name === 'financials')  { populateCompanySelects(); document.getElementById('fin-table-wrap').innerHTML = ''; }
   if (name === 'account')     loadAccount();
   if (name === 'settings')    loadSettings();
 }
@@ -1340,14 +1343,23 @@ function handleFileSelect(input) {
   if (selectedFile) {
     document.getElementById('selected-file').style.display = 'block';
     document.getElementById('selected-file').textContent = `Selected: ${selectedFile.name} (${(selectedFile.size/1024/1024).toFixed(1)} MB)`;
+    _updateUploadCompanyNameVisibility();
   }
+}
+
+function _updateUploadCompanyNameVisibility() {
+  if (!selectedFile) return;
+  const isExcel = /\.(xlsx|xls|xlsm)$/i.test(selectedFile.name);
+  const hasPreselect = !!document.getElementById('up-company-id-hidden').value;
+  const nameGroup = document.getElementById('up-company-name-group');
+  nameGroup.style.display = (isExcel && !hasPreselect) ? 'block' : 'none';
+  if (isExcel && !hasPreselect) document.getElementById('up-company-name').focus();
 }
 
 async function populateCompanySelects() {
   const companies = await apiFetch('/companies');
   if (!companies) return;
   const targets = [
-    { id: 'up-company', empty: 'Select company…' },
     { id: 'fin-company', empty: 'Select company…' },
     { id: 'doc-company-filter', empty: 'All companies' },
   ];
@@ -1368,30 +1380,46 @@ async function populateCompanySelects() {
 }
 
 async function uploadFile() {
-  const companyId = document.getElementById('up-company').value;
-  if (!companyId) { showAlert('upload-alert','Please select a company.','error'); return; }
-  if (!selectedFile) { showAlert('upload-alert','Please select a PDF file.','error'); return; }
+  if (!selectedFile) { showAlert('upload-alert', 'Please select a file.', 'error'); return; }
+  const isExcel = /\.(xlsx|xls|xlsm)$/i.test(selectedFile.name);
+  const preselectedId = document.getElementById('up-company-id-hidden').value;
+  const companyName = document.getElementById('up-company-name').value.trim();
+  if (isExcel && !preselectedId && !companyName) {
+    showAlert('upload-alert', 'Please enter a company name for Excel uploads.', 'error');
+    document.getElementById('up-company-name').focus();
+    return;
+  }
 
   const fd = new FormData();
-  fd.append('file',           selectedFile);
-  fd.append('company_id',     companyId);
-  fd.append('entity_type',    document.getElementById('up-entity').value);
-  fd.append('report_type',    document.getElementById('up-report').value);
+  fd.append('file',            selectedFile);
+  fd.append('entity_type',     document.getElementById('up-entity').value);
+  fd.append('report_type',     document.getElementById('up-report').value);
   fd.append('fiscal_year_end', document.getElementById('up-fy').value);
+  if (preselectedId) {
+    fd.append('company_id', preselectedId);
+  } else if (isExcel) {
+    fd.append('company_name', companyName);
+  }
 
   document.getElementById('up-btn').disabled = true;
-  document.getElementById('up-btn').textContent = 'Uploading…';
+  const btnLabel = preselectedId || isExcel ? 'Uploading…' : 'Uploading & extracting company…';
+  document.getElementById('up-btn').textContent = btnLabel;
 
   const res = await apiPost('/documents/upload', fd);
   document.getElementById('up-btn').disabled = false;
   document.getElementById('up-btn').textContent = 'Upload & Ingest';
 
   if (res) {
-    showAlert('upload-alert', `Uploaded "${res.filename}" (doc #${res.document_id}). Ingestion running…`, 'success');
+    const nameHint = res.company_name ? ` → "${res.company_name}"` : '';
+    showAlert('upload-alert', `Uploaded "${res.filename}"${nameHint}. Ingestion running…`, 'success');
     selectedFile = null;
     document.getElementById('up-file').value = '';
+    document.getElementById('up-company-name').value = '';
+    document.getElementById('up-company-name-group').style.display = 'none';
     document.getElementById('selected-file').style.display = 'none';
+    setUploadCompany('');
     startJobPolling(res.document_id, res.filename);
+    populateCompanySelects();
   }
 }
 
@@ -1629,6 +1657,20 @@ async function loadFinancials() {
   const data = await apiFetch(url);
   const wrap = document.getElementById('fin-table-wrap');
   if (!data || !data.length) {
+    // Check if there are documents still processing for this company
+    const docs = await apiFetch(`/documents?company_id=${companyId}`);
+    if (docs && docs.length) {
+      const processing = docs.filter(d => d.extraction_status !== 'done');
+      if (processing.length) {
+        wrap.innerHTML = `<div class="empty">Extraction in progress for ${processing.length} document(s) — check back in a moment.</div>`;
+        return;
+      }
+      const failed = docs.filter(d => d.extraction_status === 'failed');
+      if (failed.length) {
+        wrap.innerHTML = `<div class="empty">Extraction failed for ${failed.length} document(s). Try re-uploading.</div>`;
+        return;
+      }
+    }
     wrap.innerHTML = '<div class="empty">No financial data for this company yet.</div>';
     return;
   }
@@ -1822,7 +1864,19 @@ function showAlert(containerId, msg, type) {
 }
 
 function setUploadCompany(id) {
-  document.getElementById('up-company').value = id;
+  const hidden = document.getElementById('up-company-id-hidden');
+  const banner = document.getElementById('up-company-preselect');
+  if (id) {
+    hidden.value = id;
+    const company = (window.__companiesCache || []).find(c => c.id === id);
+    banner.textContent = company ? `Uploading for: ${company.name}` : `Uploading for company #${id}`;
+    banner.style.display = 'block';
+  } else {
+    hidden.value = '';
+    banner.textContent = '';
+    banner.style.display = 'none';
+  }
+  _updateUploadCompanyNameVisibility();
 }
 
 // Drag and drop
@@ -1837,6 +1891,7 @@ dz.addEventListener('drop', e => {
     selectedFile = file;
     document.getElementById('selected-file').style.display = 'block';
     document.getElementById('selected-file').textContent = `Selected: ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
+    _updateUploadCompanyNameVisibility();
   }
 });
 

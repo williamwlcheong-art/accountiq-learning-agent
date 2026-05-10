@@ -469,39 +469,128 @@ async def list_documents(
     return [dict(r) for r in rows]
 
 
+def _extract_company_name_from_pdf_sync(filepath: str) -> str:
+    """Extract company name from page 1 of a PDF via Claude. Returns empty string on failure."""
+    try:
+        import pdfplumber
+        import anthropic
+        with pdfplumber.open(filepath) as pdf:
+            if not pdf.pages:
+                return ""
+            page1_text = pdf.pages[0].extract_text(x_tolerance=2, y_tolerance=3) or ""
+        if not page1_text.strip():
+            return ""
+        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=64,
+            messages=[{
+                "role": "user",
+                "content": (
+                    "Extract the company or entity name from this financial document cover page. "
+                    "Reply with ONLY the company name — no explanation, no punctuation.\n\n"
+                    f"{page1_text[:2000]}"
+                )
+            }]
+        )
+        name = msg.content[0].text.strip() if msg.content else ""
+        return name[:200] if name else ""
+    except Exception:
+        return ""
+
+
+async def _resolve_or_create_company(db, name: str, user_id: int) -> tuple[int, str]:
+    """Find existing company by name (case-insensitive) or create a new one. Returns (id, name)."""
+    async with db.execute(
+        "SELECT id, name FROM companies WHERE lower(name)=lower(?) AND user_id=?",
+        (name, user_id)
+    ) as cur:
+        existing = await cur.fetchone()
+    if existing:
+        return existing["id"], existing["name"]
+    async with db.execute(
+        "INSERT INTO companies (name, exchange, user_id) VALUES (?, 'Private', ?)",
+        (name, user_id)
+    ) as cur:
+        company_id = cur.lastrowid
+    await db.commit()
+    return company_id, name
+
+
 @app.post("/documents/upload")
 async def upload_document(
     background_tasks: BackgroundTasks,
-    file:           UploadFile = File(...),
-    company_id:     int  = Form(...),
-    report_type:    str  = Form("annual_report"),  # annual_report | compilation | management
-    entity_type:    str  = Form("listed"),          # listed | sme
-    fiscal_year_end: str = Form(""),
+    file:            UploadFile = File(...),
+    company_id:      Optional[int] = Form(None),
+    company_name:    Optional[str] = Form(None),
+    report_type:     str  = Form("annual_report"),
+    entity_type:     str  = Form("listed"),
+    fiscal_year_end: str  = Form(""),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    suffix = Path(file.filename).suffix.lower()
     allowed = {".pdf", ".xlsx", ".xls", ".xlsm"}
-    if Path(file.filename).suffix.lower() not in allowed:
-        raise HTTPException(400, f"Only PDF and Excel files are accepted. Got: {Path(file.filename).suffix}")
+    if suffix not in allowed:
+        raise HTTPException(400, f"Only PDF and Excel files are accepted. Got: {suffix}")
 
-    # Verify company exists and belongs to current user
-    async with db.execute(
-        "SELECT id, exchange FROM companies WHERE id=? AND user_id=?",
-        (company_id, current_user["id"])
-    ) as cur:
-        company = await cur.fetchone()
-    if not company:
-        raise HTTPException(404, f"Company {company_id} not found.")
+    is_excel = suffix in {".xlsx", ".xls", ".xlsm"}
+    exchange = "Private"
 
-    # Save file
+    if company_id is not None:
+        # Explicit company supplied — verify ownership (existing behaviour)
+        async with db.execute(
+            "SELECT id, exchange FROM companies WHERE id=? AND user_id=?",
+            (company_id, current_user["id"])
+        ) as cur:
+            company = await cur.fetchone()
+        if not company:
+            raise HTTPException(404, f"Company {company_id} not found.")
+        exchange = company["exchange"] or "Private"
+        resolved_name = None
+    else:
+        # Auto-resolve: use provided name (Excel) or extract from PDF
+        if is_excel:
+            if not company_name or not company_name.strip():
+                raise HTTPException(400, "Company name is required for Excel uploads.")
+            resolved_name = company_name.strip()
+        else:
+            # Save to a temp location first so we can read it for name extraction
+            tmp_dir = PDF_DIR / "_tmp"
+            tmp_dir.mkdir(exist_ok=True)
+            tmp_path = tmp_dir / Path(file.filename).name
+            contents = await file.read()
+            with open(tmp_path, "wb") as f:
+                f.write(contents)
+            # Extract company name from PDF page 1 via Claude
+            loop = asyncio.get_running_loop()
+            extracted = await loop.run_in_executor(
+                None, _extract_company_name_from_pdf_sync, str(tmp_path)
+            )
+            resolved_name = extracted.strip() if extracted.strip() else Path(file.filename).stem
+            # Rewind file-like object by wrapping the bytes we already read
+            import io
+            file.file = io.BytesIO(contents)
+
+        company_id, resolved_name = await _resolve_or_create_company(
+            db, resolved_name, current_user["id"]
+        )
+
+    # Save file into company directory
     company_dir = PDF_DIR / str(company_id)
     company_dir.mkdir(exist_ok=True)
-    dest = company_dir / Path(file.filename).name
-    with open(dest, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-
-    # Create document record
     safe_name = Path(file.filename).name
+    dest = company_dir / safe_name
+
+    # Clean up tmp file if it was written there
+    tmp_candidate = PDF_DIR / "_tmp" / safe_name
+    if tmp_candidate.exists():
+        import shutil as _shutil
+        _shutil.move(str(tmp_candidate), str(dest))
+    else:
+        with open(dest, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
     async with db.execute("""
         INSERT INTO documents
             (company_id, filename, filepath, report_type, entity_type, fiscal_year_end, user_id)
@@ -511,14 +600,15 @@ async def upload_document(
         document_id = cur.lastrowid
     await db.commit()
 
-    # Kick off async ingestion
     background_tasks.add_task(
         _run_ingestion, document_id, company_id, str(dest),
-        entity_type, company["exchange"], fiscal_year_end
+        entity_type, exchange, fiscal_year_end
     )
 
     return {
         "document_id": document_id,
+        "company_id": company_id,
+        "company_name": resolved_name,
         "filename": safe_name,
         "status": "processing",
         "message": "Ingestion started in background. Poll /documents/{id}/status for progress."
