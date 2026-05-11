@@ -34,6 +34,7 @@ Thumbs.db
 node_modules/
 .next/
 out/
+*.tsbuildinfo
 
 # Isolated implementation worktrees
 .worktrees/
