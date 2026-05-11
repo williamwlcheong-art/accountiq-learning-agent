@@ -29,3 +29,11 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+# Isolated implementation worktrees
+.worktrees/

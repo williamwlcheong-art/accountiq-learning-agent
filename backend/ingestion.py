@@ -72,6 +72,13 @@ BS_ROWS = [
 ALL_ROWS = [("pnl", k, lbl) for k, lbl in PNL_ROWS] + \
            [("bs",  k, lbl) for k, lbl in BS_ROWS]
 
+VALID_KEYS_BY_STATEMENT = {
+    "pnl": {key for key, _ in PNL_ROWS},
+    "bs": {key for key, _ in BS_ROWS},
+}
+VALID_UNITS = {"whole", "thousands", "millions"}
+VALID_REPORTING_STANDARDS = {"GAAP", "IFRS", "UNKNOWN"}
+
 # ---------------------------------------------------------------------------
 # System prompt — GAAP / IFRS methodology
 # ---------------------------------------------------------------------------
@@ -309,6 +316,48 @@ Financial statement text:
 # Database persistence
 # ---------------------------------------------------------------------------
 
+def validate_extraction(parsed: dict) -> None:
+    """Validate untrusted model/rule output before writing learned data."""
+    if not isinstance(parsed, dict):
+        raise ValueError("Extraction result must be an object")
+
+    unit = parsed.get("unit", "whole")
+    if unit not in VALID_UNITS:
+        raise ValueError(f"Invalid extraction unit: {unit}")
+
+    standard = parsed.get("reporting_standard", "UNKNOWN")
+    if standard not in VALID_REPORTING_STANDARDS:
+        raise ValueError(f"Invalid reporting standard: {standard}")
+
+    rows = parsed.get("rows", [])
+    if not isinstance(rows, list):
+        raise ValueError("Extraction rows must be a list")
+
+    for idx, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError(f"Extraction row {idx} must be an object")
+
+        stmt = row.get("statement")
+        key = row.get("canonical_key")
+        if stmt not in VALID_KEYS_BY_STATEMENT:
+            raise ValueError(f"Invalid statement for row {idx}: {stmt}")
+        if key not in VALID_KEYS_BY_STATEMENT[stmt]:
+            raise ValueError(f"Invalid canonical key for {stmt}: {key}")
+
+        values = row.get("values")
+        if not isinstance(values, dict) or not values:
+            raise ValueError(f"Row {idx} values must be a non-empty object")
+        for period, value in values.items():
+            if not isinstance(period, str) or not period.strip():
+                raise ValueError(f"Row {idx} has invalid period: {period}")
+            if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float))):
+                raise ValueError(f"Row {idx} period {period} has non-numeric value")
+
+        confidence = row.get("confidence", 0.8)
+        if isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1:
+            raise ValueError(f"Row {idx} confidence must be between 0 and 1")
+
+
 async def persist_extraction(
     db: aiosqlite.Connection,
     document_id: int,
@@ -317,6 +366,8 @@ async def persist_extraction(
     entity_type: str,
     exchange: Optional[str],
 ):
+    validate_extraction(parsed)
+
     periods  = parsed.get("periods", [])
     currency = parsed.get("currency", "NZD")
     unit     = parsed.get("unit", "whole")

@@ -231,8 +231,8 @@
       <div class="drop-zone" id="drop-zone" onclick="document.getElementById('up-file').click()">
         <div class="icon">📄</div>
         <p><strong>Click or drag file here</strong></p>
-        <p>PDF or Excel (.xlsx, .xls) — annual reports, compilations, management accounts</p>
-        <input type="file" id="up-file" accept=".pdf,.xlsx,.xls,.xlsm" style="display:none" onchange="handleFileSelect(this)"/>
+        <p>PDF or Excel (.xlsx, .xlsm) — annual reports, compilations, management accounts</p>
+        <input type="file" id="up-file" accept=".pdf,.xlsx,.xlsm" style="display:none" onchange="handleFileSelect(this)"/>
       </div>
       <div id="selected-file" class="text-muted mt" style="display:none"></div>
     </div>
@@ -730,7 +730,7 @@ dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
 dz.addEventListener('drop', e => {
   e.preventDefault(); dz.classList.remove('drag-over');
   const file = e.dataTransfer.files[0];
-  const allowed = ['.pdf','.xlsx','.xls','.xlsm'];
+  const allowed = ['.pdf','.xlsx','.xlsm'];
   if (file && allowed.some(ext => file.name.toLowerCase().endsWith(ext))) {
     selectedFile = file;
     document.getElementById('selected-file').style.display = 'block';
