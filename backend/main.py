@@ -910,6 +910,56 @@ async def retry_document(
 
 
 # ---------------------------------------------------------------------------
+# Wizard — authenticated non-admin upload path (Phase 3.5, D-05, D-06)
+# ---------------------------------------------------------------------------
+
+@app.post("/wizard/upload", status_code=201)
+async def wizard_upload(
+    background_tasks: BackgroundTasks,
+    business_name: str = Form(...),
+    file: UploadFile = File(...),
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),   # NOT require_admin — per D-05
+):
+    """Create company + upload document for non-admin users. Reuses _run_ingestion."""
+    name = business_name.strip()
+    if not name:
+        raise HTTPException(400, "Business name is required")
+
+    suffix = Path(file.filename).suffix.lower()
+    allowed = {".pdf", ".xlsx", ".xls", ".xlsm"}
+    if suffix not in allowed:
+        raise HTTPException(400, f"Only PDF and Excel files are accepted. Got: {suffix}")
+
+    # Idempotent company creation — reuses existing helper (D-06)
+    company_id, _ = await _resolve_or_create_company(db, name, current_user["id"])
+
+    # Save file into company directory (project security rule: Path(file.filename).name)
+    company_dir = PDF_DIR / str(company_id)
+    company_dir.mkdir(exist_ok=True)
+    safe_name = Path(file.filename).name
+    dest = company_dir / safe_name
+    with open(dest, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+
+    # Insert document record
+    async with db.execute("""
+        INSERT INTO documents
+            (company_id, filename, filepath, report_type, entity_type, fiscal_year_end, user_id)
+        VALUES (?, ?, ?, 'compilation', 'sme', '', ?)
+    """, (company_id, safe_name, str(dest), current_user["id"])) as cur:
+        document_id = cur.lastrowid
+    await db.commit()
+
+    # Kick off background ingestion — same task as admin upload (D-06)
+    background_tasks.add_task(
+        _run_ingestion, document_id, company_id, str(dest), "sme", "Private", ""
+    )
+
+    return {"company_id": company_id, "document_id": document_id, "status": "processing"}
+
+
+# ---------------------------------------------------------------------------
 # Root redirect
 # ---------------------------------------------------------------------------
 
