@@ -79,7 +79,7 @@ async def health():
 @app.get("/companies")
 async def list_companies(
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute("""
         SELECT c.*,
@@ -107,7 +107,7 @@ async def create_company(
     sector:   str = Form(None),
     country:  str = Form("NZ"),
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     try:
         async with db.execute("""
@@ -127,7 +127,7 @@ async def create_company(
 async def get_company(
     company_id: int,
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute(
         "SELECT * FROM companies WHERE id=? AND user_id=?",
@@ -149,7 +149,7 @@ async def update_company_profile(
     sector:      Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     """Patch sector and/or description on a company. Either field may be omitted."""
     async with db.execute(
@@ -181,7 +181,7 @@ async def update_company_profile(
 async def profile_status(
     company_id: int,
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     """Return profile completion status + EBITDA bridge inputs for a company.
     Used by Phase 5 to gate report generation and by the frontend completion badge."""
@@ -262,7 +262,7 @@ async def profile_status(
 async def list_management_team(
     company_id: int,
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute(
         "SELECT id FROM companies WHERE id=? AND user_id=?",
@@ -285,7 +285,7 @@ async def add_management_team_member(
     title: Optional[str] = Form(None),
     bio:   Optional[str] = Form(None),
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute(
         "SELECT id FROM companies WHERE id=? AND user_id=?",
@@ -310,7 +310,7 @@ async def update_management_team_member(
     title: Optional[str] = Form(None),
     bio:   Optional[str] = Form(None),
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute(
         "SELECT id FROM companies WHERE id=? AND user_id=?",
@@ -333,7 +333,7 @@ async def delete_management_team_member(
     company_id: int,
     member_id: int,
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute(
         "SELECT id FROM companies WHERE id=? AND user_id=?",
@@ -355,7 +355,7 @@ async def delete_management_team_member(
 async def list_ebitda_adjustments(
     company_id: int,
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute(
         "SELECT id FROM companies WHERE id=? AND user_id=?",
@@ -378,7 +378,7 @@ async def add_ebitda_adjustment(
     amount:    float         = Form(...),
     rationale: Optional[str] = Form(None),
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute(
         "SELECT id FROM companies WHERE id=? AND user_id=?",
@@ -403,7 +403,7 @@ async def update_ebitda_adjustment(
     amount:    float         = Form(...),
     rationale: Optional[str] = Form(None),
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute(
         "SELECT id FROM companies WHERE id=? AND user_id=?",
@@ -426,7 +426,7 @@ async def delete_ebitda_adjustment(
     company_id: int,
     adj_id: int,
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute(
         "SELECT id FROM companies WHERE id=? AND user_id=?",
@@ -450,7 +450,7 @@ async def delete_ebitda_adjustment(
 async def list_documents(
     company_id: Optional[int] = None,
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     query = """
         SELECT d.*, c.name as company_name, c.exchange
@@ -527,7 +527,7 @@ async def upload_document(
     entity_type:     str  = Form("listed"),
     fiscal_year_end: str  = Form(""),
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     suffix = Path(file.filename).suffix.lower()
     allowed = {".pdf", ".xlsx", ".xls", ".xlsm"}
@@ -633,7 +633,7 @@ async def _run_ingestion(document_id, company_id, filepath, entity_type, exchang
 async def document_status(
     document_id: int,
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute("""
         SELECT d.*, c.name as company_name
@@ -662,7 +662,7 @@ async def document_status(
 async def document_rows(
     document_id: int,
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     # Verify ownership first — return 404 if the document does not belong to this user.
     async with db.execute(
@@ -690,7 +690,7 @@ async def company_financials(
     company_id: int,
     statement:  Optional[str] = None,   # 'pnl' | 'bs'
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     """Return all financial rows for a company, aggregated across documents."""
     query = """
@@ -723,7 +723,7 @@ async def company_financials(
 async def list_patterns(
     statement: Optional[str] = None,
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     query = """
         SELECT canonical_key, statement, raw_label, entity_type, exchange,
@@ -744,7 +744,7 @@ async def list_patterns(
 @app.get("/patterns/export")
 async def export_patterns(
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     """Export patterns as JSON suitable for importing into the standalone SPA."""
     lib = await get_pattern_library(db)
@@ -766,7 +766,7 @@ async def export_patterns(
 @app.get("/analytics/overview")
 async def analytics_overview(
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute(
         "SELECT COUNT(*) as n FROM companies WHERE user_id=?",
@@ -809,7 +809,7 @@ async def analytics_overview(
 @app.get("/analytics/confidence")
 async def confidence_stats(
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     async with db.execute("""
         SELECT fr.row_key, AVG(fr.confidence) as avg_conf, COUNT(*) as n
@@ -828,7 +828,7 @@ async def confidence_stats(
 # ---------------------------------------------------------------------------
 
 @app.get("/settings")
-async def get_settings(current_user: dict = Depends(get_current_user)):
+async def get_settings(current_user: dict = Depends(require_admin)):
     """Return current settings (API key masked)."""
     key = os.environ.get("ANTHROPIC_API_KEY", "")
     import ingestion as ing
@@ -844,7 +844,7 @@ async def get_settings(current_user: dict = Depends(get_current_user)):
 async def update_settings(
     api_key:      str = Form(None),
     claude_model: str = Form(None),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     """Persist settings to .env and reload into the running process."""
     import ingestion as ing
@@ -873,7 +873,7 @@ async def retry_document(
     document_id: int,
     background_tasks: BackgroundTasks,
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     """Re-run ingestion on a previously failed or pending document."""
     # Join companies to get exchange
