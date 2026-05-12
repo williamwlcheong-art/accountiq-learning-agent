@@ -500,17 +500,11 @@ function renderWizardStep(step) {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Circular import resolution preference**
-   - What we know: `_run_ingestion` in `main.py` creates a circular import if wizard code is in `wizard.py`.
-   - What's unclear: Does the planner prefer inline (main.py) or extraction to `tasks.py`?
-   - Recommendation: Default to inline in `main.py` (no new files, no refactor). Revisit in Phase 5 when task queue is added.
+1. **Circular import resolution preference** — RESOLVED: inline wizard route in `main.py`. No new file. Revisit in Phase 5.
 
-2. **Wizard upload: entity_type and fiscal_year_end defaults**
-   - What we know: D-06 says wizard upload creates company + document atomically using `_run_ingestion`. The ingestion task requires `entity_type` and `fiscal_year_end`.
-   - What's unclear: Should wizard hardcode `entity_type="sme"` and `fiscal_year_end=""`? Or prompt user?
-   - Recommendation: Hardcode `"sme"` and `""` for Phase 3.5 — the report type selection in step 2 is for Phase 5; keep wizard minimal.
+2. **Wizard upload: entity_type and fiscal_year_end defaults** — RESOLVED: hardcode `entity_type="sme"`, `fiscal_year_end=""` for Phase 3.5. Phase 5 adds intake questions.
 
 ---
 

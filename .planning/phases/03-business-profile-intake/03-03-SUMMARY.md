@@ -163,7 +163,7 @@ No new network endpoints beyond those in the plan's threat_model. No new trust b
 
 ## Human Verify Checkpoint
 
-**Status:** PENDING — awaiting human verification (Task 3, checkpoint:human-verify)
+**Status:** APPROVED — all 13 verification steps passed (2026-05-12)
 
 The full profile accordion UI is implemented and ready for browser verification. The dev server command is:
 
