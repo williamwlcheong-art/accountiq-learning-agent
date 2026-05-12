@@ -44,7 +44,7 @@ export async function createLeadPreview(formData: FormData) {
 
   const supabase = createSupabaseAdminClient();
   if (!supabase) {
-    return "demo";
+    return { reportId: "demo", sessionToken: null };
   }
 
   const sessionToken = crypto.randomUUID();
@@ -122,6 +122,9 @@ export async function createLeadPreview(formData: FormData) {
       originalFilename: file.name,
       reportType: "annual_report",
       storagePath: filePath,
+      supabaseDocumentId: documentRecord.id as string,
+      supabaseReportId: reportRecord.id as string,
+      supabaseUploadSessionId: sessionRecord.id as string,
     });
 
     if (job) {
@@ -146,5 +149,5 @@ export async function createLeadPreview(formData: FormData) {
       .eq("id", documentRecord.id);
   }
 
-  return reportRecord.id as string;
+  return { reportId: reportRecord.id as string, sessionToken };
 }

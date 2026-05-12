@@ -36,6 +36,7 @@ class IsolatedAppTest(unittest.TestCase):
             "export_dir": main_module.EXPORT_DIR,
             "admin_token": os.environ.get("APP_ADMIN_TOKEN"),
             "service_token": os.environ.get("EXTRACTOR_SERVICE_TOKEN"),
+            "allow_local_files": os.environ.get("EXTRACTOR_ALLOW_LOCAL_FILES"),
         }
 
         os.environ["APP_ADMIN_TOKEN"] = "test-admin-token"
@@ -63,6 +64,10 @@ class IsolatedAppTest(unittest.TestCase):
             os.environ.pop("EXTRACTOR_SERVICE_TOKEN", None)
         else:
             os.environ["EXTRACTOR_SERVICE_TOKEN"] = self.originals["service_token"]
+        if self.originals["allow_local_files"] is None:
+            os.environ.pop("EXTRACTOR_ALLOW_LOCAL_FILES", None)
+        else:
+            os.environ["EXTRACTOR_ALLOW_LOCAL_FILES"] = self.originals["allow_local_files"]
 
     def _create_company(self):
         response = self.client.post(
@@ -126,6 +131,7 @@ class IsolatedAppTest(unittest.TestCase):
 
     def test_extract_endpoint_accepts_local_file_job(self):
         os.environ["EXTRACTOR_SERVICE_TOKEN"] = "test-service-token"
+        os.environ["EXTRACTOR_ALLOW_LOCAL_FILES"] = "1"
         local_file = self.pdf_dir / "service.pdf"
         local_file.write_bytes(b"not a real pdf")
 
@@ -147,6 +153,26 @@ class IsolatedAppTest(unittest.TestCase):
         payload = response.json()
         self.assertEqual(payload["status"], "processing")
         self.assertIsInstance(payload["job_id"], int)
+
+    def test_extract_endpoint_rejects_local_file_path_by_default(self):
+        os.environ["EXTRACTOR_SERVICE_TOKEN"] = "test-service-token"
+        local_file = self.pdf_dir / "service.pdf"
+        local_file.write_bytes(b"not a real pdf")
+
+        response = self.client.post(
+            "/extract",
+            headers={"X-Service-Token": "test-service-token"},
+            json={
+                "storage_object_path": "service/service.pdf",
+                "metadata": {
+                    "company_name": "Service Co",
+                    "local_file_path": str(local_file),
+                    "original_filename": "service.pdf",
+                },
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
 
     def test_cors_does_not_allow_arbitrary_origins(self):
         response = self.client.options(
@@ -202,6 +228,60 @@ class ExtractionValidationTest(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 asyncio.run(run_case())
+        finally:
+            db_module.DB_PATH = original_db_path
+            shutil.rmtree(tmpdir)
+
+
+class SupabaseWritebackPayloadTest(unittest.TestCase):
+    def test_build_supabase_report_payload_maps_sqlite_rows_to_preview_and_full_report(self):
+        tmpdir = Path(tempfile.mkdtemp(prefix="accountiq-writeback-"))
+        db_path = tmpdir / "accountiq_learning.db"
+        original_db_path = db_module.DB_PATH
+        db_module.DB_PATH = db_path
+        try:
+            db_module.init_db()
+
+            async def run_case():
+                async with main_module.aiosqlite.connect(db_path) as conn:
+                    conn.row_factory = main_module.aiosqlite.Row
+                    await conn.execute("PRAGMA foreign_keys=ON")
+                    await conn.execute(
+                        "INSERT INTO companies (id, name, exchange) VALUES (1, 'Writeback Co', 'NZX')"
+                    )
+                    await conn.execute(
+                        """
+                        INSERT INTO documents
+                            (id, company_id, filename, filepath, narrative, confidence_score, extraction_status)
+                        VALUES
+                            (1, 1, 'statement.pdf', '/tmp/statement.pdf', 'Revenue is up.', 0.91, 'done')
+                        """
+                    )
+                    await conn.execute(
+                        """
+                        INSERT INTO financial_rows
+                            (document_id, company_id, statement, row_key, row_label, period, value, confidence)
+                        VALUES
+                            (1, 1, 'pnl', 'revenue', 'Revenue / Sales', '2025', 1200, 0.95),
+                            (1, 1, 'pnl', 'gross_profit', 'Gross profit', '2025', 700, 0.9),
+                            (1, 1, 'bs', 'cash_and_bank', 'Cash & bank', '2025', 250, 0.88)
+                        """
+                    )
+                    await conn.commit()
+
+                    return await main_module.build_supabase_report_payload(conn, 1)
+
+            payload = asyncio.run(run_case())
+
+            self.assertEqual(payload["document_update"]["extraction_status"], "preview_ready")
+            self.assertEqual(payload["session_update"]["status"], "preview_ready")
+            self.assertEqual(payload["report_update"]["confidence"], 0.91)
+            self.assertEqual(payload["report_update"]["narrative"], "Revenue is up.")
+            self.assertEqual(payload["report_update"]["preview_json"]["companyName"], "Writeback Co")
+            self.assertEqual(payload["report_update"]["preview_json"]["status"], "ready")
+            self.assertEqual(len(payload["report_update"]["preview_json"]["rows"]), 3)
+            self.assertEqual(payload["report_update"]["preview_json"]["rows"][0]["label"], "Revenue / Sales")
+            self.assertEqual(payload["report_update"]["full_json"]["rows"][2]["statement"], "bs")
         finally:
             db_module.DB_PATH = original_db_path
             shutil.rmtree(tmpdir)

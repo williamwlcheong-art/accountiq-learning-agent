@@ -4,6 +4,9 @@ type QueueExtractionInput = {
   originalFilename: string;
   reportType: string;
   storagePath: string;
+  supabaseDocumentId: string;
+  supabaseReportId: string;
+  supabaseUploadSessionId: string;
 };
 
 export async function queueExtraction(input: QueueExtractionInput) {
@@ -21,6 +24,9 @@ export async function queueExtraction(input: QueueExtractionInput) {
         entity_type: input.entityType,
         original_filename: input.originalFilename,
         report_type: input.reportType,
+        supabase_document_id: input.supabaseDocumentId,
+        supabase_report_id: input.supabaseReportId,
+        supabase_upload_session_id: input.supabaseUploadSessionId,
       },
       storage_object_path: input.storagePath,
     }),

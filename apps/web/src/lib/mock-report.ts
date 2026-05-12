@@ -30,6 +30,7 @@ type ReportRecord = {
   confidence: number | null;
   locked_sections: unknown;
   narrative: string | null;
+  upload_session_id: string;
   preview_json: {
     companyName?: string;
     rows?: PreviewReportData["rows"];
@@ -38,7 +39,10 @@ type ReportRecord = {
   };
 };
 
-export async function getReportForPreview(id: string): Promise<PreviewReportData> {
+export async function getReportForPreview(
+  id: string,
+  previewToken?: string | null,
+): Promise<PreviewReportData | null> {
   if (id === "demo") {
     return getPreviewReport(id);
   }
@@ -50,12 +54,22 @@ export async function getReportForPreview(id: string): Promise<PreviewReportData
 
   const { data, error } = await supabase
     .from("reports")
-    .select("id, confidence, locked_sections, narrative, preview_json")
+    .select("id, confidence, locked_sections, narrative, preview_json, upload_session_id")
     .eq("id", id)
     .single<ReportRecord>();
 
   if (error || !data) {
-    return getPreviewReport(id);
+    return null;
+  }
+
+  const { data: session, error: sessionError } = await supabase
+    .from("upload_sessions")
+    .select("session_token")
+    .eq("id", data.upload_session_id)
+    .single<{ session_token: string }>();
+
+  if (sessionError || !session || session.session_token !== previewToken) {
+    return null;
   }
 
   const lockedSections = Array.isArray(data.locked_sections)

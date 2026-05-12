@@ -1,13 +1,15 @@
 :root {
-  --background: #f6f3ed;
-  --foreground: #18211d;
-  --muted: #65716b;
-  --border: #ded6c9;
-  --card: #fffaf2;
-  --primary: #104c3a;
-  --primary-contrast: #f9f3e8;
-  --accent: #c47a28;
-  --locked: rgba(255, 250, 242, 0.78);
+  --background: #ffffff;
+  --foreground: #0d1b2a;
+  --muted: #607080;
+  --border: #e0e4ea;
+  --card: #ffffff;
+  --primary: #1565c0;
+  --primary-contrast: #ffffff;
+  --accent: #2196f3;
+  --surface: #f5f7fa;
+  --surface-blue: #e3f2fd;
+  --locked: rgba(255, 255, 255, 0.82);
 }
 
 * {
@@ -37,21 +39,34 @@ textarea {
 
 .page-shell {
   margin: 0 auto;
-  max-width: 1180px;
-  padding: 32px 24px 72px;
+  max-width: 1400px;
+  padding: 0 24px 72px;
 }
 
 .nav {
   align-items: center;
+  background: var(--foreground);
+  color: #ffffff;
   display: flex;
+  gap: 32px;
   justify-content: space-between;
-  margin-bottom: 64px;
+  margin: 0 -24px 32px;
+  min-height: 56px;
+  padding: 0 24px;
 }
 
 .brand {
   font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.04em;
+}
+
+.brand span {
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-left: 8px;
+  opacity: 0.55;
 }
 
 .nav-links {
@@ -61,10 +76,11 @@ textarea {
 }
 
 .pill {
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--muted);
-  padding: 9px 14px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 8px 14px;
 }
 
 .button {
@@ -80,9 +96,9 @@ textarea {
 }
 
 .button.secondary {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--foreground);
+  background: var(--surface-blue);
+  border: 1px solid #90caf9;
+  color: var(--primary);
 }
 
 .hero {
@@ -93,7 +109,7 @@ textarea {
 }
 
 .eyebrow {
-  color: var(--accent);
+  color: var(--primary);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -103,17 +119,17 @@ textarea {
 h1,
 h2,
 h3 {
-  letter-spacing: -0.055em;
-  line-height: 0.95;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
 }
 
 h1 {
-  font-size: clamp(3rem, 7vw, 6.4rem);
+  font-size: clamp(2.2rem, 4vw, 3.6rem);
   margin: 14px 0 22px;
 }
 
 h2 {
-  font-size: clamp(2rem, 4vw, 3.8rem);
+  font-size: clamp(1.55rem, 2.5vw, 2.4rem);
 }
 
 p {
@@ -136,8 +152,8 @@ p {
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 28px;
-  box-shadow: 0 24px 70px rgba(43, 31, 18, 0.09);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(13, 27, 42, 0.08);
   padding: 28px;
 }
 
@@ -192,9 +208,9 @@ p {
 
 .dropzone {
   align-items: center;
-  background: #fffdf8;
-  border: 1.5px dashed #c8bcae;
-  border-radius: 24px;
+  background: var(--surface);
+  border: 1.5px dashed #90caf9;
+  border-radius: 14px;
   display: flex;
   min-height: 210px;
   padding: 28px;
@@ -235,6 +251,231 @@ p {
   position: absolute;
 }
 
+.admin-shell {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 260px minmax(0, 1fr);
+}
+
+.admin-sidebar,
+.admin-card {
+  background: #ffffff;
+  border: 1px solid #d8e0e6;
+  border-radius: 12px;
+  box-shadow: 0 12px 34px rgba(13, 27, 42, 0.07);
+}
+
+.admin-sidebar {
+  align-self: start;
+  display: grid;
+  gap: 24px;
+  padding: 22px;
+  position: sticky;
+  top: 24px;
+}
+
+.admin-brand {
+  color: #0d1b2a;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.admin-muted,
+.admin-header p,
+.admin-note,
+.admin-card-header span {
+  color: #607080;
+}
+
+.admin-menu {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-menu a {
+  border-radius: 8px;
+  color: #0d1b2a;
+  font-weight: 700;
+  padding: 9px 10px;
+}
+
+.admin-menu a:hover {
+  background: #eef4f8;
+}
+
+.admin-note {
+  background: #f7fafc;
+  border: 1px solid #e0e4ea;
+  border-radius: 10px;
+  display: grid;
+  font-size: 0.82rem;
+  gap: 5px;
+  padding: 12px;
+}
+
+.admin-main {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.admin-header {
+  align-items: end;
+  display: flex;
+  justify-content: space-between;
+}
+
+.admin-header h1,
+.admin-card h2 {
+  color: #0d1b2a;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin: 0;
+}
+
+.admin-header h1 {
+  font-size: clamp(2rem, 4vw, 3.2rem);
+}
+
+.admin-card h2 {
+  font-size: 1.35rem;
+}
+
+.admin-kicker {
+  color: #1565c0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.admin-stats {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.admin-stats div {
+  background: #ffffff;
+  border: 1px solid #d8e0e6;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.admin-stats strong {
+  color: #1565c0;
+  display: block;
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.admin-stats span {
+  color: #607080;
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.admin-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-card {
+  min-width: 0;
+  overflow: hidden;
+  padding: 20px;
+}
+
+.admin-card-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-card-header {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.admin-card-header span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  border-collapse: collapse;
+  color: #1a1a2e;
+  font-size: 0.86rem;
+  min-width: 520px;
+  width: 100%;
+}
+
+.admin-table th {
+  background: #f0f4f8;
+  border-bottom: 2px solid #d8e0e6;
+  color: #607080;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  padding: 10px 12px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.admin-table td {
+  border-bottom: 1px solid #e0e4ea;
+  padding: 12px;
+  vertical-align: middle;
+}
+
+.admin-table tr:hover td {
+  background: #f8fafc;
+}
+
+.admin-badge {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 4px 8px;
+}
+
+.admin-badge.ok {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.admin-badge.pending {
+  background: #fff8e1;
+  color: #a46100;
+}
+
+.admin-badge.bad {
+  background: #ffebee;
+  color: #c62828;
+}
+
+@media (max-width: 1100px) {
+  .admin-shell,
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    position: static;
+  }
+}
+
 @media (max-width: 860px) {
   .hero,
   .upload-panel,
@@ -247,5 +488,9 @@ p {
     align-items: flex-start;
     flex-direction: column;
     gap: 18px;
+  }
+
+  .admin-stats {
+    grid-template-columns: 1fr;
   }
 }

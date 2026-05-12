@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import { unlockReport } from "@/app/preview/[id]/actions";
 import { LockedSection } from "@/components/LockedSection";
 import { PreviewReport } from "@/components/PreviewReport";
@@ -10,7 +12,12 @@ export default async function PreviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const report = await getReportForPreview(id);
+  const cookieStore = await cookies();
+  const report = await getReportForPreview(id, cookieStore.get("accountiq_preview_token")?.value);
+
+  if (!report) {
+    notFound();
+  }
 
   return (
     <div className="form-grid">

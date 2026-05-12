@@ -15,7 +15,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "private": "true",
+  "private": true,
   "workspaces": [
     "apps/web"
   ]

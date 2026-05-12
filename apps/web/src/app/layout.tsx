@@ -20,6 +20,7 @@ export default function RootLayout({
           <nav className="nav" aria-label="Main navigation">
             <Link href="/" className="brand">
               AccountIQ
+              <span>Learning Agent</span>
             </Link>
             <div className="nav-links">
               <Link href="/upload">Upload</Link>
