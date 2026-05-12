@@ -97,10 +97,17 @@ Plans:
 
 **UI hint:** yes
 
-**Plans:**
-- Add `is_admin` column to users table; set via OWNER_EMAIL env var on registration; add `/auth/me` route returning role
-- Add admin-only middleware guard to all current tab API routes; 403 for non-admin callers
-- Build user-facing wizard frontend (3 steps); gate existing tabs behind `is_admin` check in JS after login
+**Plans:** 3 plans
+
+Plans:
+**Wave 1**
+- [ ] 03-5-01-PLAN.md — Add `is_admin` column to users table; OWNER_EMAIL env var; extend `get_current_user`; add `require_admin` dependency; Wave 0 test stubs
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 03-5-02-PLAN.md — Apply `Depends(require_admin)` to all 25 existing admin routes; 403 for non-admin callers
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 03-5-03-PLAN.md — Add `POST /wizard/upload` backend route; build 3-step wizard frontend; extend `initApp()` to branch on `is_admin`; human-verify checkpoint
 
 ---
 
