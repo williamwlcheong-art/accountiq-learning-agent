@@ -1,6 +1,6 @@
 # AccountIQ — Roadmap
 
-**7 phases** | **33 requirements** | All v1 requirements covered ✓
+**8 phases** | **33 requirements + admin gate + report intake** | All v1 requirements covered ✓
 
 ---
 
@@ -27,7 +27,7 @@
 
 ---
 
-## Phase 2: Multi-User Data Isolation
+## Phase 2: Multi-User Data Isolation ✅ Complete
 
 **Goal:** Every user sees only their own companies and documents. Existing NULL user_id rows become invisible to all users (D-02). The `label_patterns` table remains global.
 
@@ -80,6 +80,30 @@ Plans:
 
 ---
 
+## Phase 3.5: Admin Gate + User Wizard Shell
+
+**Goal:** Split the application into two experiences on the same codebase. The current full UI (Companies, Documents, Patterns, Financials, Settings) becomes admin-only, accessible only to users with `is_admin = true`. All other users see a clean user-facing wizard: upload financials → select report type → confirmation. The admin owner account is designated by `OWNER_EMAIL` in `.env`.
+
+**Requirements:** AUTH-09 (new — admin role), UX-01 (new — user wizard shell)
+
+**Success Criteria:**
+1. A user with `is_admin = true` sees the full current UI unchanged after login
+2. A regular user (`is_admin = false`) sees only the user wizard after login — no access to Companies, Patterns, Financials, or Settings tabs
+3. Attempting to access `/companies`, `/patterns`, `/financials/*` API routes as a non-admin returns 403
+4. The `OWNER_EMAIL` in `.env` is automatically granted `is_admin = true` on first registration
+5. The user wizard shell renders the three steps: (1) Upload financials, (2) Select report type, (3) Confirmation / "we'll email you"
+6. All 5 report type options are present in step 2 with name and short description
+7. The user wizard correctly identifies the logged-in user and associates uploads with their account
+
+**UI hint:** yes
+
+**Plans:**
+- Add `is_admin` column to users table; set via OWNER_EMAIL env var on registration; add `/auth/me` route returning role
+- Add admin-only middleware guard to all current tab API routes; 403 for non-admin callers
+- Build user-facing wizard frontend (3 steps); gate existing tabs behind `is_admin` check in JS after login
+
+---
+
 ## Phase 4: Extraction Quality
 
 **Goal:** Financial statements are extracted accurately across all statement types, sign conventions, fiscal periods, non-standard labels, multi-page layouts, Word documents, and scanned PDFs.
@@ -105,27 +129,38 @@ Plans:
 
 ---
 
-## Phase 5: Report Generation Engine
+## Phase 5: Report Intake Questionnaires + Generation Engine
 
-**Goal:** The system can generate all 5 report types as structured, accurate content using Claude — seeded with extracted financials, business profile, and industry multiples.
+**Goal:** For each of the 5 report types, the user completes a structured intake questionnaire that provides the methodology inputs. The application applies those inputs (not assumptions) to generate the report. Valuation Advisory runs a Python DCF/multiples algorithm before Claude writes the narrative. All other reports pass user-supplied answers to Claude alongside the extracted financials. Reports are generated async and delivered by email.
 
 **Requirements:** REPT-01, REPT-02, REPT-03, REPT-04, REPT-05, REPT-06
 
-**Success Criteria:**
-1. A valuation report is generated with normalised EBITDA, industry multiple applied, DCF analysis, and a low/mid/high value range — no placeholder text
-2. A bank credit paper includes DSCR calculation, 3-year financial trend table, and a sensitivity analysis at −10%/−20% revenue
-3. A financial forecast includes a stated-assumptions section, 3-year projections, and base/bull/bear scenarios
-4. A capital raising document includes use-of-funds breakdown and management team section drawn from business profile
-5. An IM includes all 10 standard sections populated with company-specific content (not generic templates)
-6. Every generated report section includes "indicative only" disclaimer language
-7. A failed generation (Claude API error) sets report status to `failed` with a human-readable error message and allows retry
+**Report types and intake:**
 
-**UI hint:** no
+| Report | Key Intake Questions | Algorithm |
+|--------|---------------------|-----------|
+| **Valuation Advisory** | Methodology (DCF / multiples / both), WACC components (risk-free rate, ERP, beta, cost of debt, capital structure), terminal growth rate, forecast years, EV/EBITDA comparable range, discount/premium factors | Python computes DCF + multiples → Claude writes narrative around calculated outputs |
+| **Bank Credit Paper** | Facility type, amount requested, proposed term, repayment structure, security/collateral, loan purpose, existing debt facilities | No separate algorithm — Claude applies inputs to standard credit analysis framework |
+| **Information Memorandum** | Sale rationale, key business highlights (user-written), growth opportunities, target buyer type, transaction structure preference, any exclusions | No separate algorithm |
+| **Financial Forecast** | Forecast horizon (1/3/5 years), revenue growth rate per year, key business drivers, planned capex, headcount changes, any one-off events | No separate algorithm |
+| **Capital Raising Document** | Amount, instrument type (equity/convertible/debt/hybrid), use of proceeds (itemised), business stage, target investor profile, key milestones the raise funds | No separate algorithm |
+
+**Success Criteria:**
+1. Each report type shows its own intake questionnaire before generation is queued
+2. Valuation Advisory: Python computes DCF (per stated WACC/growth inputs) and EV/EBITDA multiple range; both outputs are passed to Claude for narrative — Claude does not estimate the valuation
+3. Bank Credit Paper includes DSCR calculation, 3-year financial trend table, and sensitivity at −10%/−20% revenue — all derived from extracted financials + user inputs
+4. Financial Forecast includes a stated-assumptions section (drawn from intake answers), 3-year projections, and base/bull/bear scenarios
+5. Capital Raising document includes use-of-funds breakdown (from intake) and management team section (from business profile)
+6. IM includes all 10 standard sections populated with company-specific content (not generic templates)
+7. Every generated report section includes "indicative only" disclaimer language
+8. Report generation runs async; user receives email with report link on completion
+9. A failed generation sets report status to `failed` with a human-readable error and allows retry
 
 **Plans:**
-- Create `reports` DB table, job state machine (pending_payment → queued → generating → done/failed), and generation API endpoints
-- Seed `industry_multiples` lookup table; build valuation and bank credit paper Claude prompts
-- Build forecast, capital raising, and IM Claude prompts
+- Create `reports` and `report_intake` DB tables; job state machine (pending_payment → queued → generating → done/failed); generation API endpoints
+- Build per-report-type intake form in user wizard (step 2b — after report type selection)
+- Build Valuation Advisory Python algorithm (DCF + EV/EBITDA multiples calculator)
+- Build Claude prompts for all 5 report types (seeded with extracted financials + intake answers + algorithm outputs where applicable)
 - Add retry logic with exponential backoff for transient Claude API errors (429, 529)
 
 ---
@@ -170,8 +205,7 @@ Plans:
 **Plans:**
 - Create Jinja2 HTML report templates for all 5 report types (shared layout, per-type content blocks)
 - Implement WeasyPrint PDF rendering wrapped in `run_in_executor`; store output to `data/reports/`
-- Build report viewer tab in frontend; wire up PDF download endpoint with auth guard
-- Generate CLAUDE.md project instruction file
+- Build report viewer in user wizard (step 4 — post-generation); wire up PDF download endpoint with auth guard
 
 ---
 
@@ -184,10 +218,12 @@ Plans:
 | AUTH-07     | Phase 2 — Multi-User Data Isolation |
 | DATA-01     | Phase 2 — Multi-User Data Isolation |
 | PROF-01–04  | Phase 3 — Business Profile Intake |
+| AUTH-09 (admin role) | Phase 3.5 — Admin Gate + User Wizard Shell |
+| UX-01 (user wizard) | Phase 3.5 — Admin Gate + User Wizard Shell |
 | EXTR-01–05  | Phase 4 — Extraction Quality |
 | FILE-01–02  | Phase 4 — Extraction Quality |
-| REPT-01–06  | Phase 5 — Report Generation Engine |
+| REPT-01–06  | Phase 5 — Report Intake + Generation Engine |
 | PAY-01–03   | Phase 6 — Payment Integration |
 | DELIV-01–03 | Phase 7 — PDF Rendering & Delivery |
 
-**Coverage check:** 33/33 requirements mapped ✓
+**Coverage check:** 33 original + 2 new (AUTH-09, UX-01) = 35 requirements mapped ✓
