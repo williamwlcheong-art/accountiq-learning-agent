@@ -127,6 +127,8 @@ def _migrate_db(conn: sqlite3.Connection):
         "ALTER TABLE documents ADD COLUMN user_id INTEGER",
         # Phase 3: business profile description
         "ALTER TABLE companies ADD COLUMN description TEXT",
+        # Phase 3.5: admin role
+        "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0",
     ]:
         try:
             conn.execute(sql)

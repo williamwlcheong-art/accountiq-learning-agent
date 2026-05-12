@@ -22,7 +22,7 @@ load_dotenv(ENV_PATH, override=True)
 
 from db import init_db, get_db, get_pattern_library, DB_PATH
 from ingestion import ingest_document, ALL_ROWS
-from auth import auth_router, get_current_user
+from auth import auth_router, get_current_user, require_admin
 
 # ---------------------------------------------------------------------------
 # App setup

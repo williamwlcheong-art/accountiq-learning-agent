@@ -26,6 +26,7 @@ TOKEN_EXPIRE_DAYS = 7
 COOKIE_NAME = "accountiq_session"
 COOKIE_MAX_AGE = TOKEN_EXPIRE_DAYS * 24 * 60 * 60  # 604800
 COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
+OWNER_EMAIL = os.environ.get("OWNER_EMAIL", "").strip().lower()
 PASSWORD_MIN_LEN = 8
 
 _password_hash = PasswordHash.recommended()
@@ -88,12 +89,21 @@ async def get_current_user(
     except InvalidTokenError:
         raise HTTPException(401, "Invalid or expired token")
     async with db.execute(
-        "SELECT id, email, created_at FROM users WHERE id=?", (user_id,)
+        "SELECT id, email, is_admin, created_at FROM users WHERE id=?", (user_id,)
     ) as cur:
         user = await cur.fetchone()
     if not user:
         raise HTTPException(401, "User not found")
     return dict(user)
+
+
+async def require_admin(
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Return user if admin, else 403. Unauthenticated callers still get 401 (from get_current_user)."""
+    if not current_user.get("is_admin"):
+        raise HTTPException(403, "Admin access required")
+    return current_user
 
 
 # ---------------------------------------------------------------------------
@@ -127,6 +137,11 @@ async def register(
         if "UNIQUE constraint" in str(e):
             raise HTTPException(409, "Email already registered")
         raise HTTPException(500, str(e))
+
+    # Promote to admin if registration email matches OWNER_EMAIL (per D-02)
+    if OWNER_EMAIL and email == OWNER_EMAIL:
+        await db.execute("UPDATE users SET is_admin = 1 WHERE id = ?", (user_id,))
+        await db.commit()
 
     token = create_access_token({"sub": str(user_id), "email": email})
     _set_session_cookie(response, token)
