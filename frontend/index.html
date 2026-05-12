@@ -466,6 +466,60 @@
 
 </div><!-- /#main-app -->
 
+<!-- Wizard — non-admin user experience (Phase 3.5, D-08, D-09, D-10) -->
+<div id="wizard-page" style="display:none">
+  <nav>
+    <h1>AccountIQ</h1>
+    <div id="wizard-step-indicator" style="color:var(--navy);font-weight:600;font-size:.95rem"></div>
+    <div id="user-header-wizard" style="display:flex;align-items:center;gap:1rem">
+      <span id="wizard-user-email" style="font-size:.875rem;color:var(--navy)"></span>
+      <button class="btn btn-sm btn-ghost-light" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <div style="max-width:640px;margin:2rem auto;padding:0 1rem">
+    <div id="wizard-alert" style="margin-bottom:1rem"></div>
+
+    <!-- Step 1: Upload financials + business name -->
+    <div class="wizard-step card" data-step="1" style="display:none">
+      <h2 style="font-size:1.1rem;font-weight:700;color:var(--navy);margin-bottom:1.5rem">Upload your financial statements</h2>
+      <div class="form-group">
+        <label for="wiz-business-name">Business name <span style="color:#c62828">*</span></label>
+        <input id="wiz-business-name" type="text" placeholder="e.g. Acme Holdings Ltd" autocomplete="organization"/>
+      </div>
+      <div class="form-group" style="margin-top:1rem">
+        <label for="wiz-file">Financial statements <span style="color:#c62828">*</span></label>
+        <input id="wiz-file" type="file" accept=".pdf,.xlsx,.xls,.xlsm"/>
+        <div class="text-muted" style="font-size:.75rem;margin-top:.25rem">PDF or Excel — last 2–3 years preferred</div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:1.5rem;width:100%" onclick="wizardSubmitStep1()">Continue &#x2192;</button>
+    </div>
+
+    <!-- Step 2: Select report type -->
+    <div class="wizard-step card" data-step="2" style="display:none">
+      <h2 style="font-size:1.1rem;font-weight:700;color:var(--navy);margin-bottom:1.5rem">What report do you need?</h2>
+      <div id="wizard-report-cards" style="display:flex;flex-direction:column;gap:.75rem"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem">
+        <button class="btn" style="background:none;color:var(--navy);border:none;cursor:pointer;padding:0" onclick="renderWizardStep(1)">&#x2190; Back</button>
+        <button id="wiz-step2-continue" class="btn btn-primary" onclick="wizardConfirm()" disabled>Continue &#x2192;</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Confirmation -->
+    <div class="wizard-step card" data-step="3" style="display:none">
+      <h2 style="font-size:1.1rem;font-weight:700;color:var(--navy);margin-bottom:1rem">Your report is being prepared</h2>
+      <div class="alert alert-success" style="margin-bottom:1rem">
+        Your financials have been uploaded and your report request has been received.
+      </div>
+      <p style="color:#333;line-height:1.6">
+        We'll email you at <strong><span id="wiz-confirm-email"></span></strong> when your report is ready.<br>
+        This typically takes a few minutes.
+      </p>
+      <button class="btn btn-primary" style="margin-top:1.5rem" onclick="wizardReset()">Upload another &#x2192;</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = 'http://localhost:8765';
 let activeJobs = {};
@@ -1967,6 +2021,172 @@ function closeNarrativeBtn() {
 }
 
 // ---------------------------------------------------------------------------
+// Wizard — non-admin user experience (Phase 3.5)
+// ---------------------------------------------------------------------------
+
+// Module-scope wizard state (cleared on wizardReset)
+let _wizardStep = 1;
+let _wizardUploadResult = null;   // {company_id, document_id, status}
+let _wizardReportType = null;     // string key
+let _wizardUser = null;           // user object from /auth/me
+
+const WIZARD_REPORT_TYPES = [
+  {
+    key: "valuation_advisory",
+    name: "Valuation Advisory",
+    desc: "Enterprise value using DCF and market multiples, based on your financials and industry benchmarks."
+  },
+  {
+    key: "bank_credit_paper",
+    name: "Bank Credit Paper",
+    desc: "Structured credit submission covering business overview, financial performance, and lending rationale."
+  },
+  {
+    key: "financial_forecast",
+    name: "Financial Forecast",
+    desc: "Three-year forward projections with base, bull, and bear scenarios derived from historical performance."
+  },
+  {
+    key: "capital_raising",
+    name: "Capital Raising Document",
+    desc: "Investor-ready summary covering business model, financials, growth strategy, and use of funds."
+  },
+  {
+    key: "information_memorandum",
+    name: "Information Memorandum",
+    desc: "Full sale document covering business overview, operations, financials, and growth opportunities."
+  },
+];
+
+function showWizard(user) {
+  _wizardUser = user;
+  document.getElementById('auth-page').style.display = 'none';
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('wizard-page').style.display = 'block';
+  // Set user email in wizard header — .textContent enforces XSS rule (AUTH-03)
+  document.getElementById('wizard-user-email').textContent = user.email;
+  renderWizardStep(1);
+}
+
+function renderWizardStep(step) {
+  _wizardStep = step;
+  document.querySelectorAll('.wizard-step').forEach(function(el) {
+    el.style.display = (parseInt(el.dataset.step, 10) === step) ? 'block' : 'none';
+  });
+  const ind = document.getElementById('wizard-step-indicator');
+  if (ind) ind.textContent = 'Step ' + step + ' of 3';
+
+  // Step 2 setup: render report type cards
+  if (step === 2) {
+    _renderReportTypeCards();
+  }
+  // Step 3 setup: populate confirmation email
+  if (step === 3 && _wizardUser) {
+    // .textContent — XSS rule (AUTH-03)
+    document.getElementById('wiz-confirm-email').textContent = _wizardUser.email;
+  }
+}
+
+function _renderReportTypeCards() {
+  const container = document.getElementById('wizard-report-cards');
+  container.innerHTML = '';
+  WIZARD_REPORT_TYPES.forEach(function(rt) {
+    const card = document.createElement('div');
+    card.style.cssText = 'border:2px solid var(--border);border-radius:8px;padding:.875rem 1rem;cursor:pointer;transition:border-color .15s,background .15s';
+    card.dataset.key = rt.key;
+    card.onclick = function() { _selectReportType(rt.key); };
+
+    const nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-weight:700;color:var(--navy);margin-bottom:.25rem';
+    nameEl.textContent = rt.name;  // .textContent — XSS rule
+
+    const descEl = document.createElement('div');
+    descEl.style.cssText = 'font-size:.85rem;color:#555;line-height:1.4';
+    descEl.textContent = rt.desc;  // .textContent — XSS rule
+
+    card.appendChild(nameEl);
+    card.appendChild(descEl);
+    container.appendChild(card);
+  });
+  // Restore previously selected type if user navigated back
+  if (_wizardReportType) {
+    _selectReportType(_wizardReportType);
+  }
+}
+
+function _selectReportType(key) {
+  _wizardReportType = key;
+  document.querySelectorAll('#wizard-report-cards > div').forEach(function(card) {
+    const selected = card.dataset.key === key;
+    card.style.borderColor = selected ? 'var(--blue)' : 'var(--border)';
+    card.style.background = selected ? '#e3f2fd' : '';
+  });
+  const continueBtn = document.getElementById('wiz-step2-continue');
+  if (continueBtn) continueBtn.disabled = false;
+}
+
+async function wizardSubmitStep1() {
+  const nameInput = document.getElementById('wiz-business-name');
+  const fileInput = document.getElementById('wiz-file');
+  const name = nameInput ? nameInput.value.trim() : '';
+  const file = fileInput && fileInput.files.length > 0 ? fileInput.files[0] : null;
+
+  if (!name) {
+    showAlert('wizard-alert', 'Business name is required.', 'error');
+    return;
+  }
+  if (!file) {
+    showAlert('wizard-alert', 'Please select a file to upload.', 'error');
+    return;
+  }
+
+  const btn = event.currentTarget || document.querySelector('[onclick="wizardSubmitStep1()"]');
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
+
+  try {
+    const fd = new FormData();
+    fd.append('business_name', name);
+    fd.append('file', file);
+    const res = await fetch(API + '/wizard/upload', { method: 'POST', body: fd, credentials: 'include' });
+    if (res.status === 401) { showAuthWall(true); return; }
+    const json = await res.json();
+    if (!res.ok) {
+      showAlert('wizard-alert', json.detail || 'Upload failed. Please try again.', 'error');
+      return;
+    }
+    _wizardUploadResult = json;
+    showAlert('wizard-alert', '', 'success');  // clear any prior error
+    renderWizardStep(2);
+  } catch (e) {
+    showAlert('wizard-alert', 'Connection error. Please check your network and try again.', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = origText || 'Continue →'; }
+  }
+}
+
+function wizardConfirm() {
+  if (!_wizardReportType) {
+    showAlert('wizard-alert', 'Please select a report type to continue.', 'error');
+    return;
+  }
+  renderWizardStep(3);
+}
+
+function wizardReset() {
+  _wizardStep = 1;
+  _wizardUploadResult = null;
+  _wizardReportType = null;
+  // Clear form inputs
+  const nameInput = document.getElementById('wiz-business-name');
+  const fileInput = document.getElementById('wiz-file');
+  if (nameInput) nameInput.value = '';
+  if (fileInput) fileInput.value = '';
+  showAlert('wizard-alert', '', 'success');  // clear alerts
+  renderWizardStep(1);
+}
+
+// ---------------------------------------------------------------------------
 // Auth (Phase 1)
 // ---------------------------------------------------------------------------
 
@@ -2049,8 +2269,10 @@ async function submitLogin() {
     fd.append('password', pw);
     const res = await fetch(`${API}/auth/login`, { method: 'POST', body: fd, credentials: 'include' });
     if (res.status === 200) {
-      const user = await res.json();
-      showMainApp(user);
+      await res.json();  // consume login response (only has {id, email})
+      // Re-fetch /auth/me to get is_admin
+      const user = await apiFetch('/auth/me');
+      if (user && user.is_admin) { showMainApp(user); } else if (user) { showWizard(user); }
       return;
     }
     if (res.status === 401) {
@@ -2097,8 +2319,10 @@ async function submitRegister() {
     fd.append('password', pw);
     const res = await fetch(`${API}/auth/register`, { method: 'POST', body: fd, credentials: 'include' });
     if (res.status === 200 || res.status === 201) {
-      const user = await res.json();
-      showMainApp(user);
+      await res.json();  // consume register response (only has {id, email})
+      // Re-fetch /auth/me to get is_admin
+      const user = await apiFetch('/auth/me');
+      if (user && user.is_admin) { showMainApp(user); } else if (user) { showWizard(user); }
       return;
     }
     if (res.status === 409) {
@@ -2145,12 +2369,15 @@ async function loadAccount() {
 async function initApp() {
   const user = await apiFetch('/auth/me');
   if (!user) {
-    // apiFetch already called showAuthWall(true) on 401 — but on first load it should be 401 with no "expired" framing
-    // Override the framing for first load:
+    // apiFetch already called showAuthWall(true) on 401 — override framing for first load
     showAuthWall(false);
     return;
   }
-  showMainApp(user);
+  if (user.is_admin) {
+    showMainApp(user);
+  } else {
+    showWizard(user);
+  }
 }
 
 // Init — entrypoint
