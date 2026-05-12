@@ -9,6 +9,9 @@ Routes exercised:
   GET/POST/PUT/DELETE /companies/{id}/management-team[/{member_id}]
   GET/POST/PUT/DELETE /companies/{id}/ebitda-adjustments[/{adj_id}]
   GET /companies/{id}/profile-status
+
+NOTE (Phase 3.5): All routes under /companies/* require is_admin=1 (require_admin).
+Tests register users as admins so they can exercise these routes.
 """
 import pytest
 from httpx import AsyncClient, ASGITransport
@@ -18,8 +21,15 @@ from httpx import AsyncClient, ASGITransport
 # Helpers — copied from tests/test_isolation.py for consistency
 # ---------------------------------------------------------------------------
 
-async def _register(client, email, password="correcthorse"):
-    r = await client.post("/auth/register", data={"email": email, "password": password})
+async def _register_admin(client, email, password="correcthorse"):
+    """Register a user and grant admin via module-level OWNER_EMAIL patching."""
+    import auth as _auth_module
+    original = _auth_module.OWNER_EMAIL
+    _auth_module.OWNER_EMAIL = email.lower()
+    try:
+        r = await client.post("/auth/register", data={"email": email, "password": password})
+    finally:
+        _auth_module.OWNER_EMAIL = original
     assert r.status_code in (200, 201), f"Register failed for {email!r}: {r.text}"
     return r
 
@@ -45,7 +55,7 @@ def _make_other_client():
 
 async def test_save_industry(client, fresh_all_db):
     """PROF-01: sector saved to company via POST /companies/{id}/profile."""
-    await _register(client, "alice-prof01@test.com")
+    await _register_admin(client, "alice-prof01@test.com")
     cid = await _create_company(client, "ProfileTest Co")
     r = await client.post(f"/companies/{cid}/profile", data={"sector": "Technology & Software"})
     assert r.status_code == 200, f"profile save failed: {r.text}"
@@ -55,10 +65,10 @@ async def test_save_industry(client, fresh_all_db):
 
 async def test_profile_ownership_403(client, fresh_all_db):
     """PROF-01: unowned company returns 404 (not 403) on profile save."""
-    await _register(client, "owner-prof@test.com")
+    await _register_admin(client, "owner-prof@test.com")
     cid = await _create_company(client, "Owner Profile Co")
     async with _make_other_client() as other:
-        await _register(other, "other-prof@test.com")
+        await _register_admin(other, "other-prof@test.com")
         r = await other.post(f"/companies/{cid}/profile", data={"sector": "Retail"})
         assert r.status_code == 404, f"expected 404, got {r.status_code}: {r.text}"
 
@@ -69,7 +79,7 @@ async def test_profile_ownership_403(client, fresh_all_db):
 
 async def test_save_description(client, fresh_all_db):
     """PROF-02: description saved via POST /companies/{id}/profile (>=50 chars)."""
-    await _register(client, "alice-prof02@test.com")
+    await _register_admin(client, "alice-prof02@test.com")
     cid = await _create_company(client, "DescTest Co")
     desc = "A small accountancy firm serving SMEs across NZ since 2018."  # > 50 chars
     assert len(desc) >= 50
@@ -85,7 +95,7 @@ async def test_save_description(client, fresh_all_db):
 
 async def test_management_team_crud(client, fresh_all_db):
     """PROF-03: add a management team member; list returns it."""
-    await _register(client, "alice-prof03@test.com")
+    await _register_admin(client, "alice-prof03@test.com")
     cid = await _create_company(client, "MgmtTest Co")
     # Add member
     r = await client.post(
@@ -107,7 +117,7 @@ async def test_management_team_crud(client, fresh_all_db):
 
 async def test_management_team_delete(client, fresh_all_db):
     """PROF-03: DELETE returns 204; member disappears from list."""
-    await _register(client, "alice-prof03del@test.com")
+    await _register_admin(client, "alice-prof03del@test.com")
     cid = await _create_company(client, "MgmtDel Co")
     r = await client.post(
         f"/companies/{cid}/management-team",
@@ -130,7 +140,7 @@ async def test_management_team_delete(client, fresh_all_db):
 
 async def test_ebitda_adjustments_crud(client, fresh_all_db):
     """PROF-04: add EBITDA adjustment; list returns it. Amount can be negative."""
-    await _register(client, "alice-prof04@test.com")
+    await _register_admin(client, "alice-prof04@test.com")
     cid = await _create_company(client, "AdjTest Co")
     # Positive add-back
     r = await client.post(
@@ -162,7 +172,7 @@ async def test_ebitda_adjustments_crud(client, fresh_all_db):
 
 async def test_profile_status_gate(client, fresh_all_db):
     """PROF-04 / D-06: profile-status ebitda_complete=true after first adjustment."""
-    await _register(client, "alice-status@test.com")
+    await _register_admin(client, "alice-status@test.com")
     cid = await _create_company(client, "StatusTest Co")
     # Initially no adjustments
     r = await client.get(f"/companies/{cid}/profile-status")
@@ -183,7 +193,7 @@ async def test_profile_status_gate(client, fresh_all_db):
 
 async def test_profile_status_blocked(client, fresh_all_db):
     """PROF-04 / D-06: can_generate=false when sector null OR no adjustments."""
-    await _register(client, "alice-blocked@test.com")
+    await _register_admin(client, "alice-blocked@test.com")
     cid = await _create_company(client, "BlockTest Co")
     # No sector, no adjustments — should be blocked
     r = await client.get(f"/companies/{cid}/profile-status")
@@ -212,7 +222,7 @@ async def test_profile_status_blocked(client, fresh_all_db):
 async def test_ebitda_bridge_calculation(client, fresh_all_db):
     """PROF-04 / D-05: reported_ebitda = net_profit + depreciation_amortisation
        from financial_rows max period. has_financials=False when no rows exist."""
-    await _register(client, "alice-bridge@test.com")
+    await _register_admin(client, "alice-bridge@test.com")
     cid = await _create_company(client, "BridgeTest Co")
     # No financial_rows yet — has_financials should be false
     r = await client.get(f"/companies/{cid}/profile-status")

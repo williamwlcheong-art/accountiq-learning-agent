@@ -13,8 +13,15 @@ import pytest
 import pytest_asyncio
 
 
-async def _register(client, email, password="correcthorse"):
-    r = await client.post("/auth/register", data={"email": email, "password": password})
+async def _register_admin(client, email, password="correcthorse"):
+    """Register a user and grant admin via module-level OWNER_EMAIL patching."""
+    import auth as _auth_module
+    original = _auth_module.OWNER_EMAIL
+    _auth_module.OWNER_EMAIL = email.lower()
+    try:
+        r = await client.post("/auth/register", data={"email": email, "password": password})
+    finally:
+        _auth_module.OWNER_EMAIL = original
     assert r.status_code in (200, 201), f"Register failed: {r.text}"
 
 
@@ -40,7 +47,7 @@ def _pdf_file(name="report.pdf"):
 @pytest.mark.asyncio
 async def test_excel_upload_requires_company_name(client, fresh_all_db):
     """Excel upload without company_id or company_name returns 400."""
-    await _register(client, "upload-excel-noname@test.com")
+    await _register_admin(client, "upload-excel-noname@test.com")
     fname, fbytes, ftype = _excel_file()
     r = await client.post(
         "/documents/upload",
@@ -54,7 +61,7 @@ async def test_excel_upload_requires_company_name(client, fresh_all_db):
 @pytest.mark.asyncio
 async def test_excel_upload_creates_company(client, fresh_all_db):
     """Excel upload with company_name auto-creates the company and links the document."""
-    await _register(client, "upload-excel-create@test.com")
+    await _register_admin(client, "upload-excel-create@test.com")
     fname, fbytes, ftype = _excel_file()
     r = await client.post(
         "/documents/upload",
@@ -76,7 +83,7 @@ async def test_excel_upload_creates_company(client, fresh_all_db):
 @pytest.mark.asyncio
 async def test_excel_upload_reuses_existing_company_case_insensitive(client, fresh_all_db):
     """Excel upload with a name matching an existing company (case-insensitive) reuses it."""
-    await _register(client, "upload-excel-reuse@test.com")
+    await _register_admin(client, "upload-excel-reuse@test.com")
     cid = await _create_company(client, "Beta Corp")
 
     fname, fbytes, ftype = _excel_file()
@@ -97,7 +104,7 @@ async def test_excel_upload_reuses_existing_company_case_insensitive(client, fre
 @pytest.mark.asyncio
 async def test_upload_with_explicit_company_id(client, fresh_all_db):
     """Upload with explicit company_id links document to that company (pre-existing path)."""
-    await _register(client, "upload-explicit@test.com")
+    await _register_admin(client, "upload-explicit@test.com")
     cid = await _create_company(client, "Explicit Co")
 
     fname, fbytes, ftype = _excel_file("q4.xlsx")
@@ -114,14 +121,14 @@ async def test_upload_with_explicit_company_id(client, fresh_all_db):
 @pytest.mark.asyncio
 async def test_upload_with_wrong_company_id_returns_404(client, fresh_all_db):
     """Upload with a company_id that belongs to another user returns 404."""
-    await _register(client, "owner-upload@test.com")
+    await _register_admin(client, "owner-upload@test.com")
     cid = await _create_company(client, "Owner Co")
 
-    # Re-register as a different user (new cookie jar via fresh login)
+    # Re-register as a different admin user (new cookie jar via fresh login)
     import main as _m
     from httpx import AsyncClient, ASGITransport
     async with AsyncClient(transport=ASGITransport(app=_m.app), base_url="http://test") as other:
-        await other.post("/auth/register", data={"email": "intruder-upload@test.com", "password": "correcthorse"})
+        await _register_admin(other, "intruder-upload@test.com")
         fname, fbytes, ftype = _excel_file()
         r = await other.post(
             "/documents/upload",
@@ -141,7 +148,7 @@ async def test_pdf_upload_uses_extracted_name(client, fresh_all_db, monkeypatch)
     import main as _m
     monkeypatch.setattr(_m, "_extract_company_name_from_pdf_sync", lambda path: "Gamma Solutions")
 
-    await _register(client, "upload-pdf-extract@test.com")
+    await _register_admin(client, "upload-pdf-extract@test.com")
     fname, fbytes, ftype = _pdf_file("annual_report.pdf")
     r = await client.post(
         "/documents/upload",
@@ -162,7 +169,7 @@ async def test_pdf_upload_falls_back_to_filename_stem(client, fresh_all_db, monk
     import main as _m
     monkeypatch.setattr(_m, "_extract_company_name_from_pdf_sync", lambda path: "")
 
-    await _register(client, "upload-pdf-fallback@test.com")
+    await _register_admin(client, "upload-pdf-fallback@test.com")
     fname, fbytes, ftype = _pdf_file("delta_industries_2024.pdf")
     r = await client.post(
         "/documents/upload",

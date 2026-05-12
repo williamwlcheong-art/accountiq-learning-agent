@@ -6,6 +6,10 @@ Success criteria covered:
   SC-2: Existing NULL user_id rows are not visible to any authenticated user
   SC-3: User A's uploaded documents are not visible to any other user
   SC-4: All API routes that return companies or documents enforce the user_id filter
+
+NOTE (Phase 3.5): All routes under /companies/*, /documents/*, /financials/*, /analytics/*
+require is_admin=1 (require_admin). These tests register users as admins so they can
+exercise the routes. Cross-user data isolation is still enforced by user_id WHERE clauses.
 """
 import pytest
 from httpx import AsyncClient, ASGITransport
@@ -15,8 +19,15 @@ from httpx import AsyncClient, ASGITransport
 # Helpers
 # ---------------------------------------------------------------------------
 
-async def _register(client, email, password="correcthorse"):
-    r = await client.post("/auth/register", data={"email": email, "password": password})
+async def _register_admin(client, email, password="correcthorse"):
+    """Register a user and grant admin via module-level OWNER_EMAIL patching."""
+    import auth as _auth_module
+    original = _auth_module.OWNER_EMAIL
+    _auth_module.OWNER_EMAIL = email.lower()
+    try:
+        r = await client.post("/auth/register", data={"email": email, "password": password})
+    finally:
+        _auth_module.OWNER_EMAIL = original
     assert r.status_code in (200, 201), f"Register failed for {email!r}: {r.text}"
     return r
 
@@ -43,11 +54,11 @@ def _make_bob_client():
 
 async def test_cross_user_company_isolation(client, fresh_all_db):
     """AUTH-07 SC-1: User B cannot access User A's company by ID or via list."""
-    await _register(client, "alice@test.com")
+    await _register_admin(client, "alice@test.com")
     alice_company_id = await _create_company(client, "Alice Corp", "NZX")
 
     async with _make_bob_client() as bob:
-        await _register(bob, "bob@test.com")
+        await _register_admin(bob, "bob@test.com")
 
         # Bob tries direct ID access — must get 404 (IDOR prevention)
         r = await bob.get(f"/companies/{alice_company_id}")
@@ -71,7 +82,7 @@ async def test_cross_user_company_isolation(client, fresh_all_db):
 
 async def test_cross_user_document_isolation(client, fresh_all_db):
     """AUTH-07 SC-3: User B cannot access User A's document by ID or via list."""
-    await _register(client, "alice2@test.com")
+    await _register_admin(client, "alice2@test.com")
     alice_company_id = await _create_company(client, "Alice Docs Corp", "NZX")
 
     # Alice creates a document record by uploading a minimal PDF-like file
@@ -92,7 +103,7 @@ async def test_cross_user_document_isolation(client, fresh_all_db):
     alice_doc_id = r.json()["document_id"]
 
     async with _make_bob_client() as bob:
-        await _register(bob, "bob2@test.com")
+        await _register_admin(bob, "bob2@test.com")
 
         # Bob tries to access Alice's document status by guessed ID — must get 404
         r = await bob.get(f"/documents/{alice_doc_id}/status")
@@ -121,7 +132,7 @@ async def test_null_user_rows_invisible(client, fresh_all_db):
     WHERE user_id=? with any integer never matches NULL.
     The temp test DB starts clean (fresh_all_db), so zero rows is the expected result.
     """
-    await _register(client, "newuser@test.com")
+    await _register_admin(client, "newuser@test.com")
 
     r = await client.get("/companies")
     assert r.status_code == 200, r.text
@@ -143,12 +154,12 @@ async def test_null_user_rows_invisible(client, fresh_all_db):
 
 async def test_list_endpoints_scoped(client, fresh_all_db):
     """AUTH-07 SC-4: List endpoints return only caller's own data."""
-    await _register(client, "alice3@test.com")
+    await _register_admin(client, "alice3@test.com")
     await _create_company(client, "Alice Analytics Co", "ASX")
     await _create_company(client, "Alice Analytics Co 2", "NZX")
 
     async with _make_bob_client() as bob:
-        await _register(bob, "bob3@test.com")
+        await _register_admin(bob, "bob3@test.com")
         await _create_company(bob, "Bob Analytics Co", "NZX")
 
         # Bob's company list has exactly 1 entry (his own)
@@ -191,11 +202,11 @@ async def test_list_endpoints_scoped(client, fresh_all_db):
 
 async def test_upload_to_other_users_company_rejected(client, fresh_all_db):
     """AUTH-07: Bob cannot upload a document against Alice's company_id."""
-    await _register(client, "alice4@test.com")
+    await _register_admin(client, "alice4@test.com")
     alice_company_id = await _create_company(client, "Alice Upload Corp", "NZX")
 
     async with _make_bob_client() as bob:
-        await _register(bob, "bob4@test.com")
+        await _register_admin(bob, "bob4@test.com")
 
         import io
         fake_pdf = io.BytesIO(b"%PDF-1.4 fake")
@@ -223,7 +234,7 @@ async def test_cross_user_financial_rows_isolation(client, fresh_all_db):
     """AUTH-07 SC-1: User B cannot access User A's financial rows via document or company endpoints."""
     import io
 
-    await _register(client, "alice5@test.com")
+    await _register_admin(client, "alice5@test.com")
     alice_co = await _create_company(client, "Alice Fin Corp", "NZX")
 
     # Alice uploads a minimal fake PDF to create a document record.
@@ -242,7 +253,7 @@ async def test_cross_user_financial_rows_isolation(client, fresh_all_db):
     alice_doc_id = r.json()["document_id"]
 
     async with _make_bob_client() as bob:
-        await _register(bob, "bob5@test.com")
+        await _register_admin(bob, "bob5@test.com")
 
         # Bob tries to access Alice's document rows by guessed document_id — must get 404.
         r = await bob.get(f"/documents/{alice_doc_id}/rows")
