@@ -488,9 +488,14 @@
         <input id="wiz-business-name" type="text" placeholder="e.g. Acme Holdings Ltd" autocomplete="organization"/>
       </div>
       <div class="form-group" style="margin-top:1rem">
-        <label for="wiz-file">Financial statements <span style="color:#c62828">*</span></label>
-        <input id="wiz-file" type="file" accept=".pdf,.xlsx,.xls,.xlsm"/>
-        <div class="text-muted" style="font-size:.75rem;margin-top:.25rem">PDF or Excel — last 2–3 years preferred</div>
+        <label>Financial statements <span style="color:#c62828">*</span></label>
+        <div class="drop-zone" id="wiz-drop-zone" onclick="document.getElementById('wiz-file').click()" style="margin-top:.375rem">
+          <div class="icon">📄</div>
+          <p><strong>Click or drag file here</strong></p>
+          <p>PDF or Excel — last 2–3 years preferred</p>
+        </div>
+        <input id="wiz-file" type="file" accept=".pdf,.xlsx,.xls,.xlsm" style="display:none" onchange="wizardFileChosen(this.files[0])"/>
+        <div id="wiz-file-name" style="display:none;margin-top:.5rem;font-size:.875rem;color:var(--navy);font-weight:500"></div>
       </div>
       <button class="btn btn-primary" style="margin-top:1.5rem;width:100%" onclick="wizardSubmitStep1()">Continue &#x2192;</button>
     </div>
@@ -2029,6 +2034,7 @@ let _wizardStep = 1;
 let _wizardUploadResult = null;   // {company_id, document_id, status}
 let _wizardReportType = null;     // string key
 let _wizardUser = null;           // user object from /auth/me
+let _wizardFile = null;           // File from drop or input[type=file]
 
 const WIZARD_REPORT_TYPES = [
   {
@@ -2065,7 +2071,39 @@ function showWizard(user) {
   document.getElementById('wizard-page').style.display = 'block';
   // Set user email in wizard header — .textContent enforces XSS rule (AUTH-03)
   document.getElementById('wizard-user-email').textContent = user.email;
+  _initWizardDropZone();
   renderWizardStep(1);
+}
+
+function _initWizardDropZone() {
+  const dz = document.getElementById('wiz-drop-zone');
+  if (!dz || dz._dzInited) return;
+  dz._dzInited = true;
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', function() { dz.classList.remove('drag-over'); });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) wizardFileChosen(file);
+  });
+}
+
+function wizardFileChosen(file) {
+  if (!file) return;
+  const allowed = ['.pdf', '.xlsx', '.xls', '.xlsm'];
+  const suffix = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+  if (!allowed.includes(suffix)) {
+    showAlert('wizard-alert', 'Only PDF and Excel files are accepted. Got: ' + suffix, 'error');
+    return;
+  }
+  _wizardFile = file;
+  const nameEl = document.getElementById('wiz-file-name');
+  if (nameEl) {
+    nameEl.textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(1) + ' MB)';
+    nameEl.style.display = 'block';
+  }
+  showAlert('wizard-alert', '', 'success');
 }
 
 function renderWizardStep(step) {
@@ -2129,7 +2167,7 @@ async function wizardSubmitStep1() {
   const nameInput = document.getElementById('wiz-business-name');
   const fileInput = document.getElementById('wiz-file');
   const name = nameInput ? nameInput.value.trim() : '';
-  const file = fileInput && fileInput.files.length > 0 ? fileInput.files[0] : null;
+  const file = _wizardFile || (fileInput && fileInput.files.length > 0 ? fileInput.files[0] : null);
 
   if (!name) {
     showAlert('wizard-alert', 'Business name is required.', 'error');
@@ -2177,11 +2215,14 @@ function wizardReset() {
   _wizardStep = 1;
   _wizardUploadResult = null;
   _wizardReportType = null;
+  _wizardFile = null;
   // Clear form inputs
   const nameInput = document.getElementById('wiz-business-name');
   const fileInput = document.getElementById('wiz-file');
   if (nameInput) nameInput.value = '';
   if (fileInput) fileInput.value = '';
+  const nameEl = document.getElementById('wiz-file-name');
+  if (nameEl) { nameEl.textContent = ''; nameEl.style.display = 'none'; }
   showAlert('wizard-alert', '', 'success');  // clear alerts
   renderWizardStep(1);
 }
