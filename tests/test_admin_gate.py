@@ -106,7 +106,6 @@ async def test_unauthenticated_returns_401_not_403(client, fresh_all_db):
 # UX-01: wizard upload (Plan 03 will make these green)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(reason="Plan 03 — /wizard/upload not yet implemented")
 async def test_wizard_upload_creates_company_and_document(client, fresh_all_db):
     """UX-01: POST /wizard/upload returns 201 with company_id, document_id, status."""
     await _register(client, "user@example.com")
@@ -123,7 +122,6 @@ async def test_wizard_upload_creates_company_and_document(client, fresh_all_db):
     assert body["status"] == "processing"
 
 
-@pytest.mark.xfail(reason="Plan 03 — /wizard/upload not yet implemented")
 async def test_wizard_upload_requires_auth(client, fresh_all_db):
     """UX-01: /wizard/upload without session returns 401."""
     client.cookies.clear()
@@ -136,7 +134,6 @@ async def test_wizard_upload_requires_auth(client, fresh_all_db):
     assert r.status_code == 401, r.text
 
 
-@pytest.mark.xfail(reason="Plan 03 — /wizard/upload not yet implemented")
 async def test_wizard_upload_not_admin_gated(client, fresh_all_db):
     """UX-01: non-admin user can POST /wizard/upload (201, not 403)."""
     await _register(client, "user@example.com")
