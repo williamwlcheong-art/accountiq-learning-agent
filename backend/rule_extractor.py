@@ -18,11 +18,15 @@ PNL_SYNS: dict[str, list[str]] = {
         "operating revenue", "operating revenues", "total income", "total sales",
         "gross revenue", "turnover", "total turnover", "net turnover",
         "total fees", "fee revenue", "service revenue", "contract revenue",
+        # AU/NZ SME income additions
+        "other income", "sundry income", "miscellaneous income",
     ],
     "cogs": [
         "cost of goods sold", "cost of sales", "cost of revenue", "cost of services",
         "direct costs", "direct cost of sales", "cogs", "cost of products sold",
         "cost of providing services", "cost of materials", "materials and direct costs",
+        # AU/NZ SME trade/construction additions
+        "subcontractors", "subcontract costs", "contract labour",
     ],
     "gross_profit": [
         "gross profit", "gross margin", "gross profit margin", "gross income",
@@ -31,6 +35,12 @@ PNL_SYNS: dict[str, list[str]] = {
         "total operating expenses", "total expenses", "total operating costs",
         "operating expenditure", "total expenditure", "total costs",
         "operating costs", "expenses", "total administration expenses",
+        # AU/NZ SME additions
+        "owners drawings", "drawings",
+        "directors fees", "directors remuneration",
+        "wages", "wages and salaries", "salaries and wages",
+        "administration expenses", "admin expenses",
+        "motor vehicle expenses", "vehicle costs",
     ],
     "ebitda": [
         "ebitda", "earnings before interest tax depreciation amortisation",
@@ -143,6 +153,48 @@ BS_SYNS: dict[str, list[str]] = {
         "owners equity", "total shareholders equity", "total owners equity",
         "share capital and retained earnings", "retained earnings and share capital",
         "equity attributable to owners",
+    ],
+}
+
+CF_SYNS: dict[str, list[str]] = {
+    "operating_cashflow": [
+        "cash flows from operating activities", "net cash from operations",
+        "operating activities", "cash generated from operations",
+    ],
+    "investing_cashflow": [
+        "cash flows from investing activities", "investing activities",
+        "net cash used in investing",
+    ],
+    "financing_cashflow": [
+        "cash flows from financing activities", "financing activities",
+        "net cash from financing",
+    ],
+    "net_change_in_cash": [
+        "net increase in cash", "net decrease in cash",
+        "net change in cash and cash equivalents",
+        "increase in cash held", "decrease in cash held",
+    ],
+}
+
+EQ_SYNS: dict[str, list[str]] = {
+    "opening_equity": [
+        "balance at beginning", "opening balance", "balance brought forward",
+        "equity at start of year",
+    ],
+    "net_profit": [
+        "profit for the year", "net profit", "net income",
+    ],
+    "dividends_paid": [
+        "dividends paid", "distributions paid", "drawings paid",
+        "dividends declared", "owner distributions",
+    ],
+    "other_equity_movements": [
+        "other comprehensive income", "other movements",
+        "share capital issued",
+    ],
+    "closing_equity": [
+        "balance at end", "closing balance", "equity at end of year",
+        "total equity",
     ],
 }
 
