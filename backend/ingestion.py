@@ -23,6 +23,12 @@ try:
 except ImportError:
     HAS_TESSERACT = False
 
+try:
+    from docx import Document as DocxDocument
+    HAS_PYTHON_DOCX = True
+except ImportError:
+    HAS_PYTHON_DOCX = False
+
 import aiosqlite
 from db import record_patterns, get_pattern_library, normalise_label
 
@@ -69,8 +75,27 @@ BS_ROWS = [
     ("shareholders_equity",     "Shareholders equity / net assets"),
 ]
 
-ALL_ROWS = [("pnl", k, lbl) for k, lbl in PNL_ROWS] + \
-           [("bs",  k, lbl) for k, lbl in BS_ROWS]
+CF_ROWS = [
+    ("operating_cashflow",  "Cash flows from operating activities"),
+    ("investing_cashflow",  "Cash flows from investing activities"),
+    ("financing_cashflow",  "Cash flows from financing activities"),
+    ("net_change_in_cash",  "Net change in cash and cash equivalents"),
+]
+
+EQ_ROWS = [
+    ("opening_equity",          "Opening equity / balance at beginning"),
+    ("net_profit",              "Net profit for the period"),
+    ("dividends_paid",          "Dividends / distributions paid"),
+    ("other_equity_movements",  "Other equity movements"),
+    ("closing_equity",          "Closing equity / balance at end"),
+]
+
+ALL_ROWS = (
+    [("pnl", k, lbl) for k, lbl in PNL_ROWS]
+    + [("bs",  k, lbl) for k, lbl in BS_ROWS]
+    + [("cf",  k, lbl) for k, lbl in CF_ROWS]
+    + [("eq",  k, lbl) for k, lbl in EQ_ROWS]
+)
 
 # ---------------------------------------------------------------------------
 # System prompt — GAAP / IFRS methodology
@@ -112,6 +137,12 @@ fixed_assets_net, other_noncurrent_assets, total_assets, trade_creditors, short_
 other_current_liab, total_current_liab, long_term_debt, other_noncurrent_liab,
 total_liabilities, shareholders_equity
 
+## Canonical Cash Flow Keys (statement: "cf")
+operating_cashflow, investing_cashflow, financing_cashflow, net_change_in_cash
+
+## Canonical Equity Changes Keys (statement: "eq")
+opening_equity, net_profit, dividends_paid, other_equity_movements, closing_equity
+
 ## Extraction Rules
 1. Preserve the exact original label in raw_label — this is used for pattern learning
 2. Values as plain numbers — no commas, no currency symbols
@@ -119,6 +150,10 @@ total_liabilities, shareholders_equity
 4. If stated in thousands/millions, set unit accordingly and keep values in that unit
 5. NEVER fabricate values — use null if not found
 6. Assign confidence 0–1 based on how clearly the value maps to the canonical key
+7. SIGN CONVENTION: Cost/expense keys (cogs, operating_expenses, depreciation,
+   interest_expense, tax) must be returned as NEGATIVE numbers.
+   Revenue and asset/equity keys must be POSITIVE.
+   A post-processing normalisation layer enforces this, but supply the correct sign.
 
 ## Narrative
 Write a 3–4 paragraph executive summary covering: revenue performance,
@@ -134,7 +169,7 @@ _ROW_SCHEMA = {
     "type": "object",
     "required": ["statement", "canonical_key", "raw_label", "values", "confidence"],
     "properties": {
-        "statement":     {"type": "string", "enum": ["pnl", "bs"]},
+        "statement":     {"type": "string", "enum": ["pnl", "bs", "cf", "eq"]},
         "canonical_key": {"type": "string", "description": "One of the canonical keys listed in the system prompt"},
         "raw_label":     {"type": "string", "description": "Exact label as it appears in the document"},
         "values":        {"type": "object",  "description": "Period → value map, e.g. {\"2025\": 1234567, \"2024\": null}"},
@@ -306,6 +341,34 @@ Financial statement text:
 
 
 # ---------------------------------------------------------------------------
+# Sign normalisation
+# ---------------------------------------------------------------------------
+
+_COST_KEYS = frozenset({"cogs", "operating_expenses", "depreciation", "interest_expense", "tax"})
+
+
+def _normalize_signs(rows: list[dict]) -> list[dict]:
+    """Return new row dicts with sign-corrected values for known cost keys.
+    Only flips strictly positive values; leaves zero and None unchanged.
+    Pure function — does not modify rows in place.
+    """
+    result = []
+    for row in rows:
+        key = row.get("canonical_key", "")
+        if key in _COST_KEYS:
+            new_values = {}
+            for period, val in row.get("values", {}).items():
+                if val is not None and val > 0:
+                    new_values[period] = -val
+                else:
+                    new_values[period] = val
+            result.append({**row, "values": new_values})
+        else:
+            result.append(row)
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Database persistence
 # ---------------------------------------------------------------------------
 
@@ -320,7 +383,7 @@ async def persist_extraction(
     periods  = parsed.get("periods", [])
     currency = parsed.get("currency", "NZD")
     unit     = parsed.get("unit", "whole")
-    rows     = parsed.get("rows", [])
+    rows     = _normalize_signs(parsed.get("rows", []))
 
     new_patterns = []
 
