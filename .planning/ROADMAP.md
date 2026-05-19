@@ -80,7 +80,7 @@ Plans:
 
 ---
 
-## Phase 3.5: Admin Gate + User Wizard Shell
+## Phase 3.5: Admin Gate + User Wizard Shell ✅ Complete (2026-05-13)
 
 **Goal:** Split the application into two experiences on the same codebase. The current full UI (Companies, Documents, Patterns, Financials, Settings) becomes admin-only, accessible only to users with `is_admin = true`. All other users see a clean user-facing wizard: upload financials → select report type → confirmation. The admin owner account is designated by `OWNER_EMAIL` in `.env`.
 
@@ -101,13 +101,13 @@ Plans:
 
 Plans:
 **Wave 1**
-- [ ] 03-5-01-PLAN.md — Add `is_admin` column to users table; OWNER_EMAIL env var; extend `get_current_user`; add `require_admin` dependency; Wave 0 test stubs
+- [x] 03-5-01-PLAN.md — Add `is_admin` column to users table; OWNER_EMAIL env var; extend `get_current_user`; add `require_admin` dependency; Wave 0 test stubs
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 03-5-02-PLAN.md — Apply `Depends(require_admin)` to all 25 existing admin routes; 403 for non-admin callers
+- [x] 03-5-02-PLAN.md — Apply `Depends(require_admin)` to all 25 existing admin routes; 403 for non-admin callers
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 03-5-03-PLAN.md — Add `POST /wizard/upload` backend route; build 3-step wizard frontend; extend `initApp()` to branch on `is_admin`; human-verify checkpoint
+- [x] 03-5-03-PLAN.md — Add `POST /wizard/upload` backend route; build 3-step wizard frontend; extend `initApp()` to branch on `is_admin`; human-verify checkpoint
 
 ---
 
@@ -128,11 +128,17 @@ Plans:
 
 **UI hint:** no
 
-**Plans:**
-- Fix multi-page aggregation: score and aggregate top-N pages instead of single-page selection
-- Fix sign convention enforcement and period attribution in Claude prompt and rule extractor
-- Add Word (.docx) ingestion via python-docx (new extraction path alongside PDF/Excel)
-- Improve OCR reliability: better page detection, fallback handling, and OCR pre-processing
+**Plans:** 3 plans
+
+Plans:
+**Wave 1**
+- [ ] 04-01-PLAN.md — CF/EQ infrastructure: test stubs (17 RED), _normalize_signs(), CF_ROWS/EQ_ROWS, updated _ROW_SCHEMA enum, SYSTEM_PROMPT CF/EQ sections + sign rule, CF_SYNS/EQ_SYNS + SME synonyms in rule_extractor, python-docx dependency
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 04-02-PLAN.md — Multi-page fix (D-05/D-06/D-07 filter-then-sort + CF/EQ scoring), OCR threshold 100 chars (D-15), OCR DPI 300 (D-16), run_in_executor wrapping
+
+**Wave 3** *(blocked on Wave 1 completion)*
+- [ ] 04-03-PLAN.md — Word (.docx) ingestion: extract_docx_text() with merged-cell dedup, .docx dispatch in ingest_document(), allowed extensions in both upload routes, frontend accept attributes
 
 ---
 
