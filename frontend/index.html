@@ -335,7 +335,7 @@
         <div class="icon">📄</div>
         <p><strong>Click or drag file here</strong></p>
         <p>PDF or Excel (.xlsx, .xls) — annual reports, compilations, management accounts</p>
-        <input type="file" id="up-file" accept=".pdf,.xlsx,.xls,.xlsm" style="display:none" onchange="handleFileSelect(this)"/>
+        <input type="file" id="up-file" accept=".pdf,.xlsx,.xls,.xlsm,.docx" style="display:none" onchange="handleFileSelect(this)"/>
       </div>
       <div id="selected-file" class="text-muted mt" style="display:none"></div>
     </div>
@@ -494,7 +494,7 @@
           <p><strong>Click or drag file here</strong></p>
           <p>PDF or Excel — last 2–3 years preferred</p>
         </div>
-        <input id="wiz-file" type="file" accept=".pdf,.xlsx,.xls,.xlsm" style="display:none" onchange="wizardFileChosen(this.files[0])"/>
+        <input id="wiz-file" type="file" accept=".pdf,.xlsx,.xls,.xlsm,.docx" style="display:none" onchange="wizardFileChosen(this.files[0])"/>
         <div id="wiz-file-name" style="display:none;margin-top:.5rem;font-size:.875rem;color:var(--navy);font-weight:500"></div>
       </div>
       <button class="btn btn-primary" style="margin-top:1.5rem;width:100%" onclick="wizardSubmitStep1()">Continue &#x2192;</button>
@@ -1984,7 +1984,7 @@ dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
 dz.addEventListener('drop', e => {
   e.preventDefault(); dz.classList.remove('drag-over');
   const file = e.dataTransfer.files[0];
-  const allowed = ['.pdf','.xlsx','.xls','.xlsm'];
+  const allowed = ['.pdf','.xlsx','.xls','.xlsm','.docx'];
   if (file && allowed.some(ext => file.name.toLowerCase().endsWith(ext))) {
     selectedFile = file;
     document.getElementById('selected-file').style.display = 'block';
@@ -2091,7 +2091,7 @@ function _initWizardDropZone() {
 
 function wizardFileChosen(file) {
   if (!file) return;
-  const allowed = ['.pdf', '.xlsx', '.xls', '.xlsm'];
+  const allowed = ['.pdf', '.xlsx', '.xls', '.xlsm', '.docx'];
   const suffix = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
   if (!allowed.includes(suffix)) {
     showAlert('wizard-alert', 'Only PDF and Excel files are accepted. Got: ' + suffix, 'error');
