@@ -530,9 +530,9 @@ async def upload_document(
     current_user: dict = Depends(require_admin),
 ):
     suffix = Path(file.filename).suffix.lower()
-    allowed = {".pdf", ".xlsx", ".xls", ".xlsm"}
+    allowed = {".pdf", ".xlsx", ".xls", ".xlsm", ".docx"}
     if suffix not in allowed:
-        raise HTTPException(400, f"Only PDF and Excel files are accepted. Got: {suffix}")
+        raise HTTPException(400, f"Only PDF, Excel, and Word files are accepted. Got: {suffix}")
 
     is_excel = suffix in {".xlsx", ".xls", ".xlsm"}
     exchange = "Private"
@@ -927,9 +927,9 @@ async def wizard_upload(
         raise HTTPException(400, "Business name is required")
 
     suffix = Path(file.filename).suffix.lower()
-    allowed = {".pdf", ".xlsx", ".xls", ".xlsm"}
+    allowed = {".pdf", ".xlsx", ".xls", ".xlsm", ".docx"}
     if suffix not in allowed:
-        raise HTTPException(400, f"Only PDF and Excel files are accepted. Got: {suffix}")
+        raise HTTPException(400, f"Only PDF, Excel, and Word files are accepted. Got: {suffix}")
 
     # Idempotent company creation — reuses existing helper (D-06)
     company_id, _ = await _resolve_or_create_company(db, name, current_user["id"])
