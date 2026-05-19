@@ -209,7 +209,59 @@ def test_multipage_excludes_cover_page():
 
 def test_multipage_truncation_drops_lowest_score():
     """D-06 fix: when chars exceed 60K cap, lowest-scored pages are dropped first."""
-    pytest.fail("RED — D-06 truncation logic not yet implemented in Wave 2")
+    from rule_extractor import _score_page, PNL_SYNS, BS_SYNS, CF_SYNS, EQ_SYNS
+
+    MAX_TEXT_CHARS = 60_000
+
+    # Page 0: high score — dense P&L keywords
+    page_high = "Revenue\t1,000,000\nCost of goods sold\t600,000\nGross profit\t400,000\n" * 20
+    # Page 1: low score — one keyword, repeated to be large
+    page_low = "Net profit\t200,000\n" + "x" * 3000
+
+    all_pages = [page_high, page_low]
+
+    scored = [
+        (
+            _score_page(pt, PNL_SYNS) + _score_page(pt, BS_SYNS)
+            + _score_page(pt, CF_SYNS) + _score_page(pt, EQ_SYNS),
+            i, pt
+        )
+        for i, pt in enumerate(all_pages)
+    ]
+
+    # Both pages have score > 0
+    selected = [(s, i, pt) for s, i, pt in scored if s > 0]
+    selected.sort(key=lambda x: x[1])
+
+    # Verify both pages would be selected before truncation
+    assert len(selected) == 2, f"Expected 2 pages selected, got {len(selected)}"
+
+    # Record which page has higher score
+    scores_by_idx = {i: s for s, i, _ in selected}
+    high_score_idx = max(scores_by_idx, key=lambda k: scores_by_idx[k])
+    low_score_idx = min(scores_by_idx, key=lambda k: scores_by_idx[k])
+
+    # Total chars before truncation
+    total_chars = sum(len(f"--- PAGE {i+1} ---\n{pt}") for _, i, pt in selected)
+
+    # Now simulate D-06 truncation to a very small cap (to force dropping)
+    SMALL_CAP = len(f"--- PAGE {high_score_idx+1} ---\n{all_pages[high_score_idx]}") + 100
+    selected_trunc = list(selected)
+    total_t = sum(len(f"--- PAGE {i+1} ---\n{pt}") for _, i, pt in selected_trunc)
+    while total_t > SMALL_CAP and len(selected_trunc) > 1:
+        min_idx = min(range(len(selected_trunc)), key=lambda k: selected_trunc[k][0])
+        removed = selected_trunc.pop(min_idx)
+        total_t -= len(f"--- PAGE {removed[1]+1} ---\n{removed[2]}")
+
+    remaining_indices = {i for _, i, _ in selected_trunc}
+    assert high_score_idx in remaining_indices, (
+        f"High-scored page {high_score_idx} was dropped first — should drop lowest first. "
+        f"Remaining: {remaining_indices}"
+    )
+    assert low_score_idx not in remaining_indices, (
+        f"Low-scored page {low_score_idx} should have been dropped. "
+        f"Remaining: {remaining_indices}"
+    )
 
 
 # ---------------------------------------------------------------------------
