@@ -285,6 +285,49 @@ def extract_excel_text(filepath: str) -> tuple[str, list[str], int, bool]:
 
 
 # ---------------------------------------------------------------------------
+# Text extraction — Word (.docx)
+# ---------------------------------------------------------------------------
+
+def extract_docx_text(filepath: str) -> tuple[str, list[str], int, bool]:
+    """Returns (claude_text, [combined], 1, used_ocr=False).
+    Table-first extraction: tab-separated cells per row, prefixed with TABLE markers.
+    Non-table paragraphs appended after all tables. Merged cells deduplicated by _tc identity.
+    """
+    if not HAS_PYTHON_DOCX:
+        raise ImportError("python-docx is required for Word ingestion: pip install python-docx")
+
+    try:
+        doc = DocxDocument(filepath)
+        parts: list[str] = []
+
+        for i, table in enumerate(doc.tables):
+            parts.append(f"--- TABLE {i+1} ---")
+            for row in table.rows:
+                # Deduplicate horizontally merged cells by underlying XML element identity.
+                # row.cells always returns grid_cols objects — merged cells repeat the same
+                # object for each spanned column. Without dedup: "2025\t2025" instead of "2025".
+                seen: dict[int, bool] = {}
+                cells_text: list[str] = []
+                for cell in row.cells:
+                    cell_id = id(cell._tc)
+                    if cell_id not in seen:
+                        seen[cell_id] = True
+                        cells_text.append(cell.text.strip())
+                parts.append("\t".join(cells_text))
+
+        # Append non-table paragraphs after all tables (D-12)
+        for para in doc.paragraphs:
+            t = para.text.strip()
+            if t:
+                parts.append(t)
+
+        combined = "\n".join(parts)
+        return combined[:MAX_TEXT_CHARS], [combined], 1, False
+    except Exception as e:
+        raise RuntimeError(f"Failed to parse Word document: {e}") from e
+
+
+# ---------------------------------------------------------------------------
 # Pattern hints builder
 # ---------------------------------------------------------------------------
 
@@ -475,6 +518,10 @@ async def ingest_document(
         if fp_lower.endswith((".xlsx", ".xls", ".xlsm")):
             claude_text, all_page_texts, page_count, used_ocr = await loop.run_in_executor(
                 None, extract_excel_text, filepath
+            )
+        elif fp_lower.endswith(".docx"):
+            claude_text, all_page_texts, page_count, used_ocr = await loop.run_in_executor(
+                None, extract_docx_text, filepath
             )
         else:
             claude_text, all_page_texts, page_count, used_ocr = await loop.run_in_executor(
