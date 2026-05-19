@@ -138,7 +138,7 @@ Plans:
 - [x] 04-02-PLAN.md — Multi-page fix (D-05/D-06/D-07 filter-then-sort + CF/EQ scoring), OCR threshold 100 chars (D-15), OCR DPI 300 (D-16), run_in_executor wrapping
 
 **Wave 3** *(blocked on Wave 1 and Wave 2 completion)*
-- [ ] 04-03-PLAN.md — Word (.docx) ingestion: extract_docx_text() with merged-cell dedup, .docx dispatch in ingest_document(), allowed extensions in both upload routes, frontend accept attributes
+- [x] 04-03-PLAN.md — Word (.docx) ingestion: extract_docx_text() with merged-cell dedup, .docx dispatch in ingest_document(), allowed extensions in both upload routes, frontend accept attributes
 
 ---
 
