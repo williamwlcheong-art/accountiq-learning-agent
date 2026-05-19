@@ -39,7 +39,7 @@ from db import record_patterns, get_pattern_library, normalise_label
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = "claude-sonnet-4-6"
 MAX_TEXT_CHARS = 60_000
-OCR_DPI = 200
+OCR_DPI = 300
 
 # Canonical row definitions (P&L + BS)
 PNL_ROWS = [
@@ -202,7 +202,7 @@ EXTRACT_TOOL = {
 
 def _page_has_text(page) -> bool:
     text = page.extract_text() or ""
-    return len(text.strip()) > 20
+    return len(text.strip()) > 100
 
 
 def _ocr_page(page) -> str:
@@ -228,20 +228,27 @@ def extract_pdf_text(filepath: str) -> tuple[str, list[str], int, bool]:
                     used_ocr = True
             all_pages.append(t)
 
-    # Score pages and prefer financial statement pages
+    # Score pages — include all with score > 0, in document order (D-05/D-06/D-07)
     try:
-        from rule_extractor import _score_page, PNL_SYNS, BS_SYNS
-        scored = [((_score_page(pt, PNL_SYNS) + _score_page(pt, BS_SYNS)), i, pt)
-                  for i, pt in enumerate(all_pages)]
-        scored.sort(key=lambda x: -x[0])
-        claude_parts = []
-        total_chars = 0
-        for score, idx, pt in scored:
-            chunk = f"--- PAGE {idx+1} ---\n{pt}"
-            if total_chars + len(chunk) > MAX_TEXT_CHARS:
-                break
-            claude_parts.append((idx, chunk))
-            total_chars += len(chunk)
+        from rule_extractor import _score_page, PNL_SYNS, BS_SYNS, CF_SYNS, EQ_SYNS
+        scored = [
+            (
+                _score_page(pt, PNL_SYNS) + _score_page(pt, BS_SYNS)
+                + _score_page(pt, CF_SYNS) + _score_page(pt, EQ_SYNS),
+                i, pt
+            )
+            for i, pt in enumerate(all_pages)
+        ]
+        # D-05: filter score > 0 (exclude cover pages, directors reports), sort by page index
+        selected = [(s, i, pt) for s, i, pt in scored if s > 0]
+        selected.sort(key=lambda x: x[1])
+        # D-06: if total chars exceed 60K cap, drop lowest-scored pages first
+        total_chars = sum(len(f"--- PAGE {i+1} ---\n{pt}") for _, i, pt in selected)
+        while total_chars > MAX_TEXT_CHARS and len(selected) > 1:
+            min_idx = min(range(len(selected)), key=lambda k: selected[k][0])
+            removed = selected.pop(min_idx)
+            total_chars -= len(f"--- PAGE {removed[1]+1} ---\n{removed[2]}")
+        claude_parts = [(i, f"--- PAGE {i+1} ---\n{pt}") for _, i, pt in selected]
         claude_parts.sort(key=lambda x: x[0])
         claude_text = "\n".join(c for _, c in claude_parts)
     except ImportError:
@@ -464,10 +471,15 @@ async def ingest_document(
         # 1. Extract text (PDF or Excel)
         await log("info", f"Extracting text from {filepath}")
         fp_lower = filepath.lower()
+        loop = asyncio.get_running_loop()
         if fp_lower.endswith((".xlsx", ".xls", ".xlsm")):
-            claude_text, all_page_texts, page_count, used_ocr = extract_excel_text(filepath)
+            claude_text, all_page_texts, page_count, used_ocr = await loop.run_in_executor(
+                None, extract_excel_text, filepath
+            )
         else:
-            claude_text, all_page_texts, page_count, used_ocr = extract_pdf_text(filepath)
+            claude_text, all_page_texts, page_count, used_ocr = await loop.run_in_executor(
+                None, extract_pdf_text, filepath
+            )
 
         await db.execute(
             "UPDATE documents SET page_count=?, has_ocr=?, updated_at=datetime('now') WHERE id=?",
