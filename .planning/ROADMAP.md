@@ -132,7 +132,7 @@ Plans:
 
 Plans:
 **Wave 1**
-- [ ] 04-01-PLAN.md — CF/EQ infrastructure: test stubs (17 RED), _normalize_signs(), CF_ROWS/EQ_ROWS, updated _ROW_SCHEMA enum, SYSTEM_PROMPT CF/EQ sections + sign rule, CF_SYNS/EQ_SYNS + SME synonyms in rule_extractor, python-docx dependency
+- [x] 04-01-PLAN.md — CF/EQ infrastructure: test stubs (17 RED), _normalize_signs(), CF_ROWS/EQ_ROWS, updated _ROW_SCHEMA enum, SYSTEM_PROMPT CF/EQ sections + sign rule, CF_SYNS/EQ_SYNS + SME synonyms in rule_extractor, python-docx dependency
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 04-02-PLAN.md — Multi-page fix (D-05/D-06/D-07 filter-then-sort + CF/EQ scoring), OCR threshold 100 chars (D-15), OCR DPI 300 (D-16), run_in_executor wrapping
