@@ -24,14 +24,21 @@ For each of the 5 report types, the user completes a structured intake questionn
 - **D-06:** **Manual retry only** for failed reports. Failed reports show a Retry button in the wizard at Step 3. Clicking resets status to `queued` and re-queues the background task. No automatic exponential backoff — deferred to a later phase if needed.
 
 ### Valuation Advisory algorithm
-- **D-07:** Intake for Valuation Advisory starts with **3–4 diagnostic questions** to determine methodology before collecting method-specific inputs:
-  - Q1: Business type — asset-heavy (manufacturing/property), service/professional, tech/SaaS, retail/distribution
-  - Q2: Revenue type — recurring contracts, project-based, transactional
-  - Q3: Growth stage — stable, moderate growth, high growth
-  - Q4: Transaction context — trade sale, financial/PE buyer, internal planning
-  
-  System maps answers to a methodology recommendation (DCF / EV/EBITDA multiples / both). User confirms or overrides. Then collects method-specific inputs (WACC components + terminal growth rate + forecast years for DCF; user-entered EV/EBITDA comparable range for multiples).
-- **D-08:** **Python computes all numbers; Claude writes only the narrative.** DCF: FCFF projections from historical EBITDA × stated growth rate, discounted at WACC, plus terminal value → enterprise value. EV/EBITDA: normalised EBITDA × user-confirmed comparable low/high multiple range → EV (low/mid/high). Claude receives the calculated EV outputs and inputs used and writes ONLY the narrative — Claude does NOT estimate or adjust the numbers.
+- **D-07:** The Valuation Advisory intake uses a **real scored questionnaire** — 23 questions across 8 categories (History, Financial, People, Suppliers, Customers, Premises, Competition, Growth/Opportunities). This is the same scoring model used in production by the Bayleys Valuations team and forms the foundation of the EV/EBITDA multiple calculation. See `05-VALUATION-ALGORITHM.md` for the full spec.
+
+  **Intake flow:**
+  1. User selects **sector** (Asset Heavy / Services / Manufacturing / Import/Distribution / Retail) — this determines starting multiple and per-question weights
+  2. User answers all **23 scored questions** (scored 5=best → 1=worst) across 8 categories, presented as grouped radio-button sections in the intake card
+  3. User enters **WACC inputs** for DCF: risk-free rate, equity market risk premium, beta, cost of debt, corp tax rate, terminal growth rate, forecast horizon (3 or 5 years)
+  4. System determines methodology (EV/EBITDA, DCF, or both) based on sector and business type — defaults to both, user can override
+
+- **D-08:** **Python computes all numbers; Claude writes only the narrative.** Specifically:
+  - **EV/EBITDA:** `resultant_multiple = (weighted_score / 115) × starting_multiple[sector]`; `enterprise_value = normalised_ebitda × resultant_multiple`. Normalised EBITDA is pulled from Phase 3's `ebitda_adjustments` table — NOT re-entered by the user.
+  - **DCF:** FCFF projections (EBITDA × growth rate, minus tax, minus capex) discounted at WACC post-tax, plus terminal value (Gordon's Growth Model).
+  - **Illiquidity discount** (Damodaran Bid-Ask formula): `0.145 - 0.0022×ln(revenues) - 0.015×is_profitable - 0.016×(cash/EV) - 0.11×(trading_vol/EV)`. For private companies, trading_vol = 0.
+  - **Final range:** low/mid/high enterprise values (net of illiquidity discount and net debt) passed to Claude. Claude writes the narrative only.
+  - Python module: `backend/valuation.py` with functions `compute_ev_ebitda_multiple()`, `compute_wacc()`, `compute_dcf()`, `compute_illiquidity_discount()`, `compute_valuation()`.
+
 - **D-09:** **Bank Credit Paper Python computations** (deterministic, not Claude-generated): DSCR from extracted financials + user-entered facility amount and term, 3-year financial trend table from `financial_rows`, sensitivity table at −10% and −20% revenue on DSCR. Claude receives these computed tables and writes the credit narrative.
 
 ### Report content format + email
@@ -54,6 +61,9 @@ For each of the 5 report types, the user completes a structured intake questionn
 ### Requirements and roadmap
 - `.planning/REQUIREMENTS.md` — REPT-01 (valuation), REPT-02 (bank credit), REPT-03 (forecast), REPT-04 (capital raising), REPT-05 (IM), REPT-06 (disclaimer)
 - `.planning/ROADMAP.md` — Phase 5 goal, intake table (5 report types × key intake questions × algorithm column), 9 success criteria, and 5 plan descriptions
+
+### Valuation algorithm specification (MANDATORY for planner and executor)
+- `.planning/phases/05-report-intake-questionnaires-generation-engine/05-VALUATION-ALGORITHM.md` — **Complete algorithm spec.** Contains: full 23-question scored questionnaire with answer options and scoring, sector weights table, starting multiples, confirmed formulas for EV/EBITDA multiple, WACC/DCF, illiquidity discount, and outputs JSON structure passed to Claude. Source: Bayleys Valuations production model, verified 2026-05-21. MUST read before implementing `backend/valuation.py` or the Valuation Advisory intake form.
 
 ### Existing backend patterns to follow
 - `backend/main.py` — existing route structure, `BackgroundTasks.add_task(_run_ingestion)` pattern (new `generate_report` task follows same model), `/wizard/*` route namespace
@@ -104,7 +114,9 @@ For each of the 5 report types, the user completes a structured intake questionn
 <specifics>
 ## Specific Ideas
 
-- Valuation Advisory methodology recommendation mapping: asset-heavy + trade sale → multiples; service/tech + financial buyer → DCF; high-growth SaaS → DCF or both; stable recurring → both. The mapping logic is a simple Python dict/if-else — no ML. User always gets to override.
+- **Valuation Advisory intake is a 23-question scored questionnaire** grouped into 8 categories. Questions use radio buttons (5 options each, 5=best/1=worst), with sector selection first. Q6, Q8, Q9 have only 3 meaningful options (Low/Medium/High) — map to scores 5/3/1, no options at 4 or 2. Render categories as collapsible sections within the intake card to avoid overwhelming scroll. Sector selection (dropdown at top of card) drives which starting multiple is used. See `05-VALUATION-ALGORITHM.md` for all 23 questions with answer options.
+- **Normalised EBITDA for valuation:** read from `ebitda_adjustments` table (Phase 3 add-backs) + `financial_rows` pnl EBITDA. Do NOT re-ask the user for EBITDA — it is already in the DB from Phase 3.
+- **Sector starting multiples** (2021 NZ baseline, store as config not hardcoded): Asset Heavy 6.3x, Services 4.7x, Manufacturing 5.0x, Import/Distribution 6.0x, Retail 4.2x.
 - The `send_report_ready_email()` function signature: `async def send_report_ready_email(user_email: str, user_name: str, report_type: str, report_id: int) -> None`. Runs in the background task after `reports.status` is set to `done`.
 - Report section schema should be defined as a Python dict constant per report type (e.g., `VALUATION_SECTIONS = ["executive_summary", "business_overview", ...]`) used by both the Claude prompt builder and Phase 7's template registry.
 - Bank Credit Paper: extract DSCR from `financial_rows` by querying `net_profit`, `interest_expense`, `depreciation` from `pnl` statement for the most recent 3 fiscal years. DSCR = (EBITDA + interest) / (interest + scheduled principal repayment). Scheduled principal comes from intake (user-entered proposed facility amount ÷ proposed term).
@@ -117,8 +129,10 @@ For each of the 5 report types, the user completes a structured intake questionn
 
 - **Automatic exponential backoff for transient Claude errors (429/529):** User chose manual retry only for Phase 5. Can be added in a maintenance phase if needed.
 - **Resend email API:** Phase 6 will swap `send_report_ready_email()` to use Resend. Phase 5 uses `smtplib` as a working placeholder.
-- **Static EV/EBITDA industry lookup table:** User chose a fully guided diagnostic approach rather than a static lookup. If industry default multiples are needed later, they can be added as optional hints to the diagnostic flow.
-- **Claude methodology note section:** Commenting on whether the chosen methodology is appropriate for the business type. Deferred — Python computes, Claude narrates only, in Phase 5.
+- **Claude methodology note section:** Commenting on whether the chosen methodology is appropriate for the business type — deferred. Python computes, Claude narrates only, in Phase 5.
+- **Starting multiple annual update mechanism:** The 6.3/4.7/5.0/6.0/4.2x figures are 2021 NZ baselines. A future improvement is an admin UI to update these per jurisdiction (NZ vs AU) and year. For Phase 5, stored as Python constants in `backend/valuation.py` — easy to update manually.
+- **3-year weighted EBITDA average:** Using most recent year EBITDA is simpler; a 60/30/10 weighted average across 3 years is more stable but adds complexity. Deferred to Phase 5 improvement if needed.
+- **Beta derivation from questionnaire score:** Currently user enters beta manually for CAPM. A future improvement auto-derives beta from the questionnaire risk score. Deferred.
 - **On-screen progress indicator during generation:** v2 requirement (REQUIREMENTS.md v2 backlog). Phase 5 polls for status but shows only a simple "Generating…" state, not a step-by-step progress bar.
 
 </deferred>
