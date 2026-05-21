@@ -506,20 +506,54 @@
       <div id="wizard-report-cards" style="display:flex;flex-direction:column;gap:.75rem"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem">
         <button class="btn" style="background:none;color:var(--navy);border:none;cursor:pointer;padding:0" onclick="renderWizardStep(1)">&#x2190; Back</button>
-        <button id="wiz-step2-continue" class="btn btn-primary" onclick="wizardConfirm()" disabled>Continue &#x2192;</button>
+        <button id="wiz-step2-continue" class="btn btn-primary" onclick="wizardShowIntake()" disabled>Continue &#x2192;</button>
       </div>
     </div>
 
-    <!-- Step 3: Confirmation -->
+    <!-- Step 2b: Intake questionnaire -->
+    <div id="wizard-step-2b" class="wizard-step card" data-step="2b" style="display:none">
+      <h2 style="font-size:1.1rem;font-weight:700;color:var(--navy);margin-bottom:.5rem">Tell us about the business</h2>
+      <p id="wiz-intake-subtitle" style="color:#555;font-size:.875rem;margin-bottom:1rem"></p>
+
+      <!-- Profile completeness warning (D-03) -->
+      <div id="wiz-intake-profile-warning" style="display:none;background:#fffbeb;border:1px solid #f59e0b;border-radius:6px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.875rem;color:#92400e">
+        &#x26A0; Some profile data is incomplete — your report may have gaps. You can still generate the report.
+      </div>
+
+      <!-- Per-type intake forms (only selected type is shown) -->
+      <div id="intake-valuation_advisory"     style="display:none"></div>
+      <div id="intake-bank_credit_paper"      style="display:none"></div>
+      <div id="intake-financial_forecast"     style="display:none"></div>
+      <div id="intake-capital_raising"        style="display:none"></div>
+      <div id="intake-information_memorandum" style="display:none"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem">
+        <button class="btn" style="background:none;color:var(--navy);border:none;cursor:pointer;padding:0" onclick="renderWizardStep(2)">&#x2190; Back</button>
+        <button class="btn btn-primary" onclick="wizardSubmitGenerate()">Generate Report &#x2192;</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Confirmation + status polling -->
     <div class="wizard-step card" data-step="3" style="display:none">
       <h2 style="font-size:1.1rem;font-weight:700;color:var(--navy);margin-bottom:1rem">Your report is being prepared</h2>
-      <div class="alert alert-success" style="margin-bottom:1rem">
-        Your financials have been uploaded and your report request has been received.
+      <div id="wiz-step3-generating" style="display:block">
+        <div class="alert alert-success" style="margin-bottom:1rem">Your report generation has been queued.</div>
+        <p style="color:#333;line-height:1.6">
+          We'll email you at <strong><span id="wiz-confirm-email"></span></strong> when your report is ready.<br>
+          <span id="wiz-status-text" style="color:var(--navy);font-weight:600">Status: queued</span>
+        </p>
       </div>
-      <p style="color:#333;line-height:1.6">
-        We'll email you at <strong><span id="wiz-confirm-email"></span></strong> when your report is ready.<br>
-        This typically takes a few minutes.
-      </p>
+      <div id="wiz-step3-failed" style="display:none">
+        <div class="alert alert-error" style="margin-bottom:1rem">Report generation failed.</div>
+        <p id="wiz-error-msg" style="color:#c00;font-size:.875rem;margin-bottom:1rem"></p>
+        <button class="btn btn-primary" onclick="wizardRetry()">Retry &#x21bb;</button>
+      </div>
+      <div id="wiz-step3-done" style="display:none">
+        <div class="alert alert-success" style="margin-bottom:1rem">Your report is ready!</div>
+        <p style="color:#333;line-height:1.6">
+          We've sent it to <strong><span class="wiz-confirm-email-done"></span></strong>.
+        </p>
+      </div>
       <button class="btn btn-primary" style="margin-top:1.5rem" onclick="wizardReset()">Upload another &#x2192;</button>
     </div>
   </div>
