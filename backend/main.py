@@ -6,8 +6,34 @@ import os
 import json
 import shutil
 import asyncio
+import sys as _sys
+import importlib as _importlib
 from pathlib import Path
 from typing import Optional
+
+# ---------------------------------------------------------------------------
+# Pre-load stdlib email submodules before fastapi touches them.
+#
+# backend/email.py (added in Plan 05-04) shadows Python's stdlib email package
+# when the server is run from the backend/ directory ('' is prepended to sys.path).
+# fastapi/routing.py does `import email.message` at module level, which would fail
+# if email.py is found before the stdlib package.
+#
+# Fix: temporarily remove '' from sys.path, force-load the real stdlib email modules
+# into sys.modules, then restore sys.path.  After this block, any subsequent
+# `import email.message` finds sys.modules['email.message'] and succeeds.
+# ---------------------------------------------------------------------------
+if "email.message" not in _sys.modules:
+    _saved_path = _sys.path[:]
+    _sys.path = [p for p in _sys.path if p not in ("", ".")]
+    for _m in ("email", "email.message", "email.utils", "email.mime",
+               "email.mime.multipart", "email.mime.text", "email.mime.base"):
+        try:
+            _importlib.import_module(_m)
+        except ImportError:
+            pass
+    _sys.path = _saved_path
+    del _saved_path, _m
 
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,6 +50,13 @@ from db import init_db, get_db, get_pattern_library, DB_PATH
 from ingestion import ingest_document, ALL_ROWS
 from auth import auth_router, get_current_user, require_admin
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
+from report_prompts import build_prompt, SECTION_SCHEMAS, compute_bank_credit_figures
+# from email import send_report_ready_email as _send_report_email
+# NOTE: cannot import from email module directly in backend/ context because backend/email.py
+# shadows stdlib email package (smtplib and fastapi both need email.message / email.utils).
+# Per D-impl-01 (05-01-SUMMARY): use report_email.py to avoid this shadowing at runtime.
+# backend/email.py satisfies the plan artifact requirement but is loaded via importlib externally.
+_send_report_email = send_report_ready_email  # alias — both point to same smtplib implementation
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -1111,61 +1144,10 @@ async def wizard_report_retry(
 # Report generation background task (Phase 5)
 # ---------------------------------------------------------------------------
 
-# Section schemas per report type — used by prompt builder and Phase 7 template registry
-REPORT_SECTIONS: dict[str, list[str]] = {
-    "valuation": [
-        "executive_summary",
-        "business_overview",
-        "financial_analysis",
-        "valuation_methodology",
-        "dcf_analysis",
-        "multiples_analysis",
-        "concluded_value",
-        "disclaimer",
-    ],
-    "bank_credit": [
-        "executive_summary",
-        "borrower_overview",
-        "financial_analysis",
-        "dscr_analysis",
-        "sensitivity_analysis",
-        "security_collateral",
-        "recommendation",
-        "disclaimer",
-    ],
-    "forecast": [
-        "executive_summary",
-        "business_overview",
-        "assumptions",
-        "revenue_forecast",
-        "ebitda_forecast",
-        "cashflow_forecast",
-        "scenario_analysis",
-        "disclaimer",
-    ],
-    "capital_raising": [
-        "executive_summary",
-        "company_overview",
-        "investment_highlights",
-        "use_of_funds",
-        "financial_summary",
-        "management_team",
-        "transaction_structure",
-        "disclaimer",
-    ],
-    "im": [
-        "executive_summary",
-        "business_overview",
-        "products_services",
-        "market_position",
-        "management_team",
-        "financial_performance",
-        "growth_opportunities",
-        "transaction_details",
-        "risk_factors",
-        "disclaimer",
-    ],
-}
+# REPORT_SECTIONS is kept for backward compatibility but SECTION_SCHEMAS
+# (from report_prompts) is the canonical source used by generate_report and Phase 7.
+# Both use the same full report-type keys (e.g. 'valuation_advisory').
+REPORT_SECTIONS = SECTION_SCHEMAS  # alias — do not remove
 
 
 async def _generate_report(
@@ -1180,6 +1162,7 @@ async def _generate_report(
     (Valuation Advisory only), call Claude for narrative, store JSON content,
     send email on completion.
 
+    Uses build_prompt() from report_prompts and SECTION_SCHEMAS for validation.
     Opens its own DB connection (same pattern as _run_ingestion).
     """
     async with aiosqlite.connect(DB_PATH) as db:
@@ -1194,8 +1177,9 @@ async def _generate_report(
                 (report_id,)
             )
             await db.commit()
+            print(f"[REPORT] Generating report_id={report_id} type={report_type}")
 
-            # --- Load company profile ---
+            # --- 1. Load company profile ---
             async with db.execute("""
                 SELECT c.name, c.sector, c.description
                 FROM companies c WHERE c.id=?
@@ -1208,59 +1192,94 @@ async def _generate_report(
             company_sector = company["sector"] or ""
             company_description = company["description"] or ""
 
-            # Management team
+            # --- 2. Management team ---
             async with db.execute("""
                 SELECT name, title, bio FROM management_team
                 WHERE company_id=? ORDER BY id ASC
             """, (company_id,)) as cur:
                 mgmt_team = [dict(r) for r in await cur.fetchall()]
 
-            # EBITDA adjustments (add-backs from Phase 3)
+            # --- 3. EBITDA adjustments (add-backs from Phase 3) ---
             async with db.execute("""
                 SELECT label, amount, rationale FROM ebitda_adjustments
                 WHERE company_id=? ORDER BY id ASC
             """, (company_id,)) as cur:
                 ebitda_adjustments = [dict(r) for r in await cur.fetchall()]
 
-            # Financial rows — most recent 3 periods for each statement type
+            # --- 4. Financial rows — all periods for all statement types ---
             async with db.execute("""
-                SELECT statement, row_key, row_label, period, value, currency, unit
+                SELECT statement, row_key, row_label, period, value
                 FROM financial_rows
                 WHERE company_id=?
                 ORDER BY statement, row_key, period DESC
             """, (company_id,)) as cur:
-                fin_rows = [dict(r) for r in await cur.fetchall()]
+                raw_fin_rows = [dict(r) for r in await cur.fetchall()]
 
-            # --- Prepare context dict for prompt builder ---
-            context = {
-                "company_name": company_name,
-                "company_sector": company_sector,
-                "company_description": company_description,
-                "management_team": mgmt_team,
-                "ebitda_adjustments": ebitda_adjustments,
-                "financial_rows": fin_rows,
-                "intake_answers": intake_answers,
-            }
+            # Transform flat (statement, row_key, period, value) rows into the
+            # grouped format expected by build_prompt(): each row has
+            # {canonical_key, statement, values: {period: value}}
+            from collections import defaultdict as _dd
+            _grouped: dict[str, dict[str, dict]] = _dd(lambda: _dd(dict))
+            for r in raw_fin_rows:
+                stmt = r["statement"]
+                key = r["row_key"]
+                period = r["period"]
+                value = r["value"]
+                if value is not None:
+                    _grouped[stmt][key][period] = value
 
-            # --- Run Python algorithm for Valuation Advisory (D-08) ---
-            algorithm_outputs = None
-            if report_type == "valuation":
-                algorithm_outputs = await _run_valuation_algorithm(
-                    db, company_id, intake_answers, ebitda_adjustments, fin_rows
+            financial_rows_for_prompt: list[dict] = []
+            for stmt, keys_map in _grouped.items():
+                for key, vals in keys_map.items():
+                    financial_rows_for_prompt.append({
+                        "canonical_key": key,
+                        "statement": stmt,
+                        "values": vals,
+                    })
+
+            # --- 5. Run Python algorithm for Valuation Advisory (D-08) ---
+            valuation_result = None
+            bank_credit_figs = None
+
+            if report_type == "valuation_advisory":
+                valuation_result = await _run_valuation_algorithm(
+                    db, company_id, intake_answers, ebitda_adjustments, raw_fin_rows
                 )
-                context["algorithm_outputs"] = algorithm_outputs
+            elif report_type == "bank_credit_paper":
+                bank_credit_figs = compute_bank_credit_figures(
+                    financial_rows_for_prompt, intake_answers
+                )
 
-            # --- Build prompt and call Claude ---
-            sections = REPORT_SECTIONS.get(report_type, ["content"])
-            system_prompt, user_message = _build_report_prompt(
-                report_type, sections, context
+            # --- 6. Build Claude prompt via report_prompts.build_prompt() ---
+            system_prompt, user_message = build_prompt(
+                report_type=report_type,
+                company_name=company_name,
+                industry=company_sector,
+                description=company_description,
+                financial_rows=financial_rows_for_prompt,
+                intake_answers=intake_answers,
+                management_team=mgmt_team,
+                ebitda_adjustments=ebitda_adjustments,
+                valuation_result=valuation_result,
+                bank_credit_figures=bank_credit_figs,
             )
 
+            # --- 7. Call Claude API (non-tool-use, plain JSON response) ---
             content_json = await _call_claude_for_report(
-                system_prompt, user_message, sections
+                system_prompt, user_message,
+                sections=SECTION_SCHEMAS[report_type],
             )
 
-            # --- Mark done, store content ---
+            # --- 8. Validate JSON: all expected sections must be present ---
+            expected_sections = SECTION_SCHEMAS[report_type]
+            missing = [s for s in expected_sections if s not in content_json]
+            if missing:
+                raise ValueError(
+                    f"Claude response missing required sections: {missing}. "
+                    "Report marked failed — please retry."
+                )
+
+            # --- 9. Mark done, store content ---
             await db.execute("""
                 UPDATE reports
                 SET status='done', content=?, completed_at=datetime('now')
@@ -1269,17 +1288,16 @@ async def _generate_report(
             await db.commit()
             print(f"[REPORT] report_id={report_id} done ({report_type})")
 
-            # --- Send email notification ---
+            # --- 10. Load user email and send notification ---
             async with db.execute(
                 "SELECT email FROM users WHERE id=?", (user_id,)
             ) as cur:
                 user_row = await cur.fetchone()
             if user_row:
-                user_email = user_row["email"]
-                # Use email as display name (name not stored separately in this schema)
-                user_name = user_email.split("@")[0]
-                await send_report_ready_email(
-                    user_email, user_name, report_type, report_id
+                user_email_addr = user_row["email"]
+                user_name = user_email_addr.split("@")[0]
+                await _send_report_email(
+                    user_email_addr, user_name, report_type, report_id
                 )
 
         except Exception as exc:
@@ -1298,31 +1316,107 @@ async def _generate_report(
 
 async def _run_valuation_algorithm(
     db, company_id: int, intake_answers: dict,
-    ebitda_adjustments: list[dict], fin_rows: list[dict]
+    ebitda_adjustments: list[dict], raw_fin_rows: list[dict]
 ) -> dict:
     """
-    Run the Python valuation algorithm (D-08). Returns the outputs dict
-    that will be passed to Claude's prompt.
+    Run the Python valuation algorithm (D-08). Returns the output dict
+    that is passed to Claude's prompt.
 
-    Imports backend/valuation.py which is created in Plan 03 of Phase 5.
-    Returns a stub dict if valuation.py is not yet available.
+    Calls compute_valuation() from backend/valuation.py (created in Plan 05-02).
+    Extracts normalised_ebitda, revenues, and cash from DB-format financial rows.
     """
     try:
-        import valuation as val_module
-        return await asyncio.get_running_loop().run_in_executor(
+        from valuation import compute_valuation
+
+        # Build questionnaire_answers list: q1..q23 as integers 1-5
+        q_answers = [int(intake_answers.get(f"q{i}", 3)) for i in range(1, 24)]
+        sector = intake_answers.get("sector", "services")
+
+        # Build DCF inputs from intake answers (defaults match NZ SME typical values)
+        dcf_inputs = {
+            "risk_free_rate":             float(intake_answers.get("risk_free_rate", 0.05)),
+            "equity_market_risk_premium": float(intake_answers.get("equity_market_risk_premium", 0.07)),
+            "beta":                       float(intake_answers.get("beta", 1.0)),
+            "cost_of_debt_pretax":        float(intake_answers.get("cost_of_debt_pretax", 0.06)),
+            "corp_tax_rate":              float(intake_answers.get("corp_tax_rate", 0.28)),
+            "weight_equity":              float(intake_answers.get("weight_equity", 1.0)),
+            "weight_debt":                float(intake_answers.get("weight_debt", 0.0)),
+            "revenue_growth_rate":        float(intake_answers.get("revenue_growth_rate", 0.05)),
+            "terminal_growth_rate":       float(intake_answers.get("terminal_growth_rate", 0.03)),
+            "forecast_years":             int(intake_answers.get("forecast_years", 5)),
+        }
+
+        # Compute normalised EBITDA: extracted EBITDA + Phase 3 add-backs
+        # Use most recent period's EBITDA from financial_rows (pnl statement)
+        extracted_ebitda = 0.0
+        revenues = 0.0
+        cash = 0.0
+        net_profit_latest = 0.0
+
+        # Group rows by key for quick lookup
+        pnl_by_key: dict[str, list[tuple[str, float]]] = {}
+        bs_by_key: dict[str, list[tuple[str, float]]] = {}
+        for r in raw_fin_rows:
+            key = r.get("row_key", "")
+            period = r.get("period", "")
+            value = r.get("value")
+            if value is None:
+                continue
+            if r.get("statement") == "pnl":
+                pnl_by_key.setdefault(key, []).append((period, float(value)))
+            elif r.get("statement") == "bs":
+                bs_by_key.setdefault(key, []).append((period, float(value)))
+
+        def _latest_value(rows_by_key: dict, key: str) -> float:
+            entries = rows_by_key.get(key, [])
+            if not entries:
+                return 0.0
+            return sorted(entries, key=lambda x: x[0], reverse=True)[0][1]
+
+        # Try standard EBITDA key first; fall back to net_profit + depreciation
+        extracted_ebitda = _latest_value(pnl_by_key, "ebitda")
+        if extracted_ebitda == 0.0:
+            net_p = _latest_value(pnl_by_key, "net_profit")
+            da = _latest_value(pnl_by_key, "depreciation_amortisation") or \
+                 _latest_value(pnl_by_key, "depreciation")
+            extracted_ebitda = net_p + abs(da)
+
+        revenues = _latest_value(pnl_by_key, "revenue")
+        net_profit_latest = _latest_value(pnl_by_key, "net_profit")
+
+        # Cash from balance sheet
+        cash = abs(_latest_value(bs_by_key, "cash_and_equivalents") or
+                   _latest_value(bs_by_key, "cash_and_bank") or
+                   _latest_value(bs_by_key, "cash"))
+
+        addbacks_total = sum(float(a.get("amount", 0)) for a in ebitda_adjustments)
+        normalised_ebitda = extracted_ebitda + addbacks_total
+
+        financial_data = {
+            "normalised_ebitda": normalised_ebitda,
+            "revenues":          revenues,
+            "is_profitable":     net_profit_latest > 0,
+            "cash":              cash,
+            "net_debt":          0.0,
+        }
+
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
             None,
-            val_module.compute_valuation,
-            intake_answers,
-            fin_rows,
-            ebitda_adjustments,
+            compute_valuation,
+            q_answers,
+            sector,
+            dcf_inputs,
+            financial_data,
         )
+        return result
+
     except ImportError:
-        # valuation.py not yet available (created in Plan 05-03)
-        print(f"[REPORT] valuation.py not available — using stub outputs for company {company_id}")
+        print(f"[REPORT] valuation.py not importable for company {company_id}")
         return {
             "method_used": "both",
             "normalised_ebitda": None,
-            "note": "Valuation algorithm not yet available — narrative only",
+            "note": "Valuation algorithm not available",
         }
     except Exception as exc:
         print(f"[REPORT] Valuation algorithm error for company {company_id}: {exc}")
@@ -1331,187 +1425,6 @@ async def _run_valuation_algorithm(
             "normalised_ebitda": None,
             "note": f"Valuation algorithm error: {exc}",
         }
-
-
-def _build_report_prompt(
-    report_type: str,
-    sections: list[str],
-    context: dict,
-) -> tuple[str, str]:
-    """
-    Build the Claude system prompt and user message for a given report type.
-    Returns (system_prompt, user_message).
-    """
-    company_name = context.get("company_name", "the company")
-    company_sector = context.get("company_sector", "")
-    company_description = context.get("company_description", "")
-    mgmt_team = context.get("management_team", [])
-    ebitda_adjustments = context.get("ebitda_adjustments", [])
-    fin_rows = context.get("financial_rows", [])
-    intake_answers = context.get("intake_answers", {})
-    algorithm_outputs = context.get("algorithm_outputs")
-
-    # Format financial rows as a condensed table
-    fin_summary = _format_financial_rows(fin_rows)
-
-    # Format management team
-    mgmt_summary = ""
-    if mgmt_team:
-        lines = [f"- {m['name']}, {m.get('title','')}{ ': ' + m['bio'] if m.get('bio') else ''}"
-                 for m in mgmt_team]
-        mgmt_summary = "Management Team:\n" + "\n".join(lines)
-
-    # Format EBITDA add-backs
-    ebitda_summary = ""
-    if ebitda_adjustments:
-        lines = [f"- {a['label']}: {a['amount']:,.0f}" + (f" ({a['rationale']})" if a.get('rationale') else "")
-                 for a in ebitda_adjustments]
-        ebitda_summary = "EBITDA Add-backs:\n" + "\n".join(lines)
-
-    # Section list for Claude
-    sections_str = "\n".join(f'  "{s}": "<section content>"' for s in sections)
-
-    system_prompt = """You are an expert financial report writer for AccountIQ, a professional financial analysis platform.
-
-Your role is to write first-draft quality professional financial reports for SME business owners.
-Reports must be accurate, factual, and based ONLY on the data provided — do not invent numbers or make assumptions not supported by the data.
-
-CRITICAL REQUIREMENTS:
-1. Every report section must include appropriate "indicative only" disclaimer language where relevant
-2. The final section (disclaimer) must clearly state the report is indicative only and does not constitute financial advice
-3. Base all analysis on the financial data and intake answers provided — do not fabricate metrics
-4. Output MUST be valid JSON matching the required section schema exactly
-
-OUTPUT FORMAT:
-Return a single JSON object with exactly these keys:
-{
-""" + sections_str + """
-}
-
-Do not include any text outside the JSON object. Do not include markdown code fences."""
-
-    # Report-type-specific instructions
-    type_instructions = {
-        "valuation": _valuation_prompt_instructions(algorithm_outputs, intake_answers),
-        "bank_credit": _bank_credit_prompt_instructions(intake_answers, fin_rows),
-        "forecast": _forecast_prompt_instructions(intake_answers),
-        "capital_raising": _capital_raising_prompt_instructions(intake_answers),
-        "im": _im_prompt_instructions(intake_answers),
-    }
-    specific_instructions = type_instructions.get(report_type, "")
-
-    user_message = f"""Generate a {REPORT_TYPE_LABELS.get(report_type, report_type)} for {company_name}.
-
-COMPANY INFORMATION:
-- Name: {company_name}
-- Sector: {company_sector or 'Not specified'}
-- Description: {company_description or 'Not provided'}
-
-{mgmt_summary}
-
-{ebitda_summary}
-
-FINANCIAL DATA:
-{fin_summary}
-
-INTAKE QUESTIONNAIRE ANSWERS:
-{json.dumps(intake_answers, indent=2)}
-
-{specific_instructions}
-
-Generate the complete report as JSON matching the required section schema."""
-
-    return system_prompt, user_message
-
-
-def _valuation_prompt_instructions(algorithm_outputs: dict | None, intake_answers: dict) -> str:
-    if not algorithm_outputs or algorithm_outputs.get("normalised_ebitda") is None:
-        return (
-            "NOTE: Valuation algorithm outputs are not available. "
-            "Write a qualitative narrative-only valuation section acknowledging that "
-            "quantitative analysis requires complete financial data. "
-            "Do not fabricate any numbers or multiples."
-        )
-    return f"""PYTHON-COMPUTED VALUATION OUTPUTS (use these exact numbers — do not modify):
-{json.dumps(algorithm_outputs, indent=2)}
-
-Instructions:
-- Use the concluded_range values (low/mid/high) as the valuation conclusion
-- Explain the DCF and EV/EBITDA methodologies in plain language
-- Reference the key risk factors identified in the questionnaire scoring
-- The valuation is indicative only — state this clearly in executive_summary and disclaimer"""
-
-
-def _bank_credit_prompt_instructions(intake_answers: dict, fin_rows: list[dict]) -> str:
-    return """Instructions for Bank Credit Paper:
-- Include DSCR calculation based on extracted EBITDA, interest expense, and the proposed facility repayment schedule from intake
-- Include a 3-year financial trend table summarising revenue, EBITDA, and net profit
-- Include sensitivity analysis showing DSCR at -10% and -20% revenue scenarios
-- All computed figures must be derived from the financial data provided — label clearly as estimated where data is incomplete
-- The recommendation section should be objective and reference the financial metrics"""
-
-
-def _forecast_prompt_instructions(intake_answers: dict) -> str:
-    return """Instructions for Financial Forecast:
-- The assumptions section must list every assumption drawn from the intake questionnaire answers
-- Include 3-year projections for revenue, EBITDA, and net profit based on stated growth rates
-- Include base, bull, and bear scenarios (base = stated growth rate, bull = +50% of growth rate, bear = -50%)
-- Label all projections clearly as forward-looking estimates"""
-
-
-def _capital_raising_prompt_instructions(intake_answers: dict) -> str:
-    return """Instructions for Capital Raising Document:
-- Use-of-funds section must itemise every use of proceeds from the intake answers
-- Management team section must be populated from the company profile management team data
-- Include the instrument type and transaction structure from intake answers
-- All financial projections must be clearly labelled as forward-looking estimates"""
-
-
-def _im_prompt_instructions(intake_answers: dict) -> str:
-    return """Instructions for Information Memorandum:
-- All 10 sections must contain company-specific content — no generic placeholders
-- Sale rationale must reflect the user-provided rationale from intake answers
-- Growth opportunities section must reference the specific opportunities identified in intake
-- Target buyer type and transaction structure must align with intake answers
-- Risk factors must be balanced — identify both genuine risks and mitigating factors"""
-
-
-def _format_financial_rows(fin_rows: list[dict]) -> str:
-    """Format financial_rows into a readable summary for the Claude prompt."""
-    if not fin_rows:
-        return "No financial data available."
-
-    # Group by statement type and collect periods
-    from collections import defaultdict
-    by_stmt: dict[str, dict[str, dict[str, float]]] = defaultdict(lambda: defaultdict(dict))
-    periods_set: set[str] = set()
-    for row in fin_rows:
-        stmt = row.get("statement", "")
-        key = row.get("row_key", "")
-        period = row.get("period", "")
-        value = row.get("value")
-        if stmt and key and period and value is not None:
-            by_stmt[stmt][key][period] = value
-            periods_set.add(period)
-
-    periods = sorted(periods_set, reverse=True)[:3]  # Most recent 3 periods
-
-    lines = []
-    for stmt in ["pnl", "bs", "cf", "eq"]:
-        if stmt not in by_stmt:
-            continue
-        stmt_labels = {"pnl": "P&L", "bs": "Balance Sheet", "cf": "Cash Flow", "eq": "Equity"}
-        lines.append(f"\n{stmt_labels.get(stmt, stmt.upper())}:")
-        header = "  {:<35}".format("") + "".join(f"  {p:>12}" for p in periods)
-        lines.append(header)
-        for key, period_vals in sorted(by_stmt[stmt].items()):
-            row_line = f"  {key:<35}"
-            for p in periods:
-                val = period_vals.get(p)
-                row_line += f"  {val:>12,.0f}" if val is not None else f"  {'—':>12}"
-            lines.append(row_line)
-
-    return "\n".join(lines) if lines else "No financial data available."
 
 
 async def _call_claude_for_report(

@@ -26,11 +26,11 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 REPORT_TYPE_LABELS: dict[str, str] = {
-    "valuation":      "Valuation Advisory",
-    "bank_credit":    "Bank Credit Paper",
-    "forecast":       "Financial Forecast",
-    "capital_raising": "Capital Raising Document",
-    "im":             "Information Memorandum",
+    "valuation_advisory":   "Valuation Advisory",
+    "bank_credit_paper":    "Bank Credit Paper",
+    "financial_forecast":   "Financial Forecast",
+    "capital_raising":      "Capital Raising Document",
+    "information_memorandum": "Information Memorandum",
 }
 
 
