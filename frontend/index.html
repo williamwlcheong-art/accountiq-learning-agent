@@ -506,20 +506,54 @@
       <div id="wizard-report-cards" style="display:flex;flex-direction:column;gap:.75rem"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem">
         <button class="btn" style="background:none;color:var(--navy);border:none;cursor:pointer;padding:0" onclick="renderWizardStep(1)">&#x2190; Back</button>
-        <button id="wiz-step2-continue" class="btn btn-primary" onclick="wizardConfirm()" disabled>Continue &#x2192;</button>
+        <button id="wiz-step2-continue" class="btn btn-primary" onclick="wizardShowIntake()" disabled>Continue &#x2192;</button>
       </div>
     </div>
 
-    <!-- Step 3: Confirmation -->
+    <!-- Step 2b: Intake questionnaire -->
+    <div id="wizard-step-2b" class="wizard-step card" data-step="2b" style="display:none">
+      <h2 style="font-size:1.1rem;font-weight:700;color:var(--navy);margin-bottom:.5rem">Tell us about the business</h2>
+      <p id="wiz-intake-subtitle" style="color:#555;font-size:.875rem;margin-bottom:1rem"></p>
+
+      <!-- Profile completeness warning (D-03) -->
+      <div id="wiz-intake-profile-warning" style="display:none;background:#fffbeb;border:1px solid #f59e0b;border-radius:6px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.875rem;color:#92400e">
+        &#x26A0; Some profile data is incomplete — your report may have gaps. You can still generate the report.
+      </div>
+
+      <!-- Per-type intake forms (only selected type is shown) -->
+      <div id="intake-valuation_advisory"     style="display:none"></div>
+      <div id="intake-bank_credit_paper"      style="display:none"></div>
+      <div id="intake-financial_forecast"     style="display:none"></div>
+      <div id="intake-capital_raising"        style="display:none"></div>
+      <div id="intake-information_memorandum" style="display:none"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem">
+        <button class="btn" style="background:none;color:var(--navy);border:none;cursor:pointer;padding:0" onclick="renderWizardStep(2)">&#x2190; Back</button>
+        <button class="btn btn-primary" onclick="wizardSubmitGenerate()">Generate Report &#x2192;</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Confirmation + status polling -->
     <div class="wizard-step card" data-step="3" style="display:none">
       <h2 style="font-size:1.1rem;font-weight:700;color:var(--navy);margin-bottom:1rem">Your report is being prepared</h2>
-      <div class="alert alert-success" style="margin-bottom:1rem">
-        Your financials have been uploaded and your report request has been received.
+      <div id="wiz-step3-generating" style="display:block">
+        <div class="alert alert-success" style="margin-bottom:1rem">Your report generation has been queued.</div>
+        <p style="color:#333;line-height:1.6">
+          We'll email you at <strong><span id="wiz-confirm-email"></span></strong> when your report is ready.<br>
+          <span id="wiz-status-text" style="color:var(--navy);font-weight:600">Status: queued</span>
+        </p>
       </div>
-      <p style="color:#333;line-height:1.6">
-        We'll email you at <strong><span id="wiz-confirm-email"></span></strong> when your report is ready.<br>
-        This typically takes a few minutes.
-      </p>
+      <div id="wiz-step3-failed" style="display:none">
+        <div class="alert alert-error" style="margin-bottom:1rem">Report generation failed.</div>
+        <p id="wiz-error-msg" style="color:#c00;font-size:.875rem;margin-bottom:1rem"></p>
+        <button class="btn btn-primary" onclick="wizardRetry()">Retry &#x21bb;</button>
+      </div>
+      <div id="wiz-step3-done" style="display:none">
+        <div class="alert alert-success" style="margin-bottom:1rem">Your report is ready!</div>
+        <p style="color:#333;line-height:1.6">
+          We've sent it to <strong><span class="wiz-confirm-email-done"></span></strong>.
+        </p>
+      </div>
       <button class="btn btn-primary" style="margin-top:1.5rem" onclick="wizardReset()">Upload another &#x2192;</button>
     </div>
   </div>
@@ -2035,6 +2069,7 @@ let _wizardUploadResult = null;   // {company_id, document_id, status}
 let _wizardReportType = null;     // string key
 let _wizardUser = null;           // user object from /auth/me
 let _wizardFile = null;           // File from drop or input[type=file]
+let _wizardReportId = null;       // report id returned by POST /wizard/report/generate
 
 const WIZARD_REPORT_TYPES = [
   {
@@ -2073,6 +2108,7 @@ function showWizard(user) {
   document.getElementById('wizard-user-email').textContent = user.email;
   _initWizardDropZone();
   renderWizardStep(1);
+  _buildIntakeForms();
 }
 
 function _initWizardDropZone() {
@@ -2118,10 +2154,18 @@ function renderWizardStep(step) {
   if (step === 2) {
     _renderReportTypeCards();
   }
-  // Step 3 setup: populate confirmation email
+  // Step 3 setup: populate confirmation email and reset polling state divs
   if (step === 3 && _wizardUser) {
     // .textContent — XSS rule (AUTH-03)
     document.getElementById('wiz-confirm-email').textContent = _wizardUser.email;
+    var genDiv = document.getElementById('wiz-step3-generating');
+    var failDiv = document.getElementById('wiz-step3-failed');
+    var doneDiv = document.getElementById('wiz-step3-done');
+    if (genDiv)  genDiv.style.display  = 'block';
+    if (failDiv) failDiv.style.display = 'none';
+    if (doneDiv) doneDiv.style.display = 'none';
+    var statusText = document.getElementById('wiz-status-text');
+    if (statusText) statusText.textContent = 'Status: queued';
   }
 }
 
@@ -2216,6 +2260,8 @@ function wizardReset() {
   _wizardUploadResult = null;
   _wizardReportType = null;
   _wizardFile = null;
+  _wizardReportId = null;
+  if (_reportPollInterval) { clearInterval(_reportPollInterval); _reportPollInterval = null; }
   // Clear form inputs
   const nameInput = document.getElementById('wiz-business-name');
   const fileInput = document.getElementById('wiz-file');
@@ -2225,6 +2271,329 @@ function wizardReset() {
   if (nameEl) { nameEl.textContent = ''; nameEl.style.display = 'none'; }
   showAlert('wizard-alert', '', 'success');  // clear alerts
   renderWizardStep(1);
+}
+
+// ---------------------------------------------------------------------------
+// Wizard intake forms + report generation (Phase 5 Plan 03)
+// ---------------------------------------------------------------------------
+
+function _buildIntakeForms() {
+  // Valuation Advisory — 23 scored questions in 8 category groups
+  var valCategories = [
+    { name: 'History', questions: [
+      { q: 1, text: 'How long has the business been established?', opts: ['< 1 yr','1–3 yrs','3–5 yrs','5–10 yrs','10yrs+'] }
+    ]},
+    { name: 'Financial', questions: [
+      { q: 2, text: 'History of EBIT growth', opts: ['Declining','Weak','Steady','Growing','Strong growth'] },
+      { q: 3, text: 'What percentage of income is contracted?', opts: ['<20%','20–40%','40–60%','60–80%','>80% contracted'] },
+      { q: 4, text: 'CAPEX requirement (avg annual capex as % of depreciation)', opts: ['>80% of depreciation','60–80%','40–60%','20–40%','<20% of depreciation'] },
+      { q: 5, text: 'Gross profit %', opts: ['<20% GP','20–30%','30–40%','40–50%','>50% GP'] },
+      { q: 6, text: 'Level of seasonality (3 options)', opts: ['High','Medium','Low'], threeOpt: true },
+      { q: 7, text: 'Fixed assets as a percentage of sales', opts: ['Low fixed asset base','Medium','High fixed asset base'], threeOpt: true },
+      { q: 8, text: 'GP% consistency (trend)', opts: ['Declining','Steady','Improving'], threeOpt: true }
+    ]},
+    { name: 'People', questions: [
+      { q: 9, text: 'Business dependence on staff technical knowledge', opts: ['Highly dependent','Average','Low dependence'], threeOpt: true },
+      { q: 10, text: 'Average length of staff service', opts: ['< 1 yr','1–3 yrs','3–5 yrs','5–7 yrs','> 7 yrs avg tenure'] },
+      { q: 11, text: 'How easy to hire / train staff', opts: ['Very hard','Hard','OK','Easy','Very easy'] },
+      { q: 12, text: 'Management team capable of running without owner', opts: ['Totally owner-dependent','Hard to manage without owner','Could be managed','Semi-managed','Fully managed (no owner dependency)'] }
+    ]},
+    { name: 'Suppliers', questions: [
+      { q: 13, text: 'Supply chain vulnerability to disruption', opts: ['Extremely vulnerable','Very vulnerable','Steady','Slightly','Not vulnerable'] },
+      { q: 14, text: 'Contractual supply agreements or sole agencies', opts: ['None','A few','Some','Plenty','All supply contracted'] }
+    ]},
+    { name: 'Customers', questions: [
+      { q: 15, text: '% of turnover from B2B (wholesale) clients', opts: ['<20% B2B','20–40%','40–60%','60–80%','>80% B2B'] },
+      { q: 16, text: 'Top 5 customer retention across multiple periods', opts: ['None same','Few','Some','Most','All top 5 retained'] },
+      { q: 17, text: 'Largest single customer % of turnover', opts: ['>40%','31–40%','21–30%','11–20%','Largest customer ≤10%'] },
+      { q: 18, text: 'Ease of adding new customers', opts: ['Very hard','Hard','Average','Quite easy','Easy to add customers'] }
+    ]},
+    { name: 'Premises', questions: [
+      { q: 19, text: 'Premises suitability and lease security', opts: ['Must relocate < 2 yrs','Must relocate < 3 yrs','OK for 4+ yrs','Comfortable, decent term','Secure long-term lease, growth-ready'] }
+    ]},
+    { name: 'Competition', questions: [
+      { q: 20, text: 'Level of competition in the market', opts: ['Highly competitive','A lot','Average','Some','Hardly any competition'] },
+      { q: 21, text: 'Barriers to entry for new competitors', opts: ['Very easy','Easy','Possible','Hard','Very hard to set up in competition'] }
+    ]},
+    { name: 'Growth / Opportunities', questions: [
+      { q: 22, text: 'Growth opportunities available to this business', opts: ['None','Small','Some','Good opportunities','Lots of growth opportunity'] },
+      { q: 23, text: 'Sector profile', opts: ['Declining sector','Weak','Steady','Good','Strong sector growth'] }
+    ]}
+  ];
+
+  var valHtml = '<p style="font-size:.8rem;color:#666;margin-bottom:1rem">Rate each question 1 (worst) to 5 (best). For 3-option questions, only 3 choices are shown.</p>';
+  valHtml += '<div style="margin-bottom:1rem"><label style="font-weight:600;color:var(--navy);font-size:.875rem">Sector</label>';
+  valHtml += '<select name="sector" style="width:100%;margin-top:.25rem;padding:.5rem;border:1px solid #ccc;border-radius:4px">';
+  valHtml += '<option value="">Select sector…</option>';
+  [['asset_heavy','Asset Heavy'],['services','Services'],['manufacturing','Manufacturing'],['import_distribution','Import / Distribution'],['retail','Retail']].forEach(function(s) {
+    valHtml += '<option value="' + s[0] + '">' + s[1] + '</option>';
+  });
+  valHtml += '</select></div>';
+
+  valCategories.forEach(function(cat) {
+    valHtml += '<details open style="margin-bottom:.75rem;border:1px solid #e5e7eb;border-radius:6px;padding:.5rem .75rem">';
+    valHtml += '<summary style="font-weight:600;color:var(--navy);cursor:pointer;font-size:.875rem">' + cat.name + '</summary>';
+    cat.questions.forEach(function(qn) {
+      valHtml += '<div style="margin-top:.75rem"><p style="font-size:.8rem;color:#333;margin-bottom:.25rem"><strong>Q' + qn.q + '.</strong> ' + qn.text + '</p>';
+      valHtml += '<div style="display:flex;flex-wrap:wrap;gap:.5rem">';
+      var scores = qn.threeOpt ? [1, 3, 5] : [1, 2, 3, 4, 5];
+      qn.opts.forEach(function(opt, idx) {
+        var score = scores[idx];
+        valHtml += '<label style="display:flex;align-items:center;gap:.25rem;font-size:.75rem;cursor:pointer">';
+        valHtml += '<input type="radio" name="q' + qn.q + '" value="' + score + '" required> ' + opt + ' (' + score + ')';
+        valHtml += '</label>';
+      });
+      valHtml += '</div></div>';
+    });
+    valHtml += '</details>';
+  });
+
+  // WACC inputs for DCF
+  valHtml += '<h3 style="font-size:.875rem;font-weight:700;color:var(--navy);margin:1rem 0 .5rem">DCF Inputs (WACC)</h3>';
+  [
+    ['risk_free_rate','Risk-free rate (e.g. 0.05 for 5%)','0.05','number','0.001'],
+    ['equity_market_risk_premium','Equity market risk premium (e.g. 0.07)','0.07','number','0.001'],
+    ['beta','Beta (e.g. 1.0)','1.0','number','0.01'],
+    ['cost_of_debt_pretax','Cost of debt pre-tax (e.g. 0.06)','0.06','number','0.001'],
+    ['corp_tax_rate','Corporate tax rate (NZ 0.28 / AU 0.30)','0.28','number','0.01'],
+    ['weight_equity','Equity weighting (e.g. 1.0 = all equity)','1.0','number','0.01'],
+    ['revenue_growth_rate','Annual revenue growth rate (e.g. 0.05)','0.05','number','0.001'],
+    ['terminal_growth_rate','Terminal growth rate (e.g. 0.03)','0.03','number','0.001'],
+    ['forecast_years','Forecast horizon (3 or 5)','5','number','1'],
+  ].forEach(function(f) {
+    valHtml += '<div class="form-group"><label style="font-size:.8rem">' + f[1] + '</label>';
+    valHtml += '<input type="' + f[3] + '" name="' + f[0] + '" value="' + f[2] + '" step="' + f[4] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px"></div>';
+  });
+
+  document.getElementById('intake-valuation_advisory').innerHTML = valHtml;
+
+  // Bank Credit Paper
+  document.getElementById('intake-bank_credit_paper').innerHTML = [
+    ['facility_type','Facility type (e.g. Term loan, Revolving credit, Overdraft)','text'],
+    ['amount_requested','Amount requested ($)','number'],
+    ['proposed_term_years','Proposed term (years)','number'],
+    ['repayment_structure','Repayment structure (e.g. P&I monthly, interest only)','text'],
+    ['security_collateral','Security / collateral offered','text'],
+    ['loan_purpose','Loan purpose','textarea'],
+    ['existing_debt_facilities','Existing debt facilities (if any)','text'],
+  ].map(function(f) {
+    var inp = f[2] === 'textarea'
+      ? '<textarea name="' + f[0] + '" rows="2" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px"></textarea>'
+      : '<input type="' + f[2] + '" name="' + f[0] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px">';
+    return '<div class="form-group"><label style="font-size:.8rem">' + f[1] + '</label>' + inp + '</div>';
+  }).join('');
+
+  // Financial Forecast
+  document.getElementById('intake-financial_forecast').innerHTML = [
+    ['forecast_horizon','Forecast horizon','select:1 year,3 years,5 years'],
+    ['revenue_growth_rate','Revenue growth rate per year (e.g. 0.10 for 10%)','number'],
+    ['key_business_drivers','Key business drivers (describe)','textarea'],
+    ['planned_capex','Planned capex ($, enter 0 if none)','number'],
+    ['headcount_changes','Headcount changes (describe planned changes)','text'],
+    ['one_off_events','Any one-off events to include? (optional)','text'],
+  ].map(function(f) {
+    var inp;
+    if (f[2].startsWith('select:')) {
+      var opts = f[2].slice(7).split(',').map(function(o) { return '<option>' + o + '</option>'; }).join('');
+      inp = '<select name="' + f[0] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px">' + opts + '</select>';
+    } else if (f[2] === 'textarea') {
+      inp = '<textarea name="' + f[0] + '" rows="2" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px"></textarea>';
+    } else {
+      inp = '<input type="' + f[2] + '" name="' + f[0] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px">';
+    }
+    return '<div class="form-group"><label style="font-size:.8rem">' + f[1] + '</label>' + inp + '</div>';
+  }).join('');
+
+  // Capital Raising
+  document.getElementById('intake-capital_raising').innerHTML = [
+    ['amount','Amount to raise ($)','number'],
+    ['instrument_type','Instrument type','select:Equity,Convertible note,Debt,Hybrid'],
+    ['use_of_proceeds','Use of proceeds (itemised — e.g. Marketing $50k; Hiring $100k)','textarea'],
+    ['business_stage','Business stage','select:Pre-revenue,Early revenue,Growth,Mature'],
+    ['target_investor_profile','Target investor profile (e.g. angel, VC, family office)','text'],
+    ['key_milestones','Key milestones this raise funds','textarea'],
+  ].map(function(f) {
+    var inp;
+    if (f[2].startsWith('select:')) {
+      var opts = f[2].slice(7).split(',').map(function(o) { return '<option>' + o + '</option>'; }).join('');
+      inp = '<select name="' + f[0] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px">' + opts + '</select>';
+    } else if (f[2] === 'textarea') {
+      inp = '<textarea name="' + f[0] + '" rows="2" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px"></textarea>';
+    } else {
+      inp = '<input type="' + f[2] + '" name="' + f[0] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px">';
+    }
+    return '<div class="form-group"><label style="font-size:.8rem">' + f[1] + '</label>' + inp + '</div>';
+  }).join('');
+
+  // Information Memorandum
+  document.getElementById('intake-information_memorandum').innerHTML = [
+    ['sale_rationale','Sale rationale (why are you selling?)','textarea'],
+    ['key_business_highlights','Key business highlights (user-written — 2–4 sentences)','textarea'],
+    ['growth_opportunities','Growth opportunities available to a new owner','textarea'],
+    ['target_buyer_type','Target buyer type (e.g. trade buyer, private equity, owner-operator)','text'],
+    ['transaction_structure','Transaction structure preference (e.g. 100% sale, partial, earn-out)','text'],
+    ['any_exclusions','Any assets or liabilities to exclude from sale? (optional)','text'],
+  ].map(function(f) {
+    var inp = f[2] === 'textarea'
+      ? '<textarea name="' + f[0] + '" rows="2" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px"></textarea>'
+      : '<input type="text" name="' + f[0] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px">';
+    return '<div class="form-group"><label style="font-size:.8rem">' + f[1] + '</label>' + inp + '</div>';
+  }).join('');
+}
+
+function wizardShowIntake() {
+  if (!_wizardReportType) {
+    showAlert('wizard-alert', 'Please select a report type.', 'error');
+    return;
+  }
+  // Show profile warning if company profile is incomplete (D-03) — fire and forget
+  if (_wizardUploadResult && _wizardUploadResult.company_id) {
+    apiFetch('/companies/' + _wizardUploadResult.company_id + '/profile-status').then(function(data) {
+      var warning = document.getElementById('wiz-intake-profile-warning');
+      if (warning && data && data.sections_complete < 4) {
+        warning.style.display = 'block';
+      }
+    }).catch(function() {});
+  }
+  // Show subtitle using .textContent — XSS rule (AUTH-03)
+  var rt = WIZARD_REPORT_TYPES.find(function(r) { return r.key === _wizardReportType; });
+  var sub = document.getElementById('wiz-intake-subtitle');
+  if (sub && rt) sub.textContent = rt.name;
+
+  // Show only the matching intake form
+  ['valuation_advisory','bank_credit_paper','financial_forecast','capital_raising','information_memorandum'].forEach(function(k) {
+    var el = document.getElementById('intake-' + k);
+    if (el) el.style.display = (k === _wizardReportType) ? 'block' : 'none';
+  });
+
+  // Show Step 2b — manually show the div since renderWizardStep uses data-step integer
+  document.querySelectorAll('.wizard-step').forEach(function(el) { el.style.display = 'none'; });
+  var s2b = document.querySelector('[data-step="2b"]');
+  if (s2b) s2b.style.display = 'block';
+
+  var ind = document.getElementById('wizard-step-indicator');
+  if (ind) ind.textContent = 'Step 2 of 3';
+}
+
+async function wizardSubmitGenerate() {
+  if (!_wizardUploadResult || !_wizardReportType) {
+    showAlert('wizard-alert', 'Missing upload or report type.', 'error');
+    return;
+  }
+  // Collect intake answers from the visible form
+  var formDiv = document.getElementById('intake-' + _wizardReportType);
+  var answers = {};
+  if (formDiv) {
+    // Collect all named inputs/selects/textareas — radio values parsed as float
+    formDiv.querySelectorAll('[name]').forEach(function(el) {
+      if (el.type === 'radio') {
+        if (el.checked) answers[el.name] = parseFloat(el.value) || el.value;
+      } else if (el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {
+        if (el.value) answers[el.name] = el.value;
+      } else {
+        if (el.value) answers[el.name] = parseFloat(el.value) || el.value;
+      }
+    });
+  }
+
+  const btn = event.currentTarget;
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+
+  try {
+    const res = await fetch(API + '/wizard/report/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        company_id:     _wizardUploadResult.company_id,
+        report_type:    _wizardReportType,
+        intake_answers: answers,
+      }),
+    });
+    if (res.status === 401) { showAuthWall(true); return; }
+    const json = await res.json();
+    if (!res.ok) {
+      showAlert('wizard-alert', json.detail || 'Failed to queue report.', 'error');
+      return;
+    }
+    _wizardReportId = json.report_id;
+    renderWizardStep(3);
+    _startReportPolling();
+  } catch (e) {
+    showAlert('wizard-alert', 'Connection error. Please try again.', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = origText || 'Generate Report →'; }
+  }
+}
+
+let _reportPollInterval = null;
+
+function _startReportPolling() {
+  if (_reportPollInterval) clearInterval(_reportPollInterval);
+  _reportPollInterval = setInterval(async function() {
+    if (!_wizardReportId) { clearInterval(_reportPollInterval); return; }
+    try {
+      const res = await fetch(API + '/wizard/report/' + _wizardReportId + '/status', { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      _updateStep3Status(data.status, data.error_message);
+      if (data.status === 'done' || data.status === 'failed') {
+        clearInterval(_reportPollInterval);
+        _reportPollInterval = null;
+      }
+    } catch (e) {}
+  }, 3000);
+}
+
+function _updateStep3Status(status, errorMsg) {
+  var genDiv  = document.getElementById('wiz-step3-generating');
+  var failDiv = document.getElementById('wiz-step3-failed');
+  var doneDiv = document.getElementById('wiz-step3-done');
+  var statusText = document.getElementById('wiz-status-text');
+  if (!genDiv) return;
+
+  if (status === 'done') {
+    genDiv.style.display  = 'none';
+    failDiv.style.display = 'none';
+    doneDiv.style.display = 'block';
+    var doneEmails = document.querySelectorAll('.wiz-confirm-email-done');
+    // .textContent — XSS rule (AUTH-03)
+    doneEmails.forEach(function(el) { if (_wizardUser) el.textContent = _wizardUser.email; });
+  } else if (status === 'failed') {
+    genDiv.style.display  = 'none';
+    failDiv.style.display = 'block';
+    doneDiv.style.display = 'none';
+    var errEl = document.getElementById('wiz-error-msg');
+    // .textContent — XSS rule (T-05-03-02)
+    if (errEl) errEl.textContent = errorMsg || 'An error occurred. Please retry.';
+  } else {
+    genDiv.style.display  = 'block';
+    failDiv.style.display = 'none';
+    doneDiv.style.display = 'none';
+    // .textContent — XSS rule (AUTH-03)
+    if (statusText) statusText.textContent = 'Status: ' + status;
+  }
+}
+
+async function wizardRetry() {
+  if (!_wizardReportId) return;
+  const btn = event.currentTarget;
+  if (btn) { btn.disabled = true; btn.textContent = 'Retrying…'; }
+  try {
+    const res = await fetch(API + '/wizard/report/' + _wizardReportId + '/retry', { method: 'POST', credentials: 'include' });
+    const json = await res.json();
+    if (res.ok) {
+      _updateStep3Status('queued', null);
+      _startReportPolling();
+    } else {
+      showAlert('wizard-alert', json.detail || 'Retry failed.', 'error');
+    }
+  } catch (e) {
+    showAlert('wizard-alert', 'Connection error.', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Retry ↻'; }
+  }
 }
 
 // ---------------------------------------------------------------------------
