@@ -230,6 +230,39 @@ def _migrate_db(conn: sqlite3.Connection):
         except sqlite3.OperationalError:
             pass
 
+    # Phase 5: report job state machine + intake answers
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS reports (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id      INTEGER REFERENCES companies(id) ON DELETE CASCADE,
+            user_id         INTEGER REFERENCES users(id),
+            report_type     TEXT    NOT NULL,
+            status          TEXT    NOT NULL DEFAULT 'queued',
+            content         TEXT,
+            error_message   TEXT,
+            created_at      TEXT    DEFAULT (datetime('now')),
+            completed_at    TEXT
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS report_intake (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            report_id   INTEGER REFERENCES reports(id) ON DELETE CASCADE,
+            answers     TEXT    NOT NULL,
+            created_at  TEXT    DEFAULT (datetime('now'))
+        )
+    """)
+    for idx_sql in [
+        "CREATE INDEX IF NOT EXISTS idx_reports_company  ON reports(company_id)",
+        "CREATE INDEX IF NOT EXISTS idx_reports_user     ON reports(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_reports_status   ON reports(status)",
+        "CREATE INDEX IF NOT EXISTS idx_report_intake_rpt ON report_intake(report_id)",
+    ]:
+        try:
+            conn.execute(idx_sql)
+        except sqlite3.OperationalError:
+            pass
+
     conn.commit()
 
 
