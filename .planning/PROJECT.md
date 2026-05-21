@@ -33,15 +33,15 @@ A business owner uploads their financials, answers a few questions about their b
 <!-- Hypotheses — all in scope for v1. -->
 
 **Extraction quality:**
-- [ ] Correctly extract all major statement types: income statement, balance sheet, cash flow, changes in equity
-- [ ] Handle sign conventions correctly (expenses negative, revenues positive, per standard)
-- [ ] Assign financial data to the correct fiscal period (no period mismatch)
-- [ ] Map non-standard line item labels to canonical keys without misclassification
-- [ ] Extract multi-page statements without dropping rows
+- ✓ Correctly extract all major statement types: income statement, balance sheet, cash flow, changes in equity — Validated in Phase 4: Extraction Quality
+- ✓ Handle sign conventions correctly (_normalize_signs pure function, cost keys flipped) — Validated in Phase 4: Extraction Quality
+- ✓ Assign financial data to the correct fiscal period (no period mismatch) — Validated in Phase 4: Extraction Quality
+- ✓ Map non-standard line item labels to canonical keys (CF_SYNS, EQ_SYNS, AU/NZ SME synonyms) — Validated in Phase 4: Extraction Quality
+- ✓ Extract multi-page statements without dropping rows (filter-then-sort, lowest-score eviction) — Validated in Phase 4: Extraction Quality
 
 **File format coverage:**
-- [ ] Support Word documents (.docx) as an upload format
-- [ ] Support scanned image-only PDFs (OCR path already exists, needs reliable triggering)
+- ✓ Support Word documents (.docx) as an upload format (extract_docx_text via python-docx) — Validated in Phase 4: Extraction Quality
+- ✓ Support scanned image-only PDFs (OCR at 300 DPI, 100% row recovery verified) — Validated in Phase 4: Extraction Quality
 - [ ] Support structured HTML financial filings
 
 **Business profile intake:**
