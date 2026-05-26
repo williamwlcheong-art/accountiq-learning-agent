@@ -1030,8 +1030,8 @@ async def wizard_report_generate(
     report_type = body.get("report_type")
     intake_answers = body.get("intake_answers", {})
 
-    if not company_id:
-        raise HTTPException(400, "company_id is required")
+    if not isinstance(company_id, int) or company_id <= 0:
+        raise HTTPException(400, "company_id must be a positive integer")
     if not report_type or report_type not in _VALID_REPORT_TYPES:
         raise HTTPException(
             400,

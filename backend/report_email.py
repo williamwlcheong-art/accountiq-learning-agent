@@ -13,6 +13,7 @@ Required .env variables:
   APP_BASE_URL   — base URL of the deployed app (defaults to http://localhost:8765)
 """
 
+import asyncio
 import os
 import smtplib
 import logging
@@ -32,6 +33,26 @@ REPORT_TYPE_LABELS: dict[str, str] = {
     "capital_raising":      "Capital Raising Document",
     "information_memorandum": "Information Memorandum",
 }
+
+
+def _send_smtp_blocking(
+    smtp_host: str,
+    smtp_port: int,
+    smtp_user: str,
+    smtp_password: str,
+    from_email: str,
+    user_email: str,
+    msg_string: str,
+) -> None:
+    if smtp_port == 465:
+        with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
+            server.login(smtp_user, smtp_password)
+            server.sendmail(from_email, [user_email], msg_string)
+    else:
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.sendmail(from_email, [user_email], msg_string)
 
 
 async def send_report_ready_email(
@@ -124,18 +145,13 @@ async def send_report_ready_email(
     msg.attach(MIMEText(html_body, "html"))
 
     try:
-        if smtp_port == 465:
-            # SSL connection
-            with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
-                server.login(smtp_user, smtp_password)
-                server.sendmail(from_email, [user_email], msg.as_string())
-        else:
-            # STARTTLS (port 587 or explicit TLS)
-            with smtplib.SMTP(smtp_host, smtp_port) as server:
-                server.starttls()
-                server.login(smtp_user, smtp_password)
-                server.sendmail(from_email, [user_email], msg.as_string())
-
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(
+            None,
+            _send_smtp_blocking,
+            smtp_host, smtp_port, smtp_user, smtp_password,
+            from_email, user_email, msg.as_string(),
+        )
         print(
             f"[EMAIL] Sent '{subject}' to {user_email} "
             f"(report_id={report_id}, type={report_type})"

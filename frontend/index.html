@@ -2278,6 +2278,42 @@ function wizardReset() {
 // ---------------------------------------------------------------------------
 
 function _buildIntakeForms() {
+  function mk(tag, attrs, text) {
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) { e.setAttribute(k, attrs[k]); });
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function formGroup(labelText, inputEl) {
+    var div = mk('div', {'class': 'form-group'});
+    div.appendChild(mk('label', {'style': 'font-size:.8rem'}, labelText));
+    div.appendChild(inputEl);
+    return div;
+  }
+  function styledInput(name, type, extra) {
+    var baseStyle = 'width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px';
+    var attrs = Object.assign({'name': name, 'style': baseStyle}, extra || {});
+    if (type === 'textarea') { attrs['rows'] = '2'; return mk('textarea', attrs); }
+    attrs['type'] = type;
+    return mk('input', attrs);
+  }
+  function styledSelect(name, options) {
+    var sel = mk('select', {'name': name, 'style': 'width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px'});
+    options.forEach(function(o) {
+      var val = Array.isArray(o) ? o[0] : o, lbl = Array.isArray(o) ? o[1] : o;
+      sel.appendChild(mk('option', {'value': val}, lbl));
+    });
+    return sel;
+  }
+  function buildSimpleForm(container, fields) {
+    fields.forEach(function(f) {
+      var inp = f[2].startsWith('select:')
+        ? styledSelect(f[0], f[2].slice(7).split(','))
+        : styledInput(f[0], f[2]);
+      container.appendChild(formGroup(f[1], inp));
+    });
+  }
+
   // Valuation Advisory — 23 scored questions in 8 category groups
   var valCategories = [
     { name: 'History', questions: [
@@ -2321,54 +2357,64 @@ function _buildIntakeForms() {
     ]}
   ];
 
-  var valHtml = '<p style="font-size:.8rem;color:#666;margin-bottom:1rem">Rate each question 1 (worst) to 5 (best). For 3-option questions, only 3 choices are shown.</p>';
-  valHtml += '<div style="margin-bottom:1rem"><label style="font-weight:600;color:var(--navy);font-size:.875rem">Sector</label>';
-  valHtml += '<select name="sector" style="width:100%;margin-top:.25rem;padding:.5rem;border:1px solid #ccc;border-radius:4px">';
-  valHtml += '<option value="">Select sector…</option>';
-  [['asset_heavy','Asset Heavy'],['services','Services'],['manufacturing','Manufacturing'],['import_distribution','Import / Distribution'],['retail','Retail']].forEach(function(s) {
-    valHtml += '<option value="' + s[0] + '">' + s[1] + '</option>';
-  });
-  valHtml += '</select></div>';
+  var valContainer = document.getElementById('intake-valuation_advisory');
+  valContainer.appendChild(mk('p', {'style': 'font-size:.8rem;color:#666;margin-bottom:1rem'},
+    'Rate each question 1 (worst) to 5 (best). For 3-option questions, only 3 choices are shown.'));
+
+  var sectorDiv = mk('div', {'style': 'margin-bottom:1rem'});
+  sectorDiv.appendChild(mk('label', {'style': 'font-weight:600;color:var(--navy);font-size:.875rem'}, 'Sector'));
+  sectorDiv.appendChild(styledSelect('sector', [
+    ['', 'Select sector…'],
+    ['asset_heavy', 'Asset Heavy'],
+    ['services', 'Services'],
+    ['manufacturing', 'Manufacturing'],
+    ['import_distribution', 'Import / Distribution'],
+    ['retail', 'Retail'],
+  ]));
+  valContainer.appendChild(sectorDiv);
 
   valCategories.forEach(function(cat) {
-    valHtml += '<details open style="margin-bottom:.75rem;border:1px solid #e5e7eb;border-radius:6px;padding:.5rem .75rem">';
-    valHtml += '<summary style="font-weight:600;color:var(--navy);cursor:pointer;font-size:.875rem">' + cat.name + '</summary>';
+    var details = mk('details', {'open': '', 'style': 'margin-bottom:.75rem;border:1px solid #e5e7eb;border-radius:6px;padding:.5rem .75rem'});
+    details.appendChild(mk('summary', {'style': 'font-weight:600;color:var(--navy);cursor:pointer;font-size:.875rem'}, cat.name));
     cat.questions.forEach(function(qn) {
-      valHtml += '<div style="margin-top:.75rem"><p style="font-size:.8rem;color:#333;margin-bottom:.25rem"><strong>Q' + qn.q + '.</strong> ' + qn.text + '</p>';
-      valHtml += '<div style="display:flex;flex-wrap:wrap;gap:.5rem">';
+      var qDiv = mk('div', {'style': 'margin-top:.75rem'});
+      var qP = mk('p', {'style': 'font-size:.8rem;color:#333;margin-bottom:.25rem'});
+      qP.appendChild(mk('strong', {}, 'Q' + qn.q + '.'));
+      qP.appendChild(document.createTextNode(' ' + qn.text));
+      qDiv.appendChild(qP);
+      var optDiv = mk('div', {'style': 'display:flex;flex-wrap:wrap;gap:.5rem'});
       var scores = qn.threeOpt ? [1, 3, 5] : [1, 2, 3, 4, 5];
       qn.opts.forEach(function(opt, idx) {
         var score = scores[idx];
-        valHtml += '<label style="display:flex;align-items:center;gap:.25rem;font-size:.75rem;cursor:pointer">';
-        valHtml += '<input type="radio" name="q' + qn.q + '" value="' + score + '" required> ' + opt + ' (' + score + ')';
-        valHtml += '</label>';
+        var lbl = mk('label', {'style': 'display:flex;align-items:center;gap:.25rem;font-size:.75rem;cursor:pointer'});
+        lbl.appendChild(mk('input', {'type': 'radio', 'name': 'q' + qn.q, 'value': String(score), 'required': ''}));
+        lbl.appendChild(document.createTextNode(' ' + opt + ' (' + score + ')'));
+        optDiv.appendChild(lbl);
       });
-      valHtml += '</div></div>';
+      qDiv.appendChild(optDiv);
+      details.appendChild(qDiv);
     });
-    valHtml += '</details>';
+    valContainer.appendChild(details);
   });
 
   // WACC inputs for DCF
-  valHtml += '<h3 style="font-size:.875rem;font-weight:700;color:var(--navy);margin:1rem 0 .5rem">DCF Inputs (WACC)</h3>';
+  valContainer.appendChild(mk('h3', {'style': 'font-size:.875rem;font-weight:700;color:var(--navy);margin:1rem 0 .5rem'}, 'DCF Inputs (WACC)'));
   [
-    ['risk_free_rate','Risk-free rate (e.g. 0.05 for 5%)','0.05','number','0.001'],
-    ['equity_market_risk_premium','Equity market risk premium (e.g. 0.07)','0.07','number','0.001'],
-    ['beta','Beta (e.g. 1.0)','1.0','number','0.01'],
-    ['cost_of_debt_pretax','Cost of debt pre-tax (e.g. 0.06)','0.06','number','0.001'],
-    ['corp_tax_rate','Corporate tax rate (NZ 0.28 / AU 0.30)','0.28','number','0.01'],
-    ['weight_equity','Equity weighting (e.g. 1.0 = all equity)','1.0','number','0.01'],
-    ['revenue_growth_rate','Annual revenue growth rate (e.g. 0.05)','0.05','number','0.001'],
-    ['terminal_growth_rate','Terminal growth rate (e.g. 0.03)','0.03','number','0.001'],
-    ['forecast_years','Forecast horizon (3 or 5)','5','number','1'],
+    ['risk_free_rate','Risk-free rate (e.g. 0.05 for 5%)','number',{'value':'0.05','step':'0.001'}],
+    ['equity_market_risk_premium','Equity market risk premium (e.g. 0.07)','number',{'value':'0.07','step':'0.001'}],
+    ['beta','Beta (e.g. 1.0)','number',{'value':'1.0','step':'0.01'}],
+    ['cost_of_debt_pretax','Cost of debt pre-tax (e.g. 0.06)','number',{'value':'0.06','step':'0.001'}],
+    ['corp_tax_rate','Corporate tax rate (NZ 0.28 / AU 0.30)','number',{'value':'0.28','step':'0.01'}],
+    ['weight_equity','Equity weighting (e.g. 1.0 = all equity)','number',{'value':'1.0','step':'0.01'}],
+    ['revenue_growth_rate','Annual revenue growth rate (e.g. 0.05)','number',{'value':'0.05','step':'0.001'}],
+    ['terminal_growth_rate','Terminal growth rate (e.g. 0.03)','number',{'value':'0.03','step':'0.001'}],
+    ['forecast_years','Forecast horizon (3 or 5)','number',{'value':'5','step':'1','min':'1'}],
   ].forEach(function(f) {
-    valHtml += '<div class="form-group"><label style="font-size:.8rem">' + f[1] + '</label>';
-    valHtml += '<input type="' + f[3] + '" name="' + f[0] + '" value="' + f[2] + '" step="' + f[4] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px"></div>';
+    valContainer.appendChild(formGroup(f[1], styledInput(f[0], f[2], f[3])));
   });
 
-  document.getElementById('intake-valuation_advisory').innerHTML = valHtml;
-
   // Bank Credit Paper
-  document.getElementById('intake-bank_credit_paper').innerHTML = [
+  buildSimpleForm(document.getElementById('intake-bank_credit_paper'), [
     ['facility_type','Facility type (e.g. Term loan, Revolving credit, Overdraft)','text'],
     ['amount_requested','Amount requested ($)','number'],
     ['proposed_term_years','Proposed term (years)','number'],
@@ -2376,69 +2422,37 @@ function _buildIntakeForms() {
     ['security_collateral','Security / collateral offered','text'],
     ['loan_purpose','Loan purpose','textarea'],
     ['existing_debt_facilities','Existing debt facilities (if any)','text'],
-  ].map(function(f) {
-    var inp = f[2] === 'textarea'
-      ? '<textarea name="' + f[0] + '" rows="2" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px"></textarea>'
-      : '<input type="' + f[2] + '" name="' + f[0] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px">';
-    return '<div class="form-group"><label style="font-size:.8rem">' + f[1] + '</label>' + inp + '</div>';
-  }).join('');
+  ]);
 
   // Financial Forecast
-  document.getElementById('intake-financial_forecast').innerHTML = [
+  buildSimpleForm(document.getElementById('intake-financial_forecast'), [
     ['forecast_horizon','Forecast horizon','select:1 year,3 years,5 years'],
     ['revenue_growth_rate','Revenue growth rate per year (e.g. 0.10 for 10%)','number'],
     ['key_business_drivers','Key business drivers (describe)','textarea'],
     ['planned_capex','Planned capex ($, enter 0 if none)','number'],
     ['headcount_changes','Headcount changes (describe planned changes)','text'],
     ['one_off_events','Any one-off events to include? (optional)','text'],
-  ].map(function(f) {
-    var inp;
-    if (f[2].startsWith('select:')) {
-      var opts = f[2].slice(7).split(',').map(function(o) { return '<option>' + o + '</option>'; }).join('');
-      inp = '<select name="' + f[0] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px">' + opts + '</select>';
-    } else if (f[2] === 'textarea') {
-      inp = '<textarea name="' + f[0] + '" rows="2" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px"></textarea>';
-    } else {
-      inp = '<input type="' + f[2] + '" name="' + f[0] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px">';
-    }
-    return '<div class="form-group"><label style="font-size:.8rem">' + f[1] + '</label>' + inp + '</div>';
-  }).join('');
+  ]);
 
   // Capital Raising
-  document.getElementById('intake-capital_raising').innerHTML = [
+  buildSimpleForm(document.getElementById('intake-capital_raising'), [
     ['amount','Amount to raise ($)','number'],
     ['instrument_type','Instrument type','select:Equity,Convertible note,Debt,Hybrid'],
     ['use_of_proceeds','Use of proceeds (itemised — e.g. Marketing $50k; Hiring $100k)','textarea'],
     ['business_stage','Business stage','select:Pre-revenue,Early revenue,Growth,Mature'],
     ['target_investor_profile','Target investor profile (e.g. angel, VC, family office)','text'],
     ['key_milestones','Key milestones this raise funds','textarea'],
-  ].map(function(f) {
-    var inp;
-    if (f[2].startsWith('select:')) {
-      var opts = f[2].slice(7).split(',').map(function(o) { return '<option>' + o + '</option>'; }).join('');
-      inp = '<select name="' + f[0] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px">' + opts + '</select>';
-    } else if (f[2] === 'textarea') {
-      inp = '<textarea name="' + f[0] + '" rows="2" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px"></textarea>';
-    } else {
-      inp = '<input type="' + f[2] + '" name="' + f[0] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px">';
-    }
-    return '<div class="form-group"><label style="font-size:.8rem">' + f[1] + '</label>' + inp + '</div>';
-  }).join('');
+  ]);
 
   // Information Memorandum
-  document.getElementById('intake-information_memorandum').innerHTML = [
+  buildSimpleForm(document.getElementById('intake-information_memorandum'), [
     ['sale_rationale','Sale rationale (why are you selling?)','textarea'],
     ['key_business_highlights','Key business highlights (user-written — 2–4 sentences)','textarea'],
     ['growth_opportunities','Growth opportunities available to a new owner','textarea'],
     ['target_buyer_type','Target buyer type (e.g. trade buyer, private equity, owner-operator)','text'],
     ['transaction_structure','Transaction structure preference (e.g. 100% sale, partial, earn-out)','text'],
     ['any_exclusions','Any assets or liabilities to exclude from sale? (optional)','text'],
-  ].map(function(f) {
-    var inp = f[2] === 'textarea'
-      ? '<textarea name="' + f[0] + '" rows="2" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px"></textarea>'
-      : '<input type="text" name="' + f[0] + '" style="width:100%;padding:.4rem;border:1px solid #ccc;border-radius:4px">';
-    return '<div class="form-group"><label style="font-size:.8rem">' + f[1] + '</label>' + inp + '</div>';
-  }).join('');
+  ]);
 }
 
 function wizardShowIntake() {
