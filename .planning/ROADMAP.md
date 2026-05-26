@@ -178,6 +178,30 @@ Plans:
 
 ---
 
+## Phase 05.1: Valuation Advisory Redesign
+
+**Goal:** Replace the Phase 5 Valuation Advisory report with a Propellerhead-quality implementation: new hybrid intake questionnaire (narrative risk + financial assumptions + normalisation table), agentic web research (Claude with web_search tool researches company, sector, comparable transactions, and WACC inputs from RBNZ + Damodaran), DCF-only primary method with High/Mid/Low WACC scenarios, and a 12-section report structure matching the Bayleys Propellerhead Indicative Valuation Report standard.
+
+**Requirements:** REPT-01 (Valuation Advisory redesign)
+
+**Depends on:** Phase 5
+
+**Success Criteria:**
+1. The valuation intake questionnaire shows: (a) narrative risk section with 4 qualitative areas, (b) normalisation table pre-filled from Phase 3 EBITDA add-backs with ability to add/edit/remove items, (c) financial assumptions section with forecast horizon, CAGR, and terminal growth rate
+2. Report generation runs a Claude agentic loop with web_search tool that researches the company, sector, and comparable transactions before generating the report
+3. Agent retrieves WACC inputs from RBNZ (risk-free rate, ERP, inflation) and Damodaran (industry Beta) — no user-entered WACC fields
+4. Python computes three DCF scenarios (High/Mid/Low WACC) and applies Damodaran illiquidity discount; Claude writes narrative only
+5. Generated report contains all 12 sections: introduction, business_overview, market_position, financial_performance, normalisations_schedule, balance_sheet_summary, valuation_methodology, wacc_assumptions, dcf_analysis, valuation_summary, multiples_crosscheck, disclaimer
+6. Table sections (financial_performance, normalisations_schedule, balance_sheet_summary, wacc_assumptions, valuation_summary) contain structured JSON `{narrative, table: {headers, rows}}` format
+7. The 23-question EV/EBITDA scoring questionnaire no longer appears in the wizard
+
+**UI hint:** yes
+
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 05.1 to break down)
+
 ## Phase 6: Payment Integration
 
 **Goal:** Users can select and purchase a report at a flat price via Stripe; generation begins only after payment is confirmed via webhook.

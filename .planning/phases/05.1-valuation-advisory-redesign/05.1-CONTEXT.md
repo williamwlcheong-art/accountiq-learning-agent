@@ -1,0 +1,195 @@
+# Phase 5.5: Valuation Advisory Redesign — Context
+
+**Gathered:** 2026-05-26
+**Status:** Ready for planning
+
+<domain>
+## Phase Boundary
+
+Replace the Phase 5 Valuation Advisory implementation (23-question EV/EBITDA scoring questionnaire + user-entered WACC → Python multiples + DCF) with a redesigned report that matches the Bayleys Propellerhead Indicative Valuation Report standard:
+
+1. **New intake questionnaire** — narrative risk inputs + financial assumptions (no scoring)
+2. **Agentic web research** — Claude with web_search tool autonomously researches the company, sector, comparable transactions, and WACC inputs (RBNZ + Damodaran)
+3. **DCF-only primary method** — three WACC scenarios (High/Mid/Low) derived from research; EV/EBITDA shown as cross-check only
+4. **Propellerhead report structure** — 12 sections including tables for P&L, normalisations, balance sheet, WACC assumptions, and valuation summary
+
+This phase replaces `backend/valuation.py`, the valuation_advisory sections in `backend/report_prompts.py`, and the valuation intake form in `frontend/index.html`. All other report types (Bank Credit Paper, Financial Forecast, Capital Raising, IM) are untouched.
+
+The Propellerhead PDF is the reference document for content depth and structure:
+`/Users/William.Cheong/Library/CloudStorage/OneDrive-SharedLibraries-BayleysRealEstateLimited/Business - Valuations/Clients/Propellerhead Limited/Valuation Report/FINAL _ Propellerhead_ Oct 25 Bayleys Business Indicative Valuation Report.pdf`
+
+</domain>
+
+<decisions>
+## Implementation Decisions
+
+### Questionnaire redesign
+- **D-Q1:** The new valuation intake uses a **hybrid questionnaire** — a narrative risk section (qualitative) and a financial assumptions section (numeric). The 23-question EV/EBITDA scoring model is dropped entirely.
+
+- **D-Q2:** The **narrative risk section** covers 4 areas (presented as open-text or short-answer fields):
+  1. Owner/key-person dependency — how reliant is the business on the owner or 1–2 key individuals? Would it function without them?
+  2. Customer concentration — % revenue from top 3 customers, B2B vs consumer split, contract vs repeat.
+  3. Competitive position & barriers — main competitors, what stops new entrants, any IP/contracts/brand moat.
+  4. Growth strategy & pipeline — how does the business plan to grow? Signed contracts, geographic expansion, new products.
+
+- **D-Q3:** The **financial assumptions section** includes:
+  - Forecast horizon: 3 or 5 years (radio button)
+  - Revenue growth rate (CAGR): single rate applied uniformly across all forecast years (numeric input, e.g. 8%)
+  - Terminal growth rate: numeric input (agent also retrieves NZ inflation as a cross-check)
+
+- **D-Q4:** A **normalisation table** is part of the intake. It pre-fills from Phase 3 EBITDA add-backs (fetched from `ebitda_adjustments` table). The user can: edit existing items (label, amount, rationale), remove items, and add new normalisation items specific to this valuation engagement. Fields: label (text), amount (number), rationale (text). This generates the Normalisations Schedule section of the report.
+
+### WACC & DCF model
+- **D-W1:** **DCF is the primary valuation method.** EV/EBITDA multiples appear as a cross-check only — one paragraph stating the implied range from comparable transactions research. The concluded value is derived solely from the DCF. The current `compute_ev_ebitda_multiple()` and scoring logic is removed.
+
+- **D-W2:** **Three DCF scenarios** — High WACC / Mid WACC / Low WACC — each produce a separate enterprise value. The valuation range presented = Low EV to High EV (from Low WACC to High WACC scenarios). Mid WACC is the central estimate.
+
+- **D-W3:** **WACC is derived by the agent from web research**, not entered by the user. Agent retrieves:
+  - Risk-free rate: 10-yr NZ government bond yield from RBNZ public site
+  - ERP (Equity Risk Premium): from RBNZ or Damodaran's country risk premium dataset
+  - Industry Beta (total beta): from Damodaran's website (published annually; agent searches for current year's dataset for the relevant industry)
+  - NZ inflation rate: from Stats NZ / RBNZ (used as terminal growth rate cross-check)
+  
+  H/M/L WACC = risk-free + (beta × ERP) ± a spread. High scenario uses higher beta / ERP assumptions, Low scenario uses lower.
+
+- **D-W4:** **Nominal WACC** (not real WACC). Terminal growth rate is entered by the user in the financial assumptions section. Agent retrieves NZ CPI as a sanity check but the user's entered rate is used.
+
+- **D-W5:** **Damodaran illiquidity discount** (existing Bid-Ask formula in `valuation.py`) is retained and applied to the DCF enterprise value. Formula: `0.145 - 0.0022×ln(revenues) - 0.015×is_profitable - 0.016×(cash/EV) - 0.11×(trading_vol/EV)`. For private companies, trading_vol = 0.
+
+- **D-W6:** Python still computes all DCF numbers. Claude writes only the narrative around computed outputs. The Python valuation module is refactored — remove the scoring/multiples logic, add WACC scenario computation and restructured DCF.
+
+### Agentic research architecture
+- **D-R1:** **Multi-step Claude with web_search tool** — Claude is given a `web_search` function in its tool list. An agentic loop runs: Claude decides what to search, reads results, decides if it has enough context, continues searching or declares research complete. Claude controls the research loop.
+
+- **D-R2:** **Research scope — three categories:**
+  1. **Company research** — company name + location → news, website, LinkedIn, notable clients, media coverage, awards, any recent significant events.
+  2. **Sector/market research** — sector + NZ context → market size, growth rates, competitive dynamics, regulatory environment, major players.
+  3. **Comparable transactions** — search for recent M&A or valuation transactions in the same sector (for the multiples cross-check paragraph).
+
+- **D-R3:** **WACC research** is also done by the same agentic loop:
+  - Search RBNZ public site for current 10-yr NZ bond yield
+  - Search Damodaran's site for current year ERP for NZ and total beta for the relevant industry
+  - Search Stats NZ / RBNZ for current NZ inflation rate
+
+- **D-R4:** The agentic research runs **before** the Python DCF computation. Flow:
+  1. Agent researches (company + sector + comps + WACC inputs) → outputs a structured research brief
+  2. Python uses WACC inputs from the brief to compute H/M/L DCF scenarios
+  3. Python computes illiquidity discount
+  4. Claude writes the full report using: research brief + computed DCF figures + extracted financials + intake answers
+
+- **D-R5:** The `web_search` tool used is the **Anthropic web_search tool** (available in Claude's API). This is already available in Claude's API via the `tools` parameter — no external search API key required.
+
+### Report structure
+- **D-S1:** The new `valuation_advisory` section schema (replaces the current 8-section schema):
+
+  ```python
+  "valuation_advisory": [
+      "introduction",            # Engagement details, basis of valuation, liability & confidentiality, compliance
+      "business_overview",       # Background narrative (from company research), significant events
+      "market_position",         # Sector dynamics, competitive landscape (from sector research)
+      "financial_performance",   # P&L table (actuals + forecast), historical ratio analysis table
+      "normalisations_schedule", # Normalisation items table (from intake D-Q4)
+      "balance_sheet_summary",   # Fixed assets, working capital, net debt; EV-to-equity bridge
+      "valuation_methodology",   # Explanation of DCF approach and why it was chosen
+      "wacc_assumptions",        # WACC table: High/Mid/Low with Beta, ERP, risk-free, illiquidity
+      "dcf_analysis",            # Narrative on DCF: base period, growth assumptions, terminal value
+      "valuation_summary",       # Valuation outcome table: EV by scenario, equity value range
+      "multiples_crosscheck",    # One paragraph: comparable EV/EBITDA transactions imply X–Y
+      "disclaimer",              # Full disclaimer paragraph (REPT-06)
+  ]
+  ```
+
+- **D-S2:** **JSON section storage retained** (same `reports.content` TEXT column, same `SECTION_SCHEMAS` pattern used by Phase 7 Jinja2 templates). Claude fills each section key with narrative text.
+
+- **D-S3:** **Tables stored as structured JSON within sections.** Sections that contain tables (financial_performance, normalisations_schedule, balance_sheet_summary, wacc_assumptions, valuation_summary) receive a JSON object with keys `narrative` (string) and `table` (structured dict). Example for wacc_assumptions:
+  ```json
+  {
+    "narrative": "The following WACC assumptions were derived from...",
+    "table": {
+      "headers": ["Component", "High", "Mid", "Low"],
+      "rows": [
+        ["Risk-free rate", "4.8%", "4.8%", "4.8%"],
+        ["Equity Risk Premium", "3.9%", "3.7%", "3.5%"],
+        ...
+      ]
+    }
+  }
+  ```
+  Phase 7 Jinja2 templates detect the `table` key and render it as an HTML table. Phase 5.5 does not implement Phase 7 templates — that remains Phase 7's responsibility.
+
+- **D-S4:** **Balance sheet summary includes EV-to-equity bridge:** Enterprise Value (from DCF) − Net Debt + Surplus Assets = Equity Value range (Low to High). Data sourced from extracted `financial_rows` (balance sheet statement type).
+
+### Implementation scope
+- **D-I1:** Files to modify:
+  - `backend/valuation.py` — rewrite: remove scoring/multiples, add WACC scenario computation from researched inputs
+  - `backend/report_prompts.py` — update `SECTION_SCHEMAS["valuation_advisory"]` to new 12-section schema; rewrite `build_prompt()` for valuation_advisory case
+  - `backend/main.py` — update `_generate_report()` for valuation_advisory: add agentic research loop before Python computation; restructure valuation data passed to Claude
+  - `frontend/index.html` — replace valuation_advisory intake card: remove 23-question form, add narrative risk section + normalisation table + financial assumptions
+
+- **D-I2:** The agentic research loop (D-R1) runs inside `_generate_report()` as an async function `_run_valuation_research()`. It calls Claude with web_search tool enabled. Returns a structured dict: `{company_summary, sector_summary, comparable_transactions, risk_free_rate, erp, industry_beta, inflation_rate, wacc_scenarios: {high, mid, low}}`.
+
+- **D-I3:** **No new DB schema changes.** The `report_intake` table already stores all intake answers as a JSON blob. The new questionnaire answers (narrative risk fields, financial assumptions, normalisation table) are stored in the same `answers` JSON field.
+
+- **D-I4:** The existing report viewer endpoint (`GET /wizard/report/{id}/view`) will need updating to render the new table-containing sections correctly. This is a minor extension — the endpoint reads `section.table` if present and renders as HTML table.
+
+</decisions>
+
+<canonical_refs>
+## Canonical References
+
+**Downstream agents MUST read these before planning or implementing.**
+
+### Reference document (primary)
+- `FINAL _ Propellerhead_ Oct 25 Bayleys Business Indicative Valuation Report.pdf` — **The target quality standard.** Full path: `/Users/William.Cheong/Library/CloudStorage/OneDrive-SharedLibraries-BayleysRealEstateLimited/Business - Valuations/Clients/Propellerhead Limited/Valuation Report/FINAL _ Propellerhead_ Oct 25 Bayleys Business Indicative Valuation Report.pdf`. Contains: exact section structure, table formats, WACC assumptions table layout, valuation summary table layout, narrative style, disclaimer wording. MUST read before implementing any report section.
+
+### Files being replaced / modified (MUST read before editing)
+- `backend/valuation.py` — current implementation; functions being removed: `compute_ev_ebitda_multiple()`, sector scoring logic; functions being refactored: `compute_wacc()`, `compute_dcf()`, `compute_illiquidity_discount()`, `compute_valuation()`
+- `backend/report_prompts.py` — current `SECTION_SCHEMAS["valuation_advisory"]` (8 sections → 12 sections); current `build_prompt()` valuation_advisory case; `compute_bank_credit_figures()` is untouched
+- `backend/main.py` — `_generate_report()` (lines ~1231–1490); `_run_valuation_algorithm()` (lines ~1395–1493); the agentic research call replaces `_run_valuation_algorithm()`
+
+### Prior phase context
+- `.planning/phases/05-report-intake-questionnaires-generation-engine/05-CONTEXT.md` — D-08 (Python computes all numbers, Claude writes narrative only), D-10 (JSON section storage pattern), D-11 (email delivery unchanged)
+- `.planning/phases/05-report-intake-questionnaires-generation-engine/05-VALUATION-ALGORITHM.md` — current algorithm spec; the EV/EBITDA scoring is being replaced but WACC/DCF formulas and illiquidity discount formula remain valid
+- `.planning/phases/03-business-profile-intake/03-CONTEXT.md` — D-04: EBITDA add-backs stored in `ebitda_adjustments` table (pre-filled into normalisation table in D-Q4)
+
+### Codebase patterns to follow
+- `backend/ingestion.py` — `call_claude()` with `tools` parameter (forced tool-use pattern); the agentic research loop uses the same Anthropic SDK but with `web_search` tool instead of `extract_financials`
+- `backend/main.py` `_call_claude_for_report()` — existing Claude API call pattern for report generation (non-tool-use); the writing step uses this unchanged
+- `frontend/index.html` — `_buildIntakeForms()` and DOM helper functions `mk()`, `formGroup()`, `styledInput()`, `styledSelect()` (Phase 5 XSS-safe patterns); the new valuation intake form reuses these helpers
+
+### External data sources (agent searches these at generation time)
+- RBNZ public website — 10-yr NZ government bond yield, ERP data, NZ inflation/CPI
+- Damodaran's website (damodaran.com) — annual total beta by industry, ERP by country (agent searches for current year data)
+- Stats NZ — NZ CPI if not found on RBNZ
+
+</canonical_refs>
+
+<code_context>
+## Reusable Assets
+
+### Backend
+- `backend/valuation.py` — `compute_dcf()`, `compute_illiquidity_discount()`: keep and refactor; `compute_ev_ebitda_multiple()`, scoring logic: remove
+- `backend/ingestion.py` `call_claude()` — Anthropic SDK pattern with tool-use; the agentic research loop follows the same pattern with `web_search` tool
+- `backend/main.py` `_call_claude_for_report()` — non-tool-use Claude call for report writing; unchanged
+
+### Frontend
+- `frontend/index.html` `_buildIntakeForms()` — DOM helper functions (`mk`, `formGroup`, `styledInput`, `styledSelect`) used to render XSS-safe intake forms; the normalisation table requires a new `buildDynamicTable()` helper for add/remove rows
+- Existing `.card`, `.form-group`, `.btn-primary`, `.btn-secondary` CSS classes — reuse for new intake card
+
+### Existing DB
+- `ebitda_adjustments` table — `(id, company_id, label, amount, rationale)` — pre-fills the normalisation table in D-Q4; fetched in `_generate_report()` at step 3 (already coded)
+- `report_intake` table — `answers TEXT (JSON)` — new questionnaire answers stored here (no schema change needed)
+- `financial_rows` table — balance sheet rows needed for balance sheet summary section; already fetched in `_generate_report()` step 4
+
+</code_context>
+
+<deferred>
+## Deferred Ideas (noted, not in scope for Phase 5.5)
+
+- **Real WACC (inflation-adjusted):** User chose nominal WACC. Real WACC approach (matching Propellerhead exactly) deferred — can be added as a toggle in a future enhancement.
+- **Admin-uploaded Damodaran beta file:** User chose agent web search. If Damodaran's website structure changes and breaks searches, consider an admin-upload fallback as a resilience measure.
+- **Phase 7 table rendering templates:** The table JSON format (D-S3) is defined here but the Jinja2 template rendering remains Phase 7's responsibility.
+- **Sector-hardcoded WACC bands:** Rejected in favour of live research. Could be a fallback if web_search fails to retrieve WACC data.
+- **Bull/Bear revenue scenario modelling:** User chose single growth rate (CAGR). Scenario modelling via revenue growth belongs in Financial Forecast report type.
+
+</deferred>
