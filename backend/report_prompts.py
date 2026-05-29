@@ -16,13 +16,17 @@ from typing import Optional
 
 SECTION_SCHEMAS: dict[str, list[str]] = {
     "valuation_advisory": [
-        "executive_summary",
+        "introduction",
         "business_overview",
-        "financial_analysis",
+        "market_position",
+        "financial_performance",
+        "normalisations_schedule",
+        "balance_sheet_summary",
         "valuation_methodology",
+        "wacc_assumptions",
         "dcf_analysis",
-        "multiples_analysis",
-        "concluded_value",
+        "valuation_summary",
+        "multiples_crosscheck",
         "disclaimer",
     ],
     "bank_credit_paper": [
