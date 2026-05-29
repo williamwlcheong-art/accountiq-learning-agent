@@ -197,12 +197,12 @@ Plans:
 
 **UI hint:** yes
 
-**Plans:** 4 plans
+**Plans:** 2/4 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 05.1-01-PLAN.md — Refactor valuation.py (remove scoring, add compute_wacc_scenarios), lock 12-section schema, Wave 0 RED tests
-- [ ] 05.1-02-PLAN.md — Build research_loop.py (Anthropic web_search agentic loop + ResearchBrief Pydantic + 4 guardrails) with offline guardrail tests
+- [x] 05.1-01-PLAN.md — Refactor valuation.py (remove scoring, add compute_wacc_scenarios), lock 12-section schema, Wave 0 RED tests
+- [x] 05.1-02-PLAN.md — Build research_loop.py (Anthropic web_search agentic loop + ResearchBrief Pydantic + 4 guardrails) with offline guardrail tests
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 05.1-03-PLAN.md — Wire orchestration: build_prompt table instructions, _generate_report research→DCF flow, wizard_report_view dict-section renderer, FMCA disclaimer gate
