@@ -197,10 +197,18 @@ Plans:
 
 **UI hint:** yes
 
-**Plans:** 0 plans
+**Plans:** 4 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 05.1 to break down)
+**Wave 1**
+- [ ] 05.1-01-PLAN.md — Refactor valuation.py (remove scoring, add compute_wacc_scenarios), lock 12-section schema, Wave 0 RED tests
+- [ ] 05.1-02-PLAN.md — Build research_loop.py (Anthropic web_search agentic loop + ResearchBrief Pydantic + 4 guardrails) with offline guardrail tests
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 05.1-03-PLAN.md — Wire orchestration: build_prompt table instructions, _generate_report research→DCF flow, wizard_report_view dict-section renderer, FMCA disclaimer gate
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 05.1-04-PLAN.md — Replace intake form (narrative risk + normalisation table + financial assumptions), buildDynamicTable helper, researching status, human-verify checkpoint
 
 ## Phase 6: Payment Integration
 
