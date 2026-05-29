@@ -168,8 +168,12 @@ def _apply_guardrails(brief: ResearchBrief) -> None:
                 f"Research brief field '{field_name}' contains placeholder text: '{value[:80]}'"
             )
     # 3. Missing RBNZ/Damodaran source URL
+    # Damodaran's NYU pages use the URL path "~adamodar/" (his username) so we
+    # match both "damodaran" (his name/domain) and "adamodar" (NYU username).
     sources_concat = " ".join(brief.sources).lower()
-    if "rbnz.govt.nz" not in sources_concat and "damodaran" not in sources_concat:
+    has_rbnz = "rbnz.govt.nz" in sources_concat
+    has_damodaran = "damodaran" in sources_concat or "adamodar" in sources_concat
+    if not has_rbnz and not has_damodaran:
         raise ValueError(
             "Research brief sources do not include an RBNZ or Damodaran URL. "
             "WACC inputs cannot be verified as sourced from authoritative data. "
