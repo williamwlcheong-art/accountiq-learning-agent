@@ -14,6 +14,14 @@ from typing import Optional
 # Section schemas (D-10) — stable keys used by generate_report() + Phase 7 Jinja2
 # ---------------------------------------------------------------------------
 
+TABLE_SECTIONS_VALUATION = [
+    "financial_performance",
+    "normalisations_schedule",
+    "balance_sheet_summary",
+    "wacc_assumptions",
+    "valuation_summary",
+]
+
 SECTION_SCHEMAS: dict[str, list[str]] = {
     "valuation_advisory": [
         "introduction",
@@ -234,11 +242,23 @@ def build_prompt(
 
     sections = SECTION_SCHEMAS[report_type]
     sections_spec = json.dumps(sections)
-    sections_instruction = (
-        f"Return a JSON object with exactly these keys (in this order): {sections_spec}. "
-        "Each value must be a non-empty string containing the section content. "
-        "Do not include any keys not in this list. No nested objects or arrays."
-    )
+
+    if report_type == "valuation_advisory":
+        table_sections_spec = json.dumps(TABLE_SECTIONS_VALUATION)
+        sections_instruction = (
+            f"Return a JSON object with exactly these keys (in this order): {sections_spec}. "
+            f"For the keys in this list: {table_sections_spec}, the value MUST be a JSON object "
+            f"with two keys: 'narrative' (a non-empty string) and 'table' (an object with 'headers' "
+            f"(array of strings) and 'rows' (array of arrays of strings)). "
+            f"For all other keys, the value MUST be a non-empty plain string. "
+            f"Do not include any keys not in this list."
+        )
+    else:
+        sections_instruction = (
+            f"Return a JSON object with exactly these keys (in this order): {sections_spec}. "
+            "Each value must be a non-empty string containing the section content. "
+            "Do not include any keys not in this list. No nested objects or arrays."
+        )
 
     system_prompt = _SYSTEM_BASE + "\n\n" + sections_instruction
 
@@ -267,7 +287,32 @@ def build_prompt(
     if report_type == "valuation_advisory":
         if valuation_result is None:
             raise ValueError("valuation_result is required for valuation_advisory report type")
-        user_message = f"""Generate a Valuation Advisory report for {company_name}.
+
+        research_brief_text = json.dumps(valuation_result.get("research_brief", {}), indent=2)
+        dcf_block = {
+            "wacc_scenarios_pct": valuation_result.get("wacc_scenarios_pct", {}),
+            "dcf_scenarios": valuation_result.get("dcf_scenarios", {}),
+            "illiquidity_discount": valuation_result.get("illiquidity_discount", {}),
+            "normalised_ebitda": valuation_result.get("normalised_ebitda"),
+            "revenues": valuation_result.get("revenues"),
+            "net_debt": valuation_result.get("net_debt"),
+            "cash": valuation_result.get("cash"),
+        }
+        dcf_block_text = json.dumps(dcf_block, indent=2)
+
+        normalisations = intake_answers.get("normalisations", []) if isinstance(intake_answers, dict) else []
+        narrative_intake = {k: v for k, v in (intake_answers or {}).items() if k != "normalisations"}
+        narrative_intake_text = "\n".join(f"- {k}: {v}" for k, v in narrative_intake.items()) or "Not provided."
+        norm_lines = (
+            "\n".join(
+                f"- {n.get('label', '?')}: ${float(n.get('amount', 0) or 0):,.0f}"
+                + (f" — {n.get('rationale')}" if n.get('rationale') else "")
+                for n in normalisations
+            )
+            or "No normalisation items provided."
+        )
+
+        user_message = f"""Generate a Valuation Advisory report for {company_name} matching the Propellerhead/Bayleys indicative valuation standard.
 
 ## Company Information
 - Name: {company_name}
@@ -277,19 +322,43 @@ def build_prompt(
 ## Extracted Financials
 {financials_text}
 
-## EBITDA Add-backs (Normalisation)
-{ebitda_text}
-
 ## Management Team
 {mgmt_text}
 
-## Valuation Algorithm Outputs (Python-computed — DO NOT change these numbers)
-{json.dumps(valuation_result, indent=2)}
+## Phase 3 EBITDA Add-backs (legacy — see normalisation table below for the authoritative list)
+{ebitda_text}
 
-## Questionnaire Inputs
-{intake_text}
+## User Intake — Narrative Risk + Financial Assumptions
+{narrative_intake_text}
 
-Write the Valuation Advisory report. The concluded_value section must reference the low/mid/high range from the algorithm outputs verbatim. The dcf_analysis and multiples_analysis sections must explain the respective methodologies using the inputs provided — do not recalculate or modify any numbers. This report is indicative only and does not constitute financial advice."""
+## User Intake — Normalisation Schedule (use these to populate the normalisations_schedule table)
+{norm_lines}
+
+## Research Brief (Claude-researched via web_search — do NOT modify any figure here)
+```json
+{research_brief_text}
+```
+
+## Python-Computed DCF Scenarios and Illiquidity Discount (do NOT change any number)
+```json
+{dcf_block_text}
+```
+
+## Section-specific instructions
+- introduction: Engagement scope, basis of valuation, indicative nature, FMCA compliance.
+- business_overview: Use research_brief.company_summary; do not invent facts.
+- market_position: Use research_brief.sector_summary; reference at least one NZ-specific competitor or regulator.
+- financial_performance: Provide narrative + table {{headers: [Year, Revenue, EBITDA, Net Profit, ...], rows: [...]}} sourced from Extracted Financials.
+- normalisations_schedule: narrative + table {{headers: [Label, Amount ($), Rationale], rows: [...]}} sourced from the Normalisation Schedule intake.
+- balance_sheet_summary: narrative + table {{headers: [Item, Value], rows: [...]}} including fixed assets, working capital, net debt, surplus assets; conclude with the EV→Equity bridge per D-S4.
+- valuation_methodology: Explain DCF-primary approach and why it was chosen; reference WACC range derivation.
+- wacc_assumptions: narrative + table {{headers: [Component, High, Mid, Low], rows: includes Risk-free rate, ERP, Industry Beta, Total Beta, WACC %}} from wacc_scenarios_pct.
+- dcf_analysis: Narrative on base-period, growth assumptions, terminal value, scenarios; reference dcf_scenarios numbers verbatim.
+- valuation_summary: narrative + table {{headers: [Scenario, Enterprise Value, Illiquidity-adjusted EV, Equity Value], rows: [High, Mid, Low]}} using dcf_scenarios + illiquidity_discount.
+- multiples_crosscheck: One paragraph referencing research_brief.comparable_transactions.
+- disclaimer: Full FMCA-compliant disclaimer paragraph containing: 'indicative', 'does not constitute financial advice', 'FMCA' or 'Financial Markets Conduct', and 'not relied' or 'should not be relied'.
+
+All figures in JSON blocks above are Python-computed — copy them verbatim into the report. Do not estimate, round, or recalculate. This report is indicative only and does not constitute financial advice."""
 
     elif report_type == "bank_credit_paper":
         if bank_credit_figures is None:

@@ -38,7 +38,7 @@ if "email.message" not in _sys.modules:
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, FileResponse, Response
+from fastapi.responses import JSONResponse, FileResponse, Response, HTMLResponse
 import aiosqlite
 
 # Load .env from project root (one level up from backend/)
@@ -51,6 +51,8 @@ from ingestion import ingest_document, ALL_ROWS
 from auth import auth_router, get_current_user, require_admin
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
 from report_prompts import build_prompt, SECTION_SCHEMAS, compute_bank_credit_figures
+from research_loop import run_valuation_research, ResearchBrief
+from valuation import compute_wacc_scenarios, compute_dcf, compute_illiquidity_discount
 # from email import send_report_ready_email as _send_report_email
 # NOTE: cannot import from email module directly in backend/ context because backend/email.py
 # shadows stdlib email package (smtplib and fastapi both need email.message / email.utils).
@@ -1140,6 +1142,178 @@ async def wizard_report_retry(
     return {"report_id": report_id, "status": "queued"}
 
 
+@app.get("/wizard/company/{company_id}/ebitda-adjustments")
+async def wizard_get_ebitda_adjustments(
+    company_id: int,
+    current_user: dict = Depends(get_current_user),
+) -> list[dict]:
+    """Wizard-scoped variant of GET /companies/{company_id}/ebitda-adjustments.
+
+    Phase 3.5 placed the /companies/* routes behind Depends(require_admin);
+    non-admin wizard users cannot use that endpoint. This route authorises via
+    ownership instead of admin-only.
+
+    Authorisation: caller must own the company OR be an admin. Otherwise 403.
+    Response: list of {id, label, amount, rationale}, ordered by id ASC.
+    """
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        async with db.execute(
+            "SELECT user_id FROM companies WHERE id = ?",
+            (company_id,),
+        ) as cur:
+            row = await cur.fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="Company not found")
+        owner_id = row["user_id"]
+        is_admin = (current_user.get("role") == "admin")
+        if owner_id != current_user.get("id") and not is_admin:
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+        async with db.execute(
+            "SELECT id, label, amount, rationale FROM ebitda_adjustments "
+            "WHERE company_id = ? ORDER BY id ASC",
+            (company_id,),
+        ) as cur:
+            rows = await cur.fetchall()
+
+    return [
+        {
+            "id": r["id"],
+            "label": r["label"],
+            "amount": r["amount"],
+            "rationale": r["rationale"],
+        }
+        for r in rows
+    ]
+
+
+import html as _html_lib
+
+
+def _render_report_sections_html(sections: dict, section_order: list) -> str:
+    """Render report sections as HTML, handling both plain-string and dict (narrative+table) sections.
+
+    Public for testability — used by wizard_report_view.
+    """
+    section_html = ""
+    for key in section_order:
+        content = sections.get(key, "")
+        heading = key.replace("_", " ").title()
+
+        if isinstance(content, dict):
+            narrative = str(content.get("narrative", "") or "")
+            table_data = content.get("table") if isinstance(content.get("table"), dict) else None
+        else:
+            narrative = str(content) if content is not None else ""
+            table_data = None
+
+        paragraphs = "".join(
+            f"<p>{_html_lib.escape(para.strip())}</p>"
+            for para in narrative.split("\n") if para.strip()
+        )
+
+        table_html = ""
+        if table_data:
+            headers = table_data.get("headers", []) or []
+            rows = table_data.get("rows", []) or []
+            if isinstance(headers, list) and isinstance(rows, list):
+                th_cells = "".join(
+                    f"<th>{_html_lib.escape(str(h))}</th>" for h in headers
+                )
+                tr_rows = "".join(
+                    "<tr>" + "".join(f"<td>{_html_lib.escape(str(c))}</td>" for c in row) + "</tr>"
+                    for row in rows if isinstance(row, list)
+                )
+                if th_cells or tr_rows:
+                    table_html = (
+                        f"<table class='report-table'>"
+                        f"<thead><tr>{th_cells}</tr></thead>"
+                        f"<tbody>{tr_rows}</tbody>"
+                        f"</table>"
+                    )
+
+        section_html += f"""
+        <section>
+            <h2>{_html_lib.escape(heading)}</h2>
+            {paragraphs}
+            {table_html}
+        </section>"""
+
+    return section_html
+
+
+@app.get("/wizard/report/{report_id}/view", response_class=HTMLResponse)
+async def wizard_report_view(
+    report_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Render a completed report as readable HTML (temporary viewer until Phase 7)."""
+    async with db.execute("""
+        SELECT r.id, r.report_type, r.status, r.content, r.completed_at,
+               c.name
+        FROM reports r
+        JOIN companies c ON c.id = r.company_id
+        WHERE r.id=? AND r.user_id=?
+    """, (report_id, current_user["id"])) as cur:
+        row = await cur.fetchone()
+    if not row:
+        raise HTTPException(404, "Report not found")
+    if row["status"] != "done":
+        raise HTTPException(400, f"Report is not ready yet (status: {row['status']})")
+
+    import json as _json
+    try:
+        sections = _json.loads(row["content"])
+    except Exception:
+        raise HTTPException(500, "Report content could not be parsed")
+
+    section_order = SECTION_SCHEMAS.get(row["report_type"], list(sections.keys()))
+    label = row["report_type"].replace("_", " ").title()
+
+    section_html = _render_report_sections_html(sections, section_order)
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{_html_lib.escape(label)} — {_html_lib.escape(row['name'])}</title>
+<style>
+  body {{ font-family: Georgia, serif; max-width: 820px; margin: 40px auto; padding: 0 24px;
+          color: #1a1a2e; line-height: 1.7; }}
+  header {{ border-bottom: 2px solid #1a1a2e; padding-bottom: 16px; margin-bottom: 32px; }}
+  header h1 {{ font-size: 1.6rem; margin: 0 0 4px; }}
+  header p {{ margin: 0; color: #555; font-size: .9rem; }}
+  section {{ margin-bottom: 2.5rem; }}
+  h2 {{ font-size: 1.1rem; font-weight: 700; border-left: 4px solid #2563eb;
+        padding-left: 12px; margin-bottom: 12px; color: #1a1a2e; }}
+  p {{ margin: 0 0 .9rem; font-size: .95rem; }}
+  section:last-child p:last-child {{ font-style: italic; color: #555; font-size: .85rem; }}
+  .back {{ display:inline-block; margin-bottom:24px; font-size:.875rem;
+           color:#2563eb; text-decoration:none; font-family:sans-serif; }}
+  .meta {{ font-family:sans-serif; font-size:.8rem; color:#777; margin-top:4px; }}
+  table.report-table {{ width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: .9rem; }}
+  table.report-table th, table.report-table td {{ padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; }}
+  table.report-table thead th {{ background: #f0f4f8; font-weight: 600; }}
+  table.report-table tbody tr:nth-child(even) {{ background: #fafbfc; }}
+</style>
+</head>
+<body>
+<a class="back" href="javascript:history.back()">&#x2190; Back</a>
+<header>
+  <h1>{_html_lib.escape(label)}</h1>
+  <p>{_html_lib.escape(row['name'])}</p>
+  <p class="meta">Report #{row['id']} &nbsp;·&nbsp; Generated {row['completed_at']}</p>
+</header>
+{section_html}
+</body>
+</html>"""
+    return HTMLResponse(content=html)
+
+
 # ---------------------------------------------------------------------------
 # Report generation background task (Phase 5)
 # ---------------------------------------------------------------------------
@@ -1242,9 +1416,120 @@ async def _generate_report(
             bank_credit_figs = None
 
             if report_type == "valuation_advisory":
-                valuation_result = await _run_valuation_algorithm(
-                    db, company_id, intake_answers, ebitda_adjustments, raw_fin_rows
+                # 5a. Update status so the wizard can show 'researching' in real time
+                await db.execute(
+                    "UPDATE reports SET status='researching' WHERE id=?", (report_id,)
                 )
+                await db.commit()
+
+                # 5b. Run agentic web research loop (Plan 02)
+                company_location = (intake_answers.get("company_location") or "New Zealand") if isinstance(intake_answers, dict) else "New Zealand"
+                industry_sector_for_research = company_sector or "General SME"
+                brief = await run_valuation_research(
+                    company_name=company_name,
+                    company_location=company_location,
+                    industry_sector=industry_sector_for_research,
+                )
+
+                # 5c. Compute WACC scenarios (percent), then 3x DCF (decimal), then illiquidity discount
+                wacc_pct = compute_wacc_scenarios(
+                    risk_free_rate=brief.risk_free_rate,
+                    industry_beta=brief.industry_beta,
+                    erp=brief.erp,
+                )
+
+                # Extract financial inputs from raw_fin_rows
+                pnl_by_key: dict = {}
+                bs_by_key: dict = {}
+                for r in raw_fin_rows:
+                    key = r.get("row_key", "")
+                    period = r.get("period", "")
+                    value = r.get("value")
+                    if value is None:
+                        continue
+                    if r.get("statement") == "pnl":
+                        pnl_by_key.setdefault(key, []).append((period, float(value)))
+                    elif r.get("statement") == "bs":
+                        bs_by_key.setdefault(key, []).append((period, float(value)))
+
+                def _latest_value(rows_by_key: dict, key: str) -> float:
+                    entries = rows_by_key.get(key, [])
+                    if not entries:
+                        return 0.0
+                    return sorted(entries, key=lambda x: x[0], reverse=True)[0][1]
+
+                extracted_ebitda = _latest_value(pnl_by_key, "ebitda")
+                if extracted_ebitda == 0.0:
+                    net_p = _latest_value(pnl_by_key, "net_profit")
+                    da = _latest_value(pnl_by_key, "depreciation_amortisation") or _latest_value(pnl_by_key, "depreciation")
+                    extracted_ebitda = net_p + abs(da)
+
+                revenues_val = _latest_value(pnl_by_key, "revenue")
+                net_profit_latest = _latest_value(pnl_by_key, "net_profit")
+                cash_val = abs(
+                    _latest_value(bs_by_key, "cash_and_equivalents") or
+                    _latest_value(bs_by_key, "cash_and_bank") or
+                    _latest_value(bs_by_key, "cash")
+                )
+
+                # Use new intake normalisations array as authoritative add-back source;
+                # fall back to Phase 3 ebitda_adjustments if not provided.
+                intake_norms = intake_answers.get("normalisations") if isinstance(intake_answers, dict) else None
+                if isinstance(intake_norms, list) and len(intake_norms) > 0:
+                    addbacks_total = sum(float(n.get("amount", 0) or 0) for n in intake_norms)
+                else:
+                    addbacks_total = sum(float(a.get("amount", 0) or 0) for a in ebitda_adjustments)
+                normalised_ebitda = extracted_ebitda + addbacks_total
+
+                forecast_years = int(intake_answers.get("forecast_horizon", 5)) if isinstance(intake_answers, dict) else 5
+                revenue_growth_pct = float(intake_answers.get("revenue_growth_cagr", 5.0) or 5.0) if isinstance(intake_answers, dict) else 5.0
+                terminal_growth_pct = float(intake_answers.get("terminal_growth_rate", 2.5) or 2.5) if isinstance(intake_answers, dict) else 2.5
+                tax_rate = 0.28  # NZ corporate tax rate
+
+                loop = asyncio.get_running_loop()
+
+                def _run_dcf_for_scenario(wacc_percent: float) -> dict:
+                    return compute_dcf(
+                        ebitda=normalised_ebitda,
+                        wacc=wacc_percent / 100.0,
+                        growth_rate=revenue_growth_pct / 100.0,
+                        tax_rate=tax_rate,
+                        years=forecast_years,
+                        terminal_growth=terminal_growth_pct / 100.0,
+                    )
+
+                dcf_high = await loop.run_in_executor(None, _run_dcf_for_scenario, wacc_pct["high"])
+                dcf_mid  = await loop.run_in_executor(None, _run_dcf_for_scenario, wacc_pct["mid"])
+                dcf_low  = await loop.run_in_executor(None, _run_dcf_for_scenario, wacc_pct["low"])
+
+                def _ev_from_dcf(d: dict) -> float:
+                    return float(d.get("enterprise_value_dcf") or d.get("enterprise_value") or d.get("ev") or 0.0)
+
+                ev_mid = _ev_from_dcf(dcf_mid)
+                illiq_rate = await loop.run_in_executor(
+                    None,
+                    compute_illiquidity_discount,
+                    revenues_val,
+                    (net_profit_latest > 0),
+                    cash_val,
+                    ev_mid,
+                )
+                ev_adjusted = {
+                    "high": _ev_from_dcf(dcf_high) * (1.0 - illiq_rate),
+                    "mid":  ev_mid * (1.0 - illiq_rate),
+                    "low":  _ev_from_dcf(dcf_low) * (1.0 - illiq_rate),
+                }
+
+                valuation_result = {
+                    "research_brief": brief.model_dump(),
+                    "wacc_scenarios_pct": wacc_pct,
+                    "dcf_scenarios": {"high": dcf_high, "mid": dcf_mid, "low": dcf_low},
+                    "illiquidity_discount": {"rate": illiq_rate, "ev_adjusted": ev_adjusted},
+                    "normalised_ebitda": normalised_ebitda,
+                    "revenues": revenues_val,
+                    "net_debt": 0.0,
+                    "cash": cash_val,
+                }
             elif report_type == "bank_credit_paper":
                 bank_credit_figs = compute_bank_credit_figures(
                     financial_rows_for_prompt, intake_answers
@@ -1279,6 +1564,34 @@ async def _generate_report(
                     "Report marked failed — please retry."
                 )
 
+            # --- 8b. FMCA disclaimer compliance gate (REPT-06 + AI-SPEC guardrail) ---
+            if report_type == "valuation_advisory":
+                disclaimer_section = content_json.get("disclaimer", "")
+                if isinstance(disclaimer_section, dict):
+                    disclaimer_text = str(disclaimer_section.get("narrative", ""))
+                else:
+                    disclaimer_text = str(disclaimer_section)
+                lowered = disclaimer_text.lower()
+                required_phrases = [
+                    ("indicative", ("indicative",)),
+                    ("financial advice", ("financial advice",)),
+                    ("FMCA or FMCA name", ("fmca", "financial markets conduct")),
+                    ("not relied", ("not relied", "should not be relied")),
+                ]
+                missing_phrases = []
+                for label, needles in required_phrases:
+                    if not any(n in lowered for n in needles):
+                        missing_phrases.append(label)
+                if missing_phrases:
+                    err = f"Disclaimer compliance check failed — missing required phrases: {missing_phrases}"
+                    print(f"[REPORT ERROR] report_id={report_id} disclaimer_incomplete: {missing_phrases}")
+                    await db.execute(
+                        "UPDATE reports SET status='failed', error_message=? WHERE id=?",
+                        (err, report_id),
+                    )
+                    await db.commit()
+                    return
+
             # --- 9. Mark done, store content ---
             await db.execute("""
                 UPDATE reports
@@ -1312,119 +1625,6 @@ async def _generate_report(
                 await db.commit()
             except Exception as db_exc:
                 print(f"[REPORT ERROR] Failed to mark report failed: {db_exc}")
-
-
-async def _run_valuation_algorithm(
-    db, company_id: int, intake_answers: dict,
-    ebitda_adjustments: list[dict], raw_fin_rows: list[dict]
-) -> dict:
-    """
-    Run the Python valuation algorithm (D-08). Returns the output dict
-    that is passed to Claude's prompt.
-
-    Calls compute_valuation() from backend/valuation.py (created in Plan 05-02).
-    Extracts normalised_ebitda, revenues, and cash from DB-format financial rows.
-    """
-    try:
-        from valuation import compute_valuation
-
-        # Build questionnaire_answers list: q1..q23 as integers 1-5
-        q_answers = [int(intake_answers.get(f"q{i}", 3)) for i in range(1, 24)]
-        sector = intake_answers.get("sector", "services")
-
-        # Build DCF inputs from intake answers (defaults match NZ SME typical values)
-        dcf_inputs = {
-            "risk_free_rate":             float(intake_answers.get("risk_free_rate", 0.05)),
-            "equity_market_risk_premium": float(intake_answers.get("equity_market_risk_premium", 0.07)),
-            "beta":                       float(intake_answers.get("beta", 1.0)),
-            "cost_of_debt_pretax":        float(intake_answers.get("cost_of_debt_pretax", 0.06)),
-            "corp_tax_rate":              float(intake_answers.get("corp_tax_rate", 0.28)),
-            "weight_equity":              float(intake_answers.get("weight_equity", 1.0)),
-            "weight_debt":                float(intake_answers.get("weight_debt", 0.0)),
-            "revenue_growth_rate":        float(intake_answers.get("revenue_growth_rate", 0.05)),
-            "terminal_growth_rate":       float(intake_answers.get("terminal_growth_rate", 0.03)),
-            "forecast_years":             int(intake_answers.get("forecast_years", 5)),
-        }
-
-        # Compute normalised EBITDA: extracted EBITDA + Phase 3 add-backs
-        # Use most recent period's EBITDA from financial_rows (pnl statement)
-        extracted_ebitda = 0.0
-        revenues = 0.0
-        cash = 0.0
-        net_profit_latest = 0.0
-
-        # Group rows by key for quick lookup
-        pnl_by_key: dict[str, list[tuple[str, float]]] = {}
-        bs_by_key: dict[str, list[tuple[str, float]]] = {}
-        for r in raw_fin_rows:
-            key = r.get("row_key", "")
-            period = r.get("period", "")
-            value = r.get("value")
-            if value is None:
-                continue
-            if r.get("statement") == "pnl":
-                pnl_by_key.setdefault(key, []).append((period, float(value)))
-            elif r.get("statement") == "bs":
-                bs_by_key.setdefault(key, []).append((period, float(value)))
-
-        def _latest_value(rows_by_key: dict, key: str) -> float:
-            entries = rows_by_key.get(key, [])
-            if not entries:
-                return 0.0
-            return sorted(entries, key=lambda x: x[0], reverse=True)[0][1]
-
-        # Try standard EBITDA key first; fall back to net_profit + depreciation
-        extracted_ebitda = _latest_value(pnl_by_key, "ebitda")
-        if extracted_ebitda == 0.0:
-            net_p = _latest_value(pnl_by_key, "net_profit")
-            da = _latest_value(pnl_by_key, "depreciation_amortisation") or \
-                 _latest_value(pnl_by_key, "depreciation")
-            extracted_ebitda = net_p + abs(da)
-
-        revenues = _latest_value(pnl_by_key, "revenue")
-        net_profit_latest = _latest_value(pnl_by_key, "net_profit")
-
-        # Cash from balance sheet
-        cash = abs(_latest_value(bs_by_key, "cash_and_equivalents") or
-                   _latest_value(bs_by_key, "cash_and_bank") or
-                   _latest_value(bs_by_key, "cash"))
-
-        addbacks_total = sum(float(a.get("amount", 0)) for a in ebitda_adjustments)
-        normalised_ebitda = extracted_ebitda + addbacks_total
-
-        financial_data = {
-            "normalised_ebitda": normalised_ebitda,
-            "revenues":          revenues,
-            "is_profitable":     net_profit_latest > 0,
-            "cash":              cash,
-            "net_debt":          0.0,
-        }
-
-        loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(
-            None,
-            compute_valuation,
-            q_answers,
-            sector,
-            dcf_inputs,
-            financial_data,
-        )
-        return result
-
-    except ImportError:
-        print(f"[REPORT] valuation.py not importable for company {company_id}")
-        return {
-            "method_used": "both",
-            "normalised_ebitda": None,
-            "note": "Valuation algorithm not available",
-        }
-    except Exception as exc:
-        print(f"[REPORT] Valuation algorithm error for company {company_id}: {exc}")
-        return {
-            "method_used": "both",
-            "normalised_ebitda": None,
-            "note": f"Valuation algorithm error: {exc}",
-        }
 
 
 async def _call_claude_for_report(
