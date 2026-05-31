@@ -2314,104 +2314,171 @@ function _buildIntakeForms() {
     });
   }
 
-  // Valuation Advisory — 23 scored questions in 8 category groups
-  var valCategories = [
-    { name: 'History', questions: [
-      { q: 1, text: 'How long has the business been established?', opts: ['< 1 yr','1–3 yrs','3–5 yrs','5–10 yrs','10yrs+'] }
-    ]},
-    { name: 'Financial', questions: [
-      { q: 2, text: 'History of EBIT growth', opts: ['Declining','Weak','Steady','Growing','Strong growth'] },
-      { q: 3, text: 'What percentage of income is contracted?', opts: ['<20%','20–40%','40–60%','60–80%','>80% contracted'] },
-      { q: 4, text: 'CAPEX requirement (avg annual capex as % of depreciation)', opts: ['>80% of depreciation','60–80%','40–60%','20–40%','<20% of depreciation'] },
-      { q: 5, text: 'Gross profit %', opts: ['<20% GP','20–30%','30–40%','40–50%','>50% GP'] },
-      { q: 6, text: 'Level of seasonality (3 options)', opts: ['High','Medium','Low'], threeOpt: true },
-      { q: 7, text: 'Fixed assets as a percentage of sales', opts: ['Low fixed asset base','Medium','High fixed asset base'], threeOpt: true },
-      { q: 8, text: 'GP% consistency (trend)', opts: ['Declining','Steady','Improving'], threeOpt: true }
-    ]},
-    { name: 'People', questions: [
-      { q: 9, text: 'Business dependence on staff technical knowledge', opts: ['Highly dependent','Average','Low dependence'], threeOpt: true },
-      { q: 10, text: 'Average length of staff service', opts: ['< 1 yr','1–3 yrs','3–5 yrs','5–7 yrs','> 7 yrs avg tenure'] },
-      { q: 11, text: 'How easy to hire / train staff', opts: ['Very hard','Hard','OK','Easy','Very easy'] },
-      { q: 12, text: 'Management team capable of running without owner', opts: ['Totally owner-dependent','Hard to manage without owner','Could be managed','Semi-managed','Fully managed (no owner dependency)'] }
-    ]},
-    { name: 'Suppliers', questions: [
-      { q: 13, text: 'Supply chain vulnerability to disruption', opts: ['Extremely vulnerable','Very vulnerable','Steady','Slightly','Not vulnerable'] },
-      { q: 14, text: 'Contractual supply agreements or sole agencies', opts: ['None','A few','Some','Plenty','All supply contracted'] }
-    ]},
-    { name: 'Customers', questions: [
-      { q: 15, text: '% of turnover from B2B (wholesale) clients', opts: ['<20% B2B','20–40%','40–60%','60–80%','>80% B2B'] },
-      { q: 16, text: 'Top 5 customer retention across multiple periods', opts: ['None same','Few','Some','Most','All top 5 retained'] },
-      { q: 17, text: 'Largest single customer % of turnover', opts: ['>40%','31–40%','21–30%','11–20%','Largest customer ≤10%'] },
-      { q: 18, text: 'Ease of adding new customers', opts: ['Very hard','Hard','Average','Quite easy','Easy to add customers'] }
-    ]},
-    { name: 'Premises', questions: [
-      { q: 19, text: 'Premises suitability and lease security', opts: ['Must relocate < 2 yrs','Must relocate < 3 yrs','OK for 4+ yrs','Comfortable, decent term','Secure long-term lease, growth-ready'] }
-    ]},
-    { name: 'Competition', questions: [
-      { q: 20, text: 'Level of competition in the market', opts: ['Highly competitive','A lot','Average','Some','Hardly any competition'] },
-      { q: 21, text: 'Barriers to entry for new competitors', opts: ['Very easy','Easy','Possible','Hard','Very hard to set up in competition'] }
-    ]},
-    { name: 'Growth / Opportunities', questions: [
-      { q: 22, text: 'Growth opportunities available to this business', opts: ['None','Small','Some','Good opportunities','Lots of growth opportunity'] },
-      { q: 23, text: 'Sector profile', opts: ['Declining sector','Weak','Steady','Good','Strong sector growth'] }
-    ]}
-  ];
+  function buildDynamicTable(container, initialRows) {
+    // initialRows: array of {label, amount, rationale} from ebitda_adjustments
+    var rowsContainer = mk('div', {'id': 'norm-rows'});
+    var emptyMsg = mk('p',
+      {'id': 'norm-empty',
+       'style': 'font-size:.875rem;color:var(--muted);text-align:center;padding:1rem;display:none'},
+      'No normalisation items. Click \"+ Add normalisation item\" to add one.');
 
-  var valContainer = document.getElementById('intake-valuation_advisory');
-  valContainer.appendChild(mk('p', {'style': 'font-size:.8rem;color:#666;margin-bottom:1rem'},
-    'Rate each question 1 (worst) to 5 (best). For 3-option questions, only 3 choices are shown.'));
+    var rowCount = 0;
+    function updateEmptyState() {
+      emptyMsg.style.display = rowsContainer.children.length === 0 ? 'block' : 'none';
+    }
 
-  var sectorDiv = mk('div', {'style': 'margin-bottom:1rem'});
-  sectorDiv.appendChild(mk('label', {'style': 'font-weight:600;color:var(--navy);font-size:.875rem'}, 'Sector'));
-  sectorDiv.appendChild(styledSelect('sector', [
-    ['', 'Select sector…'],
-    ['asset_heavy', 'Asset Heavy'],
-    ['services', 'Services'],
-    ['manufacturing', 'Manufacturing'],
-    ['import_distribution', 'Import / Distribution'],
-    ['retail', 'Retail'],
-  ]));
-  valContainer.appendChild(sectorDiv);
+    function addRow(label, amount, rationale) {
+      var idx = rowCount++;
+      var row = mk('div',
+        {'class': 'norm-row', 'data-row-index': String(idx),
+         'style': 'display:grid;grid-template-columns:2fr 120px 2fr auto;gap:.5rem;margin-bottom:.5rem;align-items:start'});
 
-  valCategories.forEach(function(cat) {
-    var details = mk('details', {'open': '', 'style': 'margin-bottom:.75rem;border:1px solid #e5e7eb;border-radius:6px;padding:.5rem .75rem'});
-    details.appendChild(mk('summary', {'style': 'font-weight:600;color:var(--navy);cursor:pointer;font-size:.875rem'}, cat.name));
-    cat.questions.forEach(function(qn) {
-      var qDiv = mk('div', {'style': 'margin-top:.75rem'});
-      var qP = mk('p', {'style': 'font-size:.8rem;color:#333;margin-bottom:.25rem'});
-      qP.appendChild(mk('strong', {}, 'Q' + qn.q + '.'));
-      qP.appendChild(document.createTextNode(' ' + qn.text));
-      qDiv.appendChild(qP);
-      var optDiv = mk('div', {'style': 'display:flex;flex-wrap:wrap;gap:.5rem'});
-      var scores = qn.threeOpt ? [1, 3, 5] : [1, 2, 3, 4, 5];
-      qn.opts.forEach(function(opt, idx) {
-        var score = scores[idx];
-        var lbl = mk('label', {'style': 'display:flex;align-items:center;gap:.25rem;font-size:.75rem;cursor:pointer'});
-        lbl.appendChild(mk('input', {'type': 'radio', 'name': 'q' + qn.q, 'value': String(score), 'required': ''}));
-        lbl.appendChild(document.createTextNode(' ' + opt + ' (' + score + ')'));
-        optDiv.appendChild(lbl);
+      var lInp = styledInput('norm_label_' + idx, 'text',
+                              {'placeholder': 'e.g. Owner salary above market'});
+      lInp.value = label || '';
+      var aInp = styledInput('norm_amount_' + idx, 'number',
+                              {'step': '1000', 'placeholder': '0'});
+      aInp.value = (amount === 0 || amount) ? String(amount) : '';
+      var rInp = styledInput('norm_rationale_' + idx, 'text',
+                              {'placeholder': 'Brief explanation'});
+      rInp.value = rationale || '';
+
+      var delBtn = mk('button',
+        {'type': 'button', 'class': 'btn btn-sm btn-danger',
+         'style': 'padding:.4rem .6rem;background:var(--red);color:white;border:none;border-radius:4px;cursor:pointer;font-size:.75rem'},
+        'Remove Item');
+      delBtn.addEventListener('click', function() {
+        row.remove();
+        updateEmptyState();
       });
-      qDiv.appendChild(optDiv);
-      details.appendChild(qDiv);
+
+      row.appendChild(lInp);
+      row.appendChild(aInp);
+      row.appendChild(rInp);
+      row.appendChild(delBtn);
+      rowsContainer.appendChild(row);
+      updateEmptyState();
+    }
+
+    (initialRows || []).forEach(function(r) { addRow(r.label, r.amount, r.rationale); });
+
+    var addBtn = mk('button',
+      {'type': 'button', 'class': 'btn btn-secondary',
+       'style': 'width:100%;margin-top:8px;padding:.5rem;font-size:.8rem;background:#f5f7fa;border:1px dashed var(--border);border-radius:4px;cursor:pointer'},
+      '+ Add normalisation item');
+    addBtn.addEventListener('click', function() {
+      addRow('', '', '');
     });
-    valContainer.appendChild(details);
+
+    container.appendChild(rowsContainer);
+    container.appendChild(emptyMsg);
+    container.appendChild(addBtn);
+    updateEmptyState();
+  }
+
+  // === Valuation Advisory intake (Phase 05.1 redesign) ===
+  var valContainer = document.getElementById('intake-valuation_advisory');
+  // Clear any prior content (safe: clearing developer-authored DOM, not user input)
+  valContainer.innerHTML = '';
+
+  // ---- Section 1: Narrative Risk Assessment ----
+  valContainer.appendChild(mk('h3',
+    {'style': 'font-size:.875rem;font-weight:600;color:var(--navy);margin:1.25rem 0 8px'},
+    'Narrative Risk Assessment'));
+  valContainer.appendChild(mk('p',
+    {'style': 'font-size:.8rem;color:var(--muted);margin-bottom:1rem'},
+    'Describe each risk area in your own words. These inform the qualitative sections of the valuation report.'));
+
+  var narrativeFields = [
+    ['owner_key_person_dependency', 'Owner / Key-Person Dependency',
+     'How reliant is the business on the owner or 1–2 key individuals? Would it function without them?'],
+    ['customer_concentration', 'Customer Concentration',
+     'What % of revenue comes from your top 3 customers? B2B vs consumer split? Contracted vs repeat business?'],
+    ['competitive_position', 'Competitive Position & Barriers',
+     'Who are the main competitors? What stops new entrants? Any IP, contracts, or brand moat?'],
+    ['growth_strategy_pipeline', 'Growth Strategy & Pipeline',
+     'How does the business plan to grow? Signed contracts, geographic expansion, new products?'],
+  ];
+  narrativeFields.forEach(function(f) {
+    var ta = styledInput(f[0], 'textarea', {'rows': '3', 'placeholder': f[2]});
+    var fg = formGroup(f[1], ta);
+    fg.style.marginBottom = '1rem';
+    valContainer.appendChild(fg);
   });
 
-  // WACC inputs for DCF
-  valContainer.appendChild(mk('h3', {'style': 'font-size:.875rem;font-weight:700;color:var(--navy);margin:1rem 0 .5rem'}, 'DCF Inputs (WACC)'));
-  [
-    ['risk_free_rate','Risk-free rate (e.g. 0.05 for 5%)','number',{'value':'0.05','step':'0.001'}],
-    ['equity_market_risk_premium','Equity market risk premium (e.g. 0.07)','number',{'value':'0.07','step':'0.001'}],
-    ['beta','Beta (e.g. 1.0)','number',{'value':'1.0','step':'0.01'}],
-    ['cost_of_debt_pretax','Cost of debt pre-tax (e.g. 0.06)','number',{'value':'0.06','step':'0.001'}],
-    ['corp_tax_rate','Corporate tax rate (NZ 0.28 / AU 0.30)','number',{'value':'0.28','step':'0.01'}],
-    ['weight_equity','Equity weighting (e.g. 1.0 = all equity)','number',{'value':'1.0','step':'0.01'}],
-    ['revenue_growth_rate','Annual revenue growth rate (e.g. 0.05)','number',{'value':'0.05','step':'0.001'}],
-    ['terminal_growth_rate','Terminal growth rate (e.g. 0.03)','number',{'value':'0.03','step':'0.001'}],
-    ['forecast_years','Forecast horizon (3 or 5)','number',{'value':'5','step':'1','min':'1'}],
-  ].forEach(function(f) {
-    valContainer.appendChild(formGroup(f[1], styledInput(f[0], f[2], f[3])));
+  // ---- Section 2: Normalisation Schedule ----
+  valContainer.appendChild(mk('h3',
+    {'style': 'font-size:.875rem;font-weight:600;color:var(--navy);margin:1.5rem 0 8px'},
+    'Normalisation Schedule'));
+  valContainer.appendChild(mk('p',
+    {'style': 'font-size:.8rem;color:var(--muted);margin-bottom:8px'},
+    'Pre-filled from your EBITDA add-backs. Edit, remove, or add items specific to this valuation engagement.'));
+
+  var normWrap = mk('div', {'id': 'norm-table-wrap', 'class': 'norm-table-wrap',
+                             'style': 'margin-bottom:1.5rem'});
+  var normLoading = mk('p', {'id': 'norm-loading',
+                              'style': 'font-size:.8rem;color:var(--muted)'},
+                       'Loading add-backs…');
+  normWrap.appendChild(normLoading);
+  valContainer.appendChild(normWrap);
+
+  // Asynchronously pre-fill from the WIZARD-SCOPED endpoint added in Plan 03 Task 4.
+  // DO NOT use /companies/{company_id}/ebitda-adjustments — Phase 3.5 made that admin-only,
+  // and non-admin wizard users would receive 403 (table would silently render empty,
+  // violating D-Q4). The wizard-scoped variant uses Depends(get_current_user).
+  if (_wizardUploadResult && _wizardUploadResult.company_id) {
+    apiFetch('/wizard/company/' + _wizardUploadResult.company_id + '/ebitda-adjustments')
+      .then(function(rows) {
+        var initialRows = (rows || []).map(function(r) {
+          return {label: r.label || '', amount: r.amount || 0, rationale: r.rationale || ''};
+        });
+        normLoading.remove();
+        buildDynamicTable(normWrap, initialRows);
+      })
+      .catch(function() {
+        normLoading.remove();
+        buildDynamicTable(normWrap, []);
+      });
+  } else {
+    normLoading.remove();
+    buildDynamicTable(normWrap, []);
+  }
+
+  // ---- Section 3: Financial Assumptions ----
+  valContainer.appendChild(mk('h3',
+    {'style': 'font-size:.875rem;font-weight:600;color:var(--navy);margin:1.5rem 0 8px'},
+    'Financial Assumptions'));
+  valContainer.appendChild(mk('p',
+    {'style': 'font-size:.8rem;color:var(--muted);margin-bottom:1rem'},
+    'These inputs drive the DCF model. The agent will retrieve WACC components from RBNZ and Damodaran — you do not need to enter WACC inputs.'));
+
+  // Forecast horizon (radio group)
+  var radioWrap = mk('div', {'style': 'display:flex;gap:1.5rem;margin-top:.25rem'});
+  [['3', '3 years'], ['5', '5 years']].forEach(function(opt) {
+    var lbl = mk('label', {'style': 'display:flex;align-items:center;gap:.5rem;font-size:.875rem;cursor:pointer;padding:4px 0'});
+    lbl.appendChild(mk('input', {'type': 'radio', 'name': 'forecast_horizon', 'value': opt[0], 'required': ''}));
+    lbl.appendChild(document.createTextNode(' ' + opt[1]));
+    radioWrap.appendChild(lbl);
   });
+  valContainer.appendChild(formGroup('Forecast Horizon', radioWrap));
+
+  // Revenue growth CAGR
+  var cagrInp = styledInput('revenue_growth_cagr', 'number',
+                             {'step': '0.1', 'min': '0', 'max': '100', 'placeholder': 'e.g. 8'});
+  var cagrGroup = formGroup('Revenue Growth Rate (CAGR %)', cagrInp);
+  cagrGroup.appendChild(mk('div',
+    {'style': 'font-size:.8rem;color:var(--muted);margin-top:.25rem'},
+    'Enter as a percentage, e.g. 8 for 8%. Applied uniformly across all forecast years.'));
+  valContainer.appendChild(cagrGroup);
+
+  // Terminal growth rate
+  var tgInp = styledInput('terminal_growth_rate', 'number',
+                           {'step': '0.1', 'min': '0', 'max': '20', 'placeholder': 'e.g. 2.5'});
+  var tgGroup = formGroup('Terminal Growth Rate (%)', tgInp);
+  tgGroup.appendChild(mk('div',
+    {'style': 'font-size:.8rem;color:var(--muted);margin-top:.25rem'},
+    'Typically aligned with long-run inflation (NZ CPI ~2–3%). The agent will retrieve current NZ CPI as a cross-check.'));
+  valContainer.appendChild(tgGroup);
 
   // Bank Credit Paper
   buildSimpleForm(document.getElementById('intake-bank_credit_paper'), [
@@ -2510,6 +2577,49 @@ async function wizardSubmitGenerate() {
     });
   }
 
+  // Valuation Advisory: validate + collate normalisations (Phase 05.1)
+  if (_wizardReportType === 'valuation_advisory') {
+    // Validation
+    if (answers.forecast_horizon !== 3 && answers.forecast_horizon !== 5 &&
+        answers.forecast_horizon !== '3' && answers.forecast_horizon !== '5') {
+      showAlert('wizard-alert', 'Please select a forecast horizon (3 or 5 years).', 'error');
+      return;
+    }
+    var cagr = parseFloat(answers.revenue_growth_cagr);
+    if (isNaN(cagr) || cagr < 0 || cagr > 100) {
+      showAlert('wizard-alert', 'Revenue growth rate must be a number between 0 and 100.', 'error');
+      return;
+    }
+    var tg = parseFloat(answers.terminal_growth_rate);
+    if (isNaN(tg) || tg < 0 || tg > 20) {
+      showAlert('wizard-alert', 'Terminal growth rate must be a number between 0 and 20.', 'error');
+      return;
+    }
+
+    // Collate norm_label_N / norm_amount_N / norm_rationale_N into array
+    var norms = [];
+    var i = 0;
+    while (answers['norm_label_' + i] !== undefined ||
+           answers['norm_amount_' + i] !== undefined ||
+           answers['norm_rationale_' + i] !== undefined) {
+      var lbl = answers['norm_label_' + i];
+      var amt = answers['norm_amount_' + i];
+      var rat = answers['norm_rationale_' + i];
+      delete answers['norm_label_' + i];
+      delete answers['norm_amount_' + i];
+      delete answers['norm_rationale_' + i];
+      if (lbl !== undefined && String(lbl).trim() !== '') {
+        norms.push({
+          label: String(lbl),
+          amount: parseFloat(amt) || 0,
+          rationale: rat !== undefined ? String(rat) : '',
+        });
+      }
+      i++;
+    }
+    answers.normalisations = norms;
+  }
+
   const btn = event.currentTarget;
   const origText = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
@@ -2561,6 +2671,14 @@ function _startReportPolling() {
 }
 
 function _updateStep3Status(status, errorMsg) {
+  // mk() re-declared here (defined inside _buildIntakeForms; not in outer scope) — XSS-safe
+  function mk(tag, attrs, text) {
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) { e.setAttribute(k, attrs[k]); });
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
   var genDiv  = document.getElementById('wiz-step3-generating');
   var failDiv = document.getElementById('wiz-step3-failed');
   var doneDiv = document.getElementById('wiz-step3-done');
@@ -2585,8 +2703,21 @@ function _updateStep3Status(status, errorMsg) {
     genDiv.style.display  = 'block';
     failDiv.style.display = 'none';
     doneDiv.style.display = 'none';
-    // .textContent — XSS rule (AUTH-03)
-    if (statusText) statusText.textContent = 'Status: ' + status;
+    if (status === 'researching') {
+      // Inject the researching alert once — static copy, no user data (T-05.1-17)
+      if (!document.getElementById('wiz-researching-alert')) {
+        var alert = mk('div',
+          {'id': 'wiz-researching-alert', 'class': 'alert alert-info',
+           'style': 'margin-bottom:1rem'},
+          'The agent is researching your company, sector, and WACC inputs from RBNZ and Damodaran. This typically takes 60–90 seconds.');
+        genDiv.insertBefore(alert, genDiv.firstChild);
+      }
+      // .textContent — XSS rule (AUTH-03)
+      if (statusText) statusText.textContent = 'Status: researching — gathering market data and WACC inputs…';
+    } else {
+      // .textContent — XSS rule (AUTH-03)
+      if (statusText) statusText.textContent = 'Status: ' + status;
+    }
   }
 }
 
