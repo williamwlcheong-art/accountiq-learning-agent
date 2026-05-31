@@ -185,3 +185,70 @@ def compute_illiquidity_discount(
         current_ev  = ev * (1 - discount)
 
     return round(discount, 6)
+
+
+# ---------------------------------------------------------------------------
+# Business risk scoring — condensed 8-question set (Phase 05.1 dual-method)
+# ---------------------------------------------------------------------------
+
+# Each key maps to a 1-5 scored radio answer from the frontend intake.
+# Questions are ordered: revenue quality, owner dependency, EBITDA growth,
+# customer concentration, gross margin, competitive barriers, growth outlook,
+# management depth.
+RISK_QUESTION_KEYS = [
+    "rq_revenue_quality",
+    "rq_owner_dependency",
+    "rq_ebitda_growth",
+    "rq_customer_concentration",
+    "rq_gross_margin",
+    "rq_competitive_barriers",
+    "rq_growth_outlook",
+    "rq_management_depth",
+]
+
+
+def compute_risk_score(risk_answers: dict) -> float:
+    """Return a 0.0 (high risk) to 1.0 (low risk) score from intake risk questions.
+
+    Each answered question contributes 1-5; unanswered questions default to 3 (neutral).
+    Score is normalised to [0, 1] so it can interpolate within a market multiple range.
+    """
+    total = 0
+    for key in RISK_QUESTION_KEYS:
+        val = risk_answers.get(key)
+        try:
+            score = int(val) if val is not None else 3
+        except (TypeError, ValueError):
+            score = 3
+        total += max(1, min(5, score))
+
+    n = len(RISK_QUESTION_KEYS)
+    # min possible = n*1, max possible = n*5; normalise to [0, 1]
+    return round((total - n) / (4 * n), 4)
+
+
+def compute_multiples_ev(
+    normalised_ebitda: float,
+    risk_score: float,
+    ev_ebitda_low: float,
+    ev_ebitda_high: float,
+) -> dict:
+    """Compute EV using a risk-adjusted market comparable multiple.
+
+    risk_score (0–1) interpolates within [ev_ebitda_low, ev_ebitda_high]:
+      - 0.0 = maximum risk → apply low-end multiple
+      - 1.0 = minimum risk → apply high-end multiple
+
+    Returns a dict consumed by build_prompt() for the multiples_crosscheck section.
+    """
+    multiple = ev_ebitda_low + risk_score * (ev_ebitda_high - ev_ebitda_low)
+    multiple = round(multiple, 2)
+    ev = normalised_ebitda * multiple
+    return {
+        "multiple_low": ev_ebitda_low,
+        "multiple_high": ev_ebitda_high,
+        "multiple_applied": multiple,
+        "risk_score": risk_score,
+        "enterprise_value": round(ev, 0),
+        "normalised_ebitda": round(normalised_ebitda, 0),
+    }

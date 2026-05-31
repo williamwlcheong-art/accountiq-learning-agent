@@ -34,6 +34,8 @@ def _valid_brief_kwargs() -> dict:
         "company_summary": "Propellerhead Limited is a NZ-based digital agency founded in 2014 with offices in Auckland. " * 2,
         "sector_summary": "The NZ digital agency sector is mature with notable players including Assembly, DNA, and Resn. " * 2,
         "comparable_transactions": "Recent NZ digital agency M&A: example deal A at 6x EBITDA.",
+        "ev_ebitda_low": 3.5,
+        "ev_ebitda_high": 6.0,
         "risk_free_rate": 4.65,
         "erp": 5.94,
         "industry_beta": 1.08,

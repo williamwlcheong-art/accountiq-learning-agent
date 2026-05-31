@@ -2480,6 +2480,50 @@ function _buildIntakeForms() {
     'Typically aligned with long-run inflation (NZ CPI ~2–3%). The agent will retrieve current NZ CPI as a cross-check.'));
   valContainer.appendChild(tgGroup);
 
+  // ---- Section 4: Business Risk Assessment ----
+  valContainer.appendChild(mk('h3',
+    {'style': 'font-size:.875rem;font-weight:600;color:var(--navy);margin:1.5rem 0 8px'},
+    'Business Risk Assessment'));
+  valContainer.appendChild(mk('p',
+    {'style': 'font-size:.8rem;color:var(--muted);margin-bottom:1rem'},
+    'Rate each dimension to position your business within the market comparable range. ' +
+    'This cross-validates the DCF result against real transaction multiples.'));
+
+  var riskQuestions = [
+    ['rq_revenue_quality', 'Revenue Quality — % contracted or recurring',
+     [['1','<20% — mostly transactional'],['2','20–40%'],['3','40–60%'],['4','60–80%'],['5','>80% contracted or recurring']]],
+    ['rq_owner_dependency', 'Owner / Key-Person Dependency',
+     [['1','Fully owner-dependent — cannot function without them'],['2','Hard without owner'],['3','Could be managed'],['4','Semi-independent management'],['5','Fully managed — no owner dependency']]],
+    ['rq_ebitda_growth', 'EBITDA Growth Trend',
+     [['1','Declining'],['2','Weak / flat'],['3','Steady'],['4','Growing'],['5','Strong consistent growth']]],
+    ['rq_customer_concentration', 'Largest Single Customer (% of revenue)',
+     [['1','>40% — high concentration risk'],['2','31–40%'],['3','21–30%'],['4','11–20%'],['5','≤10% — well diversified']]],
+    ['rq_gross_margin', 'Gross Profit Margin',
+     [['1','<20%'],['2','20–30%'],['3','30–40%'],['4','40–50%'],['5','>50%']]],
+    ['rq_competitive_barriers', 'Barriers to Entry for Competitors',
+     [['1','Very easy to replicate'],['2','Easy'],['3','Moderate'],['4','Hard'],['5','Very hard — strong IP / contracts / brand moat']]],
+    ['rq_growth_outlook', 'Sector & Business Growth Outlook',
+     [['1','Declining sector'],['2','Weak'],['3','Steady'],['4','Good growth prospects'],['5','Strong sector tailwinds']]],
+    ['rq_management_depth', 'Management Team Depth (operational capability)',
+     [['1','Owner does everything'],['2','Thin team, high key-person risk'],['3','Small but capable team'],['4','Good team, could run independently'],['5','Deep bench — institutional-quality management']]],
+  ];
+
+  riskQuestions.forEach(function(q) {
+    var qName = q[0], qLabel = q[1], qOpts = q[2];
+    var radioWrap = mk('div', {'style': 'display:flex;flex-direction:column;gap:.35rem;margin-top:.25rem'});
+    qOpts.forEach(function(opt) {
+      var lbl = mk('label', {'style': 'display:flex;align-items:flex-start;gap:.5rem;font-size:.8rem;cursor:pointer;padding:3px 0'});
+      var inp = mk('input', {'type': 'radio', 'name': qName, 'value': opt[0], 'required': ''});
+      inp.style.marginTop = '2px';
+      lbl.appendChild(inp);
+      lbl.appendChild(document.createTextNode(opt[1]));
+      radioWrap.appendChild(lbl);
+    });
+    var fg = formGroup(qLabel, radioWrap);
+    fg.style.marginBottom = '1.1rem';
+    valContainer.appendChild(fg);
+  });
+
   // Bank Credit Paper
   buildSimpleForm(document.getElementById('intake-bank_credit_paper'), [
     ['facility_type','Facility type (e.g. Term loan, Revolving credit, Overdraft)','text'],

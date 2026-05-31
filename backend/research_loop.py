@@ -26,6 +26,7 @@ import json
 import asyncio
 import logging
 import re
+import time
 from typing import Optional
 
 import anthropic
@@ -69,6 +70,9 @@ Research in this order:
 1. Company research — name, location, business model, notable clients, recent news, significant events.
 2. Sector research — NZ market context, growth rates, competitors, regulatory environment.
 3. Comparable M&A transactions — recent (within 3 years) NZ/ANZ sector deals with disclosed EV/EBITDA multiples.
+   From these transactions, determine a realistic low and high EV/EBITDA multiple range for this sector.
+   If fewer than 2 transactions are found, use Damodaran sector EV/EBITDA data for NZ private SMEs as a fallback.
+   Typical NZ SME ranges: 2.5–4.5x for commodity/cyclical sectors; 4.0–7.0x for service/recurring-revenue businesses.
 4. WACC inputs — RBNZ 10-yr NZ govt bond yield (risk-free rate), Damodaran current-year ERP for NZ
    and total beta for the relevant industry, Stats NZ / RBNZ current NZ CPI inflation rate.
 
@@ -79,6 +83,8 @@ with this exact schema:
   "company_summary": "string — 2-3 paragraph narrative",
   "sector_summary": "string — 2-3 paragraph narrative",
   "comparable_transactions": "string — bullet list of transactions with EV/EBITDA multiples",
+  "ev_ebitda_low": float,             // e.g. 3.5  — low end of comparable transaction multiple range
+  "ev_ebitda_high": float,            // e.g. 6.0  — high end of comparable transaction multiple range
   "risk_free_rate": float,            // e.g. 4.65  (percent, not decimal)
   "erp": float,                       // e.g. 5.94
   "industry_beta": float,             // e.g. 1.08  (total beta from Damodaran)
@@ -88,7 +94,8 @@ with this exact schema:
 }
 
 CRITICAL: Do not return the JSON until you have retrieved risk_free_rate, erp, and industry_beta
-from actual web search results. These values must come from RBNZ or Damodaran — do not estimate them."""
+from actual web search results. These values must come from RBNZ or Damodaran — do not estimate them.
+ev_ebitda_low must be less than ev_ebitda_high, and both must be positive."""
 
 
 # ---------------------------------------------------------------------------
@@ -99,6 +106,8 @@ class ResearchBrief(BaseModel):
     company_summary: str = Field(min_length=50)
     sector_summary: str = Field(min_length=50)
     comparable_transactions: str = Field(min_length=20)
+    ev_ebitda_low: float = Field(gt=0, lt=30)        # low end of market comparable multiple range
+    ev_ebitda_high: float = Field(gt=0, lt=30)       # high end of market comparable multiple range
     risk_free_rate: float = Field(gt=0, lt=20)       # percent; reasonable NZ range
     erp: float = Field(gt=0, lt=20)
     industry_beta: float = Field(gt=0, lt=10)
@@ -126,13 +135,27 @@ def _extract_json_from_response(response) -> dict:
     text_blocks = [b for b in response.content if b.type == "text"]
     if not text_blocks:
         raise ValueError("No text block in Claude response — cannot extract research brief")
-    raw = text_blocks[-1].text.strip()
+    # Use last non-empty text block; the model sometimes emits an empty text block
+    # before or after tool-result blocks, which would cause json.loads("") to fail.
+    non_empty = [b for b in text_blocks if b.text.strip()]
+    if not non_empty:
+        raise ValueError(
+            f"All text blocks in Claude response are empty (stop_reason={response.stop_reason}). "
+            "The model may not have produced its JSON output yet — check max_iterations."
+        )
+    raw = non_empty[-1].text.strip()
     # Claude may wrap JSON in a code fence despite instructions
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
             raw = raw[4:]
         raw = raw.strip()
+    # If there's surrounding prose, try to extract the JSON object
+    if not raw.startswith("{"):
+        import re as _re
+        m = _re.search(r'\{[\s\S]+\}', raw)
+        if m:
+            raw = m.group(0)
     return json.loads(raw)
 
 
@@ -158,6 +181,15 @@ def _apply_guardrails(brief: ResearchBrief) -> None:
     if brief.erp < 1.0:
         raise ValueError(
             f"erp appears to be in decimal form (got {brief.erp}); must be percent"
+        )
+    # 1b. EV/EBITDA multiple range sanity check
+    if brief.ev_ebitda_low >= brief.ev_ebitda_high:
+        raise ValueError(
+            f"ev_ebitda_low ({brief.ev_ebitda_low}) must be less than ev_ebitda_high ({brief.ev_ebitda_high})"
+        )
+    if brief.ev_ebitda_high > 20.0:
+        raise ValueError(
+            f"ev_ebitda_high ({brief.ev_ebitda_high}) exceeds 20x — implausible for NZ private SME; check comparable transactions"
         )
     # 2. Placeholder detection
     placeholder_pattern = re.compile(r"\b(N/?A|TBC|to be confirmed)\b", re.IGNORECASE)
@@ -223,13 +255,23 @@ def run_research_loop_sync(
     max_iterations = MAX_LOOP_ITERATIONS
 
     while iteration < max_iterations:
-        response = client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=MAX_TOKENS_RESEARCH,
-            system=RESEARCH_SYSTEM_PROMPT,
-            tools=[WEB_SEARCH_TOOL],
-            messages=messages,
-        )
+        # Retry once on rate limit (30K TPM tier) with a 65s back-off
+        for _attempt in range(2):
+            try:
+                response = client.messages.create(
+                    model=CLAUDE_MODEL,
+                    max_tokens=MAX_TOKENS_RESEARCH,
+                    system=RESEARCH_SYSTEM_PROMPT,
+                    tools=[WEB_SEARCH_TOOL],
+                    messages=messages,
+                )
+                break
+            except anthropic.RateLimitError:
+                if _attempt == 0:
+                    logger.warning("Rate limit hit — waiting 65s before retry")
+                    time.sleep(65)
+                else:
+                    raise
         iteration += 1
 
         # Log search activity for cost tracking (no API key in log output)

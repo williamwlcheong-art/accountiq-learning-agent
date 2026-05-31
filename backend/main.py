@@ -52,7 +52,10 @@ from auth import auth_router, get_current_user, require_admin
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
 from report_prompts import build_prompt, SECTION_SCHEMAS, compute_bank_credit_figures
 from research_loop import run_valuation_research, ResearchBrief
-from valuation import compute_wacc_scenarios, compute_dcf, compute_illiquidity_discount
+from valuation import (
+    compute_wacc_scenarios, compute_dcf, compute_illiquidity_discount,
+    compute_risk_score, compute_multiples_ev,
+)
 # from email import send_report_ready_email as _send_report_email
 # NOTE: cannot import from email module directly in backend/ context because backend/email.py
 # shadows stdlib email package (smtplib and fastapi both need email.message / email.utils).
@@ -1520,6 +1523,17 @@ async def _generate_report(
                     "low":  _ev_from_dcf(dcf_low) * (1.0 - illiq_rate),
                 }
 
+                # Comparable multiples method — risk-score positions within market range
+                risk_answers = {k: v for k, v in (intake_answers or {}).items()
+                                if k.startswith("rq_")}
+                risk_score = compute_risk_score(risk_answers)
+                multiples_result = compute_multiples_ev(
+                    normalised_ebitda=normalised_ebitda,
+                    risk_score=risk_score,
+                    ev_ebitda_low=brief.ev_ebitda_low,
+                    ev_ebitda_high=brief.ev_ebitda_high,
+                )
+
                 valuation_result = {
                     "research_brief": brief.model_dump(),
                     "wacc_scenarios_pct": wacc_pct,
@@ -1529,6 +1543,7 @@ async def _generate_report(
                     "revenues": revenues_val,
                     "net_debt": 0.0,
                     "cash": cash_val,
+                    "multiples_result": multiples_result,
                 }
             elif report_type == "bank_credit_paper":
                 bank_credit_figs = compute_bank_credit_figures(
