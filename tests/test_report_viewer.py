@@ -6,7 +6,7 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent / "backend"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from main import _render_report_sections_html
+from main import _narrative_to_html, _render_report_sections_html
 
 
 def test_renders_plain_string_section():
@@ -67,3 +67,76 @@ def test_handles_empty_section_value():
     html = _render_report_sections_html(sections, ["foo"])
     assert "<h2>Foo</h2>" in html
     assert "<p></p>" not in html
+
+
+# ---------------------------------------------------------------------------
+# _narrative_to_html tests
+# ---------------------------------------------------------------------------
+
+def test_narrative_heading_renders_h3():
+    html = _narrative_to_html("## Background\nSome text.")
+    assert "<h3>Background</h3>" in html
+    assert "<p>Some text.</p>" in html
+    assert "## Background" not in html
+
+
+def test_narrative_bullets_render_ul():
+    html = _narrative_to_html("- Revenue grew 20%\n- Margins improved\n- New clients won")
+    assert "<ul>" in html
+    assert "<li>Revenue grew 20%</li>" in html
+    assert "<li>Margins improved</li>" in html
+    assert "<li>New clients won</li>" in html
+    assert "</ul>" in html
+
+
+def test_narrative_star_bullets_render_ul():
+    html = _narrative_to_html("* First point\n* Second point")
+    assert "<li>First point</li>" in html
+    assert "<li>Second point</li>" in html
+
+
+def test_narrative_bold_renders_strong():
+    html = _narrative_to_html("The **WACC** is derived from first principles.")
+    assert "<strong>WACC</strong>" in html
+    assert "**WACC**" not in html
+
+
+def test_narrative_escapes_html_before_inline():
+    html = _narrative_to_html("<script>alert(1)</script>\n## <evil> heading\n- <b>item</b>")
+    assert "<script>" not in html
+    assert "&lt;script&gt;" in html
+    assert "<evil>" not in html
+    assert "&lt;evil&gt;" in html
+    assert "<b>item</b>" not in html
+    assert "&lt;b&gt;item&lt;/b&gt;" in html
+
+
+def test_narrative_empty_lines_do_not_produce_paragraphs():
+    html = _narrative_to_html("\n\n\n")
+    assert "<p>" not in html
+
+
+def test_narrative_mixed_content():
+    text = "## Revenue Model\nThe company sells SaaS.\n\n## Key Metrics\n- ARR: $2.1m\n- NRR: 115%"
+    html = _narrative_to_html(text)
+    assert "<h3>Revenue Model</h3>" in html
+    assert "<p>The company sells SaaS.</p>" in html
+    assert "<h3>Key Metrics</h3>" in html
+    assert "<li>ARR: $2.1m</li>" in html
+    assert "<li>NRR: 115%</li>" in html
+
+
+def test_disclaimer_section_gets_class():
+    html = _render_report_sections_html(
+        {"disclaimer": "This report is indicative only."},
+        ["disclaimer"],
+    )
+    assert "class='disclaimer'" in html
+
+
+def test_non_disclaimer_section_no_class():
+    html = _render_report_sections_html(
+        {"introduction": "Hello."},
+        ["introduction"],
+    )
+    assert "class='disclaimer'" not in html

@@ -6,6 +6,7 @@ import os
 import json
 import shutil
 import asyncio
+import sqlite3
 import sys as _sys
 import importlib as _importlib
 from pathlib import Path
@@ -981,14 +982,29 @@ async def wizard_upload(
     with open(dest, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    # Insert document record
-    async with db.execute("""
-        INSERT INTO documents
-            (company_id, filename, filepath, report_type, entity_type, fiscal_year_end, user_id)
-        VALUES (?, ?, ?, 'compilation', 'sme', '', ?)
-    """, (company_id, safe_name, str(dest), current_user["id"])) as cur:
-        document_id = cur.lastrowid
-    await db.commit()
+    # Insert document record — handle re-upload of same filename gracefully
+    try:
+        async with db.execute("""
+            INSERT INTO documents
+                (company_id, filename, filepath, report_type, entity_type, fiscal_year_end, user_id)
+            VALUES (?, ?, ?, 'compilation', 'sme', '', ?)
+        """, (company_id, safe_name, str(dest), current_user["id"])) as cur:
+            document_id = cur.lastrowid
+        await db.commit()
+    except sqlite3.IntegrityError:
+        # Same file uploaded again — reset existing record and re-run ingestion
+        await db.execute(
+            "UPDATE documents SET extraction_status='pending' WHERE filepath=?",
+            (str(dest),)
+        )
+        await db.commit()
+        async with db.execute(
+            "SELECT id FROM documents WHERE filepath=?", (str(dest),)
+        ) as cur:
+            row = await cur.fetchone()
+        if row is None:
+            raise HTTPException(500, "Failed to locate existing document record")
+        document_id = row[0]
 
     # Kick off background ingestion — same task as admin upload (D-06)
     background_tasks.add_task(
@@ -1193,6 +1209,50 @@ async def wizard_get_ebitda_adjustments(
 
 
 import html as _html_lib
+import re as _re
+
+
+def _narrative_to_html(text: str) -> str:
+    """Convert lightly-markdown narrative text to safe HTML.
+
+    Handles: ## subsection headings, - / * bullet lists, **bold**, paragraph grouping.
+    All text is HTML-escaped before inline substitutions so no user content can inject tags.
+    Public for testability.
+    """
+    lines = text.split("\n")
+    chunks: list[str] = []
+    bullet_buffer: list[str] = []
+
+    def flush_bullets() -> None:
+        if bullet_buffer:
+            items = "".join(f"<li>{item}</li>" for item in bullet_buffer)
+            chunks.append(f"<ul>{items}</ul>")
+            bullet_buffer.clear()
+
+    def apply_inline(s: str) -> str:
+        # **bold** → <strong>bold</strong>; applied on already-escaped text so ** is safe
+        return _re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            flush_bullets()
+            continue
+
+        if stripped.startswith("## "):
+            flush_bullets()
+            heading_text = apply_inline(_html_lib.escape(stripped[3:].strip()))
+            chunks.append(f"<h3>{heading_text}</h3>")
+        elif stripped.startswith("- ") or stripped.startswith("* "):
+            item_text = apply_inline(_html_lib.escape(stripped[2:].strip()))
+            bullet_buffer.append(item_text)
+        else:
+            flush_bullets()
+            para_text = apply_inline(_html_lib.escape(stripped))
+            chunks.append(f"<p>{para_text}</p>")
+
+    flush_bullets()
+    return "".join(chunks)
 
 
 def _render_report_sections_html(sections: dict, section_order: list) -> str:
@@ -1212,10 +1272,7 @@ def _render_report_sections_html(sections: dict, section_order: list) -> str:
             narrative = str(content) if content is not None else ""
             table_data = None
 
-        paragraphs = "".join(
-            f"<p>{_html_lib.escape(para.strip())}</p>"
-            for para in narrative.split("\n") if para.strip()
-        )
+        paragraphs = _narrative_to_html(narrative)
 
         table_html = ""
         if table_data:
@@ -1237,8 +1294,9 @@ def _render_report_sections_html(sections: dict, section_order: list) -> str:
                         f"</table>"
                     )
 
+        section_class = " class='disclaimer'" if key == "disclaimer" else ""
         section_html += f"""
-        <section>
+        <section{section_class}>
             <h2>{_html_lib.escape(heading)}</h2>
             {paragraphs}
             {table_html}
@@ -1293,15 +1351,22 @@ async def wizard_report_view(
   section {{ margin-bottom: 2.5rem; }}
   h2 {{ font-size: 1.1rem; font-weight: 700; border-left: 4px solid #2563eb;
         padding-left: 12px; margin-bottom: 12px; color: #1a1a2e; }}
+  h3 {{ font-size: 1rem; font-weight: 600; margin: 1.2rem 0 .4rem; color: #1a1a2e; }}
   p {{ margin: 0 0 .9rem; font-size: .95rem; }}
-  section:last-child p:last-child {{ font-style: italic; color: #555; font-size: .85rem; }}
+  ul {{ margin: .2rem 0 .9rem 1.4rem; padding: 0; }}
+  li {{ font-size: .95rem; margin-bottom: .3rem; line-height: 1.6; }}
+  .disclaimer {{ background: #fff8e1; border: 1px solid #f59e0b; border-radius: 6px;
+                 padding: 12px 16px; }}
+  .disclaimer p {{ font-size: .85rem; line-height: 1.6; color: #92400e; }}
+  .disclaimer li {{ font-size: .85rem; color: #92400e; }}
   .back {{ display:inline-block; margin-bottom:24px; font-size:.875rem;
            color:#2563eb; text-decoration:none; font-family:sans-serif; }}
   .meta {{ font-family:sans-serif; font-size:.8rem; color:#777; margin-top:4px; }}
-  table.report-table {{ width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: .9rem; }}
-  table.report-table th, table.report-table td {{ padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; }}
+  table.report-table {{ width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: .9rem; overflow-x: auto; display: block; }}
+  table.report-table th, table.report-table td {{ padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; white-space: nowrap; }}
   table.report-table thead th {{ background: #f0f4f8; font-weight: 600; }}
   table.report-table tbody tr:nth-child(even) {{ background: #fafbfc; }}
+  table.report-table td:not(:first-child) {{ text-align: right; }}
 </style>
 </head>
 <body>
