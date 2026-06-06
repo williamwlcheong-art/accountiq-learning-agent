@@ -4,9 +4,9 @@
     {
       "name": "accountiq-learning-agent",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "source ../venv/bin/activate && uvicorn main:app --reload --port 8765"],
+      "runtimeArgs": ["-c", "source ../venv/bin/activate && uvicorn main:app --reload --port ${PORT:-8766}"],
       "cwd": "${workspaceRoot}/backend",
-      "port": 8765
+      "port": 8766
     }
   ]
 }
