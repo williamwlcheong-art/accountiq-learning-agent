@@ -645,6 +645,8 @@ a {
   align-items: center;
   justify-content: flex-start;
   gap: 2rem;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: var(--navy);
   color: #fff;
   border-bottom: 0;
@@ -678,6 +680,9 @@ a {
 .admin-links {
   display: flex;
   align-items: center;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  flex: 0 0 auto;
   gap: 0.25rem;
   margin-left: auto;
 }
@@ -690,6 +695,7 @@ a {
   font-size: 0.85rem;
   font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
   transition: all 0.15s;
 }
 
@@ -1122,6 +1128,7 @@ input[type="file"] {
     width: auto;
     margin-left: 0;
     flex: 0 0 auto;
+    flex-direction: row;
     flex-wrap: nowrap;
   }
 
