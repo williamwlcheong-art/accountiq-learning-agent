@@ -131,7 +131,7 @@ export function Wizard({ user }: WizardProps) {
   return (
     <>
       <nav className="top-nav">
-        <div>
+        <div className="nav-brand">
           <strong>AccountIQ</strong>
           <span>Step {step === "upload" ? "1" : step === "status" ? "3" : "2"} of 3</span>
         </div>

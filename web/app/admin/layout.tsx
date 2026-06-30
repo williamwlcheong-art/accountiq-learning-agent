@@ -9,6 +9,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <>
       <nav className="top-nav admin-nav">
+        <div className="nav-brand">
+          <strong>AccountIQ</strong>
+          <span>Learning Agent</span>
+        </div>
         <div className="admin-links">
           <Link href="/admin">Dashboard</Link>
           <Link href="/admin/companies">Companies</Link>

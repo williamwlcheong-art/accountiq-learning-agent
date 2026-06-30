@@ -10,7 +10,10 @@ export default async function AccountPage() {
   return (
     <>
       <nav className="top-nav">
-        <Link href={user.is_admin ? "/admin" : "/wizard"}>AccountIQ</Link>
+        <Link className="nav-brand nav-brand-link" href={user.is_admin ? "/admin" : "/wizard"}>
+          <strong>AccountIQ</strong>
+          <span>{user.is_admin ? "Admin" : "Wizard"}</span>
+        </Link>
         <div className="nav-user">
           <span>{user.email}</span>
           <LogoutButton />
