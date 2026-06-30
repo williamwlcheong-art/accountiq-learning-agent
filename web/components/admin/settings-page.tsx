@@ -54,17 +54,18 @@ export function SettingsPage() {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setSaving(true);
     setError("");
     setMessage("");
     try {
-      const form = new FormData(event.currentTarget);
+      const form = new FormData(formElement);
       const apiKey = String(form.get("api_key") ?? "").trim();
       if (!apiKey) form.delete("api_key");
       const response = await postForm<{ ok: boolean; message: string }>("/settings", form);
       setMessage(response.message);
       await loadSettings();
-      event.currentTarget.reset();
+      formElement.reset();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         router.replace("/login");

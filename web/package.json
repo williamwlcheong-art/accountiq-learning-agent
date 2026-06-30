@@ -12,7 +12,7 @@
     "openapi:types": "openapi-typescript openapi.json -o types/api.ts",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:prod": "npm run build && playwright test"
+    "test:e2e:prod": "npm run build && PLAYWRIGHT_FRONTEND_COMMAND=\"npm run start\" playwright test"
   },
   "dependencies": {
     "next": "16.2.9",

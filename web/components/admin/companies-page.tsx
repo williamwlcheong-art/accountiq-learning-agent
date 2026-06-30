@@ -56,12 +56,13 @@ export function CompaniesPage() {
 
   async function createCompany(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setError("");
     setSaving(true);
     try {
-      const form = new FormData(event.currentTarget);
+      const form = new FormData(formElement);
       await postForm<{ id: number; name: string }>("/companies", form);
-      event.currentTarget.reset();
+      formElement.reset();
       setShowForm(false);
       await loadCompanies();
     } catch (err) {
