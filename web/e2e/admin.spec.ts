@@ -14,7 +14,8 @@ test("owner email registers as admin and can use admin workflows", async ({ page
   await page.getByRole("button", { name: /save company/i }).click();
   await expect(page.getByText("Admin E2E Ltd")).toBeVisible();
 
-  await page.getByRole("link", { name: /^upload$/i }).click();
+  await page.getByRole("link", { name: /upload pdf/i }).click();
+  await expect(page.getByText(/uploading for: admin e2e ltd/i)).toBeVisible();
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await page.getByRole("button", { name: /upload/i }).click();
   await expect(page.getByText("done")).toBeVisible({ timeout: 15_000 });

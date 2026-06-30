@@ -1,11 +1,11 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { ApiError, apiFetch, postForm } from "@/lib/api-client";
 import { FINANCIAL_FILE_ACCEPT, validateFinancialFile } from "@/lib/upload-files";
-import type { Company, DocumentRecord } from "@/types/domain";
+import type { DocumentRecord } from "@/types/domain";
 
 type UploadResult = {
   document_id: number;
@@ -16,8 +16,9 @@ type UploadResult = {
 
 export function UploadPage() {
   const router = useRouter();
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [companyId, setCompanyId] = useState("");
+  const searchParams = useSearchParams();
+  const preselectedCompanyId = searchParams.get("company_id") ?? "";
+  const preselectedCompanyName = searchParams.get("company_name") ?? "";
   const [companyName, setCompanyName] = useState("");
   const [entityType, setEntityType] = useState("listed");
   const [reportType, setReportType] = useState("annual_report");
@@ -27,21 +28,6 @@ export function UploadPage() {
   const [status, setStatus] = useState<DocumentRecord | null>(null);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
-
-  useEffect(() => {
-    apiFetch<Company[]>("/companies")
-      .then((rows) => {
-        setCompanies(rows);
-        if (rows[0]) setCompanyId(String(rows[0].id));
-      })
-      .catch((err) => {
-        if (err instanceof ApiError && err.status === 401) {
-          router.replace("/login");
-          return;
-        }
-        setError(err instanceof Error ? err.message : "Companies failed to load.");
-      });
-  }, [router]);
 
   useEffect(() => {
     if (!activeDocId) return;
@@ -68,6 +54,8 @@ export function UploadPage() {
     };
   }, [activeDocId, router]);
 
+  const needsCompanyName = Boolean(file && /\.(xlsx|xls|xlsm)$/i.test(file.name) && !preselectedCompanyId);
+
   function chooseFile(event: ChangeEvent<HTMLInputElement>) {
     setError("");
     const nextFile = event.target.files?.[0] ?? null;
@@ -82,6 +70,7 @@ export function UploadPage() {
       return;
     }
     setFile(nextFile);
+    if (!/\.(xlsx|xls|xlsm)$/i.test(nextFile.name)) setCompanyName("");
   }
 
   async function uploadFile() {
@@ -90,10 +79,14 @@ export function UploadPage() {
       setError("Select a file to upload.");
       return;
     }
+    if (needsCompanyName && !companyName.trim()) {
+      setError("Please enter a company name for Excel uploads.");
+      return;
+    }
 
     const body = new FormData();
-    if (companyId) body.append("company_id", companyId);
-    if (!companyId && companyName.trim()) body.append("company_name", companyName.trim());
+    if (preselectedCompanyId) body.append("company_id", preselectedCompanyId);
+    else if (needsCompanyName) body.append("company_name", companyName.trim());
     body.append("entity_type", entityType);
     body.append("report_type", reportType);
     body.append("fiscal_year_end", fiscalYearEnd.trim());
@@ -126,30 +119,24 @@ export function UploadPage() {
           {error}
         </div>
       ) : null}
+      {preselectedCompanyId ? (
+        <div className="alert alert-info">Uploading for: {preselectedCompanyName || `company #${preselectedCompanyId}`}</div>
+      ) : null}
 
       <section className="panel admin-form">
         <div className="form-grid">
-          <label htmlFor="upload-company">
-            Company
-            <select id="upload-company" value={companyId} onChange={(event) => setCompanyId(event.target.value)}>
-              <option value="">Auto-create / use company name below</option>
-              {companies.map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label htmlFor="upload-company-name">
-            Company Name
-            <input
-              id="upload-company-name"
-              value={companyName}
-              onChange={(event) => setCompanyName(event.target.value)}
-              placeholder="e.g. Acme Ltd"
-            />
-            <small className="muted">Required for Excel uploads when no existing company is selected.</small>
-          </label>
+          {needsCompanyName ? (
+            <label htmlFor="upload-company-name">
+              Company Name
+              <input
+                id="upload-company-name"
+                value={companyName}
+                onChange={(event) => setCompanyName(event.target.value)}
+                placeholder="e.g. Acme Ltd"
+              />
+              <small className="muted">Required for Excel uploads - extracted automatically for PDF.</small>
+            </label>
+          ) : null}
           <label htmlFor="upload-entity-type">
             Entity Type
             <select id="upload-entity-type" value={entityType} onChange={(event) => setEntityType(event.target.value)}>
@@ -181,7 +168,7 @@ export function UploadPage() {
             PDF
           </span>
           <strong>Click or drag file here</strong>
-          <span>PDF, Excel, or Word financial statements</span>
+          <span>PDF or Excel (.xlsx, .xls) - annual reports, compilations, management accounts</span>
           <input id="upload-file" type="file" accept={FINANCIAL_FILE_ACCEPT} onChange={chooseFile} />
         </label>
         {file ? <p className="muted">Selected: {file.name}</p> : null}

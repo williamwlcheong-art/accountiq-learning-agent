@@ -850,6 +850,11 @@ a {
   transition: all 0.15s;
 }
 
+.button-sm {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+}
+
 .button-primary {
   width: auto;
   margin-top: 0;

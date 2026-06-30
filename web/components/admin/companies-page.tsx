@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { ApiError, apiFetch, postForm } from "@/lib/api-client";
@@ -142,6 +143,7 @@ export function CompaniesPage() {
                   <th>Country</th>
                   <th>Documents</th>
                   <th>Profile</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -154,6 +156,14 @@ export function CompaniesPage() {
                     <td>{company.country || "-"}</td>
                     <td>{company.doc_count ?? 0}</td>
                     <td>{company.sections_complete ?? 0}/4 complete</td>
+                    <td>
+                      <Link
+                        className="button button-primary button-sm"
+                        href={`/admin/upload?company_id=${company.id}&company_name=${encodeURIComponent(company.name)}`}
+                      >
+                        Upload PDF
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>
