@@ -8,6 +8,7 @@ import { IntakeForm } from "@/components/wizard/intake-form";
 import { ReportStatusCard } from "@/components/wizard/report-status-card";
 import { ReportTypePicker, type WizardReportType } from "@/components/wizard/report-type-picker";
 import { ApiError, postForm, postJson } from "@/lib/api-client";
+import { FINANCIAL_FILE_ACCEPT, validateFinancialFile } from "@/lib/upload-files";
 import type { CurrentUser } from "@/types/domain";
 
 type WizardStep = "upload" | "report-type" | "intake" | "status";
@@ -26,13 +27,6 @@ type GenerateResult = {
 type WizardProps = {
   user: CurrentUser;
 };
-
-const allowedExtensions = [".pdf", ".xlsx", ".xls", ".xlsm", ".docx"];
-
-function fileExtension(filename: string) {
-  const dotIndex = filename.lastIndexOf(".");
-  return dotIndex >= 0 ? filename.slice(dotIndex).toLowerCase() : "";
-}
 
 export function Wizard({ user }: WizardProps) {
   const router = useRouter();
@@ -60,10 +54,10 @@ export function Wizard({ user }: WizardProps) {
       setFile(null);
       return;
     }
-    const extension = fileExtension(nextFile.name);
-    if (!allowedExtensions.includes(extension)) {
+    const validationError = validateFinancialFile(nextFile);
+    if (validationError) {
       setFile(null);
-      setError(`Only PDF, Excel, and Word files are accepted. Got: ${extension || "unknown"}.`);
+      setError(validationError);
       return;
     }
     setFile(nextFile);
@@ -168,7 +162,7 @@ export function Wizard({ user }: WizardProps) {
             </label>
             <label htmlFor="financial-file">
               Financial statements
-              <input id="financial-file" type="file" accept={allowedExtensions.join(",")} onChange={chooseFile} />
+              <input id="financial-file" type="file" accept={FINANCIAL_FILE_ACCEPT} onChange={chooseFile} />
             </label>
             {file ? <p className="wizard-note">Selected: {file.name}</p> : null}
             <button className="button button-primary" onClick={submitUpload} disabled={loading}>

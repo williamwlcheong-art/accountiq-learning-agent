@@ -389,7 +389,7 @@ In `web/package.json`, ensure these scripts exist:
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:prod": "npm run build && PLAYWRIGHT_FRONTEND_COMMAND=\"npm run start\" playwright test",
-    "prepare:standalone": "mkdir -p .next/standalone/.next && rm -rf .next/standalone/.next/static .next/standalone/public && cp -R .next/static .next/standalone/.next/static && if [ -d public ]; then cp -R public .next/standalone/public; fi"
+    "prepare:standalone": "node scripts/prepare-standalone.mjs"
   }
 }
 ```
@@ -952,11 +952,14 @@ Create `web/playwright.config.ts`:
 ```ts
 import { defineConfig, devices } from "@playwright/test";
 
+const frontendCommand = process.env.PLAYWRIGHT_FRONTEND_COMMAND ?? "npm run dev";
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 45_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
+  workers: 1,
   use: {
     baseURL: "http://localhost:3000",
     trace: "retain-on-failure",
@@ -964,7 +967,7 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["iPhone 14"] }, testMatch: /responsive\.spec\.ts/ },
+    { name: "mobile", use: { ...devices["Pixel 5"] }, testMatch: /responsive\.spec\.ts/ },
   ],
   webServer: [
     {
@@ -974,9 +977,9 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
-      command: "npm run dev",
+      command: frontendCommand,
       url: "http://localhost:3000",
-      reuseExistingServer: true,
+      reuseExistingServer: false,
       timeout: 60_000,
     },
   ],

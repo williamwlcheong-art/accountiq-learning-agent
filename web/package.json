@@ -13,7 +13,7 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:prod": "npm run build && PLAYWRIGHT_FRONTEND_COMMAND=\"npm run start\" playwright test",
-    "prepare:standalone": "mkdir -p .next/standalone/.next && rm -rf .next/standalone/.next/static .next/standalone/public && cp -R .next/static .next/standalone/.next/static && if [ -d public ]; then cp -R public .next/standalone/public; fi"
+    "prepare:standalone": "node scripts/prepare-standalone.mjs"
   },
   "dependencies": {
     "next": "16.2.9",

@@ -4,6 +4,7 @@ import { ChangeEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ApiError, apiFetch, postForm } from "@/lib/api-client";
+import { FINANCIAL_FILE_ACCEPT, validateFinancialFile } from "@/lib/upload-files";
 import type { Company, DocumentRecord } from "@/types/domain";
 
 type UploadResult = {
@@ -12,13 +13,6 @@ type UploadResult = {
   filename: string;
   status: string;
 };
-
-const allowedExtensions = [".pdf", ".xlsx", ".xls", ".xlsm", ".docx"];
-
-function extensionFor(filename: string) {
-  const index = filename.lastIndexOf(".");
-  return index >= 0 ? filename.slice(index).toLowerCase() : "";
-}
 
 export function UploadPage() {
   const router = useRouter();
@@ -77,9 +71,9 @@ export function UploadPage() {
       setFile(null);
       return;
     }
-    const extension = extensionFor(nextFile.name);
-    if (!allowedExtensions.includes(extension)) {
-      setError(`Only PDF, Excel, and Word files are accepted. Got: ${extension || "unknown"}.`);
+    const validationError = validateFinancialFile(nextFile);
+    if (validationError) {
+      setError(validationError);
       setFile(null);
       return;
     }
@@ -144,7 +138,7 @@ export function UploadPage() {
         </label>
         <label htmlFor="upload-file">
           Financial statement file
-          <input id="upload-file" type="file" accept={allowedExtensions.join(",")} onChange={chooseFile} />
+          <input id="upload-file" type="file" accept={FINANCIAL_FILE_ACCEPT} onChange={chooseFile} />
         </label>
         {file ? <p className="muted">Selected: {file.name}</p> : null}
         <button className="button button-primary" onClick={uploadFile} disabled={uploading}>

@@ -27,7 +27,7 @@ export default defineConfig({
     {
       command: frontendCommand,
       url: "http://localhost:3000",
-      reuseExistingServer: true,
+      reuseExistingServer: false,
       timeout: 60_000,
     },
   ],

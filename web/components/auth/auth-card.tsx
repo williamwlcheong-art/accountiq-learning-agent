@@ -3,6 +3,8 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { ApiError, postForm } from "@/lib/api-client";
+
 type Mode = "login" | "register";
 
 export function AuthCard() {
@@ -48,27 +50,19 @@ export function AuthCard() {
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/backend/auth/${mode}`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        if (response.status === 409) {
-          setError("An account with this email already exists.");
-        } else if (response.status === 401) {
-          setError("Incorrect email or password.");
-        } else {
-          setError("Authentication failed. Please try again.");
-        }
-        return;
-      }
-
+      await postForm(`/auth/${mode}`, formData);
       router.replace("/");
       router.refresh();
-    } catch {
-      setError("Connection error. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setError("An account with this email already exists.");
+      } else if (err instanceof ApiError && err.status === 401) {
+        setError("Incorrect email or password.");
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Authentication failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
