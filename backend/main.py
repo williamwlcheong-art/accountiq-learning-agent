@@ -7,34 +7,8 @@ import json
 import shutil
 import asyncio
 import sqlite3
-import sys as _sys
-import importlib as _importlib
 from pathlib import Path
 from typing import Optional
-
-# ---------------------------------------------------------------------------
-# Pre-load stdlib email submodules before fastapi touches them.
-#
-# backend/email.py (added in Plan 05-04) shadows Python's stdlib email package
-# when the server is run from the backend/ directory ('' is prepended to sys.path).
-# fastapi/routing.py does `import email.message` at module level, which would fail
-# if email.py is found before the stdlib package.
-#
-# Fix: temporarily remove '' from sys.path, force-load the real stdlib email modules
-# into sys.modules, then restore sys.path.  After this block, any subsequent
-# `import email.message` finds sys.modules['email.message'] and succeeds.
-# ---------------------------------------------------------------------------
-if "email.message" not in _sys.modules:
-    _saved_path = _sys.path[:]
-    _sys.path = [p for p in _sys.path if p not in ("", ".")]
-    for _m in ("email", "email.message", "email.utils", "email.mime",
-               "email.mime.multipart", "email.mime.text", "email.mime.base"):
-        try:
-            _importlib.import_module(_m)
-        except ImportError:
-            pass
-    _sys.path = _saved_path
-    del _saved_path, _m
 
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -45,7 +19,7 @@ import aiosqlite
 # Load .env from project root (one level up from backend/)
 from dotenv import load_dotenv, set_key
 ENV_PATH = Path(__file__).parent.parent / ".env"
-load_dotenv(ENV_PATH, override=True)
+load_dotenv(ENV_PATH, override=False)
 
 from db import init_db, get_db, get_pattern_library, DB_PATH
 from ingestion import ingest_document, ALL_ROWS
@@ -57,12 +31,6 @@ from valuation import (
     compute_wacc_scenarios, compute_dcf, compute_illiquidity_discount,
     compute_risk_score, compute_multiples_ev,
 )
-# from email import send_report_ready_email as _send_report_email
-# NOTE: cannot import from email module directly in backend/ context because backend/email.py
-# shadows stdlib email package (smtplib and fastapi both need email.message / email.utils).
-# Per D-impl-01 (05-01-SUMMARY): use report_email.py to avoid this shadowing at runtime.
-# backend/email.py satisfies the plan artifact requirement but is loaded via importlib externally.
-_send_report_email = send_report_ready_email  # alias — both point to same smtplib implementation
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -1446,7 +1414,7 @@ async def wizard_report_view(
 </style>
 </head>
 <body>
-<a class="back" href="javascript:history.back()">&#x2190; Back</a>
+<a class="back" href="/wizard">&#x2190; Back</a>
 <header>
   <h1>{_html_lib.escape(label)}</h1>
   <p>{_html_lib.escape(row['name'])}</p>
@@ -1780,7 +1748,7 @@ async def _generate_report(
             if user_row:
                 user_email_addr = user_row["email"]
                 user_name = user_email_addr.split("@")[0]
-                await _send_report_email(
+                await send_report_ready_email(
                     user_email_addr, user_name, report_type, report_id
                 )
 

@@ -2,10 +2,10 @@
 
 Next.js App Router frontend for AccountIQ.
 
-FastAPI remains the backend of record. Browser requests go through the same-origin proxy:
+FastAPI remains the backend of record. Browser requests go through the same-origin runtime proxy:
 
 ```text
-/api/backend/:path* -> FASTAPI_ORIGIN/:path*
+/api/backend/:path* -> web/app/api/backend/[...path]/route.ts -> FASTAPI_ORIGIN/:path*
 ```
 
 ## Development

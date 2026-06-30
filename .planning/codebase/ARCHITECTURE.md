@@ -24,7 +24,7 @@ Browser
   v
 Next.js app in web/
   | pages, layouts, React components
-  | /api/backend/:path* rewrite
+  | /api/backend/:path* runtime proxy
   v
 FastAPI backend on http://127.0.0.1:8765
   | auth, uploads, ingestion, reports, settings
@@ -68,9 +68,9 @@ Persistence
 
 ## Key Abstractions
 
-### API Proxy (`web/next.config.ts`)
+### API Proxy (`web/app/api/backend/[...path]/route.ts`)
 
-Next.js rewrites `/api/backend/:path*` to the FastAPI origin from `FASTAPI_ORIGIN` (default `http://127.0.0.1:8765`). Browser code calls the proxy so auth cookies stay same-origin to the Next.js app.
+Next.js proxies `/api/backend/:path*` to the FastAPI origin from `FASTAPI_ORIGIN` (default `http://127.0.0.1:8765`) at runtime. Browser code calls the proxy so auth cookies stay same-origin to the Next.js app, and standalone builds can change backend origin through environment configuration.
 
 ### API Clients (`web/lib/api-client.ts`, `web/lib/server-api.ts`)
 

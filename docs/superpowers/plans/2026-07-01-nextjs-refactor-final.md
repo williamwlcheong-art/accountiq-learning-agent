@@ -16,7 +16,7 @@
 2. Real E2E cannot depend on the dev DB, Anthropic, OCR, SMTP, or long-running background jobs. Add an explicit E2E backend mode and isolated DB path before writing Playwright tests.
 3. The current non-admin wizard contains a stale call to admin-only `GET /companies/{company_id}/profile-status`. The Next.js wizard must not call that route unless a wizard-scoped replacement exists.
 4. The report "done" state should expose a report viewer link. Current vanilla UI says email was sent, but `GET /wizard/report/{report_id}/view` exists and should become user-visible in the Next.js wizard.
-5. Use official Next.js primitives as of the current docs: `rewrites` for proxying, async `headers()` for forwarding cookies from Server Components, Playwright for E2E, and self-hosting behind a reverse proxy for production.
+5. Use official Next.js primitives as of the current docs: Route Handlers for runtime proxying, async `headers()` for forwarding cookies from Server Components, Playwright for E2E, and self-hosting behind a reverse proxy for production.
 
 ## Current Verified Surface
 
@@ -39,7 +39,7 @@ Browser
   v
 Next.js app in web/
   | pages, layouts, React components, E2E tests
-  | /api/backend/:path* rewrite
+  | /api/backend/:path* runtime proxy
   v
 FastAPI backend on http://127.0.0.1:8765
   | auth, uploads, DB, background jobs, report generation
@@ -284,7 +284,7 @@ Append to `.env.example`:
 
 ```env
 # E2E test mode only
-ACCOUNTIQ_DB_PATH=data/accountiq_e2e.db
+# ACCOUNTIQ_DB_PATH=data/accountiq_e2e.db
 ACCOUNTIQ_E2E_MODE=false
 ```
 
@@ -394,29 +394,24 @@ In `web/package.json`, ensure these scripts exist:
 }
 ```
 
-- [ ] **Step 4: Configure Next proxy and standalone output**
+- [ ] **Step 4: Configure standalone output and runtime proxy**
 
 Replace `web/next.config.ts` with:
 
 ```ts
 import type { NextConfig } from "next";
 
-const fastapiOrigin = process.env.FASTAPI_ORIGIN ?? "http://127.0.0.1:8765";
-
 const nextConfig: NextConfig = {
   output: "standalone",
-  async rewrites() {
-    return [
-      {
-        source: "/api/backend/:path*",
-        destination: `${fastapiOrigin}/:path*`,
-      },
-    ];
+  turbopack: {
+    root: process.cwd(),
   },
 };
 
 export default nextConfig;
 ```
+
+Create `web/app/api/backend/[...path]/route.ts` as a Node runtime Route Handler that proxies all HTTP methods to `FASTAPI_ORIGIN`, preserves query strings and request bodies, strips hop-by-hop headers, and returns the FastAPI response stream. Keeping the proxy in a Route Handler makes `FASTAPI_ORIGIN` runtime-configurable for standalone builds.
 
 - [ ] **Step 5: Add OpenAPI fetch script**
 

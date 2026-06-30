@@ -27,7 +27,7 @@ accountiq-learning-agent/
 │   ├── lib/                    # API clients and auth helpers
 │   ├── scripts/                # OpenAPI fetch script
 │   ├── types/                  # Generated OpenAPI + domain types
-│   ├── next.config.ts          # FastAPI proxy rewrite
+│   ├── next.config.ts          # Next.js standalone/turbopack config
 │   └── package.json            # Next, React, TypeScript, Playwright scripts
 │
 ├── frontend/                   # Legacy vanilla SPA; opt-in fallback only
@@ -88,7 +88,7 @@ Core tables include:
 
 ## API Surface
 
-The OpenAPI contract is generated from FastAPI and checked into `web/openapi.json` with TypeScript types in `web/types/api.ts`.
+The OpenAPI contract is generated from FastAPI into ignored local `web/openapi.json`; committed TypeScript API types live in `web/types/api.ts`.
 
 Major route groups:
 
@@ -113,7 +113,7 @@ Major route groups:
 | `SECRET_KEY` | JWT signing key | required |
 | `OWNER_EMAIL` | Email granted admin on registration | unset |
 | `APP_BASE_URL` | Public Next.js app URL for emails | `http://localhost:3000` |
-| `FASTAPI_ORIGIN` | Next.js rewrite target | `http://127.0.0.1:8765` |
+| `FASTAPI_ORIGIN` | Next.js runtime proxy target | `http://127.0.0.1:8765` |
 | `NEXT_PUBLIC_API_BASE` | Browser API base | `/api/backend` |
 | `ACCOUNTIQ_DB_PATH` | Optional SQLite DB override | unset |
 | `ACCOUNTIQ_E2E_MODE` | Deterministic backend mode for Playwright | `false` |

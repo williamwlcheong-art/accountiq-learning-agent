@@ -39,9 +39,6 @@ The settings endpoint persists model/API-key values to `.env` and mutates proces
 **Manual schema migrations**
 `backend/db.py` applies `ALTER TABLE` statements directly with try/except. This is workable for the prototype, but a production launch should adopt versioned migrations.
 
-**Duplicate/legacy email module**
-`backend/report_email.py` is the active sender. `backend/mailer.py` appears to be legacy/duplicate code and should be removed or consolidated after confirming no import paths depend on it.
-
 ## Performance
 
 **Synchronous document processing**

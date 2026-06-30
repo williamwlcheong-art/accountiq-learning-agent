@@ -83,7 +83,7 @@ Runtime environment is loaded from project-root `.env`.
 | `OWNER_EMAIL` | First admin email |
 | `SMTP_*`, `FROM_EMAIL` | Optional SMTP delivery |
 | `APP_BASE_URL` | Public Next.js app URL used in email links |
-| `FASTAPI_ORIGIN` | Next.js backend rewrite target |
+| `FASTAPI_ORIGIN` | Next.js backend runtime proxy target |
 | `NEXT_PUBLIC_API_BASE` | Browser API base |
 | `ACCOUNTIQ_DB_PATH` | Optional DB path override |
 | `ACCOUNTIQ_E2E_MODE` | Deterministic backend mode for Playwright |
@@ -94,6 +94,6 @@ Runtime environment is loaded from project-root `.env`.
 FastAPI and Next.js are separate runtimes. For production, run both behind a reverse proxy:
 
 - Route `/`, `/login`, `/wizard`, `/admin/*`, `/_next/*` to Next.js.
-- Route `/api/backend/*` to FastAPI after stripping the prefix, or keep the Next rewrite in front.
+- Route `/api/backend/*` through the Next runtime proxy or directly to FastAPI after stripping the prefix.
 - Keep large uploads and long-running extraction/report jobs in FastAPI, not serverless Next route handlers.
 - SQLite remains local-file storage; multi-instance production requires a database migration plan.

@@ -35,7 +35,7 @@ export function PatternsPage() {
     <section className="admin-page">
       <header className="page-header">
         <h1>Label Pattern Library</h1>
-        <a className="button button-primary export-link" href="/api/backend/patterns/export">
+        <a className="button button-primary export-link" href="/api/backend/patterns/export" download>
           Export JSON
         </a>
       </header>

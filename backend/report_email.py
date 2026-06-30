@@ -17,6 +17,8 @@ import asyncio
 import os
 import smtplib
 import logging
+from html import escape
+from urllib.parse import urlparse
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -33,6 +35,14 @@ REPORT_TYPE_LABELS: dict[str, str] = {
     "capital_raising":      "Capital Raising Document",
     "information_memorandum": "Information Memorandum",
 }
+
+
+def _report_link(base_url: str, report_id: int) -> str:
+    base = base_url.rstrip("/")
+    parsed = urlparse(base)
+    if parsed.port == 8765:
+        return f"{base}/wizard/report/{report_id}/view"
+    return f"{base}/api/backend/wizard/report/{report_id}/view"
 
 
 def _send_smtp_blocking(
@@ -99,10 +109,12 @@ async def send_report_ready_email(
         smtp_port = 587
 
     report_label = REPORT_TYPE_LABELS.get(report_type, report_type.replace("_", " ").title())
-    report_link = f"{base_url}/api/backend/wizard/report/{report_id}/view"
+    report_link = _report_link(base_url, report_id)
 
     greeting = f"Hi {user_name}," if user_name else "Hello,"
     subject = f"Your {report_label} is ready — AccountIQ"
+    html_greeting = escape(greeting)
+    html_report_label = escape(report_label)
 
     text_body = (
         f"{greeting}\n\n"
@@ -116,9 +128,9 @@ async def send_report_ready_email(
     html_body = f"""\
 <html>
   <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
-    <p>{greeting}</p>
+    <p>{html_greeting}</p>
     <p>
-      Your <strong>{report_label}</strong> (Report #{report_id}) has been generated
+      Your <strong>{html_report_label}</strong> (Report #{report_id}) has been generated
       and is ready to view.
     </p>
     <p style="margin: 24px 0;">

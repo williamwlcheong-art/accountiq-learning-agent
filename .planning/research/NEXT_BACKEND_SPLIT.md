@@ -41,7 +41,7 @@ FastAPI owns:
 ```text
 http://localhost:3000
   -> Next.js app in web/
-  -> /api/backend/:path* rewrite
+  -> /api/backend/:path* runtime proxy
   -> http://127.0.0.1:8765/:path*
   -> FastAPI backend
 ```
@@ -53,7 +53,7 @@ Run Next.js and FastAPI as separate services behind one public origin.
 Recommended routing:
 
 - `/_next/*`, `/login`, `/wizard`, `/admin/*`, `/account`, `/` -> Next.js
-- `/api/backend/*` -> FastAPI, either through the Next rewrite or a reverse proxy rule
+- `/api/backend/*` -> FastAPI, either through the Next runtime proxy or a reverse proxy rule
 - Large upload and report routes should ultimately bypass serverless limits and land on FastAPI directly or through a streaming-capable reverse proxy.
 
 ## E2E Strategy
