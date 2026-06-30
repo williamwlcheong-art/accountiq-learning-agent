@@ -2,12 +2,19 @@
 Database schema and connection management for AccountIQ Learning Agent.
 SQLite via aiosqlite for async FastAPI compatibility.
 """
-import sqlite3
-import aiosqlite
 import json
+import os
+import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent / "data" / "accountiq_learning.db"
+import aiosqlite
+
+_DB_PATH_OVERRIDE = os.environ.get("ACCOUNTIQ_DB_PATH", "").strip()
+DB_PATH = (
+    Path(_DB_PATH_OVERRIDE).expanduser().resolve()
+    if _DB_PATH_OVERRIDE
+    else Path(__file__).parent.parent / "data" / "accountiq_learning.db"
+)
 
 SCHEMA = """
 PRAGMA journal_mode=WAL;

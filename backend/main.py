@@ -91,6 +91,42 @@ EXPORT_DIR = DATA_DIR / "exports"
 PDF_DIR.mkdir(parents=True, exist_ok=True)
 EXPORT_DIR.mkdir(parents=True, exist_ok=True)
 
+E2E_MODE = os.environ.get("ACCOUNTIQ_E2E_MODE", "false").lower() == "true"
+
+
+def _e2e_financial_rows() -> list[tuple[str, str, str, str, float, float]]:
+    return [
+        ("pnl", "revenue", "Revenue", "2025", 1_250_000.0, 0.99),
+        ("pnl", "ebitda", "EBITDA", "2025", 240_000.0, 0.98),
+        ("pnl", "net_profit", "Net Profit", "2025", 150_000.0, 0.97),
+        ("bs", "cash_and_bank", "Cash & bank", "2025", 95_000.0, 0.98),
+        ("bs", "total_assets", "Total Assets", "2025", 850_000.0, 0.98),
+    ]
+
+
+def _e2e_report_content(report_type: str) -> dict:
+    sections = SECTION_SCHEMAS.get(report_type, ["executive_summary", "disclaimer"])
+    content = {}
+    for section in sections:
+        title = section.replace("_", " ").title()
+        if section == "disclaimer":
+            content[section] = (
+                "This report is indicative only, is not financial advice, "
+                "is not regulated advice under the FMCA, and should not be relied "
+                "on without independent professional advice."
+            )
+        elif section.endswith("summary") or section in {"valuation_summary", "financial_summary"}:
+            content[section] = {
+                "narrative": f"E2E generated {title} with <script>escaped text</script> for safety checks.",
+                "table": {
+                    "headers": ["Metric", "Value"],
+                    "rows": [["Revenue", "$1,250,000"], ["EBITDA", "$240,000"]],
+                },
+            }
+        else:
+            content[section] = f"E2E generated {title} for {report_type}."
+    return content
+
 # Serve the frontend
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 if FRONTEND_DIR.exists():
@@ -661,6 +697,45 @@ async def _run_ingestion(document_id, company_id, filepath, entity_type, exchang
         db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys=ON")
         try:
+            if E2E_MODE:
+                await db.execute(
+                    "UPDATE documents SET extraction_status='processing', updated_at=datetime('now') WHERE id=?",
+                    (document_id,),
+                )
+                await db.execute(
+                    "INSERT INTO extraction_log (document_id, level, message) VALUES (?, 'info', ?)",
+                    (document_id, "E2E ingestion shortcut started"),
+                )
+                for statement, row_key, row_label, period, value, confidence in _e2e_financial_rows():
+                    await db.execute(
+                        """
+                        INSERT INTO financial_rows
+                            (document_id, company_id, statement, row_key, row_label, period, value, confidence)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (document_id, company_id, statement, row_key, row_label, period, value, confidence),
+                    )
+                await db.execute(
+                    """
+                    UPDATE documents
+                    SET extraction_status='done',
+                        page_count=1,
+                        has_ocr=0,
+                        confidence_score=0.99,
+                        narrative='E2E generated narrative with <script>escaped text</script>.',
+                        reporting_standard='E2E',
+                        updated_at=datetime('now')
+                    WHERE id=?
+                    """,
+                    (document_id,),
+                )
+                await db.execute(
+                    "INSERT INTO extraction_log (document_id, level, message) VALUES (?, 'info', ?)",
+                    (document_id, "E2E ingestion shortcut completed"),
+                )
+                await db.commit()
+                return
+
             await ingest_document(
                 db, document_id, company_id, filepath,
                 entity_type, exchange, fiscal_year_end
@@ -1420,6 +1495,21 @@ async def _generate_report(
             )
             await db.commit()
             print(f"[REPORT] Generating report_id={report_id} type={report_type}")
+
+            if E2E_MODE:
+                await asyncio.sleep(0.05)
+                content_json = _e2e_report_content(report_type)
+                await db.execute(
+                    """
+                    UPDATE reports
+                    SET status='done', content=?, completed_at=datetime('now')
+                    WHERE id=?
+                    """,
+                    (json.dumps(content_json), report_id),
+                )
+                await db.commit()
+                print(f"[REPORT] E2E report_id={report_id} done ({report_type})")
+                return
 
             # --- 1. Load company profile ---
             async with db.execute("""
