@@ -272,3 +272,20 @@ Plans:
 | DELIV-01–03 | Phase 7 — PDF Rendering & Delivery |
 
 **Coverage check:** 33 original + 2 new (AUTH-09, UX-01) = 35 requirements mapped ✓
+
+---
+
+## Backlog
+
+### Phase 999.1: Public-Facing Commercial Funnel + Advisor Review Model (BACKLOG)
+
+**Goal:** Turn AccountIQ from a working app into a public-facing commercial product: marketing site, pricing/order funnel, attribution, lead capture, payment psychology, and a Todd-led advisor review/consulting loop.
+
+**Captured from:** 2026-07-01 application backlog planning note and BizVal fee/order-flow screenshots.
+
+**Requirements:** PUB-01 through PUB-10 drafted in `.planning/phases/999.1-public-facing-commercial-funnel-advisor-review/999.1-CONTEXT.md`
+
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with `$gsd-review-backlog` when ready)
