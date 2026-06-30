@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AccountIQ Web
 
-## Getting Started
+Next.js App Router frontend for AccountIQ.
 
-First, run the development server:
+FastAPI remains the backend of record. Browser requests go through the same-origin proxy:
+
+```text
+/api/backend/:path* -> FASTAPI_ORIGIN/:path*
+```
+
+## Development
+
+Start FastAPI from the repo root:
+
+```bash
+source venv/bin/activate
+cd backend
+uvicorn main:app --reload --port 8765
+```
+
+Start Next.js from `web/`:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+```bash
+npm run typecheck
+npm run lint
+npm run build
+npm run test:e2e
+npm run test:e2e:prod
+npm run openapi:fetch
+npm run openapi:types
+```
 
-To learn more about Next.js, take a look at the following resources:
+## E2E
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`npm run test:e2e` starts:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- FastAPI via `../scripts/start-e2e-backend.sh`
+- Next.js via `npm run dev`
 
-## Deploy on Vercel
+The E2E backend uses `ACCOUNTIQ_E2E_MODE=true` and a disposable SQLite DB at `data/accountiq_e2e.db`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`npm run test:e2e:prod` builds Next.js first, then runs the same Playwright suite against `npm run start`.

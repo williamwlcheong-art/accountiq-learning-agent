@@ -127,10 +127,11 @@ def _e2e_report_content(report_type: str) -> dict:
             content[section] = f"E2E generated {title} for {report_type}."
     return content
 
-# Serve the frontend
+# Serve the legacy vanilla frontend only when explicitly requested.
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
-if FRONTEND_DIR.exists():
-    app.mount("/app", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+SERVE_LEGACY_FRONTEND = os.environ.get("ACCOUNTIQ_SERVE_LEGACY_FRONTEND", "false").lower() == "true"
+if SERVE_LEGACY_FRONTEND and FRONTEND_DIR.exists():
+    app.mount("/app", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="legacy_frontend")
 
 
 @app.on_event("startup")
@@ -1881,4 +1882,11 @@ def _parse_json_from_response(raw_text: str, sections: list[str]) -> dict:
 
 @app.get("/")
 async def root():
-    return {"message": "AccountIQ Learning Agent API. UI at /app"}
+    return {
+        "name": "AccountIQ API",
+        "status": "ok",
+        "health": "/health",
+        "docs": "/docs",
+        "ui": "Run the Next.js app from web/ at http://localhost:3000",
+        "legacy_ui": "/app when ACCOUNTIQ_SERVE_LEGACY_FRONTEND=true",
+    }

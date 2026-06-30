@@ -10,7 +10,7 @@ Required .env variables:
   SMTP_USER      — SMTP login username (usually an email address)
   SMTP_PASSWORD  — SMTP login password or app password
   FROM_EMAIL     — sender address shown in the email (defaults to SMTP_USER)
-  APP_BASE_URL   — base URL of the deployed app (defaults to http://localhost:8765)
+  APP_BASE_URL   — base URL of the deployed app (defaults to http://localhost:3000)
 """
 
 import asyncio
@@ -83,7 +83,7 @@ async def send_report_ready_email(
     smtp_user = os.getenv("SMTP_USER", "")
     smtp_password = os.getenv("SMTP_PASSWORD", "")
     from_email = os.getenv("FROM_EMAIL", smtp_user)
-    base_url = os.getenv("APP_BASE_URL", "http://localhost:8765")
+    base_url = os.getenv("APP_BASE_URL", "http://localhost:3000").rstrip("/")
 
     # Gracefully skip sending when SMTP is not configured (development mode).
     if not smtp_host or not smtp_user or not smtp_password:
@@ -99,8 +99,7 @@ async def send_report_ready_email(
         smtp_port = 587
 
     report_label = REPORT_TYPE_LABELS.get(report_type, report_type.replace("_", " ").title())
-    # Phase 5: link points to /app — Phase 7 will update to /app/reports/{report_id}
-    report_link = f"{base_url}/app"
+    report_link = f"{base_url}/api/backend/wizard/report/{report_id}/view"
 
     greeting = f"Hi {user_name}," if user_name else "Hello,"
     subject = f"Your {report_label} is ready — AccountIQ"

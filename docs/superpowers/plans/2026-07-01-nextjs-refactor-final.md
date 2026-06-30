@@ -22,7 +22,7 @@
 
 - Server health: `GET http://127.0.0.1:8765/health` returns 200.
 - Unauthenticated auth check: `GET /auth/me` returns 401.
-- OpenAPI route count: 36 operations.
+- OpenAPI route count: 37 operations, including `GET /`.
 - Backend app: `backend/main.py`, 1,794 lines.
 - Frontend app: `frontend/index.html`, 2,986 lines.
 - Auth cookie: `accountiq_session`, `HttpOnly`, `SameSite=Lax`, 7-day max age.
@@ -1221,10 +1221,10 @@ if FRONTEND_DIR.exists():
 with:
 
 ```python
-SERVE_LEGACY_FRONTEND = os.environ.get("SERVE_LEGACY_FRONTEND", "false").lower() == "true"
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
+SERVE_LEGACY_FRONTEND = os.environ.get("ACCOUNTIQ_SERVE_LEGACY_FRONTEND", "false").lower() == "true"
 if SERVE_LEGACY_FRONTEND and FRONTEND_DIR.exists():
-    app.mount("/app", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+    app.mount("/app", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="legacy_frontend")
 ```
 
 - [ ] **Step 2: Update backend root**
@@ -1244,8 +1244,11 @@ with:
 async def root():
     return {
         "name": "AccountIQ API",
+        "status": "ok",
         "health": "/health",
-        "openapi": "/openapi.json",
+        "docs": "/docs",
+        "ui": "Run the Next.js app from web/ at http://localhost:3000",
+        "legacy_ui": "/app when ACCOUNTIQ_SERVE_LEGACY_FRONTEND=true",
     }
 ```
 
@@ -1297,7 +1300,7 @@ Update `.planning/codebase/ARCHITECTURE.md` entry points to:
 - Backend API: `source venv/bin/activate && cd backend && uvicorn main:app --reload --port 8765`
 - Next.js frontend: `cd web && npm run dev`
 - App URL: `http://localhost:3000`
-- Legacy app: `SERVE_LEGACY_FRONTEND=true` then `http://localhost:8765/app`
+- Legacy app: `ACCOUNTIQ_SERVE_LEGACY_FRONTEND=true` then `http://localhost:8765/app`
 - API health: `http://127.0.0.1:8765/health`
 ```
 
@@ -1386,7 +1389,7 @@ Manual checks:
 - Regular user sees wizard only.
 - Upload accepts `.pdf`, `.xlsx`, `.xls`, `.xlsm`, `.docx`.
 - Done report shows `Open report`.
-- `http://localhost:8765/app` is not served unless `SERVE_LEGACY_FRONTEND=true`.
+- `http://localhost:8765/app` is not served unless `ACCOUNTIQ_SERVE_LEGACY_FRONTEND=true`.
 
 - [ ] **Step 6: Final status**
 

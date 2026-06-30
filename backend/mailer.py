@@ -15,7 +15,7 @@ Required .env variables:
   SMTP_USER      — SMTP login username
   SMTP_PASSWORD  — SMTP login password or app password
   FROM_EMAIL     — sender address (defaults to SMTP_USER)
-  APP_BASE_URL   — base URL of the app (defaults to http://localhost:8765)
+  APP_BASE_URL   — base URL of the app (defaults to http://localhost:3000)
 """
 from __future__ import annotations
 
@@ -109,7 +109,7 @@ async def send_report_ready_email(
     smtp_user = os.getenv("SMTP_USER", "")
     smtp_pass = os.getenv("SMTP_PASSWORD", "")
     from_email = os.getenv("FROM_EMAIL", smtp_user)
-    base_url = os.getenv("APP_BASE_URL", "http://localhost:8765")
+    base_url = os.getenv("APP_BASE_URL", "http://localhost:3000").rstrip("/")
 
     if not smtp_host or not smtp_user:
         print(
@@ -120,8 +120,7 @@ async def send_report_ready_email(
 
     report_type_display = report_type.replace("_", " ").title()
     subject = f"Your {report_type_display} is ready — AccountIQ"
-    # Phase 7 will implement the viewer and update this link format
-    report_link = f"{base_url}/app"
+    report_link = f"{base_url}/api/backend/wizard/report/{report_id}/view"
 
     greeting = f"Hi {user_name or user_email},"
 

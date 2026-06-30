@@ -20,13 +20,13 @@ A business owner uploads their financials, answers a few questions about their b
 - ✓ Rule-based extraction fallback (works when no API key or Claude fails) — existing
 - ✓ Pattern learning (label → canonical key mapping improves over time) — existing
 - ✓ Company and document management (CRUD + upload flow) — existing
-- ✓ Basic frontend UI (companies, documents, financials, patterns, analytics, settings tabs) — existing
+- ✓ Next.js frontend UI for auth, wizard, admin dashboard, companies, uploads, documents, financials, patterns, settings — Next.js refactor
 - ✓ CORS restricted to localhost:8765 (no wildcard) — Phase 1
 - ✓ Filename sanitisation via Path(file.filename).name — Phase 1
 - ✓ XSS eliminated: all server/AI data uses textContent/createTextNode — Phase 1
 - ✓ User registration + login with Argon2-hashed passwords and HttpOnly/SameSite=Lax cookies — Phase 1
 - ✓ JWT session cookies (7-day expiry, 15 protected routes) — Phase 1
-- ✓ Frontend auth wall gates entire app UI behind /auth/me — Phase 1
+- ✓ Frontend auth wall gates the app via `/auth/me` and role-based Next.js redirects — Phase 1 + Next.js refactor
 
 ### Active
 
@@ -76,7 +76,7 @@ A business owner uploads their financials, answers a few questions about their b
 
 ## Context
 
-- The backend is Python FastAPI with SQLite (aiosqlite). The frontend is a single vanilla JS/HTML file served as a static mount. Both are in a single repo.
+- The backend is Python FastAPI with SQLite (aiosqlite). The primary frontend is a Next.js App Router app in `web/`; the old `frontend/index.html` app is now an opt-in legacy fallback.
 - Extraction already uses Claude (claude-sonnet-4-6) with forced tool-use and a GAAP/IFRS system prompt. The same Claude API will power report generation.
 - Security gaps from pre-Phase 1 (wildcard CORS, unsanitised filenames, innerHTML XSS, no auth) are now fixed. 4 code review criticals remain (empty SECRET_KEY, exception message leakage, env path disclosure, unvalidated claude_model write) — flagged for Phase 1 gap closure before external launch.
 - Phase 2 isolation: all company/document routes enforce `WHERE user_id=?` filters; IDOR returns 404 not 403 (D-01); analytics scoped per-user; `label_patterns` intentionally global (D-03). 3 code review criticals remain (retry_document write scope, analytics/overview label_patterns leakage, executescript transaction split) — flagged for gap closure.
@@ -84,7 +84,7 @@ A business owner uploads their financials, answers a few questions about their b
 
 ## Constraints
 
-- **Tech stack**: Python FastAPI + SQLite + Vanilla JS — extend this, don't replace it
+- **Tech stack**: Python FastAPI + SQLite + Next.js — keep FastAPI as the backend of record for uploads, extraction, reports, and DB writes
 - **AI**: Anthropic Claude API — already integrated, continue using it for both extraction and report generation
 - **Quality bar**: Report output must be first-draft quality — accurate enough that a professional would use it as a starting point, not start over
 - **Security**: Auth, input sanitisation, and CORS lockdown must ship before any external user access
@@ -97,7 +97,7 @@ A business owner uploads their financials, answers a few questions about their b
 | Pay-per-report (not subscription) | Matches infrequent, high-value use case for SME owners | — Pending |
 | First-draft quality bar | Makes accuracy achievable; professionals still add value | — Pending |
 | All 5 report types in v1 | User wants full offering from launch | — Pending |
-| Extend existing stack (FastAPI + SQLite) | Already working, avoid rewrite risk | — Pending |
+| Keep FastAPI as backend of record and migrate UI to Next.js | Preserves working ingestion/report engine while fixing frontend maintainability | — Accepted |
 
 ## Evolution
 
@@ -117,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-07 — Phase 2 complete*
+*Last updated: 2026-07-01 — Next.js refactor in progress*
