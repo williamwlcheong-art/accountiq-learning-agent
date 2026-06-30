@@ -51,4 +51,4 @@ npm run openapi:types
 
 The E2E backend uses `ACCOUNTIQ_E2E_MODE=true` and a disposable SQLite DB at `data/accountiq_e2e.db`.
 
-`npm run test:e2e:prod` builds Next.js first, then runs the same Playwright suite against `npm run start`.
+`npm run test:e2e:prod` builds Next.js first, then runs the same Playwright suite against the standalone production server.

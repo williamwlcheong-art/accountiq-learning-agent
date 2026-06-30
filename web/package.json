@@ -5,14 +5,15 @@
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
-    "start": "next start --port 3000",
+    "start": "npm run prepare:standalone && PORT=3000 HOSTNAME=localhost node .next/standalone/server.js",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "openapi:fetch": "node scripts/fetch-openapi.mjs",
     "openapi:types": "openapi-typescript openapi.json -o types/api.ts",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:prod": "npm run build && PLAYWRIGHT_FRONTEND_COMMAND=\"npm run start\" playwright test"
+    "test:e2e:prod": "npm run build && PLAYWRIGHT_FRONTEND_COMMAND=\"npm run start\" playwright test",
+    "prepare:standalone": "mkdir -p .next/standalone/.next && rm -rf .next/standalone/.next/static .next/standalone/public && cp -R .next/static .next/standalone/.next/static && if [ -d public ]; then cp -R public .next/standalone/public; fi"
   },
   "dependencies": {
     "next": "16.2.9",

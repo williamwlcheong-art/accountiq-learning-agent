@@ -75,7 +75,7 @@ Run from `web/`:
 npm run test:e2e:prod
 ```
 
-This builds Next.js first, then runs Playwright with `PLAYWRIGHT_FRONTEND_COMMAND="npm run start"` so the browser suite exercises the production build rather than the dev server.
+This builds Next.js first, then runs Playwright with `PLAYWRIGHT_FRONTEND_COMMAND="npm run start"` so the browser suite exercises the standalone production server rather than the dev server.
 
 ## E2E Coverage Map
 
