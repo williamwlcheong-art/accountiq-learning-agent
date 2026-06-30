@@ -363,6 +363,136 @@ a {
   width: auto;
 }
 
+.admin-nav {
+  align-items: center;
+}
+
+.admin-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-links a,
+.top-nav > a {
+  color: var(--navy);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.admin-links a:hover,
+.top-nav > a:hover {
+  color: var(--blue);
+}
+
+.admin-page {
+  display: grid;
+  gap: 24px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-header h1,
+.panel h1,
+.panel h2 {
+  margin: 0;
+  color: var(--navy);
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat-tile {
+  min-height: 92px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.stat-tile strong {
+  color: var(--navy);
+  font-size: 1.6rem;
+}
+
+.stat-tile span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.panel {
+  display: grid;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.simple-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.simple-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #edf1f6;
+}
+
+.simple-list li:last-child {
+  border-bottom: 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.detail-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.detail-list div {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.detail-list dt {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.detail-list dd {
+  margin: 0;
+}
+
 @media (max-width: 720px) {
   .top-nav {
     align-items: flex-start;
@@ -389,5 +519,20 @@ a {
 
   .normalisation-row {
     grid-template-columns: 1fr;
+  }
+
+  .admin-links {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .stats-row,
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-list div {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 }
