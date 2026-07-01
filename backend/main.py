@@ -1419,6 +1419,7 @@ async def wizard_report_view(
 
     section_order = SECTION_SCHEMAS.get(row["report_type"], list(sections.keys()))
     label = row["report_type"].replace("_", " ").title()
+    back_url = f"{os.getenv('APP_BASE_URL', 'http://localhost:3000').rstrip('/')}/wizard"
 
     section_html = _render_report_sections_html(sections, section_order)
 
@@ -1456,7 +1457,7 @@ async def wizard_report_view(
 </style>
 </head>
 <body>
-<a class="back" href="/wizard">&#x2190; Back</a>
+<a class="back" href="{_html_lib.escape(back_url, quote=True)}">&#x2190; Back</a>
 <header>
   <h1>{_html_lib.escape(label)}</h1>
   <p>{_html_lib.escape(row['name'])}</p>

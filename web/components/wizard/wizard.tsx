@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, DragEvent, useState } from "react";
+import { ChangeEvent, DragEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -30,6 +30,7 @@ type WizardProps = {
 
 export function Wizard({ user }: WizardProps) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<WizardStep>("upload");
   const [businessName, setBusinessName] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -132,6 +133,7 @@ export function Wizard({ user }: WizardProps) {
     setStep("upload");
     setBusinessName("");
     setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setUpload(null);
     setReportType(null);
     setReportId(null);
@@ -192,7 +194,13 @@ export function Wizard({ user }: WizardProps) {
                 </span>
                 <strong>Click or drag file here</strong>
                 <span>PDF or Excel - last 2-3 years preferred</span>
-                <input id="financial-file" type="file" accept={FINANCIAL_FILE_ACCEPT} onChange={chooseFile} />
+                <input
+                  ref={fileInputRef}
+                  id="financial-file"
+                  type="file"
+                  accept={FINANCIAL_FILE_ACCEPT}
+                  onChange={chooseFile}
+                />
               </label>
               {file ? <p className="wizard-note">{selectedFileLabel}</p> : null}
             </div>

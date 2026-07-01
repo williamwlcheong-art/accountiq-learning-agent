@@ -14,13 +14,16 @@ type Settings = {
 export function SettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [claudeModel, setClaudeModel] = useState("claude-sonnet-4-6");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function loadSettings() {
     try {
-      setSettings(await apiFetch<Settings>("/settings"));
+      const nextSettings = await apiFetch<Settings>("/settings");
+      setSettings(nextSettings);
+      setClaudeModel(nextSettings.claude_model || "claude-sonnet-4-6");
       setError("");
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -37,6 +40,7 @@ export function SettingsPage() {
       .then((nextSettings) => {
         if (cancelled) return;
         setSettings(nextSettings);
+        setClaudeModel(nextSettings.claude_model || "claude-sonnet-4-6");
         setError("");
       })
       .catch((err) => {
@@ -100,7 +104,12 @@ export function SettingsPage() {
         </label>
         <label htmlFor="claude-model">
           Claude Model
-          <select id="claude-model" name="claude_model" defaultValue={settings?.claude_model || "claude-sonnet-4-6"}>
+          <select
+            id="claude-model"
+            name="claude_model"
+            value={claudeModel}
+            onChange={(event) => setClaudeModel(event.target.value)}
+          >
             <option value="claude-sonnet-4-6">claude-sonnet-4-6</option>
             <option value="claude-opus-4-7">claude-opus-4-7</option>
             <option value="claude-haiku-4-5-20251001">claude-haiku-4-5</option>

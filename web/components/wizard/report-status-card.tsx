@@ -16,6 +16,7 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
   const [status, setStatus] = useState<ReportStatus | null>(null);
   const [error, setError] = useState("");
   const [retrying, setRetrying] = useState(false);
+  const [pollRestart, setPollRestart] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +48,7 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [reportId, router]);
+  }, [reportId, router, pollRestart]);
 
   async function retry() {
     setRetrying(true);
@@ -55,6 +56,7 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
     try {
       const nextStatus = await apiFetch<ReportStatus>(`/wizard/report/${reportId}/retry`, { method: "POST" });
       setStatus(nextStatus);
+      setPollRestart((value) => value + 1);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         router.replace("/login");

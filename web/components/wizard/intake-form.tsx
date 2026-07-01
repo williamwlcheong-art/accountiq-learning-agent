@@ -198,6 +198,7 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
     if (reportType === "valuation_advisory") {
       const cagr = Number(answers.revenue_growth_cagr);
       const terminalGrowth = Number(answers.terminal_growth_rate);
+      const missingRisk = riskQuestions.find(([name]) => !answers[name]);
       if (!answers.forecast_horizon) {
         setError("Please select a forecast horizon.");
         return;
@@ -208,6 +209,10 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
       }
       if (!Number.isFinite(terminalGrowth) || terminalGrowth < 0 || terminalGrowth > 20) {
         setError("Terminal growth rate must be between 0 and 20.");
+        return;
+      }
+      if (missingRisk) {
+        setError(`Please select a ${missingRisk[1].toLowerCase()} rating.`);
         return;
       }
       answers.normalisations = normalisations
@@ -294,7 +299,7 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
             <legend>Financial assumptions</legend>
             <label htmlFor="forecast-horizon">
               Forecast horizon
-              <select id="forecast-horizon" name="forecast_horizon" defaultValue="">
+              <select id="forecast-horizon" name="forecast_horizon" defaultValue="" required>
                 <option value="" disabled>
                   Select horizon
                 </option>
@@ -304,11 +309,11 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
             </label>
             <label htmlFor="revenue-growth-cagr">
               Revenue growth rate (CAGR %)
-              <input id="revenue-growth-cagr" name="revenue_growth_cagr" type="number" min="0" max="100" step="0.1" />
+              <input id="revenue-growth-cagr" name="revenue_growth_cagr" type="number" min="0" max="100" step="0.1" required />
             </label>
             <label htmlFor="terminal-growth-rate">
               Terminal growth rate (%)
-              <input id="terminal-growth-rate" name="terminal_growth_rate" type="number" min="0" max="20" step="0.1" />
+              <input id="terminal-growth-rate" name="terminal_growth_rate" type="number" min="0" max="20" step="0.1" required />
             </label>
           </fieldset>
 
@@ -316,8 +321,8 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
             <legend>Business risk assessment</legend>
             {riskQuestions.map(([name, label, options]) => (
               <label key={name} htmlFor={name}>
-                {label}
-                <select id={name} name={name} defaultValue="">
+                {label} rating
+                <select id={name} name={name} defaultValue="" required>
                   <option value="" disabled>
                     Select rating
                   </option>

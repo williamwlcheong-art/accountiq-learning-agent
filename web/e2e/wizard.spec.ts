@@ -23,4 +23,36 @@ test("regular user uploads, selects report type, generates report, and opens vie
   await page.getByRole("button", { name: /generate report/i }).click();
   await expect(page.getByText(/status:/i)).toBeVisible();
   await expect(page.getByRole("link", { name: /open report/i })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /upload another/i }).click();
+  await page.getByLabel(/business name/i).fill("Second E2E Holdings Ltd");
+  await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
+  await expect(page.getByText(/sample\.pdf/i)).toBeVisible();
+});
+
+test("regular user can complete valuation-specific intake", async ({ page }) => {
+  await register(page, regularEmail());
+  await page.getByLabel(/business name/i).fill("Valuation E2E Ltd");
+  await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
+  await page.getByRole("button", { name: /continue/i }).click();
+  await page.getByText("Valuation Advisory").click();
+  await page.getByRole("button", { name: /continue/i }).click();
+  await page.getByLabel(/forecast horizon/i).selectOption("3");
+  await page.getByLabel(/revenue growth rate/i).fill("8");
+  await page.getByLabel(/terminal growth rate/i).fill("3");
+  for (const label of [
+    /revenue quality/i,
+    /owner \/ key-person dependency rating/i,
+    /ebitda growth trend/i,
+    /customer concentration rating/i,
+    /gross profit margin/i,
+    /barriers to entry/i,
+    /growth outlook/i,
+    /management depth/i,
+  ]) {
+    const field = page.getByLabel(label);
+    await expect(field).toHaveAttribute("required", "");
+    await field.selectOption("3");
+  }
+  await page.getByRole("button", { name: /generate report/i }).click();
+  await expect(page.getByRole("link", { name: /open report/i })).toBeVisible({ timeout: 15_000 });
 });

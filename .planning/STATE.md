@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Next.js refactor complete - PR pending
-stopped_at: Final multi-agent review complete; backend, frontend, dev E2E, and standalone E2E checks passing
-last_updated: "2026-07-01T10:26:59+12:00"
+status: Next.js refactor parity review complete - PR pending
+stopped_at: External parity/business review complete; parity blockers fixed; backend, frontend, dev E2E, and standalone E2E checks passing
+last_updated: "2026-07-01T11:45:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -47,8 +47,22 @@ Latest verified checks:
 - `npm run lint`
 - `npm run typecheck`
 - `npm run build`
-- Dev Playwright: 9 passed
-- Standalone production Playwright: 9 passed
+- Dev Playwright: 10 passed
+- Standalone production Playwright: 10 passed
+
+External parity review follow-up (2026-07-01):
+
+- Fixed customer parity blockers: repeat upload resets the file input, valuation risk ratings are required, failed-report retry restarts polling, authenticated `/login` redirects to the correct app surface, and direct FastAPI report-viewer back links point at `APP_BASE_URL/wizard`.
+- Fixed admin parity blockers: restored the Business Profile editor in the Next companies screen (sector, description, management team CRUD, EBITDA adjustment CRUD, completion badge, EBITDA bridge) and prevented Settings from overwriting the configured Claude model before async settings load completes.
+- Expanded E2E coverage: admin profile completion is now covered; customer wizard covers repeat upload and valuation-specific intake.
+- Remaining non-blocking admin polish gaps: Documents page still lacks the legacy company filter, narrative summary/logs actions, and FY/page/OCR metadata columns; Financials still lacks status-aware empty states for processing/failed documents; global admin nav does not yet surface the API-key warning outside Settings; admin upload does not display the backend-resolved `company_name` after auto-resolution.
+
+Commercialization review (2026-07-01):
+
+- Strongest wedge: launch a focused **Indicative SME Valuation + Exit Readiness Report** for NZ/AU owners and advisors, not all five report types at once.
+- Best initial motion: productized service with automation underneath; manually review the first 20-50 paid reports before fully self-serve delivery.
+- Highest launch gaps: Stripe payment gate, professional PDF artifact, purchase history, admin review-before-release queue, quality gates for missing profile/financial data, production legal/trust pages, and a public acquisition/pricing surface.
+- Pricing hypothesis: free extraction/readiness teaser, $495 launch self-serve valuation moving toward $795-$995, $1,500-$2,500 advisor-reviewed valuation, and partner/broker bundles after pilot validation.
 
 ## Decision Log
 
@@ -64,12 +78,13 @@ Latest verified checks:
 | 2026-05-13 | Phase 3.5 complete — admin/wizard split, OWNER_EMAIL gate, require_admin on all 25 routes | AUTH-09 + UX-01 delivered; 49 tests passing; drag-and-drop added post-checkpoint |
 | 2026-07-01 | Migrated primary frontend to Next.js App Router | Replaces single-file vanilla UI while preserving FastAPI uploads, extraction, reports, auth cookies, and SQLite writes |
 | 2026-07-01 | Added deterministic Playwright E2E in dev and standalone modes | Validates auth, wizard, admin workflows, upload/report generation, report viewer escaping, and responsive smoke checks |
+| 2026-07-01 | Narrow launch strategy to valuation wedge first | Paid launch should prove trust and willingness-to-pay with one high-value report before broadening to all five report families |
 
 ---
 ## Session Continuity
 
 Last session: 2026-07-01
-Stopped at: Next.js refactor branch ready for PR.
+Stopped at: Next.js refactor branch parity blockers fixed and verified; PR pending final review/merge.
 Resume file: docs/superpowers/plans/2026-07-01-nextjs-refactor-final.md
 
 ---

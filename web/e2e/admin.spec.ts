@@ -14,6 +14,25 @@ test("owner email registers as admin and can use admin workflows", async ({ page
   await page.getByRole("button", { name: /save company/i }).click();
   await expect(page.getByText("Admin E2E Ltd")).toBeVisible();
 
+  await page.getByRole("button", { name: /edit profile/i }).click();
+  await expect(page.getByRole("heading", { name: /business profile/i })).toBeVisible();
+  await page.getByLabel(/business description/i).fill(
+    "Professional services company with recurring advisory revenue, a diversified customer base, and a stable operating footprint.",
+  );
+  await page.getByRole("button", { name: /save profile/i }).click();
+  await expect(page.getByText(/business profile saved/i)).toBeVisible();
+  await page.getByLabel(/^name$/i).fill("Jane Smith");
+  await page.getByLabel(/title/i).fill("Managing Director");
+  await page.getByLabel(/bio/i).fill("Leads operations and client delivery.");
+  await page.getByRole("button", { name: /add member/i }).click();
+  await expect(page.getByText(/team member added/i)).toBeVisible();
+  await page.getByLabel(/^label$/i).fill("Owner salary above market");
+  await page.getByLabel(/amount/i).fill("80000");
+  await page.getByLabel(/rationale/i).fill("Normalise owner remuneration to market level.");
+  await page.getByRole("button", { name: /add adjustment/i }).click();
+  await expect(page.getByText(/adjustment added/i)).toBeVisible();
+  await expect(page.locator("tr").filter({ hasText: "Admin E2E Ltd" }).getByText("4/4 complete")).toBeVisible();
+
   await page.getByRole("link", { name: /upload pdf/i }).click();
   await expect(page.getByText(/uploading for: admin e2e ltd/i)).toBeVisible();
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));

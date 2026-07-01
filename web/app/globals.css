@@ -878,6 +878,153 @@ a {
   color: var(--navy);
 }
 
+.button-danger {
+  background: var(--red);
+  color: #fff;
+}
+
+.action-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.profile-panel-row:hover td {
+  background: transparent;
+}
+
+.profile-panel-cell {
+  padding: 0;
+  background: #f8fafc;
+}
+
+.profile-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.profile-panel-header,
+.profile-section-header,
+.profile-actions,
+.inline-list-title,
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-panel-header {
+  justify-content: space-between;
+}
+
+.profile-panel h2,
+.profile-panel h3,
+.profile-panel h4 {
+  margin: 0;
+  color: var(--navy);
+}
+
+.profile-panel h2 {
+  font-size: 1.05rem;
+}
+
+.profile-panel h3 {
+  font-size: 0.95rem;
+}
+
+.profile-panel h4 {
+  font-size: 0.85rem;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.profile-section {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.profile-mini-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.span-all {
+  grid-column: 1 / -1;
+}
+
+.profile-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
+  gap: 1rem;
+}
+
+.inline-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.inline-list-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.inline-list-title {
+  justify-content: space-between;
+}
+
+.item-actions {
+  align-self: start;
+  flex-wrap: wrap;
+}
+
+.profile-empty {
+  padding: 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 7px;
+  text-align: center;
+}
+
+.ebitda-bridge {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.ebitda-bridge td:last-child {
+  text-align: right;
+  font-weight: 700;
+}
+
+.bridge-total td {
+  border-top: 2px solid var(--navy);
+  color: var(--navy);
+  font-weight: 800;
+}
+
+.amount-negative {
+  color: var(--red);
+}
+
 .auth-form .button-primary,
 .wizard-card > .button-primary {
   width: 100%;
@@ -1178,7 +1325,19 @@ input[type="file"] {
   .admin-grid,
   .stats-row,
   .form-grid,
+  .profile-grid,
+  .profile-split,
+  .profile-mini-form,
   .admin-form.inline-controls {
     grid-template-columns: 1fr;
+  }
+
+  .inline-list-item {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-panel-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
