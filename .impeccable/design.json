@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-02T07:25:38+12:00",
+  "title": "Design System: AccountIQ",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ledger Ink",
+        "canonical": "#13202f",
+        "tonalRamp": ["#060a0f", "#0b121b", "#13202f", "#27384d", "#41546c", "#738399", "#aeb8c5", "#edf1f5"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Slate",
+        "canonical": "#607084",
+        "tonalRamp": ["#10141a", "#242d38", "#3e4b5d", "#607084", "#8090a2", "#a4b0bd", "#c9d1d9", "#eff2f5"]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Ruled Line",
+        "canonical": "#d8e1eb",
+        "tonalRamp": ["#17212c", "#354252", "#5f7084", "#8798aa", "#b2c0cd", "#d8e1eb", "#e8eef4", "#f7fafc"]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#1a1a1a", "#404040", "#707070", "#9f9f9f", "#c8c8c8", "#e6e6e6", "#f5f5f5", "#ffffff"]
+      },
+      "wash": {
+        "role": "neutral",
+        "displayName": "Soft Wash",
+        "canonical": "#f4f7fa",
+        "tonalRamp": ["#16202a", "#334252", "#5b6d80", "#8395a7", "#afbdca", "#d8e2eb", "#f4f7fa", "#ffffff"]
+      },
+      "valuation-blue": {
+        "role": "primary",
+        "displayName": "Valuation Blue",
+        "canonical": "#126a9f",
+        "tonalRamp": ["#061b29", "#0a3854", "#0e527b", "#126a9f", "#2b7dac", "#5aa1c6", "#8ac1d8", "#edf7fb"]
+      },
+      "valuation-blue-deep": {
+        "role": "primary",
+        "displayName": "Deep Valuation Blue",
+        "canonical": "#0a3d62",
+        "tonalRamp": ["#061928", "#08263d", "#0a3d62", "#0f5787", "#126a9f", "#4f95bf", "#9bc3da", "#d8edf7"]
+      },
+      "review-green": {
+        "role": "secondary",
+        "displayName": "Review Green",
+        "canonical": "#9bc83d",
+        "tonalRamp": ["#1a2508", "#2e410b", "#557a14", "#739f24", "#9bc83d", "#badc72", "#d8edae", "#f0f8d8"]
+      },
+      "review-green-deep": {
+        "role": "secondary",
+        "displayName": "Deep Review Green",
+        "canonical": "#557a14",
+        "tonalRamp": ["#101806", "#233407", "#3d590e", "#557a14", "#739f24", "#99c94a", "#c5e48a", "#ebf6cf"]
+      },
+      "review-green-hero": {
+        "role": "secondary",
+        "displayName": "Hero Review Green",
+        "canonical": "#cfef78",
+        "tonalRamp": ["#1e2a08", "#3b520f", "#5f7f1e", "#89ad38", "#add95c", "#cfef78", "#e3f7ab", "#f5fbdc"]
+      },
+      "review-green-hover": {
+        "role": "secondary",
+        "displayName": "Hover Review Green",
+        "canonical": "#acd94c",
+        "tonalRamp": ["#1b2707", "#334b0d", "#557a14", "#7aaa29", "#9bc83d", "#acd94c", "#d2eb97", "#eff9d8"]
+      },
+      "advisory-gold": {
+        "role": "tertiary",
+        "displayName": "Advisory Gold",
+        "canonical": "#d69e2e",
+        "tonalRamp": ["#291b05", "#503609", "#805916", "#aa7820", "#d69e2e", "#e5bb66", "#f0d79e", "#fbf1d8"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Danger Red",
+        "canonical": "#b42318",
+        "tonalRamp": ["#2a0503", "#540b06", "#82150e", "#b42318", "#d84b40", "#e7837b", "#f2b9b4", "#fde7e5"]
+      },
+      "danger-bg": {
+        "role": "tertiary",
+        "displayName": "Danger Surface",
+        "canonical": "#fff1f0",
+        "tonalRamp": ["#2a0503", "#64100a", "#98241a", "#c94a3e", "#e7837b", "#f2b9b4", "#fff1f0", "#fffafa"]
+      },
+      "danger-line": {
+        "role": "tertiary",
+        "displayName": "Danger Line",
+        "canonical": "#f5c2bd",
+        "tonalRamp": ["#2a0503", "#64100a", "#98241a", "#c94a3e", "#d96b61", "#e9a09a", "#f5c2bd", "#fdecea"]
+      },
+      "cta-ink": {
+        "role": "neutral",
+        "displayName": "CTA Ink",
+        "canonical": "#142208",
+        "tonalRamp": ["#050802", "#0b1304", "#142208", "#263b0f", "#3d5b19", "#6f8b3a", "#a8bd74", "#e8f0d6"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero headlines and major empty states only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings and major dashboard groupings."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Product cards, report previews, and panel headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Readable workflow and product copy."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Rare orientation labels; do not repeat above every section."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel-lift",
+        "value": "0 6px 14px rgba(19, 32, 47, 0.08)",
+        "purpose": "Workflow surfaces, report previews, auth panels, and dashboard panels."
+      },
+      {
+        "name": "selected-control",
+        "value": "0 4px 12px rgba(19, 32, 47, 0.1)",
+        "purpose": "Selected segmented controls only."
+      },
+      {
+        "name": "featured-product",
+        "value": "inset 0 4px 0 #126a9f",
+        "purpose": "Marks the primary product without floating-card decoration."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-state",
+        "value": "160ms ease",
+        "purpose": "Button hover and low-risk state feedback."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Disable smooth scrolling and collapse animation duration."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-stack",
+        "value": "860px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main commercial action for starting a valuation or continuing a workflow.",
+      "html": "<button class=\"ds-btn-primary\">Get a business valuation</button>",
+      "css": ".ds-btn-primary { align-items: center; background: #9bc83d; border: 0; border-radius: 7px; color: #142208; cursor: pointer; display: inline-flex; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-weight: 760; gap: 9px; justify-content: center; min-height: 46px; padding: 0 18px; transition: background-color 160ms ease, transform 160ms ease; } .ds-btn-primary:hover { background: #acd94c; transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 3px solid rgba(155, 200, 61, 0.72); outline-offset: 3px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Lower-risk navigation action used beside the primary button.",
+      "html": "<button class=\"ds-btn-secondary\">View products</button>",
+      "css": ".ds-btn-secondary { align-items: center; background: #ffffff; border: 1px solid #d8e1eb; border-radius: 7px; color: #126a9f; cursor: pointer; display: inline-flex; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-weight: 760; justify-content: center; min-height: 46px; padding: 0 16px; transition: background-color 160ms ease, border-color 160ms ease; } .ds-btn-secondary:hover { background: #f4f7fa; border-color: #126a9f; } .ds-btn-secondary:focus-visible { outline: 3px solid rgba(155, 200, 61, 0.72); outline-offset: 3px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "text-field",
+      "description": "Standard data-entry field for auth, upload, and customer details.",
+      "html": "<label class=\"ds-field\"><span>Business name</span><input placeholder=\"Acme Limited\" /></label>",
+      "css": ".ds-field { color: #13202f; display: grid; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.9rem; font-weight: 760; gap: 8px; margin: 0; } .ds-field input { background: #ffffff; border: 1px solid #d8e1eb; border-radius: 7px; color: #13202f; font: inherit; min-height: 46px; padding: 0 12px; width: 100%; } .ds-field input:focus-visible { outline: 3px solid rgba(155, 200, 61, 0.72); outline-offset: 3px; }"
+    },
+    {
+      "name": "Brand Navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Compact trust-first navigation with 44px targets.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-brand\" href=\"#\"><span class=\"ds-brand-mark\">a</span><span>AccountIQ</span></a><div class=\"ds-nav-links\"><a href=\"#\">Pricing</a><a href=\"#\">Proof</a><a href=\"#\">Sign in</a></div></nav>",
+      "css": ".ds-nav { align-items: center; display: flex; gap: 24px; justify-content: space-between; max-width: 1180px; } .ds-brand { align-items: center; color: #13202f; display: inline-flex; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 1.28rem; font-weight: 800; gap: 10px; min-height: 44px; text-decoration: none; } .ds-brand-mark { align-items: center; background: #0a3d62; border-radius: 8px; box-shadow: inset 0 -10px 0 rgba(155, 200, 61, 0.28); color: #ffffff; display: inline-flex; font-size: 1.25rem; font-weight: 900; height: 34px; justify-content: center; width: 34px; } .ds-nav-links { align-items: center; display: flex; gap: 14px; } .ds-nav-links a { align-items: center; color: #607084; display: inline-flex; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-weight: 650; justify-content: center; min-height: 44px; min-width: 44px; text-decoration: none; } .ds-nav a:focus-visible { outline: 3px solid rgba(155, 200, 61, 0.72); outline-offset: 3px; }"
+    },
+    {
+      "name": "Report Preview Card",
+      "kind": "card",
+      "refersTo": "card-panel",
+      "description": "Signature preview surface that demonstrates report content and review status.",
+      "html": "<article class=\"ds-report\"><div class=\"ds-report-header\">Valuation Advisory</div><div class=\"ds-row\"><span>Revenue</span><strong>NZ$1.25m</strong></div><div class=\"ds-row\"><span>EBITDA</span><strong>NZ$235k</strong></div><div class=\"ds-row\"><span>Indicative range</span><strong>NZ$1.8m - NZ$2.4m</strong></div><div class=\"ds-review\">Todd review step</div></article>",
+      "css": ".ds-report { background: #ffffff; border: 1px solid #d8e1eb; border-radius: 8px; box-shadow: 0 6px 14px rgba(19, 32, 47, 0.08); color: #13202f; font-family: Inter, ui-sans-serif, system-ui, sans-serif; padding: 22px; width: 360px; } .ds-report-header { border-bottom: 1px solid #d8e1eb; font-weight: 800; padding-bottom: 16px; } .ds-row { align-items: center; border-bottom: 1px solid #d8e1eb; display: flex; justify-content: space-between; min-height: 64px; } .ds-row span { color: #607084; font-size: 0.9rem; font-weight: 650; } .ds-row strong { color: #126a9f; font-size: 1.15rem; } .ds-review { background: #eef7db; border-radius: 6px; color: #557a14; font-weight: 760; margin-top: 18px; padding: 12px; }"
+    },
+    {
+      "name": "Product Card",
+      "kind": "card",
+      "refersTo": "product-card",
+      "description": "Flat product offer card with optional primary-product inset marker.",
+      "html": "<article class=\"ds-product ds-product-featured\"><h3>Business Valuation Report</h3><strong>Fixed fee from NZ$2,250 + GST</strong><p>Fixed-fee valuation report for SME owners, advisers, and planning conversations.</p></article>",
+      "css": ".ds-product { background: #ffffff; border: 1px solid #d8e1eb; border-radius: 8px; color: #13202f; font-family: Inter, ui-sans-serif, system-ui, sans-serif; min-height: 230px; padding: 24px; } .ds-product-featured { border-color: rgba(18, 106, 159, 0.42); box-shadow: inset 0 4px 0 #126a9f; } .ds-product h3 { color: #126a9f; font-size: 1.1rem; margin: 0 0 18px; } .ds-product strong { display: block; font-size: 1.32rem; line-height: 1.2; margin-bottom: 16px; } .ds-product p { color: #607084; line-height: 1.6; margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Reviewed Ledger",
+    "overview": "AccountIQ should feel like a calm working file that has already passed through a careful professional's hands. The interface is direct, legible, and commercially credible; it leads with the fixed-fee valuation outcome and then proves the workflow, review step, compliance boundary, and customer status.\n\nThe visual system rejects broad SaaS platform language, generic finance stock imagery, abstract AI-first positioning, purple/blue gradient startup tropes, and decorative glassmorphism. Blue is allowed because it is the brand and trust base, but it must be paired with white space, ledger-like structure, and a measured green review accent so the product does not become another startup gradient.",
+    "keyCharacteristics": [
+      "Calm commercial confidence, not hype.",
+      "High-trust information density with readable spacing.",
+      "Human review as a visible product step.",
+      "Fixed-fee clarity before payment or document upload.",
+      "Compliance boundaries treated as product clarity, not fine print."
+    ],
+    "rules": [
+      {
+        "name": "The Review Accent Rule",
+        "body": "Review Green is a trust signal, not a theme. Use it for the primary action, review status, or a single proof cue; never wash whole sections in green.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Unverified Proof Rule",
+        "body": "CAANZ logos, professional credentials, testimonials, and social proof are forbidden unless entitlement and permission are clear.",
+        "section": "colors"
+      },
+      {
+        "name": "The Blue With Air Rule",
+        "body": "Blue can carry the hero and brand, but every blue surface must be balanced by Paper, Soft Wash, or structured report UI nearby.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Eyebrow Rule",
+        "body": "A page may use one small uppercase label to orient the user. Repeating uppercase labels above every section is forbidden.",
+        "section": "typography"
+      },
+      {
+        "name": "The Report Voice Rule",
+        "body": "Headings must make concrete promises about workflow, price, review, or report status. Avoid vague category labels such as \"Solutions\" or \"Platform\".",
+        "section": "typography"
+      },
+      {
+        "name": "The No Glass Rule",
+        "body": "Translucent cards, blur panels, frosted glass, and heavy ambient glow are prohibited.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Line Before Shadow Rule",
+        "body": "Use borders and section rhythm first. Add shadow only when a surface contains an active workflow or preview.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do lead with the concrete customer outcome: a fixed-fee indicative business valuation report.",
+      "Do build trust before asking for money or financial documents.",
+      "Do show review, payment, validation, and status as plain workflow steps.",
+      "Do use Deep Review Green (#557a14) for green text on light surfaces, and reserve Review Green (#9bc83d) for CTAs or dark-surface accents.",
+      "Do keep controls at 44px minimum touch target size where possible.",
+      "Do respect prefers-reduced-motion and keep animation to state feedback only."
+    ],
+    "donts": [
+      "Don't use broad SaaS platform language.",
+      "Don't use generic finance stock imagery.",
+      "Don't use abstract AI-first positioning.",
+      "Don't use purple/blue gradient startup tropes.",
+      "Don't use decorative glassmorphism.",
+      "Don't claim \"instant valuation\", \"certified valuation\", \"financial advice\", \"guaranteed valuation\", \"court-standard\", or \"AI replaces your adviser\".",
+      "Don't use CAANZ logos, professional credentials, testimonials, or social proof unless permission and entitlement are clear.",
+      "Don't let green body text sit below WCAG AA contrast on light backgrounds."
+    ]
+  }
+}

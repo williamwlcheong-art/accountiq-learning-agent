@@ -8,9 +8,13 @@
   --blue-deep: #0a3d62;
   --green: #9bc83d;
   --green-deep: #557a14;
+  --green-hero: #cfef78;
+  --green-hover: #acd94c;
   --gold: #d69e2e;
   --danger: #b42318;
-  --shadow: 0 20px 60px rgba(19, 32, 47, 0.12);
+  --danger-bg: #fff1f0;
+  --danger-line: #f5c2bd;
+  --shadow: 0 6px 14px rgba(19, 32, 47, 0.08);
 }
 
 * {
@@ -40,11 +44,13 @@ input {
   font: inherit;
 }
 
+:where(a, button, input):focus-visible {
+  outline: 3px solid rgba(155, 200, 61, 0.72);
+  outline-offset: 3px;
+}
+
 .home-hero {
-  background:
-    linear-gradient(120deg, rgba(10, 61, 98, 0.95), rgba(18, 106, 159, 0.88)),
-    radial-gradient(circle at 78% 20%, rgba(155, 200, 61, 0.35), transparent 28%),
-    #0a3d62;
+  background: linear-gradient(120deg, #0a3d62 0%, #126a9f 100%);
   color: white;
   min-height: 720px;
   padding: 28px clamp(20px, 5vw, 72px) 72px;
@@ -67,6 +73,7 @@ input {
   font-weight: 800;
   gap: 10px;
   letter-spacing: 0;
+  min-height: 44px;
 }
 
 .brand.small {
@@ -75,8 +82,9 @@ input {
 
 .brand-mark {
   align-items: center;
-  background: linear-gradient(140deg, var(--green), #4fb0d8);
+  background: var(--blue-deep);
   border-radius: 8px;
+  box-shadow: inset 0 -10px 0 rgba(155, 200, 61, 0.28);
   color: transparent;
   display: inline-flex;
   height: 34px;
@@ -107,6 +115,14 @@ input {
   font-weight: 650;
 }
 
+.site-nav-links a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
+}
+
 .hero-content {
   align-items: center;
   display: grid;
@@ -121,12 +137,16 @@ input {
 }
 
 .eyebrow {
-  color: var(--green);
+  color: var(--green-deep);
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   margin: 0 0 14px;
   text-transform: uppercase;
+}
+
+.home-hero .eyebrow {
+  color: var(--green-hero);
 }
 
 h1,
@@ -175,6 +195,14 @@ h2 {
   border-radius: 7px;
   color: #142208;
   padding: 0 18px;
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.primary-button:hover {
+  background: var(--green-hover);
+  transform: translateY(-1px);
 }
 
 .secondary-button {
@@ -183,6 +211,14 @@ h2 {
   border-radius: 7px;
   color: currentColor;
   padding: 0 16px;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.secondary-button:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.34);
 }
 
 .full-width {
@@ -313,6 +349,11 @@ h2 {
   padding: 24px;
 }
 
+.product-card-featured {
+  border-color: rgba(18, 106, 159, 0.42);
+  box-shadow: inset 0 4px 0 var(--blue);
+}
+
 .product-card h3 {
   color: var(--blue);
   font-size: 1.1rem;
@@ -321,7 +362,8 @@ h2 {
 
 .product-card strong {
   display: block;
-  font-size: 1.5rem;
+  font-size: 1.32rem;
+  line-height: 1.2;
   margin-bottom: 16px;
 }
 
@@ -381,12 +423,12 @@ h2 {
   border-radius: 6px;
   cursor: pointer;
   font-weight: 760;
-  min-height: 38px;
+  min-height: 44px;
 }
 
 .segmented button.active {
   background: white;
-  box-shadow: 0 4px 16px rgba(19, 32, 47, 0.12);
+  box-shadow: 0 4px 12px rgba(19, 32, 47, 0.1);
 }
 
 label {
@@ -415,8 +457,8 @@ input[type="file"] {
 }
 
 .form-error {
-  background: #fff1f0;
-  border: 1px solid #f5c2bd;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-line);
   border-radius: 6px;
   color: var(--danger);
   font-size: 0.9rem;
@@ -440,8 +482,8 @@ input[type="file"] {
   border: 1px solid var(--line);
   border-radius: 7px;
   color: var(--ink);
-  height: 40px;
-  width: 40px;
+  height: 44px;
+  width: 44px;
 }
 
 .dashboard-grid {
@@ -538,5 +580,19 @@ input[type="file"] {
 
   .report-preview {
     max-width: 520px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

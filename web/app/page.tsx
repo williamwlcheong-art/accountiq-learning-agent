@@ -11,18 +11,19 @@ import {
 const products = [
   {
     name: "Business Valuation Report",
-    price: "from NZ$2,250 + GST",
+    price: "Fixed fee from NZ$2,250 + GST",
     copy: "Fixed-fee valuation report for SME owners, advisers, and planning conversations.",
+    featured: true,
   },
   {
     name: "Bank Credit Paper",
-    price: "pilot product",
+    price: "Pilot product",
     copy: "A lender-ready credit summary built from uploaded financial statements.",
   },
   {
     name: "Advisory Consultation",
-    price: "upsell",
-    copy: "Todd-led review and next-step support after the report is prepared.",
+    price: "Quoted after review",
+    copy: "Todd-led next-step support once the valuation findings are clear.",
   },
 ];
 
@@ -44,7 +45,7 @@ export default function HomePage() {
 
         <div className="hero-content">
           <div className="hero-copy">
-            <p className="eyebrow">SME valuation reports</p>
+            <p className="eyebrow">Fixed-fee valuation reports</p>
             <h1>Fixed-fee business valuations, reviewed before delivery.</h1>
             <p className="lede">
               AccountIQ turns uploaded financial statements into structured valuation reports for business
@@ -89,7 +90,6 @@ export default function HomePage() {
       <section className="section-band proof-band" id="proof">
         <div className="proof-grid">
           <div>
-            <p className="eyebrow">Trust signals</p>
             <h2>Built for buyers who have never met us.</h2>
           </div>
           <div className="proof-list">
@@ -111,12 +111,11 @@ export default function HomePage() {
 
       <section className="section-band products-band" id="pricing">
         <div className="section-heading">
-          <p className="eyebrow">Initial offer set</p>
           <h2>Start with three products, keep the buying decision simple.</h2>
         </div>
         <div className="product-grid">
           {products.map((product) => (
-            <article className="product-card" key={product.name}>
+            <article className={`product-card${product.featured ? " product-card-featured" : ""}`} key={product.name}>
               <h3>{product.name}</h3>
               <strong>{product.price}</strong>
               <p>{product.copy}</p>
