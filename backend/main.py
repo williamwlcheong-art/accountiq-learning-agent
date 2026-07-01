@@ -7,34 +7,8 @@ import json
 import shutil
 import asyncio
 import sqlite3
-import sys as _sys
-import importlib as _importlib
 from pathlib import Path
 from typing import Optional
-
-# ---------------------------------------------------------------------------
-# Pre-load stdlib email submodules before fastapi touches them.
-#
-# backend/email.py (added in Plan 05-04) shadows Python's stdlib email package
-# when the server is run from the backend/ directory ('' is prepended to sys.path).
-# fastapi/routing.py does `import email.message` at module level, which would fail
-# if email.py is found before the stdlib package.
-#
-# Fix: temporarily remove '' from sys.path, force-load the real stdlib email modules
-# into sys.modules, then restore sys.path.  After this block, any subsequent
-# `import email.message` finds sys.modules['email.message'] and succeeds.
-# ---------------------------------------------------------------------------
-if "email.message" not in _sys.modules:
-    _saved_path = _sys.path[:]
-    _sys.path = [p for p in _sys.path if p not in ("", ".")]
-    for _m in ("email", "email.message", "email.utils", "email.mime",
-               "email.mime.multipart", "email.mime.text", "email.mime.base"):
-        try:
-            _importlib.import_module(_m)
-        except ImportError:
-            pass
-    _sys.path = _saved_path
-    del _saved_path, _m
 
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -45,7 +19,7 @@ import aiosqlite
 # Load .env from project root (one level up from backend/)
 from dotenv import load_dotenv, set_key
 ENV_PATH = Path(__file__).parent.parent / ".env"
-load_dotenv(ENV_PATH, override=True)
+load_dotenv(ENV_PATH, override=False)
 
 from db import init_db, get_db, get_pattern_library, DB_PATH
 from ingestion import ingest_document, ALL_ROWS
@@ -57,12 +31,6 @@ from valuation import (
     compute_wacc_scenarios, compute_dcf, compute_illiquidity_discount,
     compute_risk_score, compute_multiples_ev,
 )
-# from email import send_report_ready_email as _send_report_email
-# NOTE: cannot import from email module directly in backend/ context because backend/email.py
-# shadows stdlib email package (smtplib and fastapi both need email.message / email.utils).
-# Per D-impl-01 (05-01-SUMMARY): use report_email.py to avoid this shadowing at runtime.
-# backend/email.py satisfies the plan artifact requirement but is loaded via importlib externally.
-_send_report_email = send_report_ready_email  # alias — both point to same smtplib implementation
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -91,10 +59,47 @@ EXPORT_DIR = DATA_DIR / "exports"
 PDF_DIR.mkdir(parents=True, exist_ok=True)
 EXPORT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Serve the frontend
+E2E_MODE = os.environ.get("ACCOUNTIQ_E2E_MODE", "false").lower() == "true"
+
+
+def _e2e_financial_rows() -> list[tuple[str, str, str, str, float, float]]:
+    return [
+        ("pnl", "revenue", "Revenue", "2025", 1_250_000.0, 0.99),
+        ("pnl", "ebitda", "EBITDA", "2025", 240_000.0, 0.98),
+        ("pnl", "net_profit", "Net Profit", "2025", 150_000.0, 0.97),
+        ("bs", "cash_and_bank", "Cash & bank", "2025", 95_000.0, 0.98),
+        ("bs", "total_assets", "Total Assets", "2025", 850_000.0, 0.98),
+    ]
+
+
+def _e2e_report_content(report_type: str) -> dict:
+    sections = SECTION_SCHEMAS.get(report_type, ["executive_summary", "disclaimer"])
+    content = {}
+    for section in sections:
+        title = section.replace("_", " ").title()
+        if section == "disclaimer":
+            content[section] = (
+                "This report is indicative only, is not financial advice, "
+                "is not regulated advice under the FMCA, and should not be relied "
+                "on without independent professional advice."
+            )
+        elif section.endswith("summary") or section in {"valuation_summary", "financial_summary"}:
+            content[section] = {
+                "narrative": f"E2E generated {title} with <script>escaped text</script> for safety checks.",
+                "table": {
+                    "headers": ["Metric", "Value"],
+                    "rows": [["Revenue", "$1,250,000"], ["EBITDA", "$240,000"]],
+                },
+            }
+        else:
+            content[section] = f"E2E generated {title} for {report_type}."
+    return content
+
+# Serve the legacy vanilla frontend only when explicitly requested.
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
-if FRONTEND_DIR.exists():
-    app.mount("/app", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+SERVE_LEGACY_FRONTEND = os.environ.get("ACCOUNTIQ_SERVE_LEGACY_FRONTEND", "false").lower() == "true"
+if SERVE_LEGACY_FRONTEND and FRONTEND_DIR.exists():
+    app.mount("/app", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="legacy_frontend")
 
 
 @app.on_event("startup")
@@ -661,6 +666,45 @@ async def _run_ingestion(document_id, company_id, filepath, entity_type, exchang
         db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys=ON")
         try:
+            if E2E_MODE:
+                await db.execute(
+                    "UPDATE documents SET extraction_status='processing', updated_at=datetime('now') WHERE id=?",
+                    (document_id,),
+                )
+                await db.execute(
+                    "INSERT INTO extraction_log (document_id, level, message) VALUES (?, 'info', ?)",
+                    (document_id, "E2E ingestion shortcut started"),
+                )
+                for statement, row_key, row_label, period, value, confidence in _e2e_financial_rows():
+                    await db.execute(
+                        """
+                        INSERT INTO financial_rows
+                            (document_id, company_id, statement, row_key, row_label, period, value, confidence)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (document_id, company_id, statement, row_key, row_label, period, value, confidence),
+                    )
+                await db.execute(
+                    """
+                    UPDATE documents
+                    SET extraction_status='done',
+                        page_count=1,
+                        has_ocr=0,
+                        confidence_score=0.99,
+                        narrative='E2E generated narrative with <script>escaped text</script>.',
+                        reporting_standard='E2E',
+                        updated_at=datetime('now')
+                    WHERE id=?
+                    """,
+                    (document_id,),
+                )
+                await db.execute(
+                    "INSERT INTO extraction_log (document_id, level, message) VALUES (?, 'info', ?)",
+                    (document_id, "E2E ingestion shortcut completed"),
+                )
+                await db.commit()
+                return
+
             await ingest_document(
                 db, document_id, company_id, filepath,
                 entity_type, exchange, fiscal_year_end
@@ -1161,6 +1205,48 @@ async def wizard_report_retry(
     return {"report_id": report_id, "status": "queued"}
 
 
+@app.get("/wizard/company/{company_id}/profile-status")
+async def wizard_profile_status(
+    company_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Wizard-scoped profile status for user-owned companies."""
+    async with db.execute(
+        "SELECT sector, description FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"]),
+    ) as cur:
+        company = await cur.fetchone()
+    if not company:
+        raise HTTPException(404, "Company not found")
+
+    sector_complete = bool(company["sector"])
+    description_complete = len((company["description"] or "").strip()) >= 50
+
+    async with db.execute(
+        "SELECT COUNT(*) as n FROM management_team WHERE company_id=?",
+        (company_id,),
+    ) as cur:
+        management_complete = (await cur.fetchone())["n"] > 0
+
+    async with db.execute(
+        "SELECT COUNT(*) as n FROM ebitda_adjustments WHERE company_id=?",
+        (company_id,),
+    ) as cur:
+        ebitda_complete = (await cur.fetchone())["n"] > 0
+
+    sections_complete = sum([sector_complete, description_complete, management_complete, ebitda_complete])
+    return {
+        "sections_complete": sections_complete,
+        "total": 4,
+        "sector_complete": sector_complete,
+        "description_complete": description_complete,
+        "management_complete": management_complete,
+        "ebitda_complete": ebitda_complete,
+        "can_generate": sector_complete and ebitda_complete,
+    }
+
+
 @app.get("/wizard/company/{company_id}/ebitda-adjustments")
 async def wizard_get_ebitda_adjustments(
     company_id: int,
@@ -1186,7 +1272,7 @@ async def wizard_get_ebitda_adjustments(
         if row is None:
             raise HTTPException(status_code=404, detail="Company not found")
         owner_id = row["user_id"]
-        is_admin = (current_user.get("role") == "admin")
+        is_admin = bool(current_user.get("is_admin"))
         if owner_id != current_user.get("id") and not is_admin:
             raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -1333,6 +1419,7 @@ async def wizard_report_view(
 
     section_order = SECTION_SCHEMAS.get(row["report_type"], list(sections.keys()))
     label = row["report_type"].replace("_", " ").title()
+    back_url = f"{os.getenv('APP_BASE_URL', 'http://localhost:3000').rstrip('/')}/wizard"
 
     section_html = _render_report_sections_html(sections, section_order)
 
@@ -1370,7 +1457,7 @@ async def wizard_report_view(
 </style>
 </head>
 <body>
-<a class="back" href="javascript:history.back()">&#x2190; Back</a>
+<a class="back" href="{_html_lib.escape(back_url, quote=True)}">&#x2190; Back</a>
 <header>
   <h1>{_html_lib.escape(label)}</h1>
   <p>{_html_lib.escape(row['name'])}</p>
@@ -1420,6 +1507,21 @@ async def _generate_report(
             )
             await db.commit()
             print(f"[REPORT] Generating report_id={report_id} type={report_type}")
+
+            if E2E_MODE:
+                await asyncio.sleep(0.05)
+                content_json = _e2e_report_content(report_type)
+                await db.execute(
+                    """
+                    UPDATE reports
+                    SET status='done', content=?, completed_at=datetime('now')
+                    WHERE id=?
+                    """,
+                    (json.dumps(content_json), report_id),
+                )
+                await db.commit()
+                print(f"[REPORT] E2E report_id={report_id} done ({report_type})")
+                return
 
             # --- 1. Load company profile ---
             async with db.execute("""
@@ -1689,7 +1791,7 @@ async def _generate_report(
             if user_row:
                 user_email_addr = user_row["email"]
                 user_name = user_email_addr.split("@")[0]
-                await _send_report_email(
+                await send_report_ready_email(
                     user_email_addr, user_name, report_type, report_id
                 )
 
@@ -1791,4 +1893,11 @@ def _parse_json_from_response(raw_text: str, sections: list[str]) -> dict:
 
 @app.get("/")
 async def root():
-    return {"message": "AccountIQ Learning Agent API. UI at /app"}
+    return {
+        "name": "AccountIQ API",
+        "status": "ok",
+        "health": "/health",
+        "docs": "/docs",
+        "ui": "Run the Next.js app from web/ at http://localhost:3000",
+        "legacy_ui": "/app when ACCOUNTIQ_SERVE_LEGACY_FRONTEND=true",
+    }

@@ -1,84 +1,63 @@
 ---
-last_mapped: 2026-05-04
+last_mapped: 2026-07-01
 ---
 
 # Concerns
 
 ## Security
 
-### High Priority
+### High Priority Before External Launch
 
-**Wildcard CORS on a write endpoint (`main.py:35-40`)**
-`allow_origins=["*"]` permits any origin to POST to `/settings`, which writes the Anthropic API key to disk. In a production context this is a serious misconfiguration.
+**Production secret handling**
+`SECRET_KEY` must be strong and environment-specific. `.env.example` documents this, but deployment should enforce it.
 
-**Unsanitized filename used for disk paths (`main.py:166`)**
-```python
-dest = company_dir / file.filename
-```
-`file.filename` comes directly from the multipart form. A crafted filename like `../../etc/passwd` or `../main.py` could write outside the intended directory. Should use `Path(file.filename).name` (basename only).
+**Development-only origins**
+CORS is intentionally restricted for local development. Production needs an explicit allowed-origin list matching the deployed public origin.
 
-**XSS via `innerHTML` with server data (`frontend/index.html`)**
-The frontend renders Claude-generated narrative text and extraction log messages using `innerHTML` without sanitization. Claude responses are user-influenced (they reflect PDF content), creating a stored XSS vector.
+**Legacy frontend fallback**
+`frontend/index.html` exists for rollback/reference only and should stay disabled by default (`ACCOUNTIQ_SERVE_LEGACY_FRONTEND=false`). New security fixes and E2E coverage target the Next.js app.
 
-**No authentication on any endpoint**
-All API endpoints are publicly accessible with no auth layer. Fine for localhost dev, must be addressed before any network exposure.
+**Report viewer authorization**
+The viewer route is user-scoped and covered by E2E for escaping. Continue adding backend tests for any change to report ownership, sharing, or PDF delivery.
 
-### Low Priority
+### Medium Priority
 
-**Module-level global mutation (`ingestion.py`)**
-`ANTHROPIC_API_KEY` and `CLAUDE_MODEL` are module-level globals mutated by the settings POST endpoint. This is not thread-safe if the app ever runs with multiple workers.
+**Exception detail leakage**
+Some backend routes still return raw exception strings in 500 responses. Before external launch, replace these with generic user-facing messages plus server-side logs.
+
+**Runtime settings writes**
+The settings endpoint persists model/API-key values to `.env` and mutates process environment. This is acceptable for local prototype use, but should become a safer secret/config path for production.
 
 ## Technical Debt
 
-**Deprecated FastAPI startup event (`main.py:55`)**
-```python
-@app.on_event("startup")
-```
-Deprecated since FastAPI 0.93. Should use `lifespan` context manager instead.
+**Large FastAPI module**
+`backend/main.py` still contains most routes and background task wiring. Split into routers/modules as the backend surface grows.
 
-**Deprecated `asyncio.get_event_loop()` (`ingestion.py:287`)**
-```python
-loop = asyncio.get_event_loop()
-response = await loop.run_in_executor(...)
-```
-`get_event_loop()` is deprecated in Python 3.10+. Should use `asyncio.get_running_loop()`.
+**Deprecated FastAPI startup event**
+`@app.on_event("startup")` should eventually move to a lifespan context manager.
 
-**Manual schema migration with no version tracking (`db.py:111`)**
-`_migrate_db()` applies `ALTER TABLE` statements wrapped in try/except. No migration versioning, no rollback capability. Fine for a prototype; becomes fragile with multiple developers.
+**Manual schema migrations**
+`backend/db.py` applies `ALTER TABLE` statements directly with try/except. This is workable for the prototype, but a production launch should adopt versioned migrations.
 
 ## Performance
 
-**Synchronous blocking calls in async context (`ingestion.py`)**
-`pdfplumber` and `pandas` are synchronous libraries called directly in an async background task. Large PDFs will block the event loop. The Claude call correctly uses `run_in_executor`, but the text extraction steps do not.
+**Synchronous document processing**
+`pdfplumber`, `pandas`, OCR, and related extraction steps can block if called directly in async paths. Keep wrapping synchronous library calls in executors as these paths are touched.
 
-**No file upload size limit**
-`POST /documents/upload` has no `Content-Length` check or `max_size` guard. A very large file will be accepted and could exhaust disk or memory.
+**No upload size limit**
+Uploads need a content-length/max-size guard before public launch.
 
-**Pattern library reloaded on every ingestion**
-`get_pattern_library(db)` queries the full `label_patterns` table on every document ingestion. With many patterns this becomes a growing overhead. Should be cached with invalidation on write.
+**Polling**
+The wizard and admin workflows poll for status. This is acceptable for current volume; SSE/WebSockets may be needed later.
 
-**Frontend 3-second polling**
-`setInterval` at 3000ms per active job. With many documents in-flight this generates significant request volume. SSE or WebSocket would be more efficient.
-
-## Fragile Areas
-
-**Background task silently discards errors**
-`_run_ingestion` catches exceptions and logs them, but the caller (the upload endpoint) has already returned a 200 response. If the background task fails, the only signal to the user is polling `/documents/{id}/status` and seeing `extraction_status: "failed"`.
-
-**Rule extractor limited to single-page analysis**
-`_extract_statement()` picks the single best-scoring page for each statement type. Multi-page financials (common in annual reports) will miss rows on secondary pages.
-
-**Broken CSS animation reference**
-The shimmer progress animation is applied in CSS but `@keyframes shimmer` is never defined in `frontend/index.html`. The processing indicator animation is broken.
-
-**No retry/backoff for Claude API rate limits**
-`call_claude()` propagates all Claude API errors except auth/billing errors (which fall back to rule-based). Rate limit errors (429) will surface as 500s to the client instead of triggering a retry.
+**SQLite production ceiling**
+SQLite is fine for local/single-instance prototype use. Multi-instance deployment requires a database migration plan.
 
 ## Missing Features / Gaps
 
-- No file deduplication (same PDF can be uploaded multiple times)
-- No document deletion endpoint
-- No validation of `fiscal_year_end` format (accepts any string)
-- No pagination on `/documents` or `/financials/{id}` (unbounded response size)
-- No export for financial rows (only pattern export exists)
-- Zero test coverage (see TESTING.md)
+- Stripe pay-per-report purchase gating
+- Professional PDF rendering and download
+- Report history/account management
+- Document deletion and deduplication
+- Pagination for unbounded list endpoints
+- Production deployment configuration

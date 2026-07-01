@@ -76,7 +76,7 @@ Plans:
 - [x] 03-02-PLAN.md — Add backend CRUD: profile patch, management-team CRUD, ebitda-adjustments CRUD, profile-status (gate + EBITDA bridge); enrich GET /companies with description + sections_complete
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 03-03-PLAN.md — Build frontend accordion: completion badge, Industry/Description/Mgmt Team/EBITDA forms with running bridge; apiDelete helper; human-verify checkpoint
+- [x] 03-03-PLAN.md — Build frontend accordion: completion badge, Industry/Description/Mgmt Team/EBITDA forms with running bridge; apiDelete helper; human-verify checkpoint. Legacy implementation was ported into the Next.js admin Companies screen during the 2026-07-01 parity review.
 
 ---
 

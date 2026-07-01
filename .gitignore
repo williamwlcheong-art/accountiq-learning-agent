@@ -29,3 +29,17 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Local implementation worktrees
+.worktrees/
+
+# Next.js
+web/node_modules/
+web/.next/
+web/out/
+web/playwright-report/
+web/test-results/
+web/openapi.json
+data/accountiq_e2e.db
+data/accountiq_e2e.db-wal
+data/accountiq_e2e.db-shm

@@ -1,107 +1,126 @@
 ---
-last_mapped: 2026-05-04
+last_mapped: 2026-07-01
 ---
 
 # Architecture
 
 ## Pattern
 
-**Monolithic single-repo, two-tier architecture:**
-- **Backend:** Python FastAPI REST API (async)
-- **Frontend:** Vanilla JS/HTML SPA served as a static mount from the backend
+**Single repository, split runtime architecture:**
 
-No separate frontend build step or bundler. The frontend HTML/JS file is served directly by FastAPI via `StaticFiles`. All API calls go to the same origin.
+- **Frontend:** Next.js App Router application in `web/`
+- **Backend:** Python FastAPI API in `backend/`
+- **Database:** SQLite via `aiosqlite`, with WAL mode and foreign keys enabled
+- **Legacy UI:** `frontend/index.html`, served at `/app` only when `ACCOUNTIQ_SERVE_LEGACY_FRONTEND=true`
+
+Next.js owns routing, React state, presentation, route guards, and browser E2E coverage. FastAPI remains the system of record for auth cookies, SQLite writes, uploads, extraction, valuation, report generation, email, and all long-running work.
+
+## Runtime Shape
+
+```text
+Browser
+  |
+  | http://localhost:3000
+  v
+Next.js app in web/
+  | pages, layouts, React components
+  | /api/backend/:path* runtime proxy
+  v
+FastAPI backend on http://127.0.0.1:8765
+  | auth, uploads, ingestion, reports, settings
+  v
+SQLite + data/pdfs + Python extraction/report modules
+```
 
 ## Layers
 
-```
-┌─────────────────────────────────────────────────────┐
-│  Frontend (frontend/index.html)                     │
-│  Single-page Vanilla JS — tabs: Dashboard, Companies│
-│  Documents, Patterns, Analytics, Settings           │
-└───────────────────┬─────────────────────────────────┘
-                    │ HTTP REST (JSON)
-┌───────────────────▼─────────────────────────────────┐
-│  FastAPI API Layer (backend/main.py)                 │
-│  Routes: /companies /documents /financials           │
-│          /patterns /analytics /settings              │
-└───────────────────┬─────────────────────────────────┘
-                    │
-    ┌───────────────┴──────────────────┐
-    │                                  │
-┌───▼────────────────┐   ┌────────────▼────────────────┐
-│  Ingestion Pipeline │   │  Database Layer              │
-│  (backend/ingestion)│   │  (backend/db.py)             │
-│  1. PDF/Excel text  │   │  SQLite via aiosqlite        │
-│     extraction      │   │  WAL mode, foreign keys ON   │
-│  2. Claude API call │   │  5 tables: companies,        │
-│     (tool-use)      │   │  documents, financial_rows,  │
-│  3. Rule-based      │   │  label_patterns,             │
-│     fallback        │   │  extraction_log              │
-│  4. Persist rows    │   └─────────────────────────────┘
-│     + patterns      │
-└─────────────────────┘
-          │
-┌─────────▼──────────┐
-│  Claude API         │
-│  (Anthropic SDK)    │
-│  Tool-use forced    │
-│  extract_financials │
-│  GAAP/IFRS system   │
-│  prompt + cache     │
-└────────────────────┘
+```text
+Next.js UI
+  - /login
+  - /wizard
+  - /admin/*
+  - /account
+  - /api/backend/:path* proxy
+
+FastAPI API
+  - /auth/*
+  - /companies*
+  - /documents*
+  - /financials*
+  - /patterns*
+  - /analytics*
+  - /settings
+  - /wizard/*
+
+Backend Services
+  - ingestion.py: PDF, Excel, Word extraction
+  - rule_extractor.py: no-API fallback extraction
+  - report_prompts.py: report prompt construction and section schemas
+  - valuation.py: DCF, multiples, risk scoring
+  - research_loop.py: valuation research
+  - report_email.py: report-ready notification email
+
+Persistence
+  - data/accountiq_learning.db
+  - data/pdfs/{company_id}/
+  - data/exports/
 ```
 
 ## Key Abstractions
 
+### API Proxy (`web/app/api/backend/[...path]/route.ts`)
+
+Next.js proxies `/api/backend/:path*` to the FastAPI origin from `FASTAPI_ORIGIN` (default `http://127.0.0.1:8765`) at runtime. Browser code calls the proxy so auth cookies stay same-origin to the Next.js app, and standalone builds can change backend origin through environment configuration.
+
+### API Clients (`web/lib/api-client.ts`, `web/lib/server-api.ts`)
+
+Client components use typed fetch helpers that preserve credentials and normalize backend errors. Server components/layouts use `headers()` to forward cookies when checking the current user for redirects.
+
+### Auth And Role Split (`backend/auth.py`, `web/lib/auth.ts`)
+
+FastAPI issues the `accountiq_session` HttpOnly cookie. Next.js reads the user via `/auth/me`; admin routes require `is_admin`, while regular users land in `/wizard`.
+
 ### Ingestion Pipeline (`backend/ingestion.py`)
 
-The core intelligence layer. Entry point: `ingest_document()`.
+`ingest_document()` extracts text, calls Claude with forced tool-use when configured, falls back to rules when needed, and persists financial rows plus learned label patterns.
 
-1. **Text extraction** — `extract_pdf_text()` uses `pdfplumber`; image pages fall back to `pytesseract` OCR. `extract_excel_text()` handles `.xlsx/.xls/.xlsm` via `pandas`.
-2. **Page scoring** — `_score_page()` ranks PDF pages by financial synonym density so only the most relevant pages are sent to Claude (within `MAX_TEXT_CHARS = 60,000`).
-3. **Claude tool-use** — `call_claude()` forces the `extract_financials` tool, getting structured JSON back (periods, rows, narrative, reporting standard).
-4. **Rule-based fallback** — `rule_based_extract()` in `rule_extractor.py` runs when no API key is set or Claude fails due to billing/auth errors. Produces ~70-80% accuracy.
-5. **Persistence** — `persist_extraction()` upserts financial rows and records label→canonical_key mappings for future learning.
+### Deterministic E2E Mode (`ACCOUNTIQ_E2E_MODE=true`)
 
-### Pattern Learning (`backend/db.py` — `record_patterns`, `get_pattern_library`)
+E2E mode uses an isolated SQLite path (`ACCOUNTIQ_DB_PATH`) and short-circuits ingestion/report generation with deterministic content. This lets Playwright verify upload, status polling, report viewing, XSS escaping, and responsive behavior without Anthropic, OCR, SMTP, or the dev database.
 
-Every ingestion records which raw label (e.g., "Turnover") mapped to which canonical key (e.g., "revenue"). These are fed back as hints in subsequent Claude calls, improving accuracy over time.
+## Data Flow: Wizard Report
 
-### Rule Extractor (`backend/rule_extractor.py`)
+```text
+POST /wizard/upload
+  -> save file under data/pdfs/{company_id}/
+  -> create company + document for the authenticated user
+  -> background ingestion starts
 
-Synonym dictionaries (PNL_SYNS, BS_SYNS) for 11 P&L rows and 16 BS rows. Uses longest-match scoring. Handles parenthetical negatives, NZ/AU/US number formats, multi-period column detection.
+GET /wizard/document/{id}/status
+  -> poll until extraction_status is done or failed
 
-## Data Flow — Document Ingestion
+POST /wizard/report/generate
+  -> persist intake answers
+  -> background report generation starts
 
-```
-POST /documents/upload
-  → save file to data/pdfs/{company_id}/{filename}
-  → INSERT documents record (status: pending)
-  → BackgroundTasks.add_task(_run_ingestion)
-  → return {document_id, status: "processing"}
+GET /wizard/report/{id}/status
+  -> poll until report is done or failed
 
-_run_ingestion (background)
-  → extract text (PDF or Excel)
-  → load pattern_library from DB
-  → call Claude (tool-use) OR rule_based fallback
-  → persist financial_rows + label_patterns
-  → UPDATE documents.extraction_status = 'done'
-
-GET /documents/{id}/status
-  → poll for completion + last 30 log entries
+GET /wizard/report/{id}/view
+  -> render escaped report HTML for the owning user
 ```
 
 ## Entry Points
 
-- **API server:** `uvicorn main:app --reload --port 8765`
-- **Frontend UI:** `http://localhost:8765/app`
-- **Health check:** `GET /health`
-- **DB initialization:** `init_db()` called on FastAPI startup event
+- **FastAPI dev:** `source venv/bin/activate && cd backend && uvicorn main:app --reload --port 8765`
+- **Next.js dev:** `cd web && npm run dev`
+- **Next.js app:** `http://localhost:3000`
+- **FastAPI health:** `GET http://127.0.0.1:8765/health`
+- **Legacy UI fallback:** `ACCOUNTIQ_SERVE_LEGACY_FRONTEND=true` then `http://localhost:8765/app`
 
 ## Concurrency Model
 
-- FastAPI async routes with `aiosqlite` for all DB operations
-- Ingestion runs in `BackgroundTasks` (separate async context with own DB connection)
-- Claude API called via `asyncio.run_in_executor` (sync Anthropic SDK wrapped in executor)
-- SQLite WAL mode enables concurrent reads during background writes
+- FastAPI routes are async and use `aiosqlite`.
+- Background tasks open their own SQLite connection.
+- Synchronous LLM and document-processing calls are wrapped in executors where implemented.
+- SQLite WAL mode supports concurrent reads during background writes.

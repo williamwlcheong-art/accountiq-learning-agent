@@ -1,5 +1,5 @@
 ---
-last_mapped: 2026-05-04
+last_mapped: 2026-07-01
 ---
 
 # Conventions
@@ -15,9 +15,9 @@ last_mapped: 2026-05-04
 | Private helpers | `_underscore_prefix` | `_score_page`, `_norm`, `_build_pattern_hints` |
 | DB columns | `snake_case` | `extraction_status`, `fiscal_year_end` |
 | Canonical financial keys | `snake_case` | `net_profit`, `cash_and_bank` |
-| CSS variables | `--kebab-case` | `--navy`, `--accent`, `--border` |
-| HTML IDs | `kebab-case` | (inline JS uses descriptive IDs) |
-| JS functions | `camelCase` | `apiFetch`, `loadCompanies`, `renderPatterns` |
+| CSS variables/classes | `--kebab-case`, `kebab-case` | `--navy`, `admin-page` |
+| React components | `PascalCase` file exports, kebab-case filenames | `Wizard`, `wizard.tsx` |
+| TS functions | `camelCase` | `apiFetch`, `requireAdmin` |
 
 ## Python Code Style
 
@@ -82,11 +82,15 @@ async with aiosqlite.connect(DB_PATH) as db:
 
 ## Frontend Patterns
 
-- All frontend code in a single `frontend/index.html` — CSS, HTML, and JS inline
-- Two API helpers used throughout: `apiFetch(path)` (GET) and `apiPost(path, formData)` (POST)
-- Tab navigation: `.nav-tab` buttons toggle `.page.active` divs
-- Status badges: class `status-{value}` with CSS for `pending`, `processing`, `done`, `failed`
-- Polling: `setInterval` at 3s to check `/documents/{id}/status` while `extraction_status` is non-terminal
+- Primary frontend code lives in `web/` as a Next.js App Router app.
+- `frontend/index.html` is legacy fallback code only; do not add new product UI there unless explicitly restoring the legacy app.
+- Browser API calls go through `web/lib/api-client.ts` and default to `NEXT_PUBLIC_API_BASE=/api/backend`.
+- Server-side auth checks go through `web/lib/auth.ts` / `web/lib/server-api.ts`, forwarding cookies from `headers()`.
+- Admin pages live under `web/app/admin/*` and should be protected by `requireAdmin()`.
+- Regular-user report flow lives under `web/app/wizard/page.tsx` and `web/components/wizard/*`.
+- Status badges use class `status-{value}` for `pending`, `processing`, `done`, and `failed`.
+- Polling loops must stop when a terminal status is reached.
+- User-influenced text must render as text, never as unsanitized HTML. Report viewer escaping is covered by Playwright.
 
 ## Configuration Pattern
 

@@ -1,94 +1,120 @@
 ---
-last_mapped: 2026-05-04
+last_mapped: 2026-07-01
 ---
 
 # Structure
 
 ## Directory Layout
 
-```
-accountiq_learning/
+```text
+accountiq-learning-agent/
 ├── backend/                    # Python FastAPI backend
-│   ├── main.py                 # App setup, all API routes, startup
-│   ├── ingestion.py            # PDF/Excel extraction + Claude pipeline
-│   ├── db.py                   # SQLite schema, async connection, pattern helpers
-│   ├── rule_extractor.py       # Rule-based fallback extractor (no API needed)
+│   ├── main.py                 # App setup, API routes, background task wiring
+│   ├── auth.py                 # Registration, login, JWT cookie auth, admin gate
+│   ├── db.py                   # SQLite schema, async connection, migrations
+│   ├── ingestion.py            # PDF/Excel/Word extraction + Claude pipeline
+│   ├── report_prompts.py       # Report schemas and prompt construction
+│   ├── report_email.py         # Report-ready email notification
+│   ├── research_loop.py        # Valuation research helpers
+│   ├── rule_extractor.py       # Rule-based fallback extractor
+│   ├── valuation.py            # DCF, multiples, risk scoring
 │   └── requirements.txt        # Python dependencies
 │
-├── frontend/
-│   └── index.html              # Complete SPA — all JS/CSS inline, no bundler
+├── web/                        # Next.js App Router frontend
+│   ├── app/                    # Routes, layouts, pages, global CSS
+│   ├── components/             # Auth, wizard, and admin React components
+│   ├── e2e/                    # Playwright E2E tests and fixtures
+│   ├── lib/                    # API clients and auth helpers
+│   ├── scripts/                # OpenAPI fetch script
+│   ├── types/                  # Generated OpenAPI + domain types
+│   ├── next.config.ts          # Next.js standalone/turbopack config
+│   └── package.json            # Next, React, TypeScript, Playwright scripts
+│
+├── frontend/                   # Legacy vanilla SPA; opt-in fallback only
+│   └── index.html
+│
+├── tests/                      # Backend pytest suite
+├── scripts/
+│   └── start-e2e-backend.sh    # Isolated backend launcher for Playwright
 │
 ├── data/
-│   ├── accountiq_learning.db   # SQLite database (WAL mode)
-│   ├── pdfs/                   # Uploaded PDFs organized by company_id
-│   │   ├── 1/                  # data/pdfs/{company_id}/{filename}
-│   │   └── 2/
-│   └── exports/                # Pattern export JSONs (patterns_export.json)
+│   ├── accountiq_learning.db   # Local SQLite database
+│   ├── accountiq_e2e.db        # Disposable E2E DB when tests run
+│   ├── pdfs/                   # Uploaded files by company_id
+│   └── exports/                # Pattern export JSONs
 │
-├── venv/                       # Python virtual environment (not tracked in git)
-├── .env                        # ANTHROPIC_API_KEY, CLAUDE_MODEL (gitignored)
-├── .env.example                # Template for env vars
-├── .gitignore
-└── setup.sh                    # Setup script (creates venv, installs deps)
+├── docs/superpowers/plans/     # Implementation plans
+├── .planning/                  # Project and codebase planning docs
+├── .env.example
+└── setup.sh
 ```
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `backend/main.py` | All FastAPI routes and app configuration |
-| `backend/ingestion.py` | Core extraction pipeline + Claude integration |
-| `backend/db.py` | Database schema, connection management, pattern learning |
-| `backend/rule_extractor.py` | Synonym-based fallback extractor |
-| `frontend/index.html` | Complete frontend SPA (no build step) |
-| `data/accountiq_learning.db` | Live SQLite database |
-| `.env` | Runtime secrets (not committed) |
+| `backend/main.py` | FastAPI routes, startup, upload/report background tasks |
+| `backend/auth.py` | Cookie auth and admin authorization |
+| `backend/db.py` | SQLite path, schema, migrations, connection dependency |
+| `backend/ingestion.py` | Document extraction pipeline |
+| `backend/report_prompts.py` | Report-type schemas and AI prompt payloads |
+| `web/app/page.tsx` | Server-side auth redirect entry point |
+| `web/app/login/page.tsx` | Login/register page |
+| `web/app/wizard/page.tsx` | Regular-user upload and report wizard |
+| `web/app/admin/*` | Admin dashboard and workflows |
+| `web/components/wizard/*` | Report selection, intake, status polling |
+| `web/components/admin/*` | Companies, upload, documents, patterns, financials, settings |
+| `web/lib/api-client.ts` | Browser API helper through `/api/backend` |
+| `web/lib/server-api.ts` | Server-side API helper with forwarded cookies |
+| `web/playwright.config.ts` | Playwright config for FastAPI + Next.js web servers |
+| `scripts/start-e2e-backend.sh` | Resets E2E DB and starts deterministic FastAPI |
 
 ## Database Schema
 
-5 tables in `data/accountiq_learning.db`:
+Core tables include:
 
 | Table | Purpose |
 |-------|---------|
-| `companies` | Company master (name, ticker, exchange, sector, country) |
-| `documents` | Uploaded files + extraction status/results |
-| `financial_rows` | Extracted P&L and balance sheet values by period |
-| `label_patterns` | Learned mappings: raw label → canonical key |
-| `extraction_log` | Per-document debug/progress log entries |
+| `users` | Accounts, hashed passwords, admin flag |
+| `companies` | Company master scoped to `user_id` |
+| `documents` | Uploaded files and extraction status |
+| `financial_rows` | Extracted financial statement rows by period |
+| `label_patterns` | Global learned raw-label to canonical-key mappings |
+| `extraction_log` | Per-document processing log |
+| `management_team` | Company profile management entries |
+| `ebitda_adjustments` | Valuation add-backs and owner adjustments |
+| `reports` | Generated report records and status |
+| `report_intake` | Report-specific questionnaire answers |
 
 ## API Surface
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/health` | Health check |
-| GET/POST | `/companies` | List/create companies |
-| GET | `/companies/{id}` | Get company detail |
-| GET | `/documents` | List documents (optional ?company_id=) |
-| POST | `/documents/upload` | Upload PDF/Excel, trigger ingestion |
-| GET | `/documents/{id}/status` | Poll ingestion status + logs |
-| GET | `/documents/{id}/rows` | Get extracted financial rows |
-| POST | `/documents/{id}/retry` | Re-run failed ingestion |
-| GET | `/financials/{company_id}` | Aggregated financials across documents |
-| GET | `/patterns` | List learned label patterns |
-| GET | `/patterns/export` | Export patterns as JSON |
-| GET | `/analytics/overview` | Summary stats |
-| GET | `/analytics/confidence` | Per-row confidence stats |
-| GET/POST | `/settings` | API key / model management |
-| GET | `/app` | Frontend SPA (StaticFiles mount) |
+The OpenAPI contract is generated from FastAPI into ignored local `web/openapi.json`; committed TypeScript API types live in `web/types/api.ts`.
 
-## Naming Conventions
+Major route groups:
 
-- **Python files:** `snake_case.py`
-- **API routes:** `/snake_case/{id}` REST conventions
-- **DB columns:** `snake_case`, timestamps as `TEXT DEFAULT (datetime('now'))`
-- **Canonical financial keys:** `snake_case` (e.g., `net_profit`, `cash_and_bank`)
-- **Frontend:** All inline in `index.html` — CSS variables prefixed `--`, JS functions `camelCase`
+| Group | Purpose |
+|-------|---------|
+| `/auth/*` | Register, login, logout, current user |
+| `/companies*` | Admin company/profile management |
+| `/documents*` | Admin upload, listing, status, retry |
+| `/financials*` | Extracted financial rows |
+| `/patterns*` | Learned label patterns and export |
+| `/analytics*` | Admin overview and confidence stats |
+| `/settings` | API key/model settings |
+| `/wizard/*` | Regular-user upload, intake, report status, report viewer |
+| `/health` | Backend health check |
 
 ## Environment Variables
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `ANTHROPIC_API_KEY` | Claude API authentication | (required for AI extraction) |
-| `CLAUDE_MODEL` | Model to use | `claude-sonnet-4-6` |
-
-Set in `.env` at project root (loaded by `python-dotenv` on startup).
+| `ANTHROPIC_API_KEY` | Claude API authentication | required outside fallback paths |
+| `CLAUDE_MODEL` | Claude model name | `claude-sonnet-4-6` |
+| `SECRET_KEY` | JWT signing key | required |
+| `OWNER_EMAIL` | Email granted admin on registration | unset |
+| `APP_BASE_URL` | Public Next.js app URL for emails | `http://localhost:3000` |
+| `FASTAPI_ORIGIN` | Next.js runtime proxy target | `http://127.0.0.1:8765` |
+| `NEXT_PUBLIC_API_BASE` | Browser API base | `/api/backend` |
+| `ACCOUNTIQ_DB_PATH` | Optional SQLite DB override | unset |
+| `ACCOUNTIQ_E2E_MODE` | Deterministic backend mode for Playwright | `false` |
+| `ACCOUNTIQ_SERVE_LEGACY_FRONTEND` | Opt-in legacy `/app` static mount | `false` |
