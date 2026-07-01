@@ -39,19 +39,20 @@ test("regular user can complete valuation-specific intake", async ({ page }) => 
   await page.getByLabel(/forecast horizon/i).selectOption("3");
   await page.getByLabel(/revenue growth rate/i).fill("8");
   await page.getByLabel(/terminal growth rate/i).fill("3");
-  for (const label of [
-    /revenue quality/i,
-    /owner \/ key-person dependency rating/i,
-    /ebitda growth trend/i,
-    /customer concentration rating/i,
-    /gross profit margin/i,
-    /barriers to entry/i,
-    /growth outlook/i,
-    /management depth/i,
+  for (const name of [
+    "rq_revenue_quality",
+    "rq_owner_dependency",
+    "rq_ebitda_growth",
+    "rq_customer_concentration",
+    "rq_gross_margin",
+    "rq_competitive_barriers",
+    "rq_growth_outlook",
+    "rq_management_depth",
   ]) {
-    const field = page.getByLabel(label);
-    await expect(field).toHaveAttribute("required", "");
-    await field.selectOption("3");
+    const option = page.locator(`input[name="${name}"][value="3"]`);
+    await expect(option).toHaveAttribute("required", "");
+    await page.locator(`label[for="${name}-3"]`).click();
+    await expect(option).toBeChecked();
   }
   await page.getByRole("button", { name: /generate report/i }).click();
   await expect(page.getByRole("link", { name: /open report/i })).toBeVisible({ timeout: 15_000 });

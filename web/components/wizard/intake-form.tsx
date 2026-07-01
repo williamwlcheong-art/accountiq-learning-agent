@@ -91,6 +91,11 @@ function toAnswerValue(value: FormDataEntryValue): string | number {
   return Number.isFinite(numberValue) && /^-?\d+(\.\d+)?$/.test(text) ? numberValue : text;
 }
 
+function ratingDescription(option: string) {
+  const [, description] = option.split(" - ");
+  return description ?? "";
+}
+
 function renderField(field: (typeof simpleFields)["bank_credit_paper"][number]) {
   const id = `intake-${field.name}`;
   if (field.kind === "textarea") {
@@ -320,19 +325,25 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
           <fieldset>
             <legend>Business risk assessment</legend>
             {riskQuestions.map(([name, label, options]) => (
-              <label key={name} htmlFor={name}>
-                {label} rating
-                <select id={name} name={name} defaultValue="" required>
-                  <option value="" disabled>
-                    Select rating
-                  </option>
-                  {options.map((option, index) => (
-                    <option key={option} value={index + 1}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="rating-question" key={name}>
+                <span className="field-label" id={`${name}-label`}>
+                  {label} rating
+                </span>
+                <div className="rating-options" role="radiogroup" aria-labelledby={`${name}-label`}>
+                  {options.map((option, index) => {
+                    const value = String(index + 1);
+                    const id = `${name}-${value}`;
+                    const description = ratingDescription(option);
+                    return (
+                      <label className="rating-option" key={option} htmlFor={id}>
+                        <input id={id} type="radio" name={name} value={value} required />
+                        <span className="rating-score">{value}</span>
+                        {description ? <span className="rating-description">{description}</span> : null}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
           </fieldset>
         </>
