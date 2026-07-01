@@ -5,9 +5,11 @@ SQLite via aiosqlite for async FastAPI compatibility.
 import sqlite3
 import aiosqlite
 import json
+import os
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent / "data" / "accountiq_learning.db"
+_DEFAULT_DB_PATH = Path(__file__).parent.parent / "data" / "accountiq_learning.db"
+DB_PATH = Path(os.environ.get("ACCOUNTIQ_DB_PATH") or _DEFAULT_DB_PATH).expanduser()
 
 SCHEMA = """
 PRAGMA journal_mode=WAL;

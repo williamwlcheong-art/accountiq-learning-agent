@@ -8,6 +8,12 @@ __pycache__/
 dist/
 build/
 
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
 # Environment — NEVER commit secrets
 .env
 
@@ -15,6 +21,9 @@ build/
 data/accountiq_learning.db
 data/accountiq_learning.db-wal
 data/accountiq_learning.db-shm
+data/*.db
+data/*.db-wal
+data/*.db-shm
 
 # Uploaded PDFs (large binary files)
 data/pdfs/

@@ -64,6 +64,13 @@ from valuation import (
 # backend/email.py satisfies the plan artifact requirement but is loaded via importlib externally.
 _send_report_email = send_report_ready_email  # alias — both point to same smtplib implementation
 
+E2E_MODE = os.environ.get("ACCOUNTIQ_E2E_MODE", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
 # ---------------------------------------------------------------------------
 # App setup
 # ---------------------------------------------------------------------------
@@ -655,12 +662,100 @@ async def upload_document(
     }
 
 
+def _e2e_financial_rows(document_id: int, company_id: int) -> list[tuple]:
+    rows = [
+        ("pnl", "revenue", "Revenue", "2025", 1_250_000),
+        ("pnl", "revenue", "Revenue", "2024", 1_080_000),
+        ("pnl", "ebitda", "EBITDA", "2025", 235_000),
+        ("pnl", "ebitda", "EBITDA", "2024", 198_000),
+        ("pnl", "net_profit", "Net Profit", "2025", 154_000),
+        ("pnl", "net_profit", "Net Profit", "2024", 126_000),
+        ("pnl", "depreciation_amortisation", "Depreciation and Amortisation", "2025", 41_000),
+        ("pnl", "depreciation_amortisation", "Depreciation and Amortisation", "2024", 36_000),
+        ("bs", "cash_and_bank", "Cash and Bank", "2025", 142_000),
+        ("bs", "current_assets", "Current Assets", "2025", 386_000),
+        ("bs", "current_liabilities", "Current Liabilities", "2025", 218_000),
+        ("bs", "total_assets", "Total Assets", "2025", 820_000),
+        ("bs", "total_liabilities", "Total Liabilities", "2025", 390_000),
+        ("bs", "equity", "Equity", "2025", 430_000),
+    ]
+    return [
+        (
+            document_id,
+            company_id,
+            statement,
+            row_key,
+            row_label,
+            period,
+            value,
+            "NZD",
+            "whole",
+            "AccountIQ E2E fixture",
+            1.0,
+        )
+        for statement, row_key, row_label, period, value in rows
+    ]
+
+
+async def _run_e2e_ingestion(
+    db: aiosqlite.Connection,
+    document_id: int,
+    company_id: int,
+    filepath: str,
+) -> None:
+    await db.execute(
+        "UPDATE documents SET extraction_status='processing', updated_at=datetime('now') WHERE id=?",
+        (document_id,),
+    )
+    await db.execute("DELETE FROM financial_rows WHERE document_id=?", (document_id,))
+    await db.executemany(
+        """
+        INSERT INTO financial_rows
+            (document_id, company_id, statement, row_key, row_label, period, value,
+             currency, unit, source_text, confidence)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        _e2e_financial_rows(document_id, company_id),
+    )
+    await db.execute(
+        """
+        INSERT INTO extraction_log (document_id, level, message)
+        VALUES (?, 'info', ?)
+        """,
+        (document_id, f"E2E fixture extraction completed for {filepath}"),
+    )
+    await db.execute(
+        """
+        UPDATE documents
+        SET page_count=1,
+            has_ocr=0,
+            extraction_status='done',
+            extraction_model='accountiq-e2e-fixture',
+            raw_claude_response=?,
+            confidence_score=1.0,
+            narrative=?,
+            reporting_standard='E2E',
+            updated_at=datetime('now')
+        WHERE id=?
+        """,
+        (
+            json.dumps({"mode": "e2e", "row_count": len(_e2e_financial_rows(document_id, company_id))}),
+            "Deterministic E2E fixture data. Not customer financial information.",
+            document_id,
+        ),
+    )
+    await db.commit()
+
+
 async def _run_ingestion(document_id, company_id, filepath, entity_type, exchange, fiscal_year_end):
     """Background task — opens its own DB connection."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys=ON")
         try:
+            if E2E_MODE:
+                await _run_e2e_ingestion(db, document_id, company_id, filepath)
+                return
             await ingest_document(
                 db, document_id, company_id, filepath,
                 entity_type, exchange, fiscal_year_end
@@ -1392,6 +1487,45 @@ async def wizard_report_view(
 REPORT_SECTIONS = SECTION_SCHEMAS  # alias — do not remove
 
 
+def _e2e_report_content(report_type: str, company_name: str) -> dict:
+    if report_type not in SECTION_SCHEMAS:
+        raise ValueError(f"Unknown report type for E2E fixture: {report_type}")
+
+    label = REPORT_TYPE_LABELS.get(report_type, report_type.replace("_", " ").title())
+    content: dict[str, str] = {}
+    for section in SECTION_SCHEMAS[report_type]:
+        heading = section.replace("_", " ")
+        content[section] = (
+            f"E2E fixture for {company_name}: {label} {heading}. "
+            "This deterministic section is used for local development and automated browser tests."
+        )
+
+    if "business_overview" in content:
+        content["business_overview"] = (
+            f"{company_name} is shown here with deterministic E2E fixture content. "
+            "The company profile, upload flow, dashboard, and report viewer can be tested without "
+            "calling external AI services."
+        )
+    if "executive_summary" in content:
+        content["executive_summary"] = (
+            f"{company_name} E2E fixture summary. Revenue, profit, balance sheet, and report "
+            "delivery states are stable for repeatable tests."
+        )
+    if "valuation_summary" in content:
+        content["valuation_summary"] = (
+            f"{company_name} E2E valuation summary: indicative enterprise value range "
+            "NZD 1.8m to NZD 2.4m, based on fixed fixture inputs."
+        )
+    if "disclaimer" in content:
+        content["disclaimer"] = (
+            "This E2E fixture report is indicative only and does not constitute financial advice. "
+            "It is not a regulated offer or recommendation under the FMCA or Financial Markets "
+            "Conduct Act, and should not be relied on for any financial decision."
+        )
+
+    return content
+
+
 async def _generate_report(
     report_id: int,
     company_id: int,
@@ -1433,6 +1567,17 @@ async def _generate_report(
             company_name = company["name"]
             company_sector = company["sector"] or ""
             company_description = company["description"] or ""
+
+            if E2E_MODE:
+                content_json = _e2e_report_content(report_type, company_name)
+                await db.execute("""
+                    UPDATE reports
+                    SET status='done', content=?, error_message=NULL, completed_at=datetime('now')
+                    WHERE id=?
+                """, (json.dumps(content_json), report_id))
+                await db.commit()
+                print(f"[REPORT] report_id={report_id} done via E2E fixture ({report_type})")
+                return
 
             # --- 2. Management team ---
             async with db.execute("""
