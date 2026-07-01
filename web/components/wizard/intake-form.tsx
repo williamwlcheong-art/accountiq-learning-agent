@@ -19,6 +19,11 @@ type NormalisationRow = {
   rationale: string;
 };
 
+type ProfileStatus = {
+  sections_complete: number;
+  total: number;
+};
+
 type IntakeFormProps = {
   reportType: WizardReportType;
   companyId: number;
@@ -120,7 +125,24 @@ function renderField(field: (typeof simpleFields)["bank_credit_paper"][number]) 
 
 export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }: IntakeFormProps) {
   const [normalisations, setNormalisations] = useState<NormalisationRow[]>([]);
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus | null>(null);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    apiFetch<ProfileStatus>(`/wizard/company/${companyId}/profile-status`)
+      .then((status) => {
+        if (!cancelled) setProfileStatus(status);
+      })
+      .catch(() => {
+        if (!cancelled) setProfileStatus(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -205,6 +227,11 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
       {error ? (
         <div role="alert" className="alert alert-error">
           {error}
+        </div>
+      ) : null}
+      {profileStatus && profileStatus.sections_complete < profileStatus.total ? (
+        <div className="alert alert-warning">
+          Some profile data is incomplete - your report may have gaps. You can still generate the report.
         </div>
       ) : null}
 

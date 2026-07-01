@@ -5,11 +5,15 @@ import { register, regularEmail } from "./helpers";
 
 test("regular user uploads, selects report type, generates report, and opens viewer", async ({ page }) => {
   await register(page, regularEmail());
+  await expect(page.getByText("Click or drag file here")).toBeVisible();
+  await expect(page.getByText(/last 2-3 years preferred/i)).toBeVisible();
   await page.getByLabel(/business name/i).fill("E2E Holdings Ltd");
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
-  await page.getByRole("button", { name: /^continue$/i }).click();
+  await expect(page.getByText(/sample\.pdf/i)).toBeVisible();
+  await page.getByRole("button", { name: /continue/i }).click();
   await page.getByText("Bank Credit Paper").click();
-  await page.getByRole("button", { name: /^continue$/i }).click();
+  await page.getByRole("button", { name: /continue/i }).click();
+  await expect(page.getByText(/some profile data is incomplete/i)).toBeVisible();
   await page.getByLabel(/facility type/i).fill("Term loan");
   await page.getByLabel(/amount requested/i).fill("250000");
   await page.getByLabel(/proposed term/i).fill("5");

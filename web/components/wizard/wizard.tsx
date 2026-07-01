@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, DragEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -33,6 +33,7 @@ export function Wizard({ user }: WizardProps) {
   const [step, setStep] = useState<WizardStep>("upload");
   const [businessName, setBusinessName] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [draggingFile, setDraggingFile] = useState(false);
   const [upload, setUpload] = useState<UploadResult | null>(null);
   const [reportType, setReportType] = useState<WizardReportType | null>(null);
   const [reportId, setReportId] = useState<number | null>(null);
@@ -47,8 +48,7 @@ export function Wizard({ user }: WizardProps) {
     return false;
   }
 
-  function chooseFile(event: ChangeEvent<HTMLInputElement>) {
-    const nextFile = event.target.files?.[0] ?? null;
+  function handleFile(nextFile: File | null) {
     setError("");
     if (!nextFile) {
       setFile(null);
@@ -61,6 +61,16 @@ export function Wizard({ user }: WizardProps) {
       return;
     }
     setFile(nextFile);
+  }
+
+  function chooseFile(event: ChangeEvent<HTMLInputElement>) {
+    handleFile(event.target.files?.[0] ?? null);
+  }
+
+  function dropFile(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    setDraggingFile(false);
+    handleFile(event.dataTransfer.files?.[0] ?? null);
   }
 
   async function submitUpload() {
@@ -128,6 +138,8 @@ export function Wizard({ user }: WizardProps) {
     setError("");
   }
 
+  const selectedFileLabel = file ? `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)` : "";
+
   return (
     <>
       <nav className="top-nav">
@@ -152,21 +164,40 @@ export function Wizard({ user }: WizardProps) {
           <section className="wizard-card">
             <h1>Upload your financial statements</h1>
             <label htmlFor="business-name">
-              Business name
+              Business name <span className="required" aria-hidden="true">*</span>
               <input
                 id="business-name"
                 value={businessName}
                 onChange={(event) => setBusinessName(event.target.value)}
+                placeholder="e.g. Acme Holdings Ltd"
                 autoComplete="organization"
               />
             </label>
-            <label htmlFor="financial-file">
-              Financial statements
-              <input id="financial-file" type="file" accept={FINANCIAL_FILE_ACCEPT} onChange={chooseFile} />
-            </label>
-            {file ? <p className="wizard-note">Selected: {file.name}</p> : null}
+            <div className="wizard-upload-field">
+              <span className="field-label">
+                Financial statements <span className="required" aria-hidden="true">*</span>
+              </span>
+              <label
+                className={draggingFile ? "drop-zone drag-over" : "drop-zone"}
+                htmlFor="financial-file"
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setDraggingFile(true);
+                }}
+                onDragLeave={() => setDraggingFile(false)}
+                onDrop={dropFile}
+              >
+                <span className="drop-zone-icon" aria-hidden="true">
+                  PDF
+                </span>
+                <strong>Click or drag file here</strong>
+                <span>PDF or Excel - last 2-3 years preferred</span>
+                <input id="financial-file" type="file" accept={FINANCIAL_FILE_ACCEPT} onChange={chooseFile} />
+              </label>
+              {file ? <p className="wizard-note">{selectedFileLabel}</p> : null}
+            </div>
             <button className="button button-primary" onClick={submitUpload} disabled={loading}>
-              {loading ? "Uploading..." : "Continue"}
+              {loading ? "Uploading..." : "Continue ->"}
             </button>
           </section>
         ) : null}
@@ -177,10 +208,10 @@ export function Wizard({ user }: WizardProps) {
             <ReportTypePicker selected={reportType} onSelect={setReportType} />
             <div className="wizard-actions">
               <button className="button button-secondary" onClick={() => setStep("upload")}>
-                Back
+                {"<- Back"}
               </button>
               <button className="button button-primary" onClick={() => setStep("intake")} disabled={!reportType}>
-                Continue
+                Continue -&gt;
               </button>
             </div>
           </section>
@@ -203,7 +234,7 @@ export function Wizard({ user }: WizardProps) {
           <>
             <ReportStatusCard reportId={reportId} userEmail={user.email} />
             <button className="button button-secondary wizard-reset" onClick={reset}>
-              Upload another
+              Upload another -&gt;
             </button>
           </>
         ) : null}

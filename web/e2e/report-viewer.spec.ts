@@ -7,9 +7,9 @@ test("completed report viewer escapes script payloads", async ({ page, context }
   await register(page, regularEmail());
   await page.getByLabel(/business name/i).fill("Viewer E2E Ltd");
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
-  await page.getByRole("button", { name: /^continue$/i }).click();
+  await page.getByRole("button", { name: /continue/i }).click();
   await page.getByText("Bank Credit Paper").click();
-  await page.getByRole("button", { name: /^continue$/i }).click();
+  await page.getByRole("button", { name: /continue/i }).click();
   await page.getByLabel(/facility type/i).fill("Term loan");
   await page.getByLabel(/amount requested/i).fill("100000");
   await page.getByLabel(/proposed term/i).fill("3");

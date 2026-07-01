@@ -1205,6 +1205,48 @@ async def wizard_report_retry(
     return {"report_id": report_id, "status": "queued"}
 
 
+@app.get("/wizard/company/{company_id}/profile-status")
+async def wizard_profile_status(
+    company_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Wizard-scoped profile status for user-owned companies."""
+    async with db.execute(
+        "SELECT sector, description FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"]),
+    ) as cur:
+        company = await cur.fetchone()
+    if not company:
+        raise HTTPException(404, "Company not found")
+
+    sector_complete = bool(company["sector"])
+    description_complete = len((company["description"] or "").strip()) >= 50
+
+    async with db.execute(
+        "SELECT COUNT(*) as n FROM management_team WHERE company_id=?",
+        (company_id,),
+    ) as cur:
+        management_complete = (await cur.fetchone())["n"] > 0
+
+    async with db.execute(
+        "SELECT COUNT(*) as n FROM ebitda_adjustments WHERE company_id=?",
+        (company_id,),
+    ) as cur:
+        ebitda_complete = (await cur.fetchone())["n"] > 0
+
+    sections_complete = sum([sector_complete, description_complete, management_complete, ebitda_complete])
+    return {
+        "sections_complete": sections_complete,
+        "total": 4,
+        "sector_complete": sector_complete,
+        "description_complete": description_complete,
+        "management_complete": management_complete,
+        "ebitda_complete": ebitda_complete,
+        "can_generate": sector_complete and ebitda_complete,
+    }
+
+
 @app.get("/wizard/company/{company_id}/ebitda-adjustments")
 async def wizard_get_ebitda_adjustments(
     company_id: int,
@@ -1230,7 +1272,7 @@ async def wizard_get_ebitda_adjustments(
         if row is None:
             raise HTTPException(status_code=404, detail="Company not found")
         owner_id = row["user_id"]
-        is_admin = (current_user.get("role") == "admin")
+        is_admin = bool(current_user.get("is_admin"))
         if owner_id != current_user.get("id") and not is_admin:
             raise HTTPException(status_code=403, detail="Forbidden")
 

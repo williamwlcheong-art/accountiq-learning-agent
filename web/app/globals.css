@@ -903,6 +903,18 @@ label,
   font-weight: 600;
 }
 
+.field-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.required {
+  color: var(--red);
+}
+
 .auth-form,
 .wizard-form {
   gap: 1rem;
@@ -947,6 +959,11 @@ label,
   display: grid;
   gap: 1rem;
   align-items: end;
+}
+
+.wizard-upload-field {
+  display: grid;
+  gap: 0.5rem;
 }
 
 .form-grid {
@@ -1062,6 +1079,18 @@ tr:hover td {
   background: #e8f5e9;
   color: var(--green);
   border: 1px solid #a5d6a7;
+}
+
+.alert-info {
+  background: #e3f2fd;
+  color: var(--blue);
+  border: 1px solid #90caf9;
+}
+
+.alert-warning {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #f59e0b;
 }
 
 .status-pill {
