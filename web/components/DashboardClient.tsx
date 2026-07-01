@@ -2,7 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, FileText, LogOut, UploadCloud } from "lucide-react";
+import { ArrowRight, CheckCircle2, FileText, LogOut, UploadCloud } from "lucide-react";
 import { API_BASE, apiFetch } from "../lib/api";
 
 type User = {
@@ -11,60 +11,227 @@ type User = {
   is_admin?: number;
 };
 
+type Product = {
+  key: string;
+  name: string;
+  report_type: string | null;
+  price_cents: number | null;
+  gst_cents: number | null;
+  currency: string;
+  enabled: boolean;
+  description: string;
+};
+
 type UploadResult = {
   company_id: number;
   document_id: number;
+  order_id: number;
   status: string;
 };
 
-type ReportResult = {
+type Order = {
+  id: number;
+  order_id: number;
+  company_id: number;
+  document_id: number;
+  report_id: number | null;
+  product_key: string;
+  report_type: string;
+  price_cents: number;
+  gst_cents: number;
+  currency: string;
+  status: string;
+  validation_status: string;
+  payment_status: string;
+  review_status: string;
+  delivery_status: string;
+  business_name: string;
+  filename: string;
+  document_status: string;
+  report_status: string | null;
+  product: Product | null;
+};
+
+type DemoReportResult = {
+  order_id: number;
   report_id: number;
   status: string;
+  order_status: string;
 };
 
-type ReportStatus = {
-  id: number;
-  report_type: string;
-  status: string;
-  error_message?: string | null;
+const STATUS_LABELS: Record<string, string> = {
+  awaiting_payment: "Awaiting payment",
+  awaiting_review: "Awaiting Todd review",
+  delivered: "Delivered",
+  demo: "Demo",
+  failed: "Failed",
+  failed_generation: "Generation failed",
+  failed_validation: "Validation failed",
+  generating: "Generating draft",
+  needs_clarification: "Needs clarification",
+  not_ready: "Not ready",
+  not_started: "Not started",
+  passed: "Validated",
+  pending: "Pending",
+  processing: "Processing",
+  validating: "Validating",
 };
+
+function formatStatus(value: string | null | undefined) {
+  if (!value) {
+    return "Waiting";
+  }
+  return STATUS_LABELS[value] || value.replace(/_/g, " ");
+}
+
+function formatPrice(product: Product | null | undefined) {
+  if (!product || product.price_cents === null) {
+    return "Manual quote";
+  }
+  return `NZ$${(product.price_cents / 100).toLocaleString("en-NZ", {
+    maximumFractionDigits: 0,
+  })} + GST`;
+}
+
+function orderTimeline(order: Order | null) {
+  return [
+    {
+      label: "Upload",
+      value: order ? `Document #${order.document_id}` : "Waiting",
+      state: order ? "done" : "waiting",
+    },
+    {
+      label: "Validation",
+      value: formatStatus(order?.validation_status),
+      state: order?.validation_status === "passed" ? "done" : order ? "active" : "waiting",
+    },
+    {
+      label: "Payment",
+      value: order?.payment_status === "demo" ? "Demo mode" : formatStatus(order?.payment_status),
+      state: order?.payment_status === "demo" ? "done" : order?.status === "awaiting_payment" ? "active" : "waiting",
+    },
+    {
+      label: "Draft generation",
+      value: order?.report_id ? `Report #${order.report_id}` : formatStatus(order?.report_status),
+      state: order?.report_id ? "done" : order?.status === "generating" ? "active" : "waiting",
+    },
+    {
+      label: "Todd review",
+      value: formatStatus(order?.review_status),
+      state: order?.review_status === "awaiting_review" ? "active" : "waiting",
+    },
+    {
+      label: "Delivery",
+      value: formatStatus(order?.delivery_status),
+      state: order?.delivery_status === "delivered" ? "done" : "waiting",
+    },
+  ];
+}
 
 export function DashboardClient() {
   const [user, setUser] = useState<User | null>(null);
+  const [checkingUser, setCheckingUser] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedProductKey, setSelectedProductKey] = useState("business_valuation");
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [businessName, setBusinessName] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
-  const [report, setReport] = useState<ReportResult | null>(null);
-  const [reportStatus, setReportStatus] = useState<ReportStatus | null>(null);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
+  const selectedProduct = useMemo(
+    () => products.find((product) => product.key === selectedProductKey) || products.find((product) => product.enabled) || null,
+    [products, selectedProductKey],
+  );
+
+  const selectedOrder = useMemo(
+    () => orders.find((order) => order.id === selectedOrderId) || orders[0] || null,
+    [orders, selectedOrderId],
+  );
+
+  const canRequestDemoDraft = Boolean(
+    selectedOrder?.validation_status === "passed"
+      && !selectedOrder.report_id
+      && (process.env.NODE_ENV !== "production" || user?.is_admin),
+  );
+
   const reportViewHref = useMemo(() => {
-    if (!report || reportStatus?.status !== "done") {
+    if (!selectedOrder?.report_id || selectedOrder.report_status !== "done") {
       return "";
     }
-    return `${API_BASE}/wizard/report/${report.report_id}/view`;
-  }, [report, reportStatus]);
+    return `${API_BASE}/wizard/report/${selectedOrder.report_id}/view`;
+  }, [selectedOrder]);
+
+  function applyOrders(nextOrders: Order[], preferredId?: number) {
+    setOrders(nextOrders);
+    setSelectedOrderId((current) => {
+      if (preferredId && nextOrders.some((order) => order.id === preferredId)) {
+        return preferredId;
+      }
+      if (current && nextOrders.some((order) => order.id === current)) {
+        return current;
+      }
+      return nextOrders[0]?.id || null;
+    });
+  }
+
+  async function loadOrders(preferredId?: number) {
+    const nextOrders = await apiFetch<Order[]>("/wizard/orders");
+    applyOrders(nextOrders, preferredId);
+  }
 
   useEffect(() => {
     apiFetch<User>("/auth/me")
       .then(setUser)
-      .catch(() => setUser(null));
+      .catch(() => setUser(null))
+      .finally(() => setCheckingUser(false));
   }, []);
 
   useEffect(() => {
-    if (!report || reportStatus?.status === "done" || reportStatus?.status === "failed") {
+    if (!user) {
+      return;
+    }
+
+    let cancelled = false;
+    async function loadWorkspace() {
+      try {
+        const [nextProducts, nextOrders] = await Promise.all([
+          apiFetch<Product[]>("/wizard/products"),
+          apiFetch<Order[]>("/wizard/orders"),
+        ]);
+        if (cancelled) {
+          return;
+        }
+        setProducts(nextProducts);
+        setSelectedProductKey(nextProducts.find((product) => product.enabled)?.key || "business_valuation");
+        applyOrders(nextOrders);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Could not load workspace");
+        }
+      }
+    }
+
+    loadWorkspace();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !selectedOrder || !["validating", "generating"].includes(selectedOrder.status)) {
       return;
     }
 
     const interval = window.setInterval(() => {
-      apiFetch<ReportStatus>(`/wizard/report/${report.report_id}/status`)
-        .then(setReportStatus)
-        .catch((err) => setError(err instanceof Error ? err.message : "Could not fetch report status"));
-    }, 1000);
+      loadOrders(selectedOrder.id).catch((err) => {
+        setError(err instanceof Error ? err.message : "Could not refresh order status");
+      });
+    }, 1500);
 
     return () => window.clearInterval(interval);
-  }, [report, reportStatus?.status]);
+  }, [selectedOrder?.id, selectedOrder?.status, user]);
 
   function handleFile(event: ChangeEvent<HTMLInputElement>) {
     setFile(event.target.files?.[0] || null);
@@ -76,14 +243,17 @@ export function DashboardClient() {
       setError("Select a statement file first.");
       return;
     }
+    if (!selectedProduct?.enabled) {
+      setError("Select an available product first.");
+      return;
+    }
 
     setBusy("upload");
     setError("");
-    setReport(null);
-    setReportStatus(null);
 
     const body = new FormData();
     body.append("business_name", businessName);
+    body.append("product_key", selectedProduct.key);
     body.append("file", file);
 
     try {
@@ -91,7 +261,7 @@ export function DashboardClient() {
         method: "POST",
         body,
       });
-      setUploadResult(result);
+      await loadOrders(result.order_id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -99,34 +269,21 @@ export function DashboardClient() {
     }
   }
 
-  async function generateReport() {
-    if (!uploadResult) {
+  async function generateDemoDraft() {
+    if (!selectedOrder) {
       return;
     }
 
-    setBusy("report");
+    setBusy("demo");
     setError("");
 
     try {
-      const result = await apiFetch<ReportResult>("/wizard/report/generate", {
+      const result = await apiFetch<DemoReportResult>(`/wizard/orders/${selectedOrder.id}/generate-demo-report`, {
         method: "POST",
-        body: JSON.stringify({
-          company_id: uploadResult.company_id,
-          report_type: "valuation_advisory",
-          intake_answers: {
-            purpose: "Owner planning",
-            company_location: "New Zealand",
-          },
-        }),
       });
-      setReport(result);
-      setReportStatus({
-        id: result.report_id,
-        report_type: "valuation_advisory",
-        status: result.status,
-      });
+      await loadOrders(result.order_id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Report generation failed");
+      setError(err instanceof Error ? err.message : "Demo draft generation failed");
     } finally {
       setBusy("");
     }
@@ -135,6 +292,17 @@ export function DashboardClient() {
   async function logout() {
     await apiFetch<{ ok: boolean }>("/auth/logout", { method: "POST" });
     window.location.href = "/";
+  }
+
+  if (checkingUser) {
+    return (
+      <main className="screen dashboard-screen">
+        <section className="empty-state">
+          <h1>AccountIQ dashboard</h1>
+          <p>Loading your report workspace.</p>
+        </section>
+      </main>
+    );
   }
 
   if (user === null) {
@@ -172,9 +340,27 @@ export function DashboardClient() {
           <div className="panel-heading">
             <UploadCloud aria-hidden="true" size={22} />
             <div>
-              <h1>New valuation report</h1>
-              <p>Upload recent financial statements for the business.</p>
+              <h1>New valuation order</h1>
+              <p>Select the product and upload recent financial statements.</p>
             </div>
+          </div>
+
+          <div className="product-picker" aria-label="Report product" role="radiogroup">
+            {products.map((product) => (
+              <label className={`product-option${product.key === selectedProductKey ? " selected" : ""}`} key={product.key}>
+                <input
+                  checked={product.key === selectedProductKey}
+                  disabled={!product.enabled}
+                  name="product"
+                  onChange={() => setSelectedProductKey(product.key)}
+                  type="radio"
+                />
+                <span>
+                  <strong>{product.name}</strong>
+                  <small>{product.enabled ? formatPrice(product) : "Coming later"}</small>
+                </span>
+              </label>
+            ))}
           </div>
 
           <form onSubmit={upload}>
@@ -198,44 +384,90 @@ export function DashboardClient() {
             </label>
             <button className="primary-button full-width" disabled={busy === "upload"} type="submit">
               <UploadCloud aria-hidden="true" size={18} />
-              {busy === "upload" ? "Uploading" : "Upload statements"}
+              {busy === "upload" ? "Uploading" : "Create order"}
             </button>
           </form>
+
+          <div className="order-history">
+            <h2>Order history</h2>
+            {orders.length ? (
+              <div className="history-list">
+                {orders.map((order) => (
+                  <button
+                    className={order.id === selectedOrder?.id ? "selected" : ""}
+                    key={order.id}
+                    onClick={() => setSelectedOrderId(order.id)}
+                    type="button"
+                  >
+                    <span>
+                      <strong>{order.business_name}</strong>
+                      <small>{formatStatus(order.status)}</small>
+                    </span>
+                    <small>#{order.id}</small>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="muted-copy">No orders yet.</p>
+            )}
+          </div>
         </div>
 
         <div className="panel report-panel">
           <div className="panel-heading">
             <FileText aria-hidden="true" size={22} />
             <div>
-              <h2>Report job</h2>
-              <p>Business valuation with adviser review workflow.</p>
+              <h2>Order workspace</h2>
+              <p>{selectedOrder ? selectedOrder.business_name : "Create an order to begin validation."}</p>
             </div>
           </div>
 
-          <div className="status-list">
+          <div className="order-summary">
             <div>
-              <span>Upload</span>
-              <strong>{uploadResult ? `Document #${uploadResult.document_id}` : "Waiting"}</strong>
+              <span>Product</span>
+              <strong>{selectedOrder?.product?.name || selectedProduct?.name || "Business Valuation Report"}</strong>
             </div>
             <div>
-              <span>Generation</span>
-              <strong>{reportStatus?.status || "Waiting"}</strong>
+              <span>Price</span>
+              <strong>{selectedOrder ? formatPrice(selectedOrder.product) : formatPrice(selectedProduct)}</strong>
             </div>
           </div>
 
-          <button
-            className="primary-button full-width"
-            disabled={!uploadResult || busy === "report"}
-            onClick={generateReport}
-            type="button"
-          >
-            <FileText aria-hidden="true" size={18} />
-            {busy === "report" ? "Creating" : "Generate valuation report"}
-          </button>
+          <div className="timeline-list">
+            {orderTimeline(selectedOrder).map((step) => (
+              <div className={`timeline-step ${step.state}`} key={step.label}>
+                <CheckCircle2 aria-hidden="true" size={18} />
+                <span>{step.label}</span>
+                <strong>{step.value}</strong>
+              </div>
+            ))}
+          </div>
+
+          {canRequestDemoDraft ? (
+            <button
+              className="primary-button full-width"
+              disabled={busy === "demo"}
+              onClick={generateDemoDraft}
+              type="button"
+            >
+              <FileText aria-hidden="true" size={18} />
+              {busy === "demo" ? "Creating draft" : "Generate demo draft"}
+            </button>
+          ) : null}
+
+          {selectedOrder?.status === "awaiting_payment" ? (
+            <p className="muted-copy">
+              Payment is the next production gate. Stripe is intentionally not enabled in this slice.
+            </p>
+          ) : null}
+
+          {selectedOrder?.status === "awaiting_review" ? (
+            <p className="review-note">Draft ready for Todd review. This is not delivered to the customer yet.</p>
+          ) : null}
 
           {reportViewHref ? (
             <a className="secondary-button full-width" href={reportViewHref} rel="noreferrer" target="_blank">
-              Open report
+              Open generated draft (demo)
               <ArrowRight aria-hidden="true" size={18} />
             </a>
           ) : null}

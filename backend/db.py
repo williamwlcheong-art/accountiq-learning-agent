@@ -247,6 +247,30 @@ def _migrate_db(conn: sqlite3.Connection):
         )
     """)
     conn.execute("""
+        CREATE TABLE IF NOT EXISTS report_orders (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id             INTEGER NOT NULL REFERENCES users(id),
+            company_id          INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+            document_id         INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+            report_id           INTEGER REFERENCES reports(id) ON DELETE SET NULL,
+            product_key         TEXT    NOT NULL,
+            report_type         TEXT    NOT NULL,
+            price_cents         INTEGER NOT NULL,
+            gst_cents           INTEGER NOT NULL,
+            currency            TEXT    NOT NULL DEFAULT 'NZD',
+            status              TEXT    NOT NULL DEFAULT 'validating',
+            validation_status   TEXT    NOT NULL DEFAULT 'validating',
+            payment_status      TEXT    NOT NULL DEFAULT 'not_started',
+            review_status       TEXT    NOT NULL DEFAULT 'not_started',
+            delivery_status     TEXT    NOT NULL DEFAULT 'not_ready',
+            created_at          TEXT    DEFAULT (datetime('now')),
+            updated_at          TEXT    DEFAULT (datetime('now')),
+            validated_at        TEXT,
+            paid_at             TEXT,
+            completed_at        TEXT
+        )
+    """)
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS report_intake (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             report_id   INTEGER REFERENCES reports(id) ON DELETE CASCADE,
@@ -258,6 +282,11 @@ def _migrate_db(conn: sqlite3.Connection):
         "CREATE INDEX IF NOT EXISTS idx_reports_company  ON reports(company_id)",
         "CREATE INDEX IF NOT EXISTS idx_reports_user     ON reports(user_id)",
         "CREATE INDEX IF NOT EXISTS idx_reports_status   ON reports(status)",
+        "CREATE INDEX IF NOT EXISTS idx_report_orders_user ON report_orders(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_report_orders_company ON report_orders(company_id)",
+        "CREATE INDEX IF NOT EXISTS idx_report_orders_document ON report_orders(document_id)",
+        "CREATE INDEX IF NOT EXISTS idx_report_orders_report ON report_orders(report_id)",
+        "CREATE INDEX IF NOT EXISTS idx_report_orders_status ON report_orders(status)",
         "CREATE INDEX IF NOT EXISTS idx_report_intake_rpt ON report_intake(report_id)",
     ]:
         try:

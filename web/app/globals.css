@@ -254,8 +254,7 @@ h2 {
 }
 
 .metric-row,
-.valuation-band,
-.status-list div {
+.valuation-band {
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: flex;
@@ -264,8 +263,7 @@ h2 {
 }
 
 .metric-row span,
-.valuation-band span,
-.status-list span {
+.valuation-band span {
   color: var(--muted);
   font-size: 0.9rem;
   font-weight: 650;
@@ -466,6 +464,12 @@ input[type="file"] {
   padding: 10px 12px;
 }
 
+.muted-copy {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 14px 0 0;
+}
+
 .app-nav {
   color: var(--ink);
   margin-bottom: 44px;
@@ -510,19 +514,177 @@ input[type="file"] {
   margin: 0;
 }
 
-.status-list {
+.product-picker {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.product-option {
+  align-items: center;
+  background: var(--wash);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto 1fr;
+  margin: 0;
+  min-height: 72px;
+  padding: 12px;
+}
+
+.product-option.selected {
+  border-color: rgba(18, 106, 159, 0.42);
+  box-shadow: inset 4px 0 0 var(--blue);
+}
+
+.product-option:has(input:disabled) {
+  opacity: 0.62;
+}
+
+.product-option input {
+  height: 44px;
+  margin: 0;
+  min-height: 44px;
+  width: 44px;
+}
+
+.product-option span,
+.history-list button span {
+  display: grid;
+  gap: 4px;
+}
+
+.product-option small,
+.history-list small {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.order-history {
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+  padding-top: 22px;
+}
+
+.order-history h2 {
+  font-size: 1.12rem;
+  line-height: 1.2;
+  margin-bottom: 14px;
+}
+
+.history-list {
+  display: grid;
+  gap: 10px;
+}
+
+.history-list button {
+  align-items: center;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  min-height: 58px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.history-list button.selected {
+  border-color: rgba(18, 106, 159, 0.5);
+  box-shadow: inset 4px 0 0 var(--blue);
+}
+
+.order-summary {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.order-summary div {
+  display: grid;
+  gap: 6px;
+  min-height: 76px;
+  padding: 14px;
+}
+
+.order-summary div + div {
+  border-left: 1px solid var(--line);
+}
+
+.order-summary span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.order-summary strong {
+  line-height: 1.25;
+}
+
+.timeline-list {
   border: 1px solid var(--line);
   border-radius: 7px;
   margin-bottom: 16px;
   overflow: hidden;
 }
 
-.status-list div {
-  padding: 0 14px;
+.timeline-step {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 58px;
+  padding: 12px 14px;
 }
 
-.status-list div:last-child {
-  border-bottom: 0;
+.timeline-step + .timeline-step {
+  border-top: 1px solid var(--line);
+}
+
+.timeline-step svg {
+  color: var(--muted);
+}
+
+.timeline-step span {
+  color: var(--ink);
+  font-weight: 760;
+}
+
+.timeline-step strong {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 650;
+  grid-column: 2;
+  line-height: 1.25;
+}
+
+.timeline-step.done svg {
+  color: var(--green-deep);
+}
+
+.timeline-step.active {
+  background: #eef7db;
+}
+
+.timeline-step.active svg,
+.timeline-step.active strong {
+  color: var(--green-deep);
+}
+
+.review-note {
+  background: #eef7db;
+  border-radius: 6px;
+  color: var(--green-deep);
+  font-weight: 700;
+  line-height: 1.5;
+  padding: 12px;
 }
 
 .report-panel .secondary-button {

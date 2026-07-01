@@ -1048,10 +1048,387 @@ async def retry_document(
 # Wizard — authenticated non-admin upload path (Phase 3.5, D-05, D-06)
 # ---------------------------------------------------------------------------
 
+PRODUCT_CATALOG: dict[str, dict] = {
+    "business_valuation": {
+        "key": "business_valuation",
+        "name": "Business Valuation Report",
+        "report_type": "valuation_advisory",
+        "price_cents": 225_000,
+        "gst_cents": 33_750,
+        "currency": "NZD",
+        "enabled": True,
+        "description": "Fixed-fee indicative valuation report with human review before delivery.",
+    },
+    "bank_credit_paper": {
+        "key": "bank_credit_paper",
+        "name": "Bank Credit Paper",
+        "report_type": "bank_credit_paper",
+        "price_cents": None,
+        "gst_cents": None,
+        "currency": "NZD",
+        "enabled": False,
+        "description": "Pilot product placeholder for lender-ready credit summaries.",
+    },
+    "advisory_consultation": {
+        "key": "advisory_consultation",
+        "name": "Advisory Consultation",
+        "report_type": None,
+        "price_cents": None,
+        "gst_cents": None,
+        "currency": "NZD",
+        "enabled": False,
+        "description": "Manual follow-up consultation placeholder after report review.",
+    },
+}
+
+_VALIDATING_DOCUMENT_STATUSES = {"pending", "processing"}
+_POST_VALIDATION_ORDER_STATUSES = {
+    "generating",
+    "awaiting_review",
+    "delivered",
+    "cancelled",
+    "refunded",
+    "failed_generation",
+}
+
+
+def _product_payload(product: dict) -> dict:
+    return {
+        "key": product["key"],
+        "name": product["name"],
+        "report_type": product["report_type"],
+        "price_cents": product["price_cents"],
+        "gst_cents": product["gst_cents"],
+        "currency": product["currency"],
+        "enabled": product["enabled"],
+        "description": product["description"],
+    }
+
+
+def _get_product_or_400(product_key: str, *, require_enabled: bool = False) -> dict:
+    key = (product_key or "business_valuation").strip()
+    product = PRODUCT_CATALOG.get(key)
+    if not product:
+        raise HTTPException(400, f"Unknown product_key: {key}")
+    if require_enabled and not product["enabled"]:
+        raise HTTPException(400, f"{product['name']} is not available yet")
+    return product
+
+
+def _serialise_order(row: aiosqlite.Row) -> dict:
+    product = PRODUCT_CATALOG.get(row["product_key"], {})
+    return {
+        "id": row["id"],
+        "order_id": row["id"],
+        "company_id": row["company_id"],
+        "document_id": row["document_id"],
+        "report_id": row["report_id"],
+        "product_key": row["product_key"],
+        "report_type": row["report_type"],
+        "price_cents": row["price_cents"],
+        "gst_cents": row["gst_cents"],
+        "currency": row["currency"],
+        "status": row["status"],
+        "validation_status": row["validation_status"],
+        "payment_status": row["payment_status"],
+        "review_status": row["review_status"],
+        "delivery_status": row["delivery_status"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+        "validated_at": row["validated_at"],
+        "paid_at": row["paid_at"],
+        "completed_at": row["completed_at"],
+        "business_name": row["business_name"],
+        "filename": row["filename"],
+        "document_status": row["document_status"],
+        "report_status": row["report_status"],
+        "product": _product_payload(product) if product else None,
+    }
+
+
+async def _create_report_order(
+    db: aiosqlite.Connection,
+    *,
+    user_id: int,
+    company_id: int,
+    document_id: int,
+    product: dict,
+) -> int:
+    async with db.execute("""
+        INSERT INTO report_orders (
+            user_id, company_id, document_id, product_key, report_type,
+            price_cents, gst_cents, currency,
+            status, validation_status, payment_status, review_status, delivery_status
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'validating', 'validating', 'not_started', 'not_started', 'not_ready')
+    """, (
+        user_id,
+        company_id,
+        document_id,
+        product["key"],
+        product["report_type"],
+        int(product["price_cents"]),
+        int(product["gst_cents"]),
+        product["currency"],
+    )) as cur:
+        order_id = cur.lastrowid
+    await db.commit()
+    return int(order_id)
+
+
+async def _sync_order_validation(
+    db: aiosqlite.Connection,
+    order_id: int,
+    user_id: int | None = None,
+) -> None:
+    where = "ro.id=?"
+    params: list = [order_id]
+    if user_id is not None:
+        where += " AND ro.user_id=?"
+        params.append(user_id)
+
+    async with db.execute(f"""
+        SELECT ro.id, ro.status, ro.validation_status, ro.document_id,
+               d.extraction_status
+        FROM report_orders ro
+        JOIN documents d ON d.id = ro.document_id
+        WHERE {where}
+    """, params) as cur:
+        row = await cur.fetchone()
+    if not row or row["status"] in _POST_VALIDATION_ORDER_STATUSES:
+        return
+
+    document_status = row["extraction_status"] or "pending"
+    next_status = "validating"
+    next_validation_status = "validating"
+    validated_at_sql = "validated_at"
+
+    if document_status in _VALIDATING_DOCUMENT_STATUSES:
+        next_status = "validating"
+        next_validation_status = "validating"
+        validated_at_sql = "NULL"
+    elif document_status == "failed":
+        next_status = "failed_validation"
+        next_validation_status = "failed"
+        validated_at_sql = "NULL"
+    elif document_status == "done":
+        async with db.execute("""
+            SELECT COUNT(*) AS n
+            FROM financial_rows
+            WHERE document_id=?
+              AND row_key IN ('revenue', 'ebitda')
+              AND value IS NOT NULL
+        """, (row["document_id"],)) as cur:
+            count_row = await cur.fetchone()
+        has_minimum_rows = bool(count_row and count_row["n"] > 0)
+        if has_minimum_rows:
+            next_status = "awaiting_payment"
+            next_validation_status = "passed"
+            validated_at_sql = "COALESCE(validated_at, datetime('now'))"
+        else:
+            next_status = "needs_clarification"
+            next_validation_status = "needs_clarification"
+            validated_at_sql = "NULL"
+
+    if (
+        row["status"] == next_status
+        and row["validation_status"] == next_validation_status
+    ):
+        return
+
+    await db.execute(f"""
+        UPDATE report_orders
+        SET status=?, validation_status=?, validated_at={validated_at_sql}, updated_at=datetime('now')
+        WHERE id=?
+    """, (next_status, next_validation_status, order_id))
+    await db.commit()
+
+
+async def _sync_user_orders(db: aiosqlite.Connection, user_id: int) -> None:
+    async with db.execute(
+        "SELECT id FROM report_orders WHERE user_id=?",
+        (user_id,),
+    ) as cur:
+        rows = await cur.fetchall()
+    for row in rows:
+        await _sync_order_validation(db, row["id"], user_id)
+
+
+_ORDER_SELECT = """
+    SELECT ro.*,
+           c.name AS business_name,
+           d.filename AS filename,
+           d.extraction_status AS document_status,
+           r.status AS report_status
+    FROM report_orders ro
+    JOIN companies c ON c.id = ro.company_id
+    JOIN documents d ON d.id = ro.document_id
+    LEFT JOIN reports r ON r.id = ro.report_id
+"""
+
+
+async def _fetch_order(
+    db: aiosqlite.Connection,
+    order_id: int,
+    user_id: int,
+) -> aiosqlite.Row | None:
+    await _sync_order_validation(db, order_id, user_id)
+    async with db.execute(
+        _ORDER_SELECT + " WHERE ro.id=? AND ro.user_id=?",
+        (order_id, user_id),
+    ) as cur:
+        return await cur.fetchone()
+
+
+async def _generate_demo_order_report(
+    order_id: int,
+    report_id: int,
+    company_id: int,
+    user_id: int,
+    report_type: str,
+    intake_answers: dict,
+) -> None:
+    await _generate_report(report_id, company_id, user_id, report_type, intake_answers)
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT status FROM reports WHERE id=? AND user_id=?",
+            (report_id, user_id),
+        ) as cur:
+            report = await cur.fetchone()
+
+        if report and report["status"] == "done":
+            await db.execute("""
+                UPDATE report_orders
+                SET status='awaiting_review',
+                    review_status='awaiting_review',
+                    delivery_status='not_ready',
+                    updated_at=datetime('now')
+                WHERE id=? AND user_id=?
+            """, (order_id, user_id))
+        else:
+            await db.execute("""
+                UPDATE report_orders
+                SET status='failed_generation',
+                    review_status='not_started',
+                    delivery_status='not_ready',
+                    updated_at=datetime('now')
+                WHERE id=? AND user_id=?
+            """, (order_id, user_id))
+        await db.commit()
+
+
+@app.get("/wizard/products")
+async def wizard_products(
+    _current_user: dict = Depends(get_current_user),
+):
+    """Return the customer-facing product catalogue for the order workspace."""
+    return [_product_payload(product) for product in PRODUCT_CATALOG.values()]
+
+
+@app.get("/wizard/orders")
+async def wizard_orders(
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """List the current user's durable report orders."""
+    await _sync_user_orders(db, current_user["id"])
+    async with db.execute(
+        _ORDER_SELECT + " WHERE ro.user_id=? ORDER BY ro.created_at DESC, ro.id DESC",
+        (current_user["id"],),
+    ) as cur:
+        rows = await cur.fetchall()
+    return [_serialise_order(row) for row in rows]
+
+
+@app.get("/wizard/orders/{order_id}")
+async def wizard_order_detail(
+    order_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Return one order owned by the current user."""
+    row = await _fetch_order(db, order_id, current_user["id"])
+    if not row:
+        raise HTTPException(404, "Order not found")
+    return _serialise_order(row)
+
+
+@app.post("/wizard/orders/{order_id}/generate-demo-report", status_code=201)
+async def wizard_order_generate_demo_report(
+    order_id: int,
+    background_tasks: BackgroundTasks,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Generate a draft report for local E2E/admin demos only."""
+    if not (E2E_MODE or current_user.get("is_admin")):
+        raise HTTPException(409, "Payment integration required before generation")
+
+    row = await _fetch_order(db, order_id, current_user["id"])
+    if not row:
+        raise HTTPException(404, "Order not found")
+    if row["validation_status"] != "passed":
+        raise HTTPException(409, f"Order has not passed validation (current: {row['validation_status']})")
+    if row["report_id"]:
+        return {
+            "order_id": row["id"],
+            "report_id": row["report_id"],
+            "status": row["status"],
+            "order_status": row["status"],
+        }
+
+    intake_answers = {
+        "purpose": "Owner planning",
+        "company_location": "New Zealand",
+        "order_id": order_id,
+        "demo": True,
+    }
+    async with db.execute("""
+        INSERT INTO reports (company_id, user_id, report_type, status)
+        VALUES (?, ?, ?, 'queued')
+    """, (row["company_id"], current_user["id"], row["report_type"])) as cur:
+        report_id = cur.lastrowid
+    await db.execute(
+        "INSERT INTO report_intake (report_id, answers) VALUES (?, ?)",
+        (report_id, json.dumps(intake_answers)),
+    )
+    await db.execute("""
+        UPDATE report_orders
+        SET report_id=?,
+            status='generating',
+            payment_status='demo',
+            review_status='pending',
+            delivery_status='not_ready',
+            updated_at=datetime('now')
+        WHERE id=? AND user_id=?
+    """, (report_id, order_id, current_user["id"]))
+    await db.commit()
+
+    background_tasks.add_task(
+        _generate_demo_order_report,
+        order_id,
+        report_id,
+        row["company_id"],
+        current_user["id"],
+        row["report_type"],
+        intake_answers,
+    )
+
+    return {
+        "order_id": order_id,
+        "report_id": report_id,
+        "status": "generating",
+        "order_status": "generating",
+    }
+
+
 @app.post("/wizard/upload", status_code=201)
 async def wizard_upload(
     background_tasks: BackgroundTasks,
     business_name: str = Form(...),
+    product_key: str = Form("business_valuation"),
     file: UploadFile = File(...),
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),   # NOT require_admin — per D-05
@@ -1060,6 +1437,8 @@ async def wizard_upload(
     name = business_name.strip()
     if not name:
         raise HTTPException(400, "Business name is required")
+
+    product = _get_product_or_400(product_key, require_enabled=True)
 
     suffix = Path(file.filename).suffix.lower()
     allowed = {".pdf", ".xlsx", ".xls", ".xlsm", ".docx"}
@@ -1101,12 +1480,32 @@ async def wizard_upload(
             raise HTTPException(500, "Failed to locate existing document record")
         document_id = row[0]
 
+    order_id = await _create_report_order(
+        db,
+        user_id=current_user["id"],
+        company_id=company_id,
+        document_id=document_id,
+        product=product,
+    )
+
     # Kick off background ingestion — same task as admin upload (D-06)
     background_tasks.add_task(
         _run_ingestion, document_id, company_id, str(dest), "sme", "Private", ""
     )
 
-    return {"company_id": company_id, "document_id": document_id, "status": "processing"}
+    return {
+        "company_id": company_id,
+        "document_id": document_id,
+        "status": "processing",
+        "order_id": order_id,
+        "product_key": product["key"],
+        "report_type": product["report_type"],
+        "price_cents": product["price_cents"],
+        "gst_cents": product["gst_cents"],
+        "currency": product["currency"],
+        "order_status": "validating",
+        "validation_status": "validating",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1137,6 +1536,9 @@ async def wizard_report_generate(
     Phase 5 bypasses pending_payment (D-04). Phase 6 inserts the payment gate
     before this endpoint without touching the generation logic.
     """
+    if not (E2E_MODE or current_user.get("is_admin")):
+        raise HTTPException(409, "Payment integration required before generation")
+
     try:
         body = await request.json()
     except Exception:
