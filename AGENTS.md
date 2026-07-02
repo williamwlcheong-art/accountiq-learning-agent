@@ -22,6 +22,8 @@ cd backend
 uvicorn main:app --reload --port 8765
 ```
 
+In linked git worktrees that do not have their own `venv/`, use the parent checkout virtualenv, for example `source ../../venv/bin/activate`.
+
 Frontend:
 
 ```bash
@@ -32,7 +34,7 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-In git worktrees that do not have their own `venv/`, use the parent checkout virtualenv, for example `../../venv/bin/python -m pytest tests -q`.
+For one-off test commands in those worktrees, call the parent interpreter directly, for example `../../venv/bin/python -m pytest tests -q`.
 
 ## Verification Commands
 

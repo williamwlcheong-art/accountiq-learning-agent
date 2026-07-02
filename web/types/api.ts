@@ -351,7 +351,7 @@ export interface paths {
         };
         /**
          * Export Patterns
-         * @description Export patterns as JSON suitable for importing into the standalone SPA.
+         * @description Export patterns as JSON for backup, review, or migration.
          */
         get: operations["export_patterns_patterns_export_get"];
         put?: never;

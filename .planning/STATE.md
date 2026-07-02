@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Next.js refactor parity review complete - PR pending
-stopped_at: External parity/business review complete; parity blockers fixed; backend, frontend, dev E2E, and standalone E2E checks passing
-last_updated: "2026-07-01T11:45:00+12:00"
+status: Next.js refactor merged; paid valuation MVP planning merged
+stopped_at: Next.js refactor and paid valuation MVP plan merged to main; ready for cleanup then feature-slice PRs
+last_updated: "2026-07-02T18:20:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -20,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-01)
 
 **Core value:** Upload financials, answer a few questions, receive a first-draft professional financial report in minutes.
-**Current focus:** Next.js migration PR review, then remaining v1 launch gaps.
+**Current focus:** Paid Valuation Advisory MVP feature slices.
 
 ## Roadmap Status
 
@@ -37,9 +37,11 @@ See: .planning/PROJECT.md (updated 2026-07-01)
 
 ## Active Phase
 
-**Next.js frontend migration** - complete and awaiting PR review.
+**Paid Valuation Advisory MVP** - planning merged; implementation not started.
 
 The primary UI now lives in `web/` as a Next.js App Router app. FastAPI remains the backend of record. The old `frontend/index.html` app is a disabled-by-default legacy fallback.
+
+The implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment, admin review, PDF delivery, and purchase history are not implemented yet.
 
 Latest verified checks:
 
@@ -83,9 +85,9 @@ Commercialization review (2026-07-01):
 ---
 ## Session Continuity
 
-Last session: 2026-07-01
-Stopped at: Next.js refactor branch parity blockers fixed and verified; PR pending final review/merge.
-Resume file: docs/superpowers/plans/2026-07-01-nextjs-refactor-final.md
+Last session: 2026-07-02
+Stopped at: Next.js refactor and paid valuation MVP planning merged; cleanup review found no blockers.
+Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---
-*Initialized: 2026-05-04 | Next.js refactor ready for PR: 2026-07-01*
+*Initialized: 2026-05-04 | Next.js refactor merged: 2026-07-01 | Paid valuation plan merged: 2026-07-02*

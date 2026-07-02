@@ -29,6 +29,8 @@ cd backend
 uvicorn main:app --reload --port 8765
 ```
 
+In a linked git worktree that does not have its own `venv/`, use the parent checkout virtualenv, for example `source ../../venv/bin/activate`.
+
 Frontend:
 
 ```bash
