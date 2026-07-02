@@ -288,6 +288,13 @@ a {
   background: #f0f6ff;
 }
 
+.report-type-card.disabled {
+  border-color: #e4e8ef;
+  background: #f8fafc;
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+
 .report-type-card span {
   color: var(--navy);
   font-weight: 800;
@@ -297,6 +304,13 @@ a {
   color: var(--muted);
   line-height: 1.4;
   font-size: 0.84rem;
+}
+
+.report-type-card em {
+  color: var(--blue);
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .wizard-form {
