@@ -61,6 +61,7 @@ Playwright starts FastAPI through `scripts/start-e2e-backend.sh`, resets `data/a
 - `.planning/STATE.md` - current status and decision log
 - `.planning/codebase/` - architecture, stack, conventions, concerns
 - `docs/superpowers/plans/2026-07-01-nextjs-refactor-final.md` - final Next.js migration plan
+- `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md` - paid Valuation Advisory MVP implementation plan
 - `web/AGENTS.md` - Next.js version warning for agents working under `web/`
 
 Read `.planning/codebase/CONVENTIONS.md` before larger backend/frontend changes.
@@ -78,11 +79,22 @@ Read `.planning/codebase/CONVENTIONS.md` before larger backend/frontend changes.
 
 ## Current Status
 
-As of 2026-07-01, the Next.js refactor is complete on branch `codex/nextjs-refactor-e2e` and ready for PR review. Latest verified checks:
+As of 2026-07-02, the Next.js refactor has been merged into `main` via PR #2. The primary app is the Next.js frontend in `web/`; `frontend/index.html` is legacy rollback/reference only.
+
+The next commercial workstream is the paid Valuation Advisory MVP. The plan is in `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment, admin review, PDF delivery, and purchase history are not implemented yet.
+
+Preferred workflow for the commercial MVP:
+
+- Start feature slices from the latest `main`.
+- Keep `main` deployable.
+- Use small PRs for each slice: valuation-only picker, payment model, checkout/webhook, admin review, PDF delivery, and account/public offer surfaces.
+- Rebase or merge latest `main` before starting a new slice if another contributor has landed changes.
+
+Latest verified checks from the merged refactor:
 
 - Backend pytest: 116 passed, 1 skipped, 1 xpassed
 - `npm run lint`
 - `npm run typecheck`
 - `npm run build`
-- Dev Playwright: 9 passed
-- Standalone production Playwright: 9 passed
+- Dev Playwright: 10 passed
+- Standalone production Playwright: 10 passed
