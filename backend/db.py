@@ -2,7 +2,6 @@
 Database schema and connection management for AccountIQ Learning Agent.
 SQLite via aiosqlite for async FastAPI compatibility.
 """
-import json
 import os
 import sqlite3
 from pathlib import Path

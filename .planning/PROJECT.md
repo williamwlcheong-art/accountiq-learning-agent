@@ -117,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-01 - Next.js refactor ready for PR*
+*Last updated: 2026-07-02 - Next.js refactor merged; paid valuation MVP planning merged*

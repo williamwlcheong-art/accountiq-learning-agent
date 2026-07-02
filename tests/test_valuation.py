@@ -1,23 +1,7 @@
-"""Wave 0 unit tests for Phase 05.1 valuation engine (REPT-01).
-
-Expected state BEFORE Task 2 lands compute_wacc_scenarios:
-  - test_compute_wacc_scenarios_basic          FAIL (ImportError / AttributeError)
-  - test_compute_wacc_scenarios_returns_percent FAIL (ImportError / AttributeError)
-  - test_wacc_decimal_form_guard               XFAIL (research_loop not yet present)
-  - test_dcf_correctness_fixed_inputs          PASS
-  - test_normalised_ebitda_addback_sum         PASS
-  - test_disclaimer_compliance_fmca            PASS
-
-Expected state AFTER Task 2 (valuation.py refactored):
-  - test_compute_wacc_scenarios_basic          PASS
-  - test_compute_wacc_scenarios_returns_percent PASS
-  - test_wacc_decimal_form_guard               XFAIL
-  - test_dcf_correctness_fixed_inputs          PASS
-  - test_normalised_ebitda_addback_sum         PASS
-  - test_disclaimer_compliance_fmca            PASS
-"""
+"""Unit tests for the Phase 05.1 valuation engine (REPT-01)."""
 import sys
 from pathlib import Path
+
 import pytest
 
 # Backend sys.path bootstrap — must run before any `from valuation import ...`
@@ -85,22 +69,11 @@ def test_compute_wacc_scenarios_returns_percent_not_decimal():
         )
 
 
-@pytest.mark.xfail(
-    reason="ResearchBrief defined in Plan 02; this test stays RED until research_loop.py lands",
-    strict=False,
-)
 def test_wacc_decimal_form_guard():
-    """Decimal-form risk_free_rate should be caught by ResearchBrief validation (Plan 02).
-
-    This test is marked xfail because research_loop.py does not exist until Plan 02.
-    Once Plan 02 lands, this test should pass (the xfail becomes an xpass, then the
-    marker can be removed).
-
-    Guard logic: ResearchBrief(risk_free_rate=0.0465) has a field validator that checks
-    risk_free_rate >= 1.0 (percent convention). Passing 0.0465 should raise ValidationError.
-    """
-    from research_loop import ResearchBrief  # noqa: F401  (Plan 02 not yet present)
+    """Decimal-form risk_free_rate should be rejected by ResearchBrief validation."""
+    from research_loop import ResearchBrief
     from pydantic import ValidationError
+
     # 0.0465 is the decimal form of 4.65% — should be rejected
     try:
         brief = ResearchBrief(

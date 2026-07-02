@@ -7,13 +7,14 @@ import json
 import shutil
 import asyncio
 import sqlite3
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, FileResponse, Response, HTMLResponse
+from fastapi.responses import Response, HTMLResponse
 import aiosqlite
 
 # Load .env from project root (one level up from backend/)
@@ -22,11 +23,11 @@ ENV_PATH = Path(__file__).parent.parent / ".env"
 load_dotenv(ENV_PATH, override=False)
 
 from db import init_db, get_db, get_pattern_library, DB_PATH
-from ingestion import ingest_document, ALL_ROWS
+from ingestion import ingest_document
 from auth import auth_router, get_current_user, require_admin
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
 from report_prompts import build_prompt, SECTION_SCHEMAS, compute_bank_credit_figures
-from research_loop import run_valuation_research, ResearchBrief
+from research_loop import run_valuation_research
 from valuation import (
     compute_wacc_scenarios, compute_dcf, compute_illiquidity_discount,
     compute_risk_score, compute_multiples_ev,
@@ -36,10 +37,18 @@ from valuation import (
 # App setup
 # ---------------------------------------------------------------------------
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    init_db()
+    print("[STARTUP] AccountIQ Learning Agent ready.")
+    yield
+
+
 app = FastAPI(
     title="AccountIQ Learning Agent",
     version="0.1.0",
     description="Ingest financial PDFs, learn patterns, improve over time.",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -100,12 +109,6 @@ FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 SERVE_LEGACY_FRONTEND = os.environ.get("ACCOUNTIQ_SERVE_LEGACY_FRONTEND", "false").lower() == "true"
 if SERVE_LEGACY_FRONTEND and FRONTEND_DIR.exists():
     app.mount("/app", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="legacy_frontend")
-
-
-@app.on_event("startup")
-def startup():
-    init_db()
-    print("[STARTUP] AccountIQ Learning Agent ready.")
 
 
 # ---------------------------------------------------------------------------
@@ -830,7 +833,7 @@ async def export_patterns(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
-    """Export patterns as JSON suitable for importing into the standalone SPA."""
+    """Export patterns as JSON for backup, review, or migration."""
     lib = await get_pattern_library(db)
     # Stream the response in-memory: avoids shared-file races and keeps I/O
     # off the event loop without needing run_in_executor for a small JSON blob.

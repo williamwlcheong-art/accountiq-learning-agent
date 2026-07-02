@@ -417,8 +417,8 @@
       grows with each document — raw PDF labels (e.g. <em>"Total operating revenue"</em>) are linked
       to canonical row keys (e.g. <em>revenue</em>) and fed back into Claude's prompt on the next run,
       improving accuracy over time.<br/><br/>
-      Use <strong>Patterns → Export JSON</strong> to download the learned patterns and import them
-      into the AccountIQ standalone SPA.
+      Use <strong>Patterns → Export JSON</strong> to download the learned patterns for backup,
+      review, or migration.
     </p>
   </div>
 </div>
@@ -593,7 +593,8 @@ async function loadDashboard() {
   document.getElementById('stat-documents').textContent = ov.documents;
   document.getElementById('stat-done').textContent = ov.docs_done;
   document.getElementById('stat-rows').textContent = ov.financial_rows.toLocaleString();
-  document.getElementById('stat-patterns').textContent = ov.label_patterns;
+  const patterns = await apiFetch('/patterns');
+  document.getElementById('stat-patterns').textContent = Array.isArray(patterns) ? patterns.length : '0';
   const exList = document.getElementById('exchange-list');
   exList.innerHTML = '';
   if (!ov.by_exchange.length) {

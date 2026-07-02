@@ -7,15 +7,11 @@ PDF / Excel ingestion pipeline:
 """
 import os
 import json
-import re
 import asyncio
-import tempfile
-from pathlib import Path
 from typing import Optional
 
 import anthropic
 import pdfplumber
-from PIL import Image
 
 try:
     import pytesseract
