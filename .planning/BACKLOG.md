@@ -24,7 +24,7 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | ID | Item | Status | PR | Owner | Notes |
 |----|------|--------|----|-------|-------|
 | PVM-01 | Focus self-serve wizard on Valuation Advisory | Done | #5 | Technical | Merged to `main`; valuation is selectable and other report types are visible as Advisor pilot. |
-| PVM-02 | Add payment job model and Stripe helpers | In progress | - | Technical | Add `purchases`, Stripe config, price env vars, and checkout helper groundwork. |
+| PVM-02 | Add payment job model and Stripe helpers | In review | #6 | Technical | Adds `purchases`, Stripe config, price env vars, and checkout helper groundwork. |
 | PVM-03 | Gate valuation generation behind checkout | Pending | - | Technical | `pending_payment` -> Stripe Checkout -> webhook -> `queued`. |
 | PVM-04 | Add admin review before customer delivery | Pending | - | Technical + William | Generated paid valuation should enter `awaiting_review` before release. |
 | PVM-05 | Add professional PDF export | Pending | - | Technical + William | PDF needs professional layout and disclaimer handling. |
