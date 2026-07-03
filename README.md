@@ -7,7 +7,7 @@ AccountIQ is a financial intelligence prototype for SME business owners. Users u
 - `backend/` - FastAPI backend, SQLite persistence, uploads, ingestion, valuation, report generation, and email.
 - `web/` - Next.js App Router frontend for login, wizard, admin workflows, and E2E tests.
 - `frontend/` - legacy vanilla SPA kept as an opt-in rollback/reference fallback.
-- `.planning/` - project, roadmap, codebase, and phase planning docs.
+- `.planning/` - project, backlog, roadmap, codebase, and phase planning docs.
 
 FastAPI remains the backend of record. The Next.js frontend calls `/api/backend/*`, which is proxied at runtime to `FASTAPI_ORIGIN`.
 
@@ -15,7 +15,7 @@ FastAPI remains the backend of record. The Next.js frontend calls `/api/backend/
 
 As of 2026-07-02, the Next.js refactor has been merged into `main`. The primary app UI is `web/`; `frontend/` is kept only as a legacy rollback/reference surface.
 
-The next commercial workstream is the paid Valuation Advisory MVP. The implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Keep `main` deployable and land new feature work through small PRs rather than one large long-lived branch.
+The next commercial workstream is the paid Valuation Advisory MVP. The working backlog lives at `.planning/BACKLOG.md`; the detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Keep `main` deployable and land new feature work through small PRs rather than one large long-lived branch.
 
 ## Local Development
 

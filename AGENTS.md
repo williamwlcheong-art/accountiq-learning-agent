@@ -60,6 +60,7 @@ Playwright starts FastAPI through `scripts/start-e2e-backend.sh`, resets `data/a
 ## Planning And Codebase Docs
 
 - `.planning/PROJECT.md` - living product context
+- `.planning/BACKLOG.md` - current paid Valuation Advisory MVP backlog and review queue
 - `.planning/STATE.md` - current status and decision log
 - `.planning/codebase/` - architecture, stack, conventions, concerns
 - `docs/superpowers/plans/2026-07-01-nextjs-refactor-final.md` - final Next.js migration plan
@@ -83,13 +84,14 @@ Read `.planning/codebase/CONVENTIONS.md` before larger backend/frontend changes.
 
 As of 2026-07-02, the Next.js refactor has been merged into `main` via PR #2. The primary app is the Next.js frontend in `web/`; `frontend/index.html` is legacy rollback/reference only.
 
-The next commercial workstream is the paid Valuation Advisory MVP. The plan is in `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment, admin review, PDF delivery, and purchase history are not implemented yet.
+The next commercial workstream is the paid Valuation Advisory MVP. Track active work in `.planning/BACKLOG.md`; use `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md` for detailed implementation steps. Payment, admin review, PDF delivery, and purchase history are not implemented yet.
 
 Preferred workflow for the commercial MVP:
 
 - Start feature slices from the latest `main`.
 - Keep `main` deployable.
 - Use small PRs for each slice: valuation-only picker, payment model, checkout/webhook, admin review, PDF delivery, and account/public offer surfaces.
+- Update `.planning/BACKLOG.md` when a PR opens, merges, or changes scope.
 - Rebase or merge latest `main` before starting a new slice if another contributor has landed changes.
 
 Latest verified checks from the merged refactor:

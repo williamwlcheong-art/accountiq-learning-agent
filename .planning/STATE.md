@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Next.js refactor merged; paid valuation MVP planning merged
-stopped_at: Next.js refactor and paid valuation MVP plan merged to main; ready for cleanup then feature-slice PRs
-last_updated: "2026-07-02T18:20:00+12:00"
+status: Paid valuation MVP feature slicing started
+stopped_at: PR #5 opened for valuation-only self-serve picker; backlog added for ongoing commercial MVP tracking
+last_updated: "2026-07-02T20:35:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -17,7 +17,7 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-01)
+See: .planning/PROJECT.md and .planning/BACKLOG.md
 
 **Core value:** Upload financials, answer a few questions, receive a first-draft professional financial report in minutes.
 **Current focus:** Paid Valuation Advisory MVP feature slices.
@@ -37,11 +37,15 @@ See: .planning/PROJECT.md (updated 2026-07-01)
 
 ## Active Phase
 
-**Paid Valuation Advisory MVP** - planning merged; implementation not started.
+**Paid Valuation Advisory MVP** - planning merged; implementation started with small PRs.
 
 The primary UI now lives in `web/` as a Next.js App Router app. FastAPI remains the backend of record. The old `frontend/index.html` app is a disabled-by-default legacy fallback.
 
-The implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment, admin review, PDF delivery, and purchase history are not implemented yet.
+The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment, admin review, PDF delivery, and purchase history are not implemented yet.
+
+Current implementation PR:
+
+- PR #5: focus self-serve wizard on Valuation Advisory; other report types remain visible as Advisor pilot.
 
 Latest verified checks:
 
@@ -86,7 +90,7 @@ Commercialization review (2026-07-01):
 ## Session Continuity
 
 Last session: 2026-07-02
-Stopped at: Next.js refactor and paid valuation MVP planning merged; cleanup review found no blockers.
+Stopped at: PR #5 opened and backlog created for paid valuation MVP tracking.
 Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---

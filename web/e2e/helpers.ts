@@ -21,6 +21,24 @@ export async function login(page: Page, email: string) {
   await page.getByRole("button", { name: /^sign in$/i }).click();
 }
 
+export async function completeValuationIntake(page: Page) {
+  await page.getByLabel(/forecast horizon/i).selectOption("3");
+  await page.getByLabel(/revenue growth rate/i).fill("8");
+  await page.getByLabel(/terminal growth rate/i).fill("3");
+  for (const name of [
+    "rq_revenue_quality",
+    "rq_owner_dependency",
+    "rq_ebitda_growth",
+    "rq_customer_concentration",
+    "rq_gross_margin",
+    "rq_competitive_barriers",
+    "rq_growth_outlook",
+    "rq_management_depth",
+  ]) {
+    await page.locator(`label[for="${name}-3"]`).click();
+  }
+}
+
 export async function expectNoHorizontalOverflow(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   expect(overflow).toBe(false);
