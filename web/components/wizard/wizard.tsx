@@ -22,6 +22,7 @@ type UploadResult = {
 type GenerateResult = {
   report_id: number;
   status: string;
+  checkout_url?: string | null;
 };
 
 type WizardProps = {
@@ -113,16 +114,20 @@ export function Wizard({ user }: WizardProps) {
     setLoading(true);
     setError("");
     try {
-      const result = await postJson<GenerateResult>("/wizard/report/generate", {
+      const result = await postJson<GenerateResult>("/wizard/report/checkout", {
         company_id: upload.company_id,
         report_type: reportType,
         intake_answers: answers,
       });
+      if (result.checkout_url) {
+        window.location.href = result.checkout_url;
+        return;
+      }
       setReportId(result.report_id);
       setStep("status");
     } catch (err) {
       if (!handleAuthError(err)) {
-        setError(err instanceof Error ? err.message : "Failed to queue report.");
+        setError(err instanceof Error ? err.message : "Failed to start checkout.");
       }
     } finally {
       setLoading(false);

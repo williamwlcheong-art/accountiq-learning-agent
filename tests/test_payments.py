@@ -3,6 +3,7 @@ import pytest
 
 from db import DB_PATH, init_db
 from payments import checkout_config, stripe_enabled
+import main as main_module
 
 
 @pytest.mark.asyncio
@@ -59,3 +60,99 @@ def test_stripe_enabled_requires_secret_key(monkeypatch):
 
     monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_123")
     assert stripe_enabled() is True
+
+
+def _valuation_answers():
+    return {
+        "forecast_horizon": 3,
+        "revenue_growth_cagr": 8,
+        "terminal_growth_rate": 3,
+        "rq_revenue_quality": 3,
+        "rq_owner_dependency": 3,
+        "rq_ebitda_growth": 3,
+        "rq_customer_concentration": 3,
+        "rq_gross_margin": 3,
+        "rq_competitive_barriers": 3,
+        "rq_growth_outlook": 3,
+        "rq_management_depth": 3,
+    }
+
+
+async def _register_and_upload(client, email="buyer@example.com"):
+    await client.post("/auth/register", data={"email": email, "password": "password123"})
+    upload = await client.post(
+        "/wizard/upload",
+        data={"business_name": "Paid Valuation Ltd"},
+        files={"file": ("sample.pdf", b"%PDF-1.4 fake", "application/pdf")},
+    )
+    assert upload.status_code == 201, upload.text
+    return upload.json()["company_id"]
+
+
+@pytest.mark.asyncio
+async def test_e2e_checkout_creates_queued_report(client, fresh_all_db, monkeypatch):
+    monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+
+    company_id = await _register_and_upload(client)
+    res = await client.post(
+        "/wizard/report/checkout",
+        json={
+            "company_id": company_id,
+            "report_type": "valuation_advisory",
+            "intake_answers": _valuation_answers(),
+        },
+    )
+
+    assert res.status_code == 201, res.text
+    body = res.json()
+    assert body["status"] == "queued"
+    assert body["checkout_url"] is None
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT status, paid_at FROM purchases WHERE report_id=?",
+            (body["report_id"],),
+        ) as cur:
+            purchase = await cur.fetchone()
+    assert purchase["status"] == "paid"
+    assert purchase["paid_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_checkout_only_accepts_valuation(client, fresh_all_db, monkeypatch):
+    monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+
+    company_id = await _register_and_upload(client, email="forecast-buyer@example.com")
+    res = await client.post(
+        "/wizard/report/checkout",
+        json={
+            "company_id": company_id,
+            "report_type": "financial_forecast",
+            "intake_answers": {},
+        },
+    )
+
+    assert res.status_code == 400, res.text
+    assert "valuation_advisory" in res.text
+
+
+@pytest.mark.asyncio
+async def test_valuation_generate_requires_checkout(client, fresh_all_db, monkeypatch):
+    monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+
+    company_id = await _register_and_upload(client, email="direct-buyer@example.com")
+    res = await client.post(
+        "/wizard/report/generate",
+        json={
+            "company_id": company_id,
+            "report_type": "valuation_advisory",
+            "intake_answers": _valuation_answers(),
+        },
+    )
+
+    assert res.status_code == 409, res.text
+    assert "checkout" in res.text.lower()

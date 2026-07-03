@@ -74,7 +74,7 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
 
   return (
     <section className="wizard-card">
-      <h2>Your report is being prepared</h2>
+      <h2>{currentStatus === "pending_payment" ? "Complete payment to start your report" : "Your report is being prepared"}</h2>
 
       {error ? (
         <div role="alert" className="alert alert-error">
@@ -89,6 +89,12 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
       ) : null}
 
       <p className={`status-pill status-${currentStatus}`}>Status: {currentStatus}</p>
+
+      {currentStatus === "pending_payment" ? (
+        <p className="wizard-note">
+          We are waiting for payment confirmation before starting report generation.
+        </p>
+      ) : null}
 
       {currentStatus === "researching" ? (
         <p className="wizard-note">

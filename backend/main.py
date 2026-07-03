@@ -25,6 +25,12 @@ load_dotenv(ENV_PATH, override=False)
 from db import init_db, get_db, get_pattern_library, DB_PATH
 from ingestion import ingest_document
 from auth import auth_router, get_current_user, require_admin
+from payments import (
+    checkout_config,
+    construct_webhook_event,
+    create_checkout_session,
+    stripe_enabled,
+)
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
 from report_prompts import build_prompt, SECTION_SCHEMAS, compute_bank_credit_figures
 from research_loop import run_valuation_research
@@ -1069,26 +1075,7 @@ async def wizard_upload(
 _VALID_REPORT_TYPES = frozenset(REPORT_TYPE_LABELS.keys())
 
 
-@app.post("/wizard/report/generate", status_code=201)
-async def wizard_report_generate(
-    request: Request,
-    background_tasks: BackgroundTasks,
-    db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),   # non-admin users can generate
-):
-    """
-    Create a report job and immediately queue generation.
-
-    Body (JSON):
-      {
-        "company_id": int,
-        "report_type": str,          // one of VALID_REPORT_TYPES
-        "intake_answers": { ... }    // report-type-specific answers dict
-      }
-
-    Phase 5 bypasses pending_payment (D-04). Phase 6 inserts the payment gate
-    before this endpoint without touching the generation logic.
-    """
+async def _read_report_payload(request: Request) -> tuple[int, str, dict]:
     try:
         body = await request.json()
     except Exception:
@@ -1108,25 +1095,79 @@ async def wizard_report_generate(
     if not isinstance(intake_answers, dict):
         raise HTTPException(400, "intake_answers must be a JSON object")
 
-    # Verify the company belongs to this user
+    return company_id, report_type, intake_answers
+
+
+async def _ensure_user_company(
+    db: aiosqlite.Connection,
+    company_id: int,
+    user_id: int,
+) -> None:
     async with db.execute(
         "SELECT id FROM companies WHERE id=? AND user_id=?",
-        (company_id, current_user["id"])
+        (company_id, user_id)
     ) as cur:
         if not await cur.fetchone():
             raise HTTPException(404, "Company not found")
 
-    # Create report row (status = queued per D-04)
+
+async def _insert_report_job(
+    db: aiosqlite.Connection,
+    *,
+    company_id: int,
+    user_id: int,
+    report_type: str,
+    status: str,
+    intake_answers: dict,
+) -> int:
     async with db.execute("""
         INSERT INTO reports (company_id, user_id, report_type, status)
-        VALUES (?, ?, ?, 'queued')
-    """, (company_id, current_user["id"], report_type)) as cur:
+        VALUES (?, ?, ?, ?)
+    """, (company_id, user_id, report_type, status)) as cur:
         report_id = cur.lastrowid
 
-    # Store intake answers
     await db.execute("""
         INSERT INTO report_intake (report_id, answers) VALUES (?, ?)
     """, (report_id, json.dumps(intake_answers)))
+    return report_id
+
+
+@app.post("/wizard/report/generate", status_code=201)
+async def wizard_report_generate(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),   # non-admin users can generate
+):
+    """
+    Create a report job and immediately queue generation.
+
+    Body (JSON):
+      {
+        "company_id": int,
+        "report_type": str,          // one of VALID_REPORT_TYPES
+        "intake_answers": { ... }    // report-type-specific answers dict
+      }
+
+    Non-valuation report generation remains available for internal/advisor flows.
+    Self-serve Valuation Advisory must use /wizard/report/checkout.
+    """
+    company_id, report_type, intake_answers = await _read_report_payload(request)
+    if report_type == "valuation_advisory":
+        raise HTTPException(409, "Valuation Advisory reports must be started through checkout.")
+
+    # Verify the company belongs to this user
+    await _ensure_user_company(db, company_id, current_user["id"])
+
+    # Create report row (status = queued per D-04)
+    report_id = await _insert_report_job(
+        db,
+        company_id=company_id,
+        user_id=current_user["id"],
+        report_type=report_type,
+        status="queued",
+        intake_answers=intake_answers,
+    )
     await db.commit()
 
     # Queue background generation task
@@ -1140,6 +1181,169 @@ async def wizard_report_generate(
     )
 
     return {"report_id": report_id, "status": "queued"}
+
+
+@app.post("/wizard/report/checkout", status_code=201)
+async def wizard_report_checkout(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Create a pending paid valuation and return a Stripe Checkout URL."""
+    company_id, report_type, intake_answers = await _read_report_payload(request)
+    if report_type != "valuation_advisory":
+        raise HTTPException(400, "Checkout is currently only available for valuation_advisory.")
+
+    await _ensure_user_company(db, company_id, current_user["id"])
+
+    config = checkout_config()
+    if not E2E_MODE and not stripe_enabled():
+        raise HTTPException(503, "Stripe checkout is not configured.")
+
+    report_id = await _insert_report_job(
+        db,
+        company_id=company_id,
+        user_id=current_user["id"],
+        report_type=report_type,
+        status="pending_payment",
+        intake_answers=intake_answers,
+    )
+    async with db.execute("""
+        INSERT INTO purchases (report_id, user_id, amount_cents, currency, status)
+        VALUES (?, ?, ?, ?, 'pending')
+    """, (report_id, current_user["id"], config.price_cents, config.currency)) as cur:
+        purchase_id = cur.lastrowid
+
+    status = "pending_payment"
+    checkout_url = None
+
+    if E2E_MODE:
+        await db.execute("""
+            UPDATE purchases
+            SET status='paid', paid_at=datetime('now')
+            WHERE id=?
+        """, (purchase_id,))
+        await db.execute(
+            "UPDATE reports SET status='queued' WHERE id=?",
+            (report_id,),
+        )
+        status = "queued"
+        background_tasks.add_task(
+            _generate_report,
+            report_id,
+            company_id,
+            current_user["id"],
+            report_type,
+            intake_answers,
+        )
+    else:
+        session = create_checkout_session(
+            report_id=report_id,
+            purchase_id=purchase_id,
+            user_email=current_user["email"],
+            config=config,
+        )
+        await db.execute("""
+            UPDATE purchases
+            SET stripe_checkout_session_id=?
+            WHERE id=?
+        """, (session.session_id, purchase_id))
+        checkout_url = session.url
+
+    await db.commit()
+    return {
+        "report_id": report_id,
+        "status": status,
+        "checkout_url": checkout_url,
+    }
+
+
+@app.post("/payments/stripe/webhook")
+async def stripe_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks,
+):
+    payload = await request.body()
+    try:
+        event = construct_webhook_event(
+            payload,
+            request.headers.get("stripe-signature"),
+        )
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc))
+    except Exception:
+        raise HTTPException(400, "Invalid Stripe webhook payload or signature")
+
+    event_type = _object_get(event, "type")
+    if event_type != "checkout.session.completed":
+        return {"received": True, "ignored": True}
+
+    session = _object_get(_object_get(event, "data") or {}, "object") or {}
+    session_id = _object_get(session, "id")
+    payment_intent_id = _object_get(session, "payment_intent")
+    if not session_id:
+        raise HTTPException(400, "Stripe checkout session id missing")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute("PRAGMA foreign_keys=ON")
+        async with db.execute("""
+            SELECT
+                p.id AS purchase_id,
+                p.report_id,
+                p.user_id,
+                p.status AS purchase_status,
+                r.company_id,
+                r.report_type,
+                r.status AS report_status,
+                ri.answers
+            FROM purchases p
+            JOIN reports r ON r.id = p.report_id
+            LEFT JOIN report_intake ri ON ri.report_id = r.id
+            WHERE p.stripe_checkout_session_id=?
+            ORDER BY ri.id DESC
+            LIMIT 1
+        """, (session_id,)) as cur:
+            row = await cur.fetchone()
+
+        if not row:
+            raise HTTPException(404, "Purchase not found")
+
+        await db.execute("""
+            UPDATE purchases
+            SET status='paid',
+                stripe_payment_intent_id=?,
+                paid_at=COALESCE(paid_at, datetime('now'))
+            WHERE id=?
+        """, (payment_intent_id, row["purchase_id"]))
+
+        should_queue = row["report_status"] == "pending_payment"
+        if should_queue:
+            await db.execute(
+                "UPDATE reports SET status='queued' WHERE id=?",
+                (row["report_id"],),
+            )
+        await db.commit()
+
+    if should_queue:
+        intake_answers = json.loads(row["answers"]) if row["answers"] else {}
+        background_tasks.add_task(
+            _generate_report,
+            row["report_id"],
+            row["company_id"],
+            row["user_id"],
+            row["report_type"],
+            intake_answers,
+        )
+
+    return {"received": True}
+
+
+def _object_get(obj, key: str):
+    if isinstance(obj, dict):
+        return obj.get(key)
+    return getattr(obj, key, None)
 
 
 @app.get("/wizard/report/{report_id}/status")
