@@ -258,11 +258,28 @@ def _migrate_db(conn: sqlite3.Connection):
             created_at  TEXT    DEFAULT (datetime('now'))
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS purchases (
+            id                          INTEGER PRIMARY KEY AUTOINCREMENT,
+            report_id                   INTEGER NOT NULL REFERENCES reports(id) ON DELETE CASCADE,
+            user_id                     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            stripe_checkout_session_id  TEXT UNIQUE,
+            stripe_payment_intent_id    TEXT,
+            amount_cents                INTEGER NOT NULL,
+            currency                    TEXT NOT NULL DEFAULT 'nzd',
+            status                      TEXT NOT NULL DEFAULT 'pending',
+            paid_at                     TEXT,
+            created_at                  TEXT DEFAULT (datetime('now'))
+        )
+    """)
     for idx_sql in [
         "CREATE INDEX IF NOT EXISTS idx_reports_company  ON reports(company_id)",
         "CREATE INDEX IF NOT EXISTS idx_reports_user     ON reports(user_id)",
         "CREATE INDEX IF NOT EXISTS idx_reports_status   ON reports(status)",
         "CREATE INDEX IF NOT EXISTS idx_report_intake_rpt ON report_intake(report_id)",
+        "CREATE INDEX IF NOT EXISTS idx_purchases_user   ON purchases(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_purchases_report ON purchases(report_id)",
+        "CREATE INDEX IF NOT EXISTS idx_purchases_status ON purchases(status)",
     ]:
         try:
             conn.execute(idx_sql)
