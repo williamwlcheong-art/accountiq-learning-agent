@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
 
-import { completeValuationIntake, register, regularEmail } from "./helpers";
+import { approvePendingReport, completeValuationIntake, loginOrRegisterAdmin, register, regularEmail } from "./helpers";
 
-test("completed report viewer escapes script payloads", async ({ page, context }) => {
+test("completed report viewer escapes script payloads", async ({ page, context, browser }) => {
   await register(page, regularEmail());
   await page.getByLabel(/business name/i).fill("Viewer E2E Ltd");
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
@@ -12,6 +12,14 @@ test("completed report viewer escapes script payloads", async ({ page, context }
   await page.getByRole("button", { name: /continue/i }).click();
   await completeValuationIntake(page);
   await page.getByRole("button", { name: /generate report/i }).click();
+  await expect(page.getByText(/your report is under review/i)).toBeVisible({ timeout: 15_000 });
+
+  const adminContext = await browser.newContext();
+  const adminPage = await adminContext.newPage();
+  await loginOrRegisterAdmin(adminPage);
+  await approvePendingReport(adminPage, "Viewer E2E Ltd");
+  await adminContext.close();
+
   const link = page.getByRole("link", { name: /open report/i });
   await expect(link).toBeVisible({ timeout: 15_000 });
 

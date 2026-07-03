@@ -1075,6 +1075,50 @@ async def wizard_upload(
 _VALID_REPORT_TYPES = frozenset(REPORT_TYPE_LABELS.keys())
 
 
+def _requires_admin_review(report_type: str) -> bool:
+    if report_type != "valuation_advisory":
+        return False
+    flag = os.environ.get("ACCOUNTIQ_REQUIRE_ADMIN_REVIEW", "true").strip().lower()
+    return flag not in {"0", "false", "no", "off"}
+
+
+async def _store_generated_report(
+    db: aiosqlite.Connection,
+    *,
+    report_id: int,
+    report_type: str,
+    content_json: dict,
+) -> str:
+    next_status = "awaiting_review" if _requires_admin_review(report_type) else "done"
+    if next_status == "done":
+        cursor = await db.execute("""
+            UPDATE reports
+            SET status='done', content=?, completed_at=datetime('now')
+            WHERE id=? AND status IN ('generating', 'researching')
+        """, (json.dumps(content_json), report_id))
+    else:
+        cursor = await db.execute("""
+            UPDATE reports
+            SET status='awaiting_review', content=?, completed_at=NULL
+            WHERE id=? AND status IN ('generating', 'researching')
+        """, (json.dumps(content_json), report_id))
+    if cursor.rowcount == 0:
+        async with db.execute("SELECT status FROM reports WHERE id=?", (report_id,)) as cur:
+            row = await cur.fetchone()
+        return row["status"] if row else "missing"
+    if next_status == "awaiting_review":
+        await db.execute("""
+            INSERT INTO reviews (report_id, status)
+            VALUES (?, 'awaiting_review')
+            ON CONFLICT(report_id) DO UPDATE SET
+                reviewer_user_id=NULL,
+                status='awaiting_review',
+                updated_at=datetime('now'),
+                approved_at=NULL
+        """, (report_id,))
+    return next_status
+
+
 async def _read_report_payload(request: Request) -> tuple[int, str, dict]:
     try:
         body = await request.json()
@@ -1598,39 +1642,15 @@ def _render_report_sections_html(sections: dict, section_order: list) -> str:
     return section_html
 
 
-@app.get("/wizard/report/{report_id}/view", response_class=HTMLResponse)
-async def wizard_report_view(
-    report_id: int,
-    db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    """Render a completed report as readable HTML (temporary viewer until Phase 7)."""
-    async with db.execute("""
-        SELECT r.id, r.report_type, r.status, r.content, r.completed_at,
-               c.name
-        FROM reports r
-        JOIN companies c ON c.id = r.company_id
-        WHERE r.id=? AND r.user_id=?
-    """, (report_id, current_user["id"])) as cur:
-        row = await cur.fetchone()
-    if not row:
-        raise HTTPException(404, "Report not found")
-    if row["status"] != "done":
-        raise HTTPException(400, f"Report is not ready yet (status: {row['status']})")
-
-    import json as _json
-    try:
-        sections = _json.loads(row["content"])
-    except Exception:
-        raise HTTPException(500, "Report content could not be parsed")
-
+def _render_report_html(row, sections: dict, back_url: str) -> str:
     section_order = SECTION_SCHEMAS.get(row["report_type"], list(sections.keys()))
     label = row["report_type"].replace("_", " ").title()
-    back_url = f"{os.getenv('APP_BASE_URL', 'http://localhost:3000').rstrip('/')}/wizard"
-
     section_html = _render_report_sections_html(sections, section_order)
+    generated_label = row["completed_at"] or (
+        "Draft awaiting review" if row["status"] == "awaiting_review" else row["status"]
+    )
 
-    html = f"""<!DOCTYPE html>
+    return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1668,12 +1688,165 @@ async def wizard_report_view(
 <header>
   <h1>{_html_lib.escape(label)}</h1>
   <p>{_html_lib.escape(row['name'])}</p>
-  <p class="meta">Report #{row['id']} &nbsp;·&nbsp; Generated {row['completed_at']}</p>
+  <p class="meta">Report #{row['id']} &nbsp;·&nbsp; Generated {_html_lib.escape(str(generated_label))}</p>
 </header>
 {section_html}
 </body>
 </html>"""
+
+
+@app.get("/wizard/report/{report_id}/view", response_class=HTMLResponse)
+async def wizard_report_view(
+    report_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Render a completed report as readable HTML (temporary viewer until Phase 7)."""
+    async with db.execute("""
+        SELECT r.id, r.report_type, r.status, r.content, r.completed_at,
+               c.name
+        FROM reports r
+        JOIN companies c ON c.id = r.company_id
+        WHERE r.id=? AND r.user_id=?
+    """, (report_id, current_user["id"])) as cur:
+        row = await cur.fetchone()
+    if not row:
+        raise HTTPException(404, "Report not found")
+    if row["status"] != "done":
+        raise HTTPException(400, f"Report is not ready yet (status: {row['status']})")
+
+    import json as _json
+    try:
+        sections = _json.loads(row["content"])
+    except Exception:
+        raise HTTPException(500, "Report content could not be parsed")
+
+    back_url = f"{os.getenv('APP_BASE_URL', 'http://localhost:3000').rstrip('/')}/wizard"
+    html = _render_report_html(row, sections, back_url)
     return HTMLResponse(content=html)
+
+
+@app.get("/admin/reports/pending")
+async def admin_reports_pending(
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    async with db.execute("""
+        SELECT
+            r.id,
+            r.company_id,
+            c.name AS company_name,
+            u.email AS user_email,
+            r.report_type,
+            r.status,
+            r.created_at,
+            r.completed_at,
+            p.amount_cents,
+            p.currency,
+            p.paid_at
+        FROM reports r
+        JOIN companies c ON c.id = r.company_id
+        JOIN users u ON u.id = r.user_id
+        LEFT JOIN purchases p ON p.report_id = r.id
+        WHERE r.status='awaiting_review'
+        ORDER BY r.created_at ASC, r.id ASC
+    """) as cur:
+        rows = await cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.get("/admin/reports/{report_id}/view", response_class=HTMLResponse)
+async def admin_report_view(
+    report_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    async with db.execute("""
+        SELECT r.id, r.report_type, r.status, r.content, r.completed_at,
+               c.name
+        FROM reports r
+        JOIN companies c ON c.id = r.company_id
+        WHERE r.id=?
+    """, (report_id,)) as cur:
+        row = await cur.fetchone()
+    if not row:
+        raise HTTPException(404, "Report not found")
+    if row["status"] not in {"awaiting_review", "done"}:
+        raise HTTPException(400, f"Report is not reviewable yet (status: {row['status']})")
+
+    import json as _json
+    try:
+        sections = _json.loads(row["content"])
+    except Exception:
+        raise HTTPException(500, "Report content could not be parsed")
+
+    back_url = f"{os.getenv('APP_BASE_URL', 'http://localhost:3000').rstrip('/')}/admin/reports"
+    return HTMLResponse(content=_render_report_html(row, sections, back_url))
+
+
+@app.post("/admin/reports/{report_id}/approve")
+async def admin_report_approve(
+    report_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    async with db.execute("""
+        SELECT
+            r.id,
+            r.report_type,
+            r.status,
+            u.email AS user_email,
+            EXISTS (
+                SELECT 1
+                FROM purchases p
+                WHERE p.report_id = r.id
+                  AND p.status = 'paid'
+                  AND p.paid_at IS NOT NULL
+            ) AS is_paid
+        FROM reports r
+        JOIN users u ON u.id = r.user_id
+        WHERE r.id=?
+    """, (report_id,)) as cur:
+        row = await cur.fetchone()
+    if not row:
+        raise HTTPException(404, "Report not found")
+    if row["status"] != "awaiting_review":
+        raise HTTPException(409, f"Report is not awaiting review (current: {row['status']})")
+    if not row["is_paid"]:
+        raise HTTPException(409, "Report cannot be approved until payment is confirmed")
+
+    cursor = await db.execute("""
+        UPDATE reports
+        SET status='done', completed_at=datetime('now')
+        WHERE id=? AND status='awaiting_review'
+    """, (report_id,))
+    if cursor.rowcount == 0:
+        await db.commit()
+        raise HTTPException(409, "Report is no longer awaiting review")
+    await db.execute("""
+        INSERT INTO reviews (
+            report_id,
+            reviewer_user_id,
+            status,
+            approved_at
+        )
+        VALUES (?, ?, 'approved', datetime('now'))
+        ON CONFLICT(report_id) DO UPDATE SET
+            reviewer_user_id=excluded.reviewer_user_id,
+            status='approved',
+            updated_at=datetime('now'),
+            approved_at=datetime('now')
+    """, (report_id, current_user["id"]))
+    await db.commit()
+
+    user_email_addr = row["user_email"]
+    await send_report_ready_email(
+        user_email_addr,
+        user_email_addr.split("@")[0],
+        row["report_type"],
+        report_id,
+    )
+    return {"id": report_id, "status": "done"}
 
 
 # ---------------------------------------------------------------------------
@@ -1707,27 +1880,32 @@ async def _generate_report(
         await db.execute("PRAGMA journal_mode=WAL")
 
         try:
-            # Mark as generating
-            await db.execute(
-                "UPDATE reports SET status='generating' WHERE id=?",
+            # Claim the queued job. A duplicate/late background task must not
+            # move an approved or in-review report back into generation.
+            cursor = await db.execute(
+                "UPDATE reports SET status='generating' WHERE id=? AND status='queued'",
                 (report_id,)
             )
             await db.commit()
+            if cursor.rowcount == 0:
+                async with db.execute("SELECT status FROM reports WHERE id=?", (report_id,)) as cur:
+                    row = await cur.fetchone()
+                current_status = row["status"] if row else "missing"
+                print(f"[REPORT] Skipping report_id={report_id}; status={current_status}")
+                return
             print(f"[REPORT] Generating report_id={report_id} type={report_type}")
 
             if E2E_MODE:
                 await asyncio.sleep(0.05)
                 content_json = _e2e_report_content(report_type)
-                await db.execute(
-                    """
-                    UPDATE reports
-                    SET status='done', content=?, completed_at=datetime('now')
-                    WHERE id=?
-                    """,
-                    (json.dumps(content_json), report_id),
+                next_status = await _store_generated_report(
+                    db,
+                    report_id=report_id,
+                    report_type=report_type,
+                    content_json=content_json,
                 )
                 await db.commit()
-                print(f"[REPORT] E2E report_id={report_id} done ({report_type})")
+                print(f"[REPORT] E2E report_id={report_id} {next_status} ({report_type})")
                 return
 
             # --- 1. Load company profile ---
@@ -1981,26 +2159,28 @@ async def _generate_report(
                     await db.commit()
                     return
 
-            # --- 9. Mark done, store content ---
-            await db.execute("""
-                UPDATE reports
-                SET status='done', content=?, completed_at=datetime('now')
-                WHERE id=?
-            """, (json.dumps(content_json), report_id))
+            # --- 9. Store content; paid valuations wait for reviewer approval before release ---
+            next_status = await _store_generated_report(
+                db,
+                report_id=report_id,
+                report_type=report_type,
+                content_json=content_json,
+            )
             await db.commit()
-            print(f"[REPORT] report_id={report_id} done ({report_type})")
+            print(f"[REPORT] report_id={report_id} {next_status} ({report_type})")
 
             # --- 10. Load user email and send notification ---
-            async with db.execute(
-                "SELECT email FROM users WHERE id=?", (user_id,)
-            ) as cur:
-                user_row = await cur.fetchone()
-            if user_row:
-                user_email_addr = user_row["email"]
-                user_name = user_email_addr.split("@")[0]
-                await send_report_ready_email(
-                    user_email_addr, user_name, report_type, report_id
-                )
+            if next_status == "done":
+                async with db.execute(
+                    "SELECT email FROM users WHERE id=?", (user_id,)
+                ) as cur:
+                    user_row = await cur.fetchone()
+                if user_row:
+                    user_email_addr = user_row["email"]
+                    user_name = user_email_addr.split("@")[0]
+                    await send_report_ready_email(
+                        user_email_addr, user_name, report_type, report_id
+                    )
 
         except Exception as exc:
             err_msg = str(exc)[:1000]

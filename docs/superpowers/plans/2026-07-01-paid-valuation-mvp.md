@@ -276,6 +276,7 @@ git commit -m "feat(payments): add valuation purchase model"
 ## Task 3: Gate Valuation Generation Behind Checkout
 
 **Files:**
+- Modify: `backend/db.py`
 - Modify: `backend/main.py`
 - Modify: `backend/payments.py`
 - Modify: `web/components/wizard/wizard.tsx`
@@ -367,7 +368,28 @@ cd web && pnpm test:e2e -- e2e/wizard.spec.ts
 
 Expected: all pass.
 
-- [ ] **Step 6: Commit**
+Verified on 2026-07-04:
+
+```bash
+/Users/davewilson/Code/Daves/william/accountiq-learning-agent/venv/bin/python -m pytest tests/test_admin_review.py tests/test_payments.py tests/test_wizard_endpoints.py
+# 17 passed
+
+/Users/davewilson/Code/Daves/william/accountiq-learning-agent/venv/bin/python -m pytest
+# 131 passed, 1 skipped
+
+cd web && pnpm lint
+cd web && pnpm typecheck
+cd web && pnpm build
+# all passed
+
+cd web && pnpm test:e2e -- e2e/admin.spec.ts e2e/wizard.spec.ts e2e/report-viewer.spec.ts
+# 4 passed
+
+cd web && pnpm test:e2e
+# 10 passed
+```
+
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/main.py backend/payments.py web/components/wizard/wizard.tsx web/components/wizard/report-status-card.tsx tests/test_payments.py web/e2e/wizard.spec.ts
@@ -386,7 +408,7 @@ git commit -m "feat(payments): gate valuation generation behind checkout"
 - Add: `tests/test_admin_review.py`
 - Modify: `web/e2e/admin.spec.ts`
 
-- [ ] **Step 1: Add backend tests**
+- [x] **Step 1: Add backend tests**
 
 Create `tests/test_admin_review.py` with tests for:
 
@@ -399,11 +421,14 @@ async def test_admin_can_approve_report_and_user_can_view(...):
 
 async def test_regular_user_cannot_approve_report(...):
     ...
+
+async def test_review_schema_supports_approval_audit(...):
+    ...
 ```
 
 Use direct DB inserts for the draft report row to keep tests deterministic.
 
-- [ ] **Step 2: Change generation final status**
+- [x] **Step 2: Change generation final status**
 
 In `_generate_report`, after storing content for `valuation_advisory`, set:
 
@@ -413,7 +438,7 @@ next_status = "awaiting_review" if os.getenv("ACCOUNTIQ_REQUIRE_ADMIN_REVIEW", "
 
 Only send report-ready email when `next_status == "done"`.
 
-- [ ] **Step 3: Add admin report routes**
+- [x] **Step 3: Add admin report routes**
 
 Add:
 
@@ -427,13 +452,13 @@ async def admin_approve_report(...):
     ...
 ```
 
-Approval sets `status='done'`, `completed_at=datetime('now')`, and sends the report-ready email.
+Approval sets `status='done'`, `completed_at=datetime('now')`, records the reviewer identity and approval time in `reviews`, and sends the report-ready email.
 
-- [ ] **Step 4: Add admin UI**
+- [x] **Step 4: Add admin UI**
 
 Add an Admin nav link `Reports`. The page lists `awaiting_review` reports with company name, report type, created date, `Open draft`, and `Approve`.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 

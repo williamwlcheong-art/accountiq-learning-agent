@@ -43,6 +43,20 @@ export type ReportStatus = {
   completed_at: string | null;
 };
 
+export type AdminPendingReport = {
+  id: number;
+  company_id: number;
+  company_name: string;
+  user_email: string;
+  report_type: string;
+  status: string;
+  created_at: string;
+  completed_at: string | null;
+  amount_cents: number | null;
+  currency: string | null;
+  paid_at: string | null;
+};
+
 export type ApiErrorBody = {
   detail?: string;
 };

@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
 
-import { completeValuationIntake, register, regularEmail } from "./helpers";
+import { approvePendingReport, completeValuationIntake, loginOrRegisterAdmin, register, regularEmail } from "./helpers";
 
-test("regular user uploads, selects report type, generates report, and opens viewer", async ({ page }) => {
+test("regular user uploads, selects report type, generates report, and reaches reviewed release", async ({ page, browser }) => {
   await register(page, regularEmail());
   await expect(page.getByText("Click or drag file here")).toBeVisible();
   await expect(page.getByText(/last 2-3 years preferred/i)).toBeVisible();
@@ -23,6 +23,14 @@ test("regular user uploads, selects report type, generates report, and opens vie
   await page.getByRole("button", { name: /generate report/i }).click();
   await expect((await checkoutResponse).status()).toBe(201);
   await expect(page.getByText(/status:/i)).toBeVisible();
+  await expect(page.getByText(/your report is under review/i)).toBeVisible({ timeout: 15_000 });
+
+  const adminContext = await browser.newContext();
+  const adminPage = await adminContext.newPage();
+  await loginOrRegisterAdmin(adminPage);
+  await approvePendingReport(adminPage, "E2E Holdings Ltd");
+  await adminContext.close();
+
   await expect(page.getByRole("link", { name: /open report/i })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /upload another/i }).click();
   await page.getByLabel(/business name/i).fill("Second E2E Holdings Ltd");
@@ -60,5 +68,6 @@ test("regular user can complete valuation-specific intake", async ({ page }) => 
   );
   await page.getByRole("button", { name: /generate report/i }).click();
   await expect((await checkoutResponse).status()).toBe(201);
-  await expect(page.getByRole("link", { name: /open report/i })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/your report is under review/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("link", { name: /open report/i })).toHaveCount(0);
 });

@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
 
-import { adminEmail, register } from "./helpers";
+import { approvePendingReport, completeValuationIntake, loginOrRegisterAdmin } from "./helpers";
 
 test("owner email registers as admin and can use admin workflows", async ({ page }) => {
-  await register(page, adminEmail());
+  await loginOrRegisterAdmin(page);
   await expect(page).toHaveURL(/\/admin$/);
 
   await page.getByRole("link", { name: /companies/i }).click();
@@ -44,4 +44,16 @@ test("owner email registers as admin and can use admin workflows", async ({ page
 
   await page.getByRole("link", { name: /financials/i }).click();
   await expect(page.getByText(/revenue/i)).toBeVisible({ timeout: 15_000 });
+
+  await page.goto("/wizard");
+  await page.getByLabel(/business name/i).fill("Admin Review E2E Ltd");
+  await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
+  await page.getByRole("button", { name: /continue/i }).click();
+  await page.getByRole("button", { name: /valuation advisory/i }).click();
+  await page.getByRole("button", { name: /continue/i }).click();
+  await completeValuationIntake(page);
+  await page.getByRole("button", { name: /generate report/i }).click();
+  await expect(page.getByText(/your report is under review/i)).toBeVisible({ timeout: 15_000 });
+
+  await approvePendingReport(page, "Admin Review E2E Ltd");
 });

@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Paid valuation checkout gate merged; admin review is next
-stopped_at: PVM-03 merged; continue with PVM-04 admin review before customer delivery
-last_updated: "2026-07-12T00:00:00+12:00"
+status: PVM-04 admin review gate in review
+stopped_at: PVM-04 implemented in PR #8; review and merge are next
+last_updated: "2026-07-12T16:40:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -41,20 +41,20 @@ See: .planning/PROJECT.md and .planning/BACKLOG.md
 
 The primary UI now lives in `web/` as a Next.js App Router app. FastAPI remains the backend of record. The old `frontend/index.html` app is a disabled-by-default legacy fallback.
 
-The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment scaffolding and checkout-gated generation are implemented; admin review, PDF delivery, purchase history, and complete failure/refund handling remain.
+The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment checkout gating and the technical admin review-before-release gate are implemented. PDF delivery, purchase history, public offer page, and William's production approval checklist remain next.
 
 Next implementation slice:
 
-- PVM-04: generated paid valuations enter admin review before customer delivery.
+- PR #8: generated paid valuation reports enter `awaiting_review`; admins can review drafts at `/admin/reports`, approve release via `/admin/reports/{id}/approve`, reviewer identity/time are audited, and customers only receive the viewer link after approval.
 
 Latest verified checks:
 
-- Backend pytest: 116 passed, 1 skipped, 1 xpassed
-- `npm run lint`
-- `npm run typecheck`
-- `npm run build`
+- Backend pytest: 131 passed, 1 skipped
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm build`
 - Dev Playwright: 10 passed
-- Standalone production Playwright: 10 passed
+- Focused review-gate Playwright: 4 passed (`admin`, `wizard`, `report-viewer`)
 
 External parity review follow-up (2026-07-01):
 
@@ -90,7 +90,7 @@ Commercialization review (2026-07-01):
 ## Session Continuity
 
 Last session: 2026-07-12
-Stopped at: PVM-03 checkout-gated generation merged; PVM-04 admin review is next.
+Stopped at: PVM-04 implemented in PR #8; review and merge are next.
 Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---

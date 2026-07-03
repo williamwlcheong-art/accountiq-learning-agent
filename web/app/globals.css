@@ -433,6 +433,11 @@ a {
   color: var(--amber);
 }
 
+.status-awaiting_review {
+  background: #fffbeb;
+  color: #92400e;
+}
+
 .wizard-done,
 .wizard-failed {
   margin-top: 18px;
@@ -1338,7 +1343,8 @@ tr:hover td {
 }
 
 .status-pending,
-.status-researching {
+.status-researching,
+.status-awaiting_review {
   background: #fff8e1;
   color: var(--amber);
 }

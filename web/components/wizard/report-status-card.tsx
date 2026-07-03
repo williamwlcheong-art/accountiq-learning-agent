@@ -71,10 +71,16 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
   const currentStatus = status?.status ?? "queued";
   const isDone = currentStatus === "done";
   const isFailed = currentStatus === "failed";
+  const isAwaitingReview = currentStatus === "awaiting_review";
+  const heading = currentStatus === "pending_payment"
+    ? "Complete payment to start your report"
+    : isAwaitingReview
+      ? "Your report is under review"
+      : "Your report is being prepared";
 
   return (
     <section className="wizard-card">
-      <h2>{currentStatus === "pending_payment" ? "Complete payment to start your report" : "Your report is being prepared"}</h2>
+      <h2>{heading}</h2>
 
       {error ? (
         <div role="alert" className="alert alert-error">
@@ -99,6 +105,12 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
       {currentStatus === "researching" ? (
         <p className="wizard-note">
           The agent is gathering market data and WACC inputs. This can take a little longer than standard reports.
+        </p>
+      ) : null}
+
+      {isAwaitingReview ? (
+        <p className="wizard-note">
+          A reviewer is checking the draft before release. We will keep this page updated and email you when it is ready.
         </p>
       ) : null}
 

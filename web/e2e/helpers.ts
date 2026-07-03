@@ -21,6 +21,30 @@ export async function login(page: Page, email: string) {
   await page.getByRole("button", { name: /^sign in$/i }).click();
 }
 
+export async function loginOrRegisterAdmin(page: Page) {
+  const email = adminEmail();
+  await login(page, email);
+  const invalidLoginAlert = page.getByRole("alert").filter({ hasText: /incorrect email or password/i });
+  const loginResult = await Promise.race([
+    page.waitForURL(/\/admin$/, { timeout: 10_000 }).then(() => "ok").catch(() => null),
+    invalidLoginAlert
+      .waitFor({ state: "visible", timeout: 10_000 })
+      .then(() => "missing")
+      .catch(() => null),
+  ]);
+
+  if (loginResult === "ok") {
+    return;
+  }
+  await expect(invalidLoginAlert).toBeVisible();
+  await page.getByRole("button", { name: /^create account$/i }).click();
+  await page.getByLabel(/email address/i).fill(email);
+  await page.getByLabel(/^password$/i).fill(password);
+  await page.getByLabel(/confirm password/i).fill(password);
+  await page.getByRole("button", { name: /^create account$/i }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+}
+
 export async function completeValuationIntake(page: Page) {
   await page.getByLabel(/forecast horizon/i).selectOption("3");
   await page.getByLabel(/revenue growth rate/i).fill("8");
@@ -37,6 +61,15 @@ export async function completeValuationIntake(page: Page) {
   ]) {
     await page.locator(`label[for="${name}-3"]`).click();
   }
+}
+
+export async function approvePendingReport(page: Page, companyName: string) {
+  await page.goto("/admin/reports");
+  const row = page.locator("tr").filter({ hasText: companyName });
+  await expect(row).toBeVisible({ timeout: 15_000 });
+  await expect(row.getByRole("link", { name: /open draft/i })).toBeVisible();
+  await row.getByRole("button", { name: /^approve$/i }).click();
+  await expect(page.getByText(/approved and released/i)).toBeVisible();
 }
 
 export async function expectNoHorizontalOverflow(page: Page) {
