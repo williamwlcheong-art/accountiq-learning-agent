@@ -17,7 +17,11 @@ test("regular user uploads, selects report type, generates report, and opens vie
   await page.getByRole("button", { name: /continue/i }).click();
   await expect(page.getByText(/some profile data is incomplete/i)).toBeVisible();
   await completeValuationIntake(page);
+  const checkoutResponse = page.waitForResponse((response) =>
+    response.url().includes("/wizard/report/checkout") && response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: /generate report/i }).click();
+  await expect((await checkoutResponse).status()).toBe(201);
   await expect(page.getByText(/status:/i)).toBeVisible();
   await expect(page.getByRole("link", { name: /open report/i })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /upload another/i }).click();
@@ -51,6 +55,10 @@ test("regular user can complete valuation-specific intake", async ({ page }) => 
     await page.locator(`label[for="${name}-3"]`).click();
     await expect(option).toBeChecked();
   }
+  const checkoutResponse = page.waitForResponse((response) =>
+    response.url().includes("/wizard/report/checkout") && response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: /generate report/i }).click();
+  await expect((await checkoutResponse).status()).toBe(201);
   await expect(page.getByRole("link", { name: /open report/i })).toBeVisible({ timeout: 15_000 });
 });
