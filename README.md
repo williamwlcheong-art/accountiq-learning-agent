@@ -17,6 +17,8 @@ As of 2026-07-02, the Next.js refactor has been merged into `main`. The primary 
 
 The next commercial workstream is the paid Valuation Advisory MVP. The working backlog lives at `.planning/BACKLOG.md`; the detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Keep `main` deployable and land new feature work through small PRs rather than one large long-lived branch.
 
+Commercial launch gates and production architecture decisions live in `.planning/commercial/`. The public valuation-offer plan is `docs/superpowers/plans/2026-07-01-marketing-site-offer.md`.
+
 ## Local Development
 
 Create `.env` from `.env.example`, then start the two runtimes.
@@ -35,8 +37,8 @@ Frontend:
 
 ```bash
 cd web
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Open `http://localhost:3000`.
@@ -55,11 +57,11 @@ Frontend:
 
 ```bash
 cd web
-npm run typecheck
-npm run lint
-npm run build
-npm run test:e2e
-npm run test:e2e:prod
+pnpm typecheck
+pnpm lint
+pnpm build
+pnpm test:e2e
+pnpm test:e2e:prod
 ```
 
 Playwright uses deterministic E2E mode through `scripts/start-e2e-backend.sh` and a disposable SQLite database at `data/accountiq_e2e.db`.

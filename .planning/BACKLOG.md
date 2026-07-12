@@ -25,7 +25,7 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 |----|------|--------|----|-------|-------|
 | PVM-01 | Focus self-serve wizard on Valuation Advisory | Done | #5 | Technical | Merged to `main`; valuation is selectable and other report types are visible as Advisor pilot. |
 | PVM-02 | Add payment job model and Stripe helpers | Done | #6 | Technical | Merged to `main`; adds `purchases`, Stripe config, price env vars, and checkout helper groundwork. |
-| PVM-03 | Gate valuation generation behind checkout | In review | #7 | Technical | `pending_payment` -> Stripe Checkout -> webhook -> `queued`. |
+| PVM-03 | Gate valuation generation behind checkout | Done | #7 | Technical | Merged to `main`; `pending_payment` -> Stripe Checkout -> webhook -> `queued`. |
 | PVM-04 | Add admin review before customer delivery | Pending | - | Technical + William | Generated paid valuation should enter `awaiting_review` before release. |
 | PVM-05 | Add professional PDF export | Pending | - | Technical + William | PDF needs professional layout and disclaimer handling. |
 | PVM-06 | Add account purchase history | Pending | - | Technical | Customer account should list paid reports and delivery status. |
@@ -34,9 +34,9 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 
 ## Next Three PRs
 
-1. PVM-02: Add backend purchase/payment model and Stripe helper scaffolding.
-2. PVM-03: Replace immediate generation with checkout-gated generation.
-3. PVM-04: Add admin review before customer delivery.
+1. PVM-04: Add admin review before customer delivery.
+2. PVM-05: Add professional PDF export.
+3. PVM-06: Add account purchase history.
 
 ## William Review Queue
 

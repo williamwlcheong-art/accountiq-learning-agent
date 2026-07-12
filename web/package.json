@@ -2,17 +2,19 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "dev": "next dev --port 3000",
     "build": "next build",
-    "start": "npm run prepare:standalone && PORT=3000 HOSTNAME=localhost node .next/standalone/server.js",
+    "start": "pnpm prepare:standalone && PORT=3000 HOSTNAME=localhost node .next/standalone/server.js",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "openapi:fetch": "node scripts/fetch-openapi.mjs",
     "openapi:types": "openapi-typescript openapi.json -o types/api.ts",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:prod": "npm run build && PLAYWRIGHT_FRONTEND_COMMAND=\"npm run start\" playwright test",
+    "test:e2e:prod": "pnpm build && PLAYWRIGHT_FRONTEND_COMMAND=\"pnpm start\" playwright test",
     "prepare:standalone": "node scripts/prepare-standalone.mjs"
   },
   "dependencies": {

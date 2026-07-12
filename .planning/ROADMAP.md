@@ -272,3 +272,17 @@ Plans:
 | DELIV-01–03 | Phase 7 — PDF Rendering & Delivery |
 
 **Coverage check:** 33 original + 2 new (AUTH-09, UX-01) = 35 requirements mapped ✓
+
+---
+
+## Commercial MVP Overlay
+
+The original seven-phase roadmap remains useful historical context. Current commercial execution is tracked in `.planning/BACKLOG.md` and focuses on the paid Valuation Advisory wedge.
+
+- Commercial launch gates: `.planning/commercial/LAUNCH-GATES.md`
+- Architecture decisions: `.planning/commercial/ARCHITECTURE-DECISIONS.md`
+- Commercial assumptions: `.planning/commercial/COMMERCIAL-ASSUMPTIONS.md`
+- Public funnel context: `.planning/phases/999.1-public-facing-commercial-funnel-advisor-review/999.1-CONTEXT.md`
+- Marketing offer plan: `docs/superpowers/plans/2026-07-01-marketing-site-offer.md`
+
+Do not accept public users or enable live Stripe payments until the launch gates are passed or explicitly waived for a private pilot.

@@ -21,7 +21,7 @@ uvicorn main:app --reload --port 8765
 Start Next.js from `web/`:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Open:
@@ -33,22 +33,22 @@ http://localhost:3000
 ## Scripts
 
 ```bash
-npm run typecheck
-npm run lint
-npm run build
-npm run test:e2e
-npm run test:e2e:prod
-npm run openapi:fetch
-npm run openapi:types
+pnpm typecheck
+pnpm lint
+pnpm build
+pnpm test:e2e
+pnpm test:e2e:prod
+pnpm openapi:fetch
+pnpm openapi:types
 ```
 
 ## E2E
 
-`npm run test:e2e` starts:
+`pnpm test:e2e` starts:
 
 - FastAPI via `../scripts/start-e2e-backend.sh`
-- Next.js via `npm run dev`
+- Next.js via `pnpm dev`
 
 The E2E backend uses `ACCOUNTIQ_E2E_MODE=true` and a disposable SQLite DB at `data/accountiq_e2e.db`.
 
-`npm run test:e2e:prod` builds Next.js first, then runs the same Playwright suite against the standalone production server.
+`pnpm test:e2e:prod` builds Next.js first, then runs the same Playwright suite against the standalone production server.

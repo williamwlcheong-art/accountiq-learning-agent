@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const frontendCommand = process.env.PLAYWRIGHT_FRONTEND_COMMAND ?? "npm run dev";
+const frontendCommand = process.env.PLAYWRIGHT_FRONTEND_COMMAND ?? "pnpm dev";
 
 export default defineConfig({
   testDir: "./e2e",

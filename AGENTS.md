@@ -28,8 +28,8 @@ Frontend:
 
 ```bash
 cd web
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Open `http://localhost:3000`.
@@ -48,11 +48,11 @@ Frontend:
 
 ```bash
 cd web
-npm run typecheck
-npm run lint
-npm run build
-npm run test:e2e
-npm run test:e2e:prod
+pnpm typecheck
+pnpm lint
+pnpm build
+pnpm test:e2e
+pnpm test:e2e:prod
 ```
 
 Playwright starts FastAPI through `scripts/start-e2e-backend.sh`, resets `data/accountiq_e2e.db`, and sets `ACCOUNTIQ_E2E_MODE=true`.
@@ -63,8 +63,10 @@ Playwright starts FastAPI through `scripts/start-e2e-backend.sh`, resets `data/a
 - `.planning/BACKLOG.md` - current paid Valuation Advisory MVP backlog and review queue
 - `.planning/STATE.md` - current status and decision log
 - `.planning/codebase/` - architecture, stack, conventions, concerns
+- `.planning/commercial/` - launch gates, production architecture decisions, and commercial assumptions
 - `docs/superpowers/plans/2026-07-01-nextjs-refactor-final.md` - final Next.js migration plan
 - `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md` - paid Valuation Advisory MVP implementation plan
+- `docs/superpowers/plans/2026-07-01-marketing-site-offer.md` - public valuation offer implementation plan
 - `web/AGENTS.md` - Next.js version warning for agents working under `web/`
 
 Read `.planning/codebase/CONVENTIONS.md` before larger backend/frontend changes.
@@ -84,7 +86,7 @@ Read `.planning/codebase/CONVENTIONS.md` before larger backend/frontend changes.
 
 As of 2026-07-02, the Next.js refactor has been merged into `main` via PR #2. The primary app is the Next.js frontend in `web/`; `frontend/index.html` is legacy rollback/reference only.
 
-The next commercial workstream is the paid Valuation Advisory MVP. Track active work in `.planning/BACKLOG.md`; use `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md` for detailed implementation steps. Payment, admin review, PDF delivery, and purchase history are not implemented yet.
+The current commercial workstream is the paid Valuation Advisory MVP. Track active work in `.planning/BACKLOG.md`; use `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md` for detailed implementation context. Payment scaffolding and checkout-gated generation are implemented; admin review, PDF delivery, purchase history, and full failure/refund handling remain.
 
 Preferred workflow for the commercial MVP:
 
@@ -97,8 +99,8 @@ Preferred workflow for the commercial MVP:
 Latest verified checks from the merged refactor:
 
 - Backend pytest: 116 passed, 1 skipped, 1 xpassed
-- `npm run lint`
-- `npm run typecheck`
-- `npm run build`
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm build`
 - Dev Playwright: 10 passed
 - Standalone production Playwright: 10 passed

@@ -1,5 +1,7 @@
 # Paid Valuation MVP Implementation Plan
 
+**Execution status:** In progress through small PRs. PVM-01 through PVM-03 are implemented on `main`; `.planning/BACKLOG.md` is authoritative for remaining slices and current status.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Turn AccountIQ from a general report-generation demo into a launch-ready paid valuation product: upload financials, complete valuation intake, pay, generate a reviewed indicative SME valuation, view it, and download a professional PDF.
@@ -116,9 +118,9 @@ Run:
 
 ```bash
 cd web
-npm run typecheck
-npm run lint
-npm run test:e2e -- e2e/wizard.spec.ts
+pnpm typecheck
+pnpm lint
+pnpm test:e2e -- e2e/wizard.spec.ts
 ```
 
 Expected: all pass.
@@ -360,7 +362,7 @@ Run:
 
 ```bash
 /Users/davewilson/Code/Daves/william/accountiq-learning-agent/venv/bin/python -m pytest tests/test_payments.py tests/test_wizard_endpoints.py
-cd web && npm run test:e2e -- e2e/wizard.spec.ts
+cd web && pnpm test:e2e -- e2e/wizard.spec.ts
 ```
 
 Expected: all pass.
@@ -437,7 +439,7 @@ Run:
 
 ```bash
 /Users/davewilson/Code/Daves/william/accountiq-learning-agent/venv/bin/python -m pytest tests/test_admin_review.py
-cd web && npm run test:e2e -- e2e/admin.spec.ts
+cd web && pnpm test:e2e -- e2e/admin.spec.ts
 ```
 
 Expected: all pass.
@@ -530,7 +532,7 @@ Run:
 
 ```bash
 /Users/davewilson/Code/Daves/william/accountiq-learning-agent/venv/bin/python -m pytest tests/test_pdf_delivery.py
-cd web && npm run test:e2e -- e2e/wizard.spec.ts
+cd web && pnpm test:e2e -- e2e/wizard.spec.ts
 ```
 
 Expected: all pass.
@@ -582,9 +584,9 @@ Run:
 
 ```bash
 cd web
-npm run typecheck
-npm run lint
-npm run test:e2e
+pnpm typecheck
+pnpm lint
+pnpm test:e2e
 ```
 
 Expected: all pass.
@@ -605,11 +607,11 @@ Run the full suite:
 ```bash
 /Users/davewilson/Code/Daves/william/accountiq-learning-agent/venv/bin/python -m pytest
 cd web
-npm run lint
-npm run typecheck
-npm run build
-npm run test:e2e
-npm run test:e2e:prod
+pnpm lint
+pnpm typecheck
+pnpm build
+pnpm test:e2e
+pnpm test:e2e:prod
 ```
 
 Expected:
