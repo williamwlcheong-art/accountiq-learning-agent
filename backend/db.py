@@ -272,6 +272,19 @@ def _migrate_db(conn: sqlite3.Connection):
             created_at                  TEXT DEFAULT (datetime('now'))
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS reviews (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            report_id           INTEGER NOT NULL UNIQUE REFERENCES reports(id) ON DELETE CASCADE,
+            reviewer_user_id    INTEGER REFERENCES users(id),
+            status              TEXT NOT NULL DEFAULT 'awaiting_review',
+            internal_notes      TEXT,
+            customer_message    TEXT,
+            created_at          TEXT DEFAULT (datetime('now')),
+            updated_at          TEXT DEFAULT (datetime('now')),
+            approved_at         TEXT
+        )
+    """)
     for idx_sql in [
         "CREATE INDEX IF NOT EXISTS idx_reports_company  ON reports(company_id)",
         "CREATE INDEX IF NOT EXISTS idx_reports_user     ON reports(user_id)",
@@ -280,6 +293,8 @@ def _migrate_db(conn: sqlite3.Connection):
         "CREATE INDEX IF NOT EXISTS idx_purchases_user   ON purchases(user_id)",
         "CREATE INDEX IF NOT EXISTS idx_purchases_report ON purchases(report_id)",
         "CREATE INDEX IF NOT EXISTS idx_purchases_status ON purchases(status)",
+        "CREATE INDEX IF NOT EXISTS idx_reviews_status ON reviews(status)",
+        "CREATE INDEX IF NOT EXISTS idx_reviews_reviewer ON reviews(reviewer_user_id)",
     ]:
         try:
             conn.execute(idx_sql)

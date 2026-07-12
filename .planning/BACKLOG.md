@@ -1,6 +1,6 @@
 # AccountIQ Backlog
 
-Last updated: 2026-07-03
+Last updated: 2026-07-12
 
 This is the lightweight working backlog for the paid Valuation Advisory MVP. Keep the detailed implementation instructions in `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`; keep this file as the current source of truth for what is done, in progress, next, and waiting on domain review.
 
@@ -26,7 +26,7 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-01 | Focus self-serve wizard on Valuation Advisory | Done | #5 | Technical | Merged to `main`; valuation is selectable and other report types are visible as Advisor pilot. |
 | PVM-02 | Add payment job model and Stripe helpers | Done | #6 | Technical | Merged to `main`; adds `purchases`, Stripe config, price env vars, and checkout helper groundwork. |
 | PVM-03 | Gate valuation generation behind checkout | Done | #7 | Technical | Merged to `main`; `pending_payment` -> Stripe Checkout -> webhook -> `queued`. |
-| PVM-04 | Add admin review before customer delivery | Pending | - | Technical + William | Generated paid valuation should enter `awaiting_review` before release. |
+| PVM-04 | Add admin review before customer delivery | In review | #8 | Technical + William | Technical gate implemented: generated paid valuations enter `awaiting_review`; admins can open drafts and approve release; reviewer identity and approval time are audited. William still owns the approval checklist/quality criteria. |
 | PVM-05 | Add professional PDF export | Pending | - | Technical + William | PDF needs professional layout and disclaimer handling. |
 | PVM-06 | Add account purchase history | Pending | - | Technical | Customer account should list paid reports and delivery status. |
 | PVM-07 | Add public valuation offer page | Pending | - | Product + Technical | Public pricing/offer page for the valuation wedge. |
@@ -34,7 +34,7 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 
 ## Next Three PRs
 
-1. PVM-04: Add admin review before customer delivery.
+1. PVM-04: Review and merge admin review-before-release gate.
 2. PVM-05: Add professional PDF export.
 3. PVM-06: Add account purchase history.
 
@@ -64,7 +64,7 @@ These should not be treated as purely technical decisions:
 
 - Small, focused PR from latest `main`.
 - Backend tests pass when backend is touched.
-- `npm run lint`, `npm run typecheck`, and `npm run build` pass when web is touched.
+- `pnpm lint`, `pnpm typecheck`, and `pnpm build` pass when web is touched.
 - Relevant Playwright E2E passes.
 - Backlog row updated if scope/status changes.
 - Domain-sensitive changes are flagged for William review.
