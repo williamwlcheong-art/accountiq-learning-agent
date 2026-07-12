@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PVM-06 account purchase history in review
-stopped_at: PVM-06 opened as PR #11; final review and merge are next
-last_updated: "2026-07-12T19:30:00+12:00"
+status: PVM-06 account purchase history complete
+stopped_at: PVM-06 complete in PR #11; PVM-07 public valuation offer page is next
+last_updated: "2026-07-12T19:35:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -43,9 +43,9 @@ The primary UI now lives in `web/` as a Next.js App Router app. FastAPI remains 
 
 The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment checkout gating, the technical admin review-before-release gate, and professional PDF delivery are merged. Purchase history is in progress; the public offer page and William's production approval/disclaimer review follow.
 
-Current implementation slice:
+Completed implementation slice:
 
-- PVM-06: the authenticated account page lists owner-filtered purchases with payment and report-delivery status. Viewer and PDF actions appear only after release.
+- PR #11 / PVM-06: the authenticated account page lists owner-filtered purchases with payment and report-delivery status. Viewer and PDF actions appear only after release.
 
 Next implementation slice:
 
@@ -97,7 +97,7 @@ Commercialization review (2026-07-01):
 ## Session Continuity
 
 Last session: 2026-07-12
-Stopped at: PVM-06 opened as PR #11; final review and merge are next.
+Stopped at: PVM-06 complete in PR #11; PVM-07 public valuation offer page is next.
 Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---
