@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PVM-05 professional PDF export complete
-stopped_at: PVM-05 complete in PR #10; PVM-06 account purchase history is next
-last_updated: "2026-07-12T18:35:00+12:00"
+status: PVM-06 account purchase history in progress
+stopped_at: PVM-06 implemented and verified; commit, PR, and review are next
+last_updated: "2026-07-12T19:20:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -41,24 +41,25 @@ See: .planning/PROJECT.md and .planning/BACKLOG.md
 
 The primary UI now lives in `web/` as a Next.js App Router app. FastAPI remains the backend of record. The old `frontend/index.html` app is a disabled-by-default legacy fallback.
 
-The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment checkout gating and the technical admin review-before-release gate are merged. Professional PDF delivery is implemented and locally verified; purchase history, public offer page, and William's production approval/disclaimer review remain next.
+The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment checkout gating, the technical admin review-before-release gate, and professional PDF delivery are merged. Purchase history is in progress; the public offer page and William's production approval/disclaimer review follow.
 
-Completed implementation slice:
+Current implementation slice:
 
-- PR #10 / PVM-05: approved report owners can download a cached, branded A4 PDF with escaped narrative/table content and a per-page indicative-only disclaimer. Rendering runs outside the async event loop and writes atomically. The wizard preserves the active report across reloads so customers can resume the review/delivery state.
+- PVM-06: the authenticated account page lists owner-filtered purchases with payment and report-delivery status. Viewer and PDF actions appear only after release.
 
 Next implementation slice:
 
-- PVM-06: add customer account purchase history with report delivery status and viewer/PDF actions for released reports.
+- PVM-07: add the public valuation offer page.
 
 Latest verified checks:
 
-- Backend pytest: 136 passed, 1 skipped
+- Backend pytest: 138 passed, 1 skipped
 - `pnpm lint`
 - `pnpm typecheck`
 - `pnpm build`
 - Focused PDF-delivery pytest: 4 passed
 - Focused wizard Playwright: 2 passed, including reload/resume and PDF-link coverage
+- Full dev Playwright: 10 passed, including purchase history before/after reviewer release
 - WeasyPrint 69.0 visual check: branded 2-page A4 sample rendered and inspected
 
 External parity review follow-up (2026-07-01):
@@ -96,7 +97,7 @@ Commercialization review (2026-07-01):
 ## Session Continuity
 
 Last session: 2026-07-12
-Stopped at: PVM-05 complete in PR #10; PVM-06 account purchase history is next.
+Stopped at: PVM-06 implemented and verified; commit, PR, and review are next.
 Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---

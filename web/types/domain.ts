@@ -57,6 +57,19 @@ export type AdminPendingReport = {
   paid_at: string | null;
 };
 
+export type PurchaseHistoryItem = {
+  purchase_id: number;
+  report_id: number;
+  company_name: string;
+  report_type: string;
+  purchase_status: string;
+  report_status: string;
+  amount_cents: number;
+  currency: string;
+  paid_at: string | null;
+  created_at: string;
+};
+
 export type ApiErrorBody = {
   detail?: string;
 };

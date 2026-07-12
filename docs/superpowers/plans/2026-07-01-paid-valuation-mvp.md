@@ -561,56 +561,75 @@ git commit -m "feat(delivery): add valuation PDF export"
 
 ---
 
-## Task 6: Add Purchase History And Public Offer Page
+## Task 6: Add Account Purchase History
 
 **Files:**
 - Modify: `backend/main.py`
 - Modify: `web/app/account/page.tsx`
-- Create: `web/app/valuation/page.tsx`
+- Modify: `web/types/domain.ts`
+- Add: `tests/test_purchase_history.py`
 - Add: `web/e2e/account.spec.ts`
 
-- [ ] **Step 1: Add purchase history endpoint**
+- [x] **Step 1: Add purchase history endpoint with TDD coverage**
 
-Add `GET /account/purchases` returning current user's purchases joined to reports and companies:
+Add `GET /account/purchases` returning only the current user's purchases joined to reports and companies. Return explicit `purchase_status` and `report_status` fields, and order newest first.
 
-```python
-{
-    "report_id": row["report_id"],
-    "company_name": row["company_name"],
-    "report_type": row["report_type"],
-    "status": row["status"],
-    "amount_cents": row["amount_cents"],
-    "currency": row["currency"],
-    "paid_at": row["paid_at"],
-}
+- [x] **Step 2: Render and test purchase history**
+
+In `web/app/account/page.tsx`, fetch `/account/purchases` server-side and render payment and delivery status. Show `Open report` and `Download PDF` only for `done` reports. Cover awaiting-review and released states in Playwright.
+
+- [x] **Step 3: Verify**
+
+Run backend pytest, frontend lint/typecheck/build, and relevant Playwright coverage.
+
+Verified on 2026-07-12:
+
+```bash
+PYTHONPATH=/tmp/accountiq-test-deps python3 -m pytest tests/ -q
+# 138 passed, 1 skipped
+
+cd web && pnpm lint && pnpm typecheck && pnpm build
+# all passed
+
+cd web && pnpm exec playwright test --config .playwright-port3110.config.ts
+# 10 passed
 ```
 
-- [ ] **Step 2: Render purchase history**
+- [x] **Step 4: Commit**
 
-In `web/app/account/page.tsx`, fetch `/account/purchases` server-side and render rows with `Open report` and `Download PDF` links for `done` reports.
+```bash
+git add backend/main.py tests/test_purchase_history.py web/app/account/page.tsx web/types/domain.ts web/e2e/account.spec.ts
+git commit -m "feat(account): add purchase history"
+```
 
-- [ ] **Step 3: Add public valuation page**
+---
 
-Create `web/app/valuation/page.tsx` with headline `Indicative SME Valuation Report`, price `$495 launch price`, three use cases, and a `Start valuation` link to `/login`.
+## Task 7: Add Public Valuation Offer Page
 
-- [ ] **Step 4: Verify**
+**Files:**
+- Create: `web/app/valuation/page.tsx`
+- Add: `web/e2e/valuation.spec.ts`
 
-Run:
+- [ ] **Step 1: Add public valuation page**
+
+Create `web/app/valuation/page.tsx` with headline `Indicative SME Valuation Report`, launch pricing, primary use cases, trust/compliance language, and a `Start valuation` link to `/login`.
+
+- [ ] **Step 2: Verify**
 
 ```bash
 cd web
 pnpm typecheck
 pnpm lint
-pnpm test:e2e
+pnpm test:e2e -- e2e/valuation.spec.ts
 ```
 
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add backend/main.py web/app/account/page.tsx web/app/valuation/page.tsx web/e2e/account.spec.ts
-git commit -m "feat(valuation): add purchase history and offer page"
+git add web/app/valuation/page.tsx web/e2e/valuation.spec.ts
+git commit -m "feat(valuation): add public offer page"
 ```
 
 ---
