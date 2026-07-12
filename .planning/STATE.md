@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Paid valuation MVP feature slicing started
-stopped_at: PR #5 opened for valuation-only self-serve picker; backlog added for ongoing commercial MVP tracking
-last_updated: "2026-07-02T20:35:00+12:00"
+status: Paid valuation checkout gate merged; admin review is next
+stopped_at: PVM-03 merged; continue with PVM-04 admin review before customer delivery
+last_updated: "2026-07-12T00:00:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md and .planning/BACKLOG.md
 | 3.5 | Admin Gate + User Wizard Shell | ✅ Complete (2026-05-13) |
 | 4 | Extraction Quality | ✅ Complete |
 | 5 | Report Generation Engine | ✅ Implemented; review launch gaps |
-| 6 | Payment Integration | ⬜ Not started |
+| 6 | Payment Integration | 🟡 Checkout gate implemented; failure/refund paths remain |
 | 7 | PDF Rendering & Delivery | 🟡 Web viewer implemented; PDF export pending |
 
 ## Active Phase
@@ -41,11 +41,11 @@ See: .planning/PROJECT.md and .planning/BACKLOG.md
 
 The primary UI now lives in `web/` as a Next.js App Router app. FastAPI remains the backend of record. The old `frontend/index.html` app is a disabled-by-default legacy fallback.
 
-The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment, admin review, PDF delivery, and purchase history are not implemented yet.
+The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment scaffolding and checkout-gated generation are implemented; admin review, PDF delivery, purchase history, and complete failure/refund handling remain.
 
-Current implementation PR:
+Next implementation slice:
 
-- PR #5: focus self-serve wizard on Valuation Advisory; other report types remain visible as Advisor pilot.
+- PVM-04: generated paid valuations enter admin review before customer delivery.
 
 Latest verified checks:
 
@@ -89,8 +89,8 @@ Commercialization review (2026-07-01):
 ---
 ## Session Continuity
 
-Last session: 2026-07-02
-Stopped at: PR #5 opened and backlog created for paid valuation MVP tracking.
+Last session: 2026-07-12
+Stopped at: PVM-03 checkout-gated generation merged; PVM-04 admin review is next.
 Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---

@@ -16,11 +16,17 @@ export CLAUDE_MODEL="claude-sonnet-4-6"
 
 UVICORN="$ROOT/venv/bin/uvicorn"
 if [[ ! -x "$UVICORN" ]]; then
-  PARENT_ROOT="$(cd "$ROOT/../.." 2>/dev/null && pwd)"
-  if [[ -x "$PARENT_ROOT/venv/bin/uvicorn" ]]; then
-    UVICORN="$PARENT_ROOT/venv/bin/uvicorn"
+  if [[ -x "$ROOT/.venv/bin/uvicorn" ]]; then
+    UVICORN="$ROOT/.venv/bin/uvicorn"
   else
-    UVICORN="$(command -v uvicorn)"
+    PARENT_ROOT="$(cd "$ROOT/../.." 2>/dev/null && pwd)"
+    if [[ -x "$PARENT_ROOT/venv/bin/uvicorn" ]]; then
+      UVICORN="$PARENT_ROOT/venv/bin/uvicorn"
+    elif [[ -x "$PARENT_ROOT/.venv/bin/uvicorn" ]]; then
+      UVICORN="$PARENT_ROOT/.venv/bin/uvicorn"
+    else
+      UVICORN="$(command -v uvicorn)"
+    fi
   fi
 fi
 

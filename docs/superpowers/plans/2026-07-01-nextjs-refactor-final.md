@@ -1,5 +1,7 @@
 # AccountIQ Next.js Refactor Final Implementation Plan
 
+**Execution status:** Completed and merged. Keep this file as historical implementation context; use `AGENTS.md`, `README.md`, and the current `web/` code for operational instructions.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace `frontend/index.html` with a production-ready Next.js app, keep FastAPI as the backend of record, and finish deterministic E2E coverage across auth, wizard, admin workflows, uploads, report status, report viewing, and responsive smoke checks.
@@ -352,7 +354,7 @@ git commit -m "test: add deterministic backend E2E mode"
 Run:
 
 ```bash
-npx create-next-app@latest web --ts --eslint --app --src-dir=false --import-alias "@/*"
+pnpm create next-app@latest web --ts --eslint --app --src-dir=false --import-alias "@/*"
 ```
 
 Choose:
@@ -368,8 +370,8 @@ Run:
 
 ```bash
 cd web
-npm install -D openapi-typescript @playwright/test
-npx playwright install chromium
+pnpm install -D openapi-typescript @playwright/test
+pnpm exec playwright install chromium
 ```
 
 - [ ] **Step 3: Configure scripts**
@@ -381,14 +383,14 @@ In `web/package.json`, ensure these scripts exist:
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
-    "start": "npm run prepare:standalone && PORT=3000 HOSTNAME=localhost node .next/standalone/server.js",
+    "start": "pnpm prepare:standalone && PORT=3000 HOSTNAME=localhost node .next/standalone/server.js",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "openapi:fetch": "node scripts/fetch-openapi.mjs",
     "openapi:types": "openapi-typescript openapi.json -o types/api.ts",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:prod": "npm run build && PLAYWRIGHT_FRONTEND_COMMAND=\"npm run start\" playwright test",
+    "test:e2e:prod": "pnpm build && PLAYWRIGHT_FRONTEND_COMMAND=\"pnpm start\" playwright test",
     "prepare:standalone": "node scripts/prepare-standalone.mjs"
   }
 }
@@ -462,8 +464,8 @@ With FastAPI running:
 
 ```bash
 cd web
-npm run openapi:fetch
-npm run openapi:types
+pnpm openapi:fetch
+pnpm openapi:types
 ```
 
 Expected: `web/types/api.ts` is generated.
@@ -709,7 +711,7 @@ Run:
 
 ```bash
 cd web
-npm run typecheck
+pnpm typecheck
 ```
 
 Expected: pass.
@@ -797,7 +799,7 @@ Run:
 
 ```bash
 cd web
-npm run typecheck
+pnpm typecheck
 ```
 
 Expected: pass.
@@ -890,7 +892,7 @@ Each page must pass:
 
 ```bash
 cd web
-npm run typecheck
+pnpm typecheck
 ```
 
 before committing.
@@ -947,7 +949,7 @@ Create `web/playwright.config.ts`:
 ```ts
 import { defineConfig, devices } from "@playwright/test";
 
-const frontendCommand = process.env.PLAYWRIGHT_FRONTEND_COMMAND ?? "npm run dev";
+const frontendCommand = process.env.PLAYWRIGHT_FRONTEND_COMMAND ?? "pnpm dev";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -1184,8 +1186,8 @@ Run:
 
 ```bash
 cd web
-npm run typecheck
-npm run test:e2e
+pnpm typecheck
+pnpm test:e2e
 ```
 
 Expected: all Playwright tests pass in Chromium and mobile project.
@@ -1195,7 +1197,7 @@ Expected: all Playwright tests pass in Chromium and mobile project.
 Run:
 
 ```bash
-git add scripts/start-e2e-backend.sh web/playwright.config.ts web/e2e web/package.json web/package-lock.json
+git add scripts/start-e2e-backend.sh web/playwright.config.ts web/e2e web/package.json web/pnpm-lock.yaml
 git commit -m "test(next): add comprehensive Playwright E2E coverage"
 ```
 
@@ -1297,7 +1299,7 @@ Update `.planning/codebase/ARCHITECTURE.md` entry points to:
 ## Entry Points
 
 - Backend API: `source venv/bin/activate && cd backend && uvicorn main:app --reload --port 8765`
-- Next.js frontend: `cd web && npm run dev`
+- Next.js frontend: `cd web && pnpm dev`
 - App URL: `http://localhost:3000`
 - Legacy app: `ACCOUNTIQ_SERVE_LEGACY_FRONTEND=true` then `http://localhost:8765/app`
 - API health: `http://127.0.0.1:8765/health`
@@ -1344,9 +1346,9 @@ Run:
 
 ```bash
 cd web
-npm run typecheck
-npm run lint
-npm run build
+pnpm typecheck
+pnpm lint
+pnpm build
 ```
 
 Expected: pass.
@@ -1357,7 +1359,7 @@ Run:
 
 ```bash
 cd web
-npm run test:e2e
+pnpm test:e2e
 ```
 
 Expected: pass.
@@ -1368,7 +1370,7 @@ Run:
 
 ```bash
 cd web
-npm run test:e2e:prod
+pnpm test:e2e:prod
 ```
 
 Expected: build succeeds and Playwright passes against production build/start behavior.
@@ -1379,7 +1381,7 @@ Run servers:
 
 ```bash
 source venv/bin/activate && cd backend && uvicorn main:app --reload --port 8765
-cd web && npm run dev
+cd web && pnpm dev
 ```
 
 Manual checks:
