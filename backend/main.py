@@ -1777,6 +1777,34 @@ async def wizard_report_pdf(
     )
 
 
+@app.get("/account/purchases")
+async def account_purchases(
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """List the authenticated customer's purchases and delivery states."""
+    async with db.execute("""
+        SELECT
+            p.id AS purchase_id,
+            p.report_id,
+            c.name AS company_name,
+            r.report_type,
+            p.status AS purchase_status,
+            r.status AS report_status,
+            p.amount_cents,
+            p.currency,
+            p.paid_at,
+            p.created_at
+        FROM purchases p
+        JOIN reports r ON r.id = p.report_id
+        JOIN companies c ON c.id = r.company_id
+        WHERE p.user_id=? AND r.user_id=? AND c.user_id=?
+        ORDER BY p.created_at DESC, p.id DESC
+    """, (current_user["id"], current_user["id"], current_user["id"])) as cursor:
+        rows = await cursor.fetchall()
+    return [dict(row) for row in rows]
+
+
 @app.get("/admin/reports/pending")
 async def admin_reports_pending(
     db: aiosqlite.Connection = Depends(get_db),
