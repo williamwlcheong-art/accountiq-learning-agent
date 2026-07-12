@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PVM-05 professional PDF export in progress
-stopped_at: PVM-05 implemented and verified locally; commit, PR, and review are next
-last_updated: "2026-07-12T18:20:00+12:00"
+status: PVM-05 professional PDF export in review
+stopped_at: PVM-05 opened as PR #10; final review and merge are next
+last_updated: "2026-07-12T18:30:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -92,7 +92,7 @@ Commercialization review (2026-07-01):
 ## Session Continuity
 
 Last session: 2026-07-12
-Stopped at: PVM-05 implemented and verified locally; commit, PR, and review are next.
+Stopped at: PVM-05 opened as PR #10; final review and merge are next.
 Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---
