@@ -117,9 +117,14 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
       {isDone ? (
         <div className="wizard-done">
           <p>Your report is ready.</p>
-          <a className="button button-primary" href={`/api/backend/wizard/report/${reportId}/view`} target="_blank" rel="noreferrer">
-            Open report
-          </a>
+          <div className="report-actions">
+            <a className="button button-primary" href={`/api/backend/wizard/report/${reportId}/view`} target="_blank" rel="noreferrer">
+              Open report
+            </a>
+            <a className="button button-secondary" href={`/api/backend/wizard/report/${reportId}/pdf`}>
+              Download PDF
+            </a>
+          </div>
         </div>
       ) : null}
 

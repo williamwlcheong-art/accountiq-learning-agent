@@ -24,6 +24,8 @@ test("regular user uploads, selects report type, generates report, and reaches r
   await expect((await checkoutResponse).status()).toBe(201);
   await expect(page.getByText(/status:/i)).toBeVisible();
   await expect(page.getByText(/your report is under review/i)).toBeVisible({ timeout: 15_000 });
+  await page.reload();
+  await expect(page.getByText(/your report is under review/i)).toBeVisible({ timeout: 15_000 });
 
   const adminContext = await browser.newContext();
   const adminPage = await adminContext.newPage();
@@ -32,6 +34,7 @@ test("regular user uploads, selects report type, generates report, and reaches r
   await adminContext.close();
 
   await expect(page.getByRole("link", { name: /open report/i })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("link", { name: /download pdf/i })).toBeVisible();
   await page.getByRole("button", { name: /upload another/i }).click();
   await page.getByLabel(/business name/i).fill("Second E2E Holdings Ltd");
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));

@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PVM-04 admin review gate in review
-stopped_at: PVM-04 implemented in PR #8; review and merge are next
-last_updated: "2026-07-12T16:40:00+12:00"
+status: PVM-05 professional PDF export complete
+stopped_at: PVM-05 complete in PR #10; PVM-06 account purchase history is next
+last_updated: "2026-07-12T18:35:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -33,7 +33,7 @@ See: .planning/PROJECT.md and .planning/BACKLOG.md
 | 4 | Extraction Quality | ✅ Complete |
 | 5 | Report Generation Engine | ✅ Implemented; review launch gaps |
 | 6 | Payment Integration | 🟡 Checkout gate implemented; failure/refund paths remain |
-| 7 | PDF Rendering & Delivery | 🟡 Web viewer implemented; PDF export pending |
+| 7 | PDF Rendering & Delivery | 🟡 Web viewer and professional PDF export complete; domain wording review pending |
 
 ## Active Phase
 
@@ -41,20 +41,25 @@ See: .planning/PROJECT.md and .planning/BACKLOG.md
 
 The primary UI now lives in `web/` as a Next.js App Router app. FastAPI remains the backend of record. The old `frontend/index.html` app is a disabled-by-default legacy fallback.
 
-The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment checkout gating and the technical admin review-before-release gate are implemented. PDF delivery, purchase history, public offer page, and William's production approval checklist remain next.
+The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment checkout gating and the technical admin review-before-release gate are merged. Professional PDF delivery is implemented and locally verified; purchase history, public offer page, and William's production approval/disclaimer review remain next.
+
+Completed implementation slice:
+
+- PR #10 / PVM-05: approved report owners can download a cached, branded A4 PDF with escaped narrative/table content and a per-page indicative-only disclaimer. Rendering runs outside the async event loop and writes atomically. The wizard preserves the active report across reloads so customers can resume the review/delivery state.
 
 Next implementation slice:
 
-- PR #8: generated paid valuation reports enter `awaiting_review`; admins can review drafts at `/admin/reports`, approve release via `/admin/reports/{id}/approve`, reviewer identity/time are audited, and customers only receive the viewer link after approval.
+- PVM-06: add customer account purchase history with report delivery status and viewer/PDF actions for released reports.
 
 Latest verified checks:
 
-- Backend pytest: 131 passed, 1 skipped
+- Backend pytest: 136 passed, 1 skipped
 - `pnpm lint`
 - `pnpm typecheck`
 - `pnpm build`
-- Dev Playwright: 10 passed
-- Focused review-gate Playwright: 4 passed (`admin`, `wizard`, `report-viewer`)
+- Focused PDF-delivery pytest: 4 passed
+- Focused wizard Playwright: 2 passed, including reload/resume and PDF-link coverage
+- WeasyPrint 69.0 visual check: branded 2-page A4 sample rendered and inspected
 
 External parity review follow-up (2026-07-01):
 
@@ -85,12 +90,13 @@ Commercialization review (2026-07-01):
 | 2026-07-01 | Migrated primary frontend to Next.js App Router | Replaces single-file vanilla UI while preserving FastAPI uploads, extraction, reports, auth cookies, and SQLite writes |
 | 2026-07-01 | Added deterministic Playwright E2E in dev and standalone modes | Validates auth, wizard, admin workflows, upload/report generation, report viewer escaping, and responsive smoke checks |
 | 2026-07-01 | Narrow launch strategy to valuation wedge first | Paid launch should prove trust and willingness-to-pay with one high-value report before broadening to all five report families |
+| 2026-07-12 | Persist the active report ID per authenticated user in the wizard | Customers must be able to resume a long-running review/delivery state after reload; report access remains owner-filtered by the backend |
 
 ---
 ## Session Continuity
 
 Last session: 2026-07-12
-Stopped at: PVM-04 implemented in PR #8; review and merge are next.
+Stopped at: PVM-05 complete in PR #10; PVM-06 account purchase history is next.
 Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---
