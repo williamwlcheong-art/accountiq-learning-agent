@@ -14,7 +14,7 @@ from typing import Optional
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import Response, HTMLResponse
+from fastapi.responses import Response, HTMLResponse, FileResponse
 import aiosqlite
 
 # Load .env from project root (one level up from backend/)
@@ -32,6 +32,7 @@ from payments import (
     stripe_enabled,
 )
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
+from report_rendering import render_report_html, report_pdf_path, write_pdf
 from report_prompts import build_prompt, SECTION_SCHEMAS, compute_bank_credit_figures
 from research_loop import run_valuation_research
 from valuation import (
@@ -1724,6 +1725,56 @@ async def wizard_report_view(
     back_url = f"{os.getenv('APP_BASE_URL', 'http://localhost:3000').rstrip('/')}/wizard"
     html = _render_report_html(row, sections, back_url)
     return HTMLResponse(content=html)
+
+
+@app.get("/wizard/report/{report_id}/pdf", response_class=FileResponse)
+async def wizard_report_pdf(
+    report_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Return a cached professional PDF for an approved, user-owned report."""
+    async with db.execute("""
+        SELECT r.id, r.report_type, r.status, r.content, r.completed_at,
+               c.name AS company_name
+        FROM reports r
+        JOIN companies c ON c.id = r.company_id
+        WHERE r.id=? AND r.user_id=?
+    """, (report_id, current_user["id"])) as cursor:
+        report = await cursor.fetchone()
+    if not report:
+        raise HTTPException(404, "Report not found")
+    if report["status"] != "done":
+        raise HTTPException(400, f"Report is not ready yet (status: {report['status']})")
+
+    try:
+        sections = json.loads(report["content"])
+    except Exception:
+        raise HTTPException(500, "Report content could not be parsed")
+    if not isinstance(sections, dict):
+        raise HTTPException(500, "Report content has an invalid structure")
+
+    output_path = report_pdf_path(EXPORT_DIR, report_id)
+    if not output_path.is_file() or output_path.stat().st_size == 0:
+        html_text = render_report_html(
+            report["company_name"],
+            report["report_type"],
+            sections,
+            report["completed_at"],
+            SECTION_SCHEMAS.get(report["report_type"]),
+        )
+        await asyncio.get_running_loop().run_in_executor(
+            None,
+            write_pdf,
+            html_text,
+            output_path,
+        )
+
+    return FileResponse(
+        path=output_path,
+        media_type="application/pdf",
+        filename=output_path.name,
+    )
 
 
 @app.get("/admin/reports/pending")

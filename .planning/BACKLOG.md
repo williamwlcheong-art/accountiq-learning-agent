@@ -26,17 +26,17 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-01 | Focus self-serve wizard on Valuation Advisory | Done | #5 | Technical | Merged to `main`; valuation is selectable and other report types are visible as Advisor pilot. |
 | PVM-02 | Add payment job model and Stripe helpers | Done | #6 | Technical | Merged to `main`; adds `purchases`, Stripe config, price env vars, and checkout helper groundwork. |
 | PVM-03 | Gate valuation generation behind checkout | Done | #7 | Technical | Merged to `main`; `pending_payment` -> Stripe Checkout -> webhook -> `queued`. |
-| PVM-04 | Add admin review before customer delivery | In review | #8 | Technical + William | Technical gate implemented: generated paid valuations enter `awaiting_review`; admins can open drafts and approve release; reviewer identity and approval time are audited. William still owns the approval checklist/quality criteria. |
-| PVM-05 | Add professional PDF export | Pending | - | Technical + William | PDF needs professional layout and disclaimer handling. |
+| PVM-04 | Add admin review before customer delivery | Done | #8 | Technical + William | Merged to `main`; paid valuations enter `awaiting_review`, admins approve release, and reviewer identity/time are audited. William still owns the approval checklist/quality criteria. |
+| PVM-05 | Add professional PDF export | In progress | - | Technical + William | A4 branded PDF, safe narrative/table rendering, owner-only approved-report download, caching, and resumable customer status are implemented and under final verification. William still owns final disclaimer wording. |
 | PVM-06 | Add account purchase history | Pending | - | Technical | Customer account should list paid reports and delivery status. |
 | PVM-07 | Add public valuation offer page | Pending | - | Product + Technical | Public pricing/offer page for the valuation wedge. |
 | PVM-08 | Live report UAT with William | Pending | - | William + Technical | Validate live Claude output, assumptions, wording, and quality bar. |
 
 ## Next Three PRs
 
-1. PVM-04: Review and merge admin review-before-release gate.
-2. PVM-05: Add professional PDF export.
-3. PVM-06: Add account purchase history.
+1. PVM-05: Review and merge professional PDF export.
+2. PVM-06: Add account purchase history.
+3. PVM-07: Add public valuation offer page.
 
 ## William Review Queue
 

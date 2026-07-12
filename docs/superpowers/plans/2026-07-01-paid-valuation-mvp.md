@@ -469,7 +469,7 @@ cd web && pnpm test:e2e -- e2e/admin.spec.ts
 
 Expected: all pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/main.py web/app/admin/reports/page.tsx web/components/admin/reports-page.tsx tests/test_admin_review.py web/e2e/admin.spec.ts
@@ -486,53 +486,25 @@ git commit -m "feat(reports): add admin review gate"
 - Modify: `backend/requirements.txt`
 - Add: `tests/test_pdf_delivery.py`
 - Modify: `web/components/wizard/report-status-card.tsx`
+- Modify: `web/components/wizard/wizard.tsx`
+- Modify: `web/app/globals.css`
+- Modify: `web/e2e/wizard.spec.ts`
 
-- [ ] **Step 1: Add dependency**
+- [x] **Step 1: Add dependency**
 
 Add to `backend/requirements.txt`:
 
 ```text
-weasyprint==62.3
-jinja2==3.1.6
+weasyprint==69.0
 ```
 
-- [ ] **Step 2: Add renderer module**
+The renderer uses Python's escaping and lightweight structured-content helpers directly, so Jinja is not required.
 
-Create `backend/report_rendering.py` with:
+- [x] **Step 2: Add renderer module**
 
-```python
-from __future__ import annotations
+Create `backend/report_rendering.py` with safe narrative, heading, bullet, bold-text, and table rendering; AccountIQ navy branding; an A4 cover; a per-page page counter/disclaimer; and atomic PDF writes. Import WeasyPrint inside `write_pdf` so importing the API does not eagerly load the rendering runtime.
 
-import html
-from pathlib import Path
-
-from weasyprint import HTML
-
-
-def report_pdf_path(export_dir: Path, report_id: int) -> Path:
-    return export_dir / f"report-{report_id}.pdf"
-
-
-def render_report_html(company_name: str, report_type: str, sections: dict, generated_at: str) -> str:
-    escaped_company = html.escape(company_name)
-    body = [f"<h1>{html.escape(report_type.replace('_', ' ').title())}</h1>"]
-    body.append(f"<p>{escaped_company} · {html.escape(generated_at or '')}</p>")
-    for key, value in sections.items():
-        body.append(f"<section><h2>{html.escape(key.replace('_', ' ').title())}</h2>")
-        if isinstance(value, dict):
-            body.append(f"<p>{html.escape(str(value.get('narrative', '')))}</p>")
-        else:
-            body.append(f"<p>{html.escape(str(value))}</p>")
-        body.append("</section>")
-    return "<!doctype html><html><body>" + "".join(body) + "</body></html>"
-
-
-def write_pdf(html_text: str, output_path: Path) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    HTML(string=html_text).write_pdf(str(output_path))
-```
-
-- [ ] **Step 3: Add PDF endpoint**
+- [x] **Step 3: Add PDF endpoint**
 
 Add `GET /wizard/report/{report_id}/pdf` that:
 
@@ -540,8 +512,9 @@ Add `GET /wizard/report/{report_id}/pdf` that:
 2. Requires `status='done'`.
 3. Renders and stores PDF if missing.
 4. Returns `FileResponse` with `application/pdf`.
+5. Runs synchronous rendering in an executor and atomically caches the artifact.
 
-- [ ] **Step 4: Update status card**
+- [x] **Step 4: Update status card**
 
 When report status is done, show:
 
@@ -551,7 +524,9 @@ When report status is done, show:
 </a>
 ```
 
-- [ ] **Step 5: Verify**
+Persist the active report ID under a user-specific browser key and restore the status screen after reload. Clear it when the customer selects `Upload another`.
+
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -562,10 +537,25 @@ cd web && pnpm test:e2e -- e2e/wizard.spec.ts
 
 Expected: all pass.
 
+Verified on 2026-07-12:
+
+```bash
+PYTHONPATH=/tmp/accountiq-test-deps:/tmp/accountiq-pdf-deps python3 -m pytest tests/ -q
+# 136 passed, 1 skipped
+
+cd web && pnpm lint && pnpm typecheck && pnpm build
+# all passed
+
+cd web && pnpm exec playwright test e2e/wizard.spec.ts --config .playwright-port3109.config.ts
+# 2 passed
+```
+
+Also rendered and visually inspected a two-page A4 sample with WeasyPrint 69.0, including markdown headings/bullets/bold text, a branded table, disclaimer panel, and complete page footers.
+
 - [ ] **Step 6: Commit**
 
 ```bash
-git add backend/report_rendering.py backend/main.py backend/requirements.txt tests/test_pdf_delivery.py web/components/wizard/report-status-card.tsx
+git add backend/report_rendering.py backend/main.py backend/requirements.txt tests/test_pdf_delivery.py web/components/wizard/report-status-card.tsx web/components/wizard/wizard.tsx web/app/globals.css web/e2e/wizard.spec.ts
 git commit -m "feat(delivery): add valuation PDF export"
 ```
 

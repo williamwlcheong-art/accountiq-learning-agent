@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, DragEvent, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -41,6 +41,18 @@ export function Wizard({ user }: WizardProps) {
   const [reportId, setReportId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const activeReportKey = `accountiq.activeReport.${user.id}`;
+
+  useEffect(() => {
+    const restore = window.setTimeout(() => {
+      const savedReportId = Number.parseInt(window.localStorage.getItem(activeReportKey) ?? "", 10);
+      if (Number.isInteger(savedReportId) && savedReportId > 0) {
+        setReportId(savedReportId);
+        setStep("status");
+      }
+    }, 0);
+    return () => window.clearTimeout(restore);
+  }, [activeReportKey]);
 
   function handleAuthError(err: unknown) {
     if (err instanceof ApiError && err.status === 401) {
@@ -123,6 +135,7 @@ export function Wizard({ user }: WizardProps) {
         window.location.href = result.checkout_url;
         return;
       }
+      window.localStorage.setItem(activeReportKey, String(result.report_id));
       setReportId(result.report_id);
       setStep("status");
     } catch (err) {
@@ -135,6 +148,7 @@ export function Wizard({ user }: WizardProps) {
   }
 
   function reset() {
+    window.localStorage.removeItem(activeReportKey);
     setStep("upload");
     setBusinessName("");
     setFile(null);
