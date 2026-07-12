@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PVM-05 professional PDF export in review
-stopped_at: PVM-05 opened as PR #10; final review and merge are next
-last_updated: "2026-07-12T18:30:00+12:00"
+status: PVM-05 professional PDF export complete
+stopped_at: PVM-05 complete in PR #10; PVM-06 account purchase history is next
+last_updated: "2026-07-12T18:35:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -33,7 +33,7 @@ See: .planning/PROJECT.md and .planning/BACKLOG.md
 | 4 | Extraction Quality | ✅ Complete |
 | 5 | Report Generation Engine | ✅ Implemented; review launch gaps |
 | 6 | Payment Integration | 🟡 Checkout gate implemented; failure/refund paths remain |
-| 7 | PDF Rendering & Delivery | 🟡 Web viewer and professional PDF export implemented; merge and domain wording review pending |
+| 7 | PDF Rendering & Delivery | 🟡 Web viewer and professional PDF export complete; domain wording review pending |
 
 ## Active Phase
 
@@ -43,9 +43,13 @@ The primary UI now lives in `web/` as a Next.js App Router app. FastAPI remains 
 
 The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment checkout gating and the technical admin review-before-release gate are merged. Professional PDF delivery is implemented and locally verified; purchase history, public offer page, and William's production approval/disclaimer review remain next.
 
-Current implementation slice:
+Completed implementation slice:
 
-- PVM-05: approved report owners can download a cached, branded A4 PDF with escaped narrative/table content and a per-page indicative-only disclaimer. Rendering runs outside the async event loop and writes atomically. The wizard preserves the active report across reloads so customers can resume the review/delivery state.
+- PR #10 / PVM-05: approved report owners can download a cached, branded A4 PDF with escaped narrative/table content and a per-page indicative-only disclaimer. Rendering runs outside the async event loop and writes atomically. The wizard preserves the active report across reloads so customers can resume the review/delivery state.
+
+Next implementation slice:
+
+- PVM-06: add customer account purchase history with report delivery status and viewer/PDF actions for released reports.
 
 Latest verified checks:
 
@@ -92,7 +96,7 @@ Commercialization review (2026-07-01):
 ## Session Continuity
 
 Last session: 2026-07-12
-Stopped at: PVM-05 opened as PR #10; final review and merge are next.
+Stopped at: PVM-05 complete in PR #10; PVM-06 account purchase history is next.
 Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---
