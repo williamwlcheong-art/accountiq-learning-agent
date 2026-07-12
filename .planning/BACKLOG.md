@@ -28,7 +28,7 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-03 | Gate valuation generation behind checkout | Done | #7 | Technical | Merged to `main`; `pending_payment` -> Stripe Checkout -> webhook -> `queued`. |
 | PVM-04 | Add admin review before customer delivery | Done | #8 | Technical + William | Merged to `main`; paid valuations enter `awaiting_review`, admins approve release, and reviewer identity/time are audited. William still owns the approval checklist/quality criteria. |
 | PVM-05 | Add professional PDF export | Done | #10 | Technical + William | Branded A4 export, safe narrative/table rendering, approved owner-only download, caching, and resumable customer status are implemented and verified. William still owns final disclaimer wording. |
-| PVM-06 | Add account purchase history | In progress | - | Technical | Owner-filtered purchase API and account table show payment/delivery status; released reports expose viewer and PDF actions. Backend, build, and full browser regression gates pass. |
+| PVM-06 | Add account purchase history | In review | #11 | Technical | Owner-filtered purchase API and account table show payment/delivery status; released reports expose viewer and PDF actions. Backend, build, and full browser regression gates pass. |
 | PVM-07 | Add public valuation offer page | Pending | - | Product + Technical | Public pricing/offer page for the valuation wedge. |
 | PVM-08 | Live report UAT with William | Pending | - | William + Technical | Validate live Claude output, assumptions, wording, and quality bar. |
 

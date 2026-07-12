@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PVM-06 account purchase history in progress
-stopped_at: PVM-06 implemented and verified; commit, PR, and review are next
-last_updated: "2026-07-12T19:20:00+12:00"
+status: PVM-06 account purchase history in review
+stopped_at: PVM-06 opened as PR #11; final review and merge are next
+last_updated: "2026-07-12T19:30:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -97,7 +97,7 @@ Commercialization review (2026-07-01):
 ## Session Continuity
 
 Last session: 2026-07-12
-Stopped at: PVM-06 implemented and verified; commit, PR, and review are next.
+Stopped at: PVM-06 opened as PR #11; final review and merge are next.
 Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---
