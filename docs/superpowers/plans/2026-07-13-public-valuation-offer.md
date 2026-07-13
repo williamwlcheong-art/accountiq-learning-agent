@@ -1012,7 +1012,7 @@ git commit -m "feat(valuation): add public offer page"
 
 Expected: the commit contains only PVM-07 implementation, tests, and planning updates.
 
-- [ ] **Step 11: Review, merge, and clean the completed worktree**
+- [x] **Step 11: Review, merge, and clean the completed worktree**
 
 Run the repository's normal PR workflow:
 

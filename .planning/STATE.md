@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PVM-07 public valuation offer in review
-stopped_at: PVM-07 implemented and verified in PR #12; PVM-08 live report UAT is next
-last_updated: "2026-07-13T23:07:00+12:00"
+status: PVM-07 public valuation offer complete
+stopped_at: PVM-07 complete in PR #12; PVM-08 live report UAT is next
+last_updated: "2026-07-14T07:31:58+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -41,7 +41,7 @@ See: .planning/PROJECT.md and .planning/BACKLOG.md
 
 The primary UI now lives in `web/` as a Next.js App Router app. FastAPI remains the backend of record. The old `frontend/index.html` app is a disabled-by-default legacy fallback.
 
-The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment checkout gating, the technical admin review-before-release gate, professional PDF delivery, and purchase history are merged. The public valuation offer is implemented and verified in its review branch; William's live report UAT and production approval/disclaimer review follow.
+The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment checkout gating, the technical admin review-before-release gate, professional PDF delivery, purchase history, and the public valuation offer are complete. William's live report UAT and production approval/disclaimer review follow.
 
 Completed implementation slice:
 
@@ -100,8 +100,8 @@ Commercialization review (2026-07-01):
 ---
 ## Session Continuity
 
-Last session: 2026-07-13
-Stopped at: PVM-07 implemented and verified in PR #12; PVM-08 live report UAT is next.
+Last session: 2026-07-14
+Stopped at: PVM-07 complete in PR #12; PVM-08 live report UAT is next.
 Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---
