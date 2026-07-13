@@ -694,6 +694,527 @@ th {
   }
 }
 
+/* Public valuation offer */
+.marketing-page {
+  --marketing-navy: #1b1464;
+  --marketing-ink: #172033;
+  --marketing-muted: #5e6878;
+  --marketing-line: #dfe3ea;
+  min-height: 100vh;
+  background: #ffffff;
+  color: var(--marketing-ink);
+}
+
+.marketing-container {
+  width: min(1120px, calc(100% - 40px));
+  margin-inline: auto;
+}
+
+.marketing-skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 12px;
+  left: 12px;
+  transform: translateY(-160%);
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: #ffffff;
+  color: var(--marketing-navy);
+  box-shadow: 0 8px 24px rgba(23, 32, 51, 0.18);
+}
+
+.marketing-skip-link:focus {
+  transform: translateY(0);
+}
+
+.marketing-header {
+  border-bottom: 1px solid var(--marketing-line);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.marketing-header-inner,
+.marketing-header-actions,
+.marketing-nav,
+.marketing-actions {
+  display: flex;
+  align-items: center;
+}
+
+.marketing-header-inner {
+  min-height: 72px;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.marketing-wordmark {
+  color: var(--marketing-navy);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.marketing-nav,
+.marketing-header-actions,
+.marketing-actions {
+  gap: 18px;
+}
+
+.marketing-nav a,
+.marketing-text-link,
+.marketing-secondary-cta {
+  color: var(--marketing-ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.marketing-page a:focus-visible,
+.marketing-page summary:focus-visible {
+  outline: 3px solid var(--marketing-navy);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px #ffffff;
+}
+
+.marketing-cta,
+.marketing-secondary-cta {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  padding: 12px 18px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.marketing-cta {
+  background: var(--marketing-navy);
+  color: #ffffff;
+}
+
+.marketing-secondary-cta {
+  border: 1px solid var(--marketing-line);
+  background: #ffffff;
+}
+
+.marketing-cta-small {
+  min-height: 40px;
+  padding: 9px 14px;
+}
+
+.marketing-hero {
+  padding: 88px 0 72px;
+}
+
+.marketing-hero-grid,
+.marketing-two-column,
+.marketing-faq-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+  gap: clamp(40px, 7vw, 88px);
+  align-items: center;
+}
+
+.marketing-eyebrow {
+  margin: 0 0 14px;
+  color: var(--marketing-navy);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.marketing-hero h1 {
+  max-width: 680px;
+  margin: 0;
+  color: var(--marketing-navy);
+  font-size: clamp(2.55rem, 6vw, 4.7rem);
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+}
+
+.marketing-hero-copy {
+  max-width: 650px;
+  margin: 26px 0;
+  color: var(--marketing-muted);
+  font-size: 1.18rem;
+  line-height: 1.65;
+}
+
+.marketing-boundary {
+  margin: 18px 0 0;
+  color: var(--marketing-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.marketing-report-preview {
+  border: 1px solid var(--marketing-line);
+  border-top: 8px solid var(--marketing-navy);
+  border-radius: 8px;
+  padding: 30px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(27, 20, 100, 0.13);
+}
+
+.marketing-preview-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--marketing-navy);
+  font-weight: 800;
+}
+
+.marketing-preview-header small {
+  color: var(--marketing-muted);
+  font-weight: 600;
+}
+
+.marketing-preview-title {
+  margin: 32px 0 20px;
+  color: var(--marketing-navy);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.marketing-report-preview dl,
+.marketing-report-preview dl div {
+  display: grid;
+  gap: 8px;
+}
+
+.marketing-report-preview dl {
+  margin: 0;
+}
+
+.marketing-report-preview dl div {
+  grid-template-columns: 1fr auto;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--marketing-line);
+}
+
+.marketing-report-preview dt {
+  font-weight: 800;
+}
+
+.marketing-report-preview dd {
+  margin: 0;
+  color: var(--marketing-muted);
+  text-align: right;
+}
+
+.marketing-report-preview > p {
+  margin: 22px 0 0;
+  color: var(--marketing-navy);
+  font-weight: 800;
+}
+
+.marketing-trust {
+  border-block: 1px solid var(--marketing-line);
+  background: #f8f9fc;
+}
+
+.marketing-trust-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.marketing-trust-grid p {
+  margin: 0;
+  padding: 24px 20px;
+  border-right: 1px solid var(--marketing-line);
+  color: var(--marketing-navy);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.marketing-trust-grid p:last-child {
+  border-right: 0;
+}
+
+.marketing-section {
+  padding: 84px 0;
+  scroll-margin-top: 24px;
+}
+
+.marketing-section-muted {
+  background: #f6f7fb;
+}
+
+.marketing-section h2,
+.marketing-final-cta h2 {
+  max-width: 720px;
+  margin: 0 0 24px;
+  color: var(--marketing-navy);
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.marketing-section p,
+.marketing-final-cta p {
+  color: var(--marketing-muted);
+  line-height: 1.7;
+}
+
+.marketing-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 34px;
+}
+
+.marketing-card {
+  border: 1px solid var(--marketing-line);
+  border-radius: 8px;
+  padding: 28px;
+  background: #ffffff;
+}
+
+.marketing-card h3 {
+  margin: 0 0 12px;
+  color: var(--marketing-navy);
+}
+
+.marketing-check-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.marketing-check-list li {
+  position: relative;
+  padding: 15px 18px 15px 48px;
+  border: 1px solid var(--marketing-line);
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.marketing-check-list li::before {
+  position: absolute;
+  top: 14px;
+  left: 17px;
+  color: var(--marketing-navy);
+  content: "✓" / "";
+  font-weight: 900;
+}
+
+.marketing-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 34px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.marketing-steps li {
+  min-height: 156px;
+  border-top: 3px solid var(--marketing-navy);
+  padding: 20px 4px 0;
+}
+
+.marketing-steps span {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  background: #eeecfa;
+  color: var(--marketing-navy);
+  font-weight: 900;
+}
+
+.marketing-steps p {
+  color: var(--marketing-ink);
+  font-weight: 700;
+}
+
+.marketing-review-section {
+  background: var(--marketing-navy);
+  color: #ffffff;
+}
+
+.marketing-review-section .marketing-eyebrow,
+.marketing-review-section h2,
+.marketing-review-section p {
+  color: #ffffff;
+}
+
+.marketing-pricing-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  border: 1px solid var(--marketing-line);
+  border-radius: 10px;
+  padding: 38px;
+  background: #f8f9fc;
+}
+
+.marketing-pricing-panel h2 {
+  margin-bottom: 10px;
+}
+
+.marketing-pricing-panel p:last-child {
+  margin-bottom: 0;
+}
+
+.marketing-faq-layout {
+  align-items: start;
+}
+
+.marketing-faq-list details {
+  border-bottom: 1px solid var(--marketing-line);
+  padding: 18px 0;
+}
+
+.marketing-faq-list summary {
+  color: var(--marketing-navy);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.marketing-faq-list p {
+  margin-bottom: 0;
+}
+
+.marketing-final-cta {
+  padding: 90px 0;
+  text-align: center;
+}
+
+.marketing-final-cta h2 {
+  margin-inline: auto;
+}
+
+.marketing-final-cta p:last-child {
+  margin-bottom: 0;
+}
+
+.marketing-footer {
+  border-top: 1px solid var(--marketing-line);
+  padding: 30px 0;
+  background: #f8f9fc;
+}
+
+.marketing-footer .marketing-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.marketing-footer strong {
+  color: var(--marketing-navy);
+}
+
+.marketing-footer p {
+  margin: 0;
+  color: var(--marketing-muted);
+  font-size: 0.88rem;
+}
+
+@media (max-width: 860px) {
+  .marketing-nav {
+    display: none;
+  }
+
+  .marketing-hero-grid,
+  .marketing-two-column,
+  .marketing-faq-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing-trust-grid,
+  .marketing-card-grid,
+  .marketing-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .marketing-trust-grid p:nth-child(2) {
+    border-right: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .marketing-container {
+    width: min(100% - 28px, 1120px);
+  }
+
+  .marketing-header-inner {
+    min-height: 64px;
+    gap: 12px;
+  }
+
+  .marketing-header-actions {
+    gap: 10px;
+  }
+
+  .marketing-header-actions .marketing-cta-small {
+    padding-inline: 10px;
+    font-size: 0.78rem;
+  }
+
+  .marketing-hero {
+    padding: 58px 0 48px;
+  }
+
+  .marketing-hero h1 {
+    font-size: clamp(2.4rem, 15vw, 3.4rem);
+  }
+
+  .marketing-actions,
+  .marketing-pricing-panel,
+  .marketing-footer .marketing-container {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .marketing-cta,
+  .marketing-secondary-cta {
+    width: 100%;
+  }
+
+  .marketing-report-preview {
+    padding: 22px;
+  }
+
+  .marketing-report-preview dl div {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing-report-preview dd {
+    text-align: left;
+  }
+
+  .marketing-trust-grid,
+  .marketing-card-grid,
+  .marketing-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing-trust-grid p {
+    border-right: 0;
+    border-bottom: 1px solid var(--marketing-line);
+  }
+
+  .marketing-trust-grid p:last-child {
+    border-bottom: 0;
+  }
+
+  .marketing-section {
+    padding: 62px 0;
+  }
+
+  .marketing-pricing-panel {
+    padding: 28px;
+  }
+}
+
 /* Legacy AccountIQ visual shell port.
    The Next refactor keeps React routing/state, but the product should still
    feel like the original AccountIQ app. */

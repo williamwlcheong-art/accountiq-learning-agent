@@ -610,11 +610,11 @@ git commit -m "feat(account): add purchase history"
 - Create: `web/app/valuation/page.tsx`
 - Add: `web/e2e/valuation.spec.ts`
 
-- [ ] **Step 1: Add public valuation page**
+- [x] **Step 1: Add public valuation page**
 
-Create `web/app/valuation/page.tsx` with headline `Indicative SME Valuation Report`, launch pricing, primary use cases, trust/compliance language, and a `Start valuation` link to `/login`.
+Implemented through the focused, Fable-5-reviewed plan at `docs/superpowers/plans/2026-07-13-public-valuation-offer.md`. The static `/valuation` page uses the approved `Know what your business may be worth` headline, early-access fixed-fee language without a numeric amount, primary use cases, visible trust/compliance boundaries, and conversion links to `/login`.
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 ```bash
 cd web
@@ -625,7 +625,9 @@ pnpm test:e2e -- e2e/valuation.spec.ts
 
 Expected: all pass.
 
-- [ ] **Step 3: Commit**
+Verified 2026-07-13: focused valuation Playwright 2 passed; lint, typecheck, and production build passed; full development and production Playwright suites each passed 13 tests; `/valuation` is statically prerendered.
+
+- [x] **Step 3: Commit**
 
 ```bash
 git add web/app/valuation/page.tsx web/e2e/valuation.spec.ts
