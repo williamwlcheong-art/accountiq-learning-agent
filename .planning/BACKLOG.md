@@ -1,6 +1,6 @@
 # AccountIQ Backlog
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 This is the lightweight working backlog for the paid Valuation Advisory MVP. Keep the detailed implementation instructions in `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`; keep this file as the current source of truth for what is done, in progress, next, and waiting on domain review.
 
@@ -29,14 +29,14 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-04 | Add admin review before customer delivery | Done | #8 | Technical + William | Merged to `main`; paid valuations enter `awaiting_review`, admins approve release, and reviewer identity/time are audited. William still owns the approval checklist/quality criteria. |
 | PVM-05 | Add professional PDF export | Done | #10 | Technical + William | Branded A4 export, safe narrative/table rendering, approved owner-only download, caching, and resumable customer status are implemented and verified. William still owns final disclaimer wording. |
 | PVM-06 | Add account purchase history | Done | #11 | Technical | Owner-filtered purchase API and account table show payment/delivery status; released reports expose viewer and PDF actions. Backend, build, and full browser regression gates pass. |
-| PVM-07 | Add public valuation offer page | Pending | - | Product + Technical | Public pricing/offer page for the valuation wedge. |
+| PVM-07 | Add public valuation offer page | In review | PR pending | Product + Technical | Static public offer uses early-access fixed-fee language without a numeric amount and routes conversion links through `/login`; all frontend gates pass. |
 | PVM-08 | Live report UAT with William | Pending | - | William + Technical | Validate live Claude output, assumptions, wording, and quality bar. |
 
 ## Next Three PRs
 
-1. PVM-07: Add public valuation offer page.
-2. PVM-08: Run live report UAT with William.
-3. Define payment failure, cancellation, void, and refund states before live Stripe activation.
+1. PVM-08: Run live report UAT with William.
+2. Define payment failure, cancellation, void, and refund states before live Stripe activation.
+3. Resolve production compliance wording and policy pages before external launch.
 
 ## William Review Queue
 

@@ -37,7 +37,7 @@
 - Consumes: Next.js `Link`, Next.js `Metadata`, existing `/login` route, existing CSS variables from `web/app/globals.css`, and `expectNoHorizontalOverflow(page)` from `web/e2e/helpers.ts`. Repository inspection confirms the helper exists, root metadata uses a plain title without a template, `/` auth routing is page-local in `web/app/page.tsx`, and the wizard currently asks for PDF or Excel statements with the last two to three years preferred; the backend also accepts those formats.
 - Produces: public `GET /valuation` page with ordinary `/login` and in-page anchor links; no exported runtime API.
 
-- [ ] **Step 1: Install the frontend dependencies with pnpm**
+- [x] **Step 1: Install the frontend dependencies with pnpm**
 
 Run:
 
@@ -48,7 +48,7 @@ pnpm install --frozen-lockfile
 
 Expected: installation succeeds from `pnpm-lock.yaml` without creating `package-lock.json`.
 
-- [ ] **Step 2: Verify the frontend baseline before changing behavior**
+- [x] **Step 2: Verify the frontend baseline before changing behavior**
 
 Run:
 
@@ -65,7 +65,7 @@ rg -n 'allowed = .*"\.pdf".*"\.xlsx"' ../backend/main.py
 
 Expected: lint and typecheck pass; the helper export exists; root metadata has no title template; authentication redirects are scoped to `app/page.tsx`; and the document guidance used by the public FAQ matches the current wizard.
 
-- [ ] **Step 3: Write the failing public-offer browser tests**
+- [x] **Step 3: Write the failing public-offer browser tests**
 
 Create `web/e2e/valuation.spec.ts`:
 
@@ -107,10 +107,12 @@ test("public valuation page explains the bounded early-access offer", async ({ p
   const externalPaymentLinks = page.locator('a[href*="stripe"], a[href*="checkout"]');
   await expect(externalPaymentLinks).toHaveCount(0);
 
-  const bodyText = await page.locator("body").innerText();
+  const bodyText = (await page.locator("body").textContent()) ?? "";
   expect(bodyText).not.toMatch(/\$495|2,250/);
   expect(bodyText).toMatch(/not financial advice/i);
   expect(bodyText).toMatch(/not a certified, official, or court-standard valuation/i);
+  expect(bodyText).toContain("Recent PDF or Excel financial statements covering the last two to three years are preferred.");
+  expect(bodyText).toContain("Software prepares the first draft, and a human reviewer checks the report before it is released to your account.");
 
   // Smoke-check known positive marketing phrases. The explicit negative copy above
   // is the primary contract because a generic blacklist cannot understand negation.
@@ -137,7 +139,7 @@ test("public valuation page remains usable at 320px", async ({ page }) => {
 });
 ```
 
-- [ ] **Step 4: Run the focused test and verify the red state**
+- [x] **Step 4: Run the focused test and verify the red state**
 
 Run:
 
@@ -148,7 +150,7 @@ pnpm exec playwright test e2e/valuation.spec.ts
 
 Expected: FAIL because `/valuation` does not exist and the required H1 is absent. If the URL assertion fails because of an authentication redirect, confirm whether the gate is still page-local in `web/app/page.tsx` or has moved to middleware, and adjust only the gate's scope so `/valuation` remains public without changing `/` behavior. If port 3000 is occupied, create a temporary ignored Playwright config using an unused port; do not kill an unrelated process.
 
-- [ ] **Step 5: Implement the static valuation page**
+- [x] **Step 5: Implement the static valuation page**
 
 Create `web/app/valuation/page.tsx`:
 
@@ -375,8 +377,8 @@ export default function ValuationPage() {
                 before it is released to your account.
               </p>
               <p>
-                The report is indicative only and is not financial advice, a certified valuation, or a substitute for
-                a regulated professional engagement.
+                The report is indicative only and is not financial advice. It is not a certified, official, or
+                court-standard valuation, and it is not a substitute for a regulated professional engagement.
               </p>
             </div>
           </div>
@@ -436,7 +438,7 @@ export default function ValuationPage() {
 }
 ```
 
-- [ ] **Step 6: Add namespaced responsive marketing styles**
+- [x] **Step 6: Add namespaced responsive marketing styles**
 
 Append the following to `web/app/globals.css`:
 
@@ -745,7 +747,7 @@ Append the following to `web/app/globals.css`:
   top: 14px;
   left: 17px;
   color: var(--marketing-navy);
-  content: "✓";
+  content: "✓" / "";
   font-weight: 900;
 }
 
@@ -963,7 +965,7 @@ Append the following to `web/app/globals.css`:
 }
 ```
 
-- [ ] **Step 7: Run the focused test and verify the green state**
+- [x] **Step 7: Run the focused test and verify the green state**
 
 Run:
 
@@ -974,7 +976,7 @@ pnpm exec playwright test e2e/valuation.spec.ts
 
 Expected: both valuation tests pass.
 
-- [ ] **Step 8: Run all frontend regression gates**
+- [x] **Step 8: Run all frontend regression gates**
 
 Run:
 
@@ -989,7 +991,7 @@ pnpm test:e2e:prod
 
 Expected: lint, typecheck, production build, development-server Playwright, and production-server Playwright all pass. The build output includes `/valuation` as a static route.
 
-- [ ] **Step 9: Update the paid-MVP planning records**
+- [x] **Step 9: Update the paid-MVP planning records**
 
 Apply these exact state changes:
 
@@ -999,7 +1001,7 @@ Apply these exact state changes:
 
 Do not mark PVM-07 `Done` until the PR has passed final review and is about to merge.
 
-- [ ] **Step 10: Commit the verified implementation**
+- [x] **Step 10: Commit the verified implementation**
 
 Run:
 

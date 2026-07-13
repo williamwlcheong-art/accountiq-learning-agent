@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PVM-06 account purchase history complete
-stopped_at: PVM-06 complete in PR #11; PVM-07 public valuation offer page is next
-last_updated: "2026-07-12T19:35:00+12:00"
+status: PVM-07 public valuation offer in review
+stopped_at: PVM-07 implemented and verified; PR pending; PVM-08 live report UAT is next
+last_updated: "2026-07-13T23:07:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -41,15 +41,16 @@ See: .planning/PROJECT.md and .planning/BACKLOG.md
 
 The primary UI now lives in `web/` as a Next.js App Router app. FastAPI remains the backend of record. The old `frontend/index.html` app is a disabled-by-default legacy fallback.
 
-The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment checkout gating, the technical admin review-before-release gate, and professional PDF delivery are merged. Purchase history is in progress; the public offer page and William's production approval/disclaimer review follow.
+The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment checkout gating, the technical admin review-before-release gate, professional PDF delivery, and purchase history are merged. The public valuation offer is implemented and verified in its review branch; William's live report UAT and production approval/disclaimer review follow.
 
 Completed implementation slice:
 
 - PR #11 / PVM-06: the authenticated account page lists owner-filtered purchases with payment and report-delivery status. Viewer and PDF actions appear only after release.
+- PR pending / PVM-07: the public `/valuation` page explains the bounded early-access offer without an unapproved numeric price, keeps compliance limitations visible, and routes every conversion CTA through `/login`.
 
-Next implementation slice:
+Next validation slice:
 
-- PVM-07: add the public valuation offer page.
+- PVM-08: run live report UAT with William against the reviewed valuation workflow.
 
 Latest verified checks:
 
@@ -57,9 +58,11 @@ Latest verified checks:
 - `pnpm lint`
 - `pnpm typecheck`
 - `pnpm build`
+- Focused public valuation Playwright: 2 passed
+- Full dev Playwright: 13 passed, including the public valuation offer at desktop and 320px
+- Full production Playwright: 13 passed against `next start`
 - Focused PDF-delivery pytest: 4 passed
 - Focused wizard Playwright: 2 passed, including reload/resume and PDF-link coverage
-- Full dev Playwright: 10 passed, including purchase history before/after reviewer release
 - WeasyPrint 69.0 visual check: branded 2-page A4 sample rendered and inspected
 
 External parity review follow-up (2026-07-01):
@@ -92,12 +95,13 @@ Commercialization review (2026-07-01):
 | 2026-07-01 | Added deterministic Playwright E2E in dev and standalone modes | Validates auth, wizard, admin workflows, upload/report generation, report viewer escaping, and responsive smoke checks |
 | 2026-07-01 | Narrow launch strategy to valuation wedge first | Paid launch should prove trust and willingness-to-pay with one high-value report before broadening to all five report families |
 | 2026-07-12 | Persist the active report ID per authenticated user in the wizard | Customers must be able to resume a long-running review/delivery state after reload; report access remains owner-filtered by the backend |
+| 2026-07-13 | Use early-access fixed-fee language without a public numeric valuation price | Conflicting planning figures are not approved marketing claims; checkout remains the source of the fee before payment |
 
 ---
 ## Session Continuity
 
-Last session: 2026-07-12
-Stopped at: PVM-06 complete in PR #11; PVM-07 public valuation offer page is next.
+Last session: 2026-07-13
+Stopped at: PVM-07 implemented and verified; PR pending; PVM-08 live report UAT is next.
 Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---
