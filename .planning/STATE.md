@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: PVM-07 public valuation offer in review
-stopped_at: PVM-07 implemented and verified; PR pending; PVM-08 live report UAT is next
+stopped_at: PVM-07 implemented and verified in PR #12; PVM-08 live report UAT is next
 last_updated: "2026-07-13T23:07:00+12:00"
 progress:
   total_phases: 9
@@ -46,7 +46,7 @@ The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation
 Completed implementation slice:
 
 - PR #11 / PVM-06: the authenticated account page lists owner-filtered purchases with payment and report-delivery status. Viewer and PDF actions appear only after release.
-- PR pending / PVM-07: the public `/valuation` page explains the bounded early-access offer without an unapproved numeric price, keeps compliance limitations visible, and routes every conversion CTA through `/login`.
+- PR #12 / PVM-07: the public `/valuation` page explains the bounded early-access offer without an unapproved numeric price, keeps compliance limitations visible, and routes every conversion CTA through `/login`.
 
 Next validation slice:
 
@@ -101,7 +101,7 @@ Commercialization review (2026-07-01):
 ## Session Continuity
 
 Last session: 2026-07-13
-Stopped at: PVM-07 implemented and verified; PR pending; PVM-08 live report UAT is next.
+Stopped at: PVM-07 implemented and verified in PR #12; PVM-08 live report UAT is next.
 Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
 
 ---
