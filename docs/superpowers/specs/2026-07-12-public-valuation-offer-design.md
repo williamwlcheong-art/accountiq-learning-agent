@@ -48,7 +48,7 @@ The mobile header may simplify the anchor navigation, but both authentication li
 - Primary CTA: `Get a Business Valuation` → `/login`
 - Supporting note: `Indicative only. Not financial advice. Reviewed before delivery.`
 
-The hero is not placed inside a card and does not use abstract finance or novelty-AI imagery. A restrained report-summary visual built from semantic HTML may support the offer without representing a fabricated customer result.
+The hero is not placed inside a card and does not use abstract finance or novelty-AI imagery. A restrained report-summary visual may support the offer without representing a fabricated customer result. Treat that preview as decorative: hide the entire preview from assistive technology and keep every meaningful claim available in the page's visible text outside it.
 
 ### Trust Points
 
@@ -164,7 +164,7 @@ The page must remain usable from 320px width and must not introduce horizontal o
 - Visible keyboard focus states.
 - Sufficient color contrast.
 - Anchor targets receive scroll margin so headings are not obscured.
-- Decorative report imagery is hidden from assistive technology; meaningful content remains text.
+- The decorative report preview is hidden from assistive technology and does not add a heading to the document outline; every meaningful claim remains available as visible text elsewhere on the page.
 - Links use descriptive accessible names.
 
 ## Error Handling and Degraded Behavior
