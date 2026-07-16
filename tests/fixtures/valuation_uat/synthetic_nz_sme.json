@@ -1,0 +1,85 @@
+{
+  "fixture_id": "accountiq-synthetic-nz-sme-v1",
+  "fixture_classification": "synthetic",
+  "authorised_for_uat": false,
+  "uat_user": {
+    "email": "william.valuation-uat@accountiq.invalid"
+  },
+  "company": {
+    "name": "Kauri Field Services Limited",
+    "exchange": "Private",
+    "sector": "Industrial field services",
+    "country": "NZ",
+    "description": "A wholly synthetic Auckland-based contractor providing scheduled inspection, maintenance and compliance services to food-processing and light-industrial sites across the upper North Island. Revenue combines annual service agreements with project work. No person, customer or financial figure in this fixture represents a real business."
+  },
+  "management_team": [
+    {
+      "name": "Aroha Rangi",
+      "title": "Managing Director",
+      "bio": "Synthetic profile. Fifteen years of industrial services experience, responsible for strategy and major customer relationships."
+    },
+    {
+      "name": "Matthew Chen",
+      "title": "Operations Manager",
+      "bio": "Synthetic profile. Leads field scheduling, health and safety, quality assurance and technician development."
+    },
+    {
+      "name": "Priya Nair",
+      "title": "Finance and Commercial Manager",
+      "bio": "Synthetic profile. Oversees financial control, contracts, procurement and working-capital management."
+    }
+  ],
+  "ebitda_adjustments": [
+    {
+      "label": "One-off warehouse relocation",
+      "amount": 85000,
+      "rationale": "Synthetic non-recurring relocation and fit-out costs incurred in FY2025."
+    },
+    {
+      "label": "Above-market owner remuneration",
+      "amount": 60000,
+      "rationale": "Synthetic adjustment to an assumed market salary for the managing director role."
+    }
+  ],
+  "financial_rows": [
+    {"statement": "pnl", "row_key": "revenue", "row_label": "Revenue", "period": "2023", "value": 4820000},
+    {"statement": "pnl", "row_key": "revenue", "row_label": "Revenue", "period": "2024", "value": 5310000},
+    {"statement": "pnl", "row_key": "revenue", "row_label": "Revenue", "period": "2025", "value": 5890000},
+    {"statement": "pnl", "row_key": "ebitda", "row_label": "EBITDA", "period": "2023", "value": 655000},
+    {"statement": "pnl", "row_key": "ebitda", "row_label": "EBITDA", "period": "2024", "value": 748000},
+    {"statement": "pnl", "row_key": "ebitda", "row_label": "EBITDA", "period": "2025", "value": 812000},
+    {"statement": "pnl", "row_key": "depreciation_amortisation", "row_label": "Depreciation and amortisation", "period": "2023", "value": 118000},
+    {"statement": "pnl", "row_key": "depreciation_amortisation", "row_label": "Depreciation and amortisation", "period": "2024", "value": 126000},
+    {"statement": "pnl", "row_key": "depreciation_amortisation", "row_label": "Depreciation and amortisation", "period": "2025", "value": 139000},
+    {"statement": "pnl", "row_key": "net_profit", "row_label": "Net profit after tax", "period": "2023", "value": 337000},
+    {"statement": "pnl", "row_key": "net_profit", "row_label": "Net profit after tax", "period": "2024", "value": 401000},
+    {"statement": "pnl", "row_key": "net_profit", "row_label": "Net profit after tax", "period": "2025", "value": 421000},
+    {"statement": "bs", "row_key": "cash_and_bank", "row_label": "Cash and bank", "period": "2023", "value": 310000},
+    {"statement": "bs", "row_key": "cash_and_bank", "row_label": "Cash and bank", "period": "2024", "value": 385000},
+    {"statement": "bs", "row_key": "cash_and_bank", "row_label": "Cash and bank", "period": "2025", "value": 462000},
+    {"statement": "bs", "row_key": "total_assets", "row_label": "Total assets", "period": "2023", "value": 2450000},
+    {"statement": "bs", "row_key": "total_assets", "row_label": "Total assets", "period": "2024", "value": 2690000},
+    {"statement": "bs", "row_key": "total_assets", "row_label": "Total assets", "period": "2025", "value": 2940000},
+    {"statement": "bs", "row_key": "total_liabilities", "row_label": "Total liabilities", "period": "2023", "value": 1210000},
+    {"statement": "bs", "row_key": "total_liabilities", "row_label": "Total liabilities", "period": "2024", "value": 1285000},
+    {"statement": "bs", "row_key": "total_liabilities", "row_label": "Total liabilities", "period": "2025", "value": 1360000}
+  ],
+  "intake_answers": {
+    "company_location": "Auckland, New Zealand",
+    "forecast_horizon": 5,
+    "revenue_growth_cagr": 6.0,
+    "terminal_growth_rate": 2.5,
+    "normalisations": [
+      {"label": "One-off warehouse relocation", "amount": 85000, "reason": "Non-recurring FY2025 cost"},
+      {"label": "Above-market owner remuneration", "amount": 60000, "reason": "Normalise to market salary"}
+    ],
+    "rq_revenue_quality": 4,
+    "rq_owner_dependency": 3,
+    "rq_ebitda_growth": 4,
+    "rq_customer_concentration": 3,
+    "rq_gross_margin": 3,
+    "rq_competitive_barriers": 3,
+    "rq_growth_outlook": 4,
+    "rq_management_depth": 3
+  }
+}

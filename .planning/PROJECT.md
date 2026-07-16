@@ -45,27 +45,27 @@ A business owner uploads their financials, answers a few questions about their b
 - [ ] Support structured HTML financial filings
 
 **Business profile intake:**
-- [ ] User can describe their business (industry, products/services, market position)
-- [ ] User can select industry/sector for comparable multiples and benchmarking
-- [ ] User can provide management team details (founders, key staff)
-- [ ] User can enter EBITDA add-backs / owner adjustments
+- ✓ User can describe their business (industry, products/services, market position) — Phase 3 + valuation intake
+- ✓ User can select industry/sector for comparable multiples and benchmarking — Phase 3
+- ✓ User can provide management team details (founders, key staff) — Phase 3
+- ✓ User can enter EBITDA add-backs / owner adjustments — Phase 3
 
 **Authentication & accounts:**
 - ✓ User can create an account and log in — Validated in Phase 1: Security & Auth Foundation
 - ✓ Each user's companies and documents are isolated (no cross-user data leakage) — Validated in Phase 2: Multi-User Data Isolation
-- [ ] User can manage their account and report purchase history
+- ✓ User can view account and report purchase history — PVM-06
 
 **Report generation:**
-- [ ] Valuation report — DCF and/or EV/EBITDA multiple, supported by extracted financials
-- [ ] Bank credit paper — structured write-up suitable for a lending submission
-- [ ] Financial forecast — forward projections based on historical financials and growth assumptions
-- [ ] Capital raising document — investor-ready summary of business and financials
-- [ ] Information memorandum (IM) — full document suitable for selling the business
+- ✓ Valuation report — implemented with deterministic calculations, review gate, and PVM-08 domain UAT pending
+- [ ] Bank credit paper — advisor pilot; not validated for self-serve
+- [ ] Financial forecast — advisor pilot; not validated for self-serve
+- [ ] Capital raising document — advisor pilot; not validated for self-serve
+- [ ] Information memorandum (IM) — advisor pilot; not validated for self-serve
 
 **Report delivery:**
-- [ ] Web viewer — reports readable in-app after generation
-- [ ] PDF export — downloadable, professionally formatted document
-- [ ] Pay-per-report purchasing — user selects and pays for a report before it is generated
+- ✓ Web viewer — owner-only access after reviewer approval
+- ✓ PDF export — branded owner-only PDF after reviewer approval
+- ✓ Pay-per-report purchasing — Stripe Checkout happy path implemented; failure/refund lifecycle remains a launch gate
 
 ### Out of Scope
 
@@ -117,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-02 - Next.js refactor merged; paid valuation MVP planning merged*
+*Last updated: 2026-07-16 - PVM-08 deterministic hardening implemented; methodology and live domain UAT pending*

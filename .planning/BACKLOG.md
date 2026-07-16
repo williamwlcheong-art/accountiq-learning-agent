@@ -30,13 +30,13 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-05 | Add professional PDF export | Done | #10 | Technical + William | Branded A4 export, safe narrative/table rendering, approved owner-only download, caching, and resumable customer status are implemented and verified. William still owns final disclaimer wording. |
 | PVM-06 | Add account purchase history | Done | #11 | Technical | Owner-filtered purchase API and account table show payment/delivery status; released reports expose viewer and PDF actions. Backend, build, and full browser regression gates pass. |
 | PVM-07 | Add public valuation offer page | Done | #12 | Product + Technical | Static public offer uses early-access fixed-fee language without a numeric amount and routes conversion links through `/login`; all frontend gates pass. |
-| PVM-08 | Live report UAT with William | Pending | - | William + Technical | Validate live Claude output, assumptions, wording, and quality bar. |
+| PVM-08 | Live report UAT with William | In progress | - | William + Technical | Deterministic hardening and guarded UAT harness are implemented on `codex/pvm-08-live-report-uat`; methodology corrections and the explicit live run/domain disposition remain. |
 
 ## Next Three PRs
 
-1. PVM-08: Run live report UAT with William.
-2. Define payment failure, cancellation, void, and refund states before live Stripe activation.
-3. Resolve production compliance wording and policy pages before external launch.
+1. PVM-08A: Land deterministic report/UAT hardening, then correct admin provisioning, net debt, FCFF inputs, and authoritative document selection.
+2. PVM-08B: Run one guarded live report UAT and record William's disposition.
+3. Define pre-payment serviceability plus payment failure, cancellation, void, and refund states before live Stripe activation.
 
 ## William Review Queue
 
