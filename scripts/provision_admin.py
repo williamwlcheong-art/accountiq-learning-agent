@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -14,13 +13,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from admin_provisioning import provision_admin
-
-DEFAULT_DATABASE = ROOT / "data" / "accountiq_learning.db"
-
-
-def _database_path() -> Path:
-    configured = os.environ.get("ACCOUNTIQ_DB_PATH", "").strip()
-    return Path(configured).expanduser().resolve() if configured else DEFAULT_DATABASE
+from db import DB_PATH
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -41,7 +34,7 @@ def main() -> int:
         print("Refusing without --confirm-admin-provisioning")
         return 1
     try:
-        provision_admin(args.database or _database_path(), args.email)
+        provision_admin(args.database or DB_PATH, args.email)
     except Exception as exc:
         print(f"Admin provisioning failed: {exc}")
         return 1

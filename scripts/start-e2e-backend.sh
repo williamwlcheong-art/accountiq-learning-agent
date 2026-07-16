@@ -32,6 +32,7 @@ fi
 PYTHON="$(dirname "$UVICORN")/python"
 PYTHONPATH="$ROOT/backend" "$PYTHON" - <<'PY'
 import sqlite3
+from admin_provisioning import provision_admin
 from auth import hash_password
 from db import DB_PATH, init_db
 
@@ -41,12 +42,8 @@ with sqlite3.connect(DB_PATH) as db:
         "INSERT INTO users (email, hashed_pw) VALUES (?, ?)",
         ("owner-e2e@example.com", hash_password("correcthorse")),
     )
-    db.commit()
+provision_admin(DB_PATH, "owner-e2e@example.com")
 PY
-"$PYTHON" "$ROOT/scripts/provision_admin.py" \
-  --database "$DB" \
-  --email "owner-e2e@example.com" \
-  --confirm-admin-provisioning
 
 cd "$ROOT/backend"
 exec "$UVICORN" main:app --port 8765

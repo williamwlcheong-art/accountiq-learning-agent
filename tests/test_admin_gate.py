@@ -16,13 +16,8 @@ async def _register(client, email="alice@example.com", password="correcthorse"):
 
 async def _register_admin(client, email="admin@example.com", password="correcthorse"):
     """Register and explicitly provision an admin test user."""
-    r = await client.post(
-        "/auth/register",
-        data={"email": email, "password": password},
-    )
-    from account_helpers import provision_test_admin
-    await provision_test_admin(email)
-    return r
+    from account_helpers import register_test_admin
+    return await register_test_admin(client, email, password)
 
 # ---------------------------------------------------------------------------
 # AUTH-09: is_admin assignment at registration

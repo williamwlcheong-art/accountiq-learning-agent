@@ -25,9 +25,8 @@ if str(BACKEND_DIR) not in sys.path:
 
 async def _register_and_login(client, email="ext-test@test.com", password="Pass1234!"):
     """Register, explicitly provision, and log in an admin test user."""
-    await client.post("/auth/register", data={"email": email, "password": password})
-    from account_helpers import provision_test_admin
-    await provision_test_admin(email)
+    from account_helpers import register_test_admin
+    await register_test_admin(client, email, password)
     r = await client.post("/auth/login", data={"email": email, "password": password})
     return r.json().get("access_token", "")
 

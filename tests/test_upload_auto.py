@@ -15,13 +15,8 @@ import pytest_asyncio
 
 async def _register_admin(client, email, password="correcthorse"):
     """Register and explicitly provision an admin test user."""
-    r = await client.post(
-        "/auth/register",
-        data={"email": email, "password": password},
-    )
-    from account_helpers import provision_test_admin
-    await provision_test_admin(email)
-    return r
+    from account_helpers import register_test_admin
+    return await register_test_admin(client, email, password)
 
 async def _create_company(client, name):
     r = await client.post("/companies", data={"name": name, "exchange": "Private"})
