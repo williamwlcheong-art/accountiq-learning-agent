@@ -117,8 +117,6 @@ def test_evaluator_rejects_placeholders_missing_tables_and_wrong_state():
     checks = evaluate_valuation_report(
         report_status="done",
         sections=sections,
-        report_type="valuation_advisory",
-        validate_report=main_module._validate_generated_report,
         purchase_status="paid",
         review_status=None,
     )
@@ -131,8 +129,6 @@ def test_evaluator_accepts_complete_private_draft():
     checks = evaluate_valuation_report(
         report_status="awaiting_review",
         sections=_valid_sections(),
-        report_type="valuation_advisory",
-        validate_report=main_module._validate_generated_report,
         purchase_status="paid",
         review_status="awaiting_review",
     )

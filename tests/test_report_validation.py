@@ -4,6 +4,7 @@ import pytest
 from db import DB_PATH
 import main as main_module
 from report_prompts import SECTION_SCHEMAS, TABLE_SECTIONS_VALUATION
+from report_validation import validate_generated_report
 
 
 SAFE_GENERATION_ERROR = (
@@ -82,13 +83,13 @@ def test_generated_valuation_validation_fails_closed(mutate, error_match):
     mutate(report)
 
     with pytest.raises(ValueError, match=error_match):
-        main_module._validate_generated_report(report, "valuation_advisory")
+        validate_generated_report(report, "valuation_advisory")
 
 
 def test_generated_valuation_validation_accepts_complete_report():
     report = _valid_report()
 
-    main_module._validate_generated_report(report, "valuation_advisory")
+    validate_generated_report(report, "valuation_advisory")
 
 
 @pytest.mark.asyncio

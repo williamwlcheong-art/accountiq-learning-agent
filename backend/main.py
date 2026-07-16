@@ -33,6 +33,7 @@ from payments import (
 )
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
 from report_rendering import render_report_html, report_pdf_path, write_pdf
+from report_validation import validate_generated_report
 from report_prompts import (
     build_prompt,
     SECTION_SCHEMAS,
@@ -1095,7 +1096,7 @@ async def _store_generated_report(
     report_type: str,
     content_json: dict,
 ) -> str:
-    _validate_generated_report(content_json, report_type)
+    validate_generated_report(content_json, report_type)
     next_status = "awaiting_review" if _requires_admin_review(report_type) else "done"
     if next_status == "done":
         cursor = await db.execute("""
@@ -1946,10 +1947,6 @@ REPORT_SECTIONS = SECTION_SCHEMAS  # alias — do not remove
 _SAFE_REPORT_GENERATION_ERROR = (
     "We couldn't generate a complete report. Please retry, or contact support if the problem continues."
 )
-
-
-# Backwards-compatible private alias for focused tests and storage callers.
-from report_validation import validate_generated_report as _validate_generated_report
 
 
 async def _generate_report(

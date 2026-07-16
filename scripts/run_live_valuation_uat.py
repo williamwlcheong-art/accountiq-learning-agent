@@ -181,7 +181,7 @@ async def run(args: argparse.Namespace) -> Path:
     import main as main_module
     from report_prompts import SECTION_SCHEMAS
     from report_rendering import render_report_html, report_pdf_path, write_pdf
-    from research_loop import WEB_SEARCH_TOOL
+    from research_loop import CLAUDE_MODEL, WEB_SEARCH_TOOL
 
     if db_module.DB_PATH != preflight.database_path or main_module.DB_PATH != preflight.database_path:
         raise RuntimeError("Backend did not bind to the preflighted UAT database")
@@ -208,8 +208,6 @@ async def run(args: argparse.Namespace) -> Path:
     checks = evaluate_valuation_report(
         report_status=result["status"],
         sections=sections,
-        report_type="valuation_advisory",
-        validate_report=main_module._validate_generated_report,
         purchase_status=result["purchase_status"],
         review_status=result["review_status"],
     )
@@ -220,19 +218,20 @@ async def run(args: argparse.Namespace) -> Path:
     os.chmod(output_dir, 0o700)
     evidence_path = output_dir / "evidence.json"
 
+    evidence = {
+        "schema_version": 1,
+        "run_id": run_id,
+        "report_id": report_id,
+        "report_status": result["status"],
+        "fixture_sha256": preflight.fixture_sha256,
+        "configured_model": CLAUDE_MODEL,
+        "configured_research_tool_type": WEB_SEARCH_TOOL.get("type"),
+        "checks": checks,
+    }
+
     if not all(check["passed"] for check in checks):
-        write_immutable_json(evidence_path, {
-            "schema_version": 1,
-            "run_id": run_id,
-            "result": "failed",
-            "report_id": report_id,
-            "report_status": result["status"],
-            "error_message": result["error_message"],
-            "fixture_sha256": preflight.fixture_sha256,
-            "configured_model": os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6"),
-            "configured_research_tool_type": WEB_SEARCH_TOOL.get("type"),
-            "checks": checks,
-        })
+        evidence.update({"result": "failed", "error_message": result["error_message"]})
+        write_immutable_json(evidence_path, evidence)
         raise RuntimeError(f"Valuation UAT failed deterministic checks; evidence: {evidence_path}")
 
     html_text = render_report_html(
@@ -246,20 +245,12 @@ async def run(args: argparse.Namespace) -> Path:
     await asyncio.get_running_loop().run_in_executor(None, write_pdf, html_text, pdf_path)
     os.chmod(pdf_path, 0o600)
 
-    write_immutable_json(evidence_path, {
-        "schema_version": 1,
-        "run_id": run_id,
+    evidence.update({
         "result": "passed",
-        "report_id": report_id,
-        "report_status": result["status"],
         "fixture_id": fixture.get("fixture_id"),
-        "fixture_sha256": preflight.fixture_sha256,
         "database_filename": preflight.database_path.name,
         "origin": preflight.origin,
-        "configured_model": os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6"),
-        "configured_research_tool_type": WEB_SEARCH_TOOL.get("type"),
         "model_metadata_note": "Configured values only; current generation boundaries do not expose returned model metadata.",
-        "checks": checks,
         "section_keys": list(sections),
         "html": {"filename": html_path.name, "sha256": _file_sha256(html_path)},
         "pdf": {"filename": pdf_path.name, "sha256": _file_sha256(pdf_path)},
@@ -267,6 +258,7 @@ async def run(args: argparse.Namespace) -> Path:
         "email_performed": False,
         "stripe_performed": False,
     })
+    write_immutable_json(evidence_path, evidence)
     return evidence_path
 
 

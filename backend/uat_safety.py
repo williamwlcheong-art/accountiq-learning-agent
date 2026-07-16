@@ -8,9 +8,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
 
+from report_validation import validate_generated_report
+
 
 TRUTHY = {"1", "true", "yes", "on"}
 SENSITIVE_KEY_PARTS = ("secret", "password", "token", "content", "narrative")
+
+
 class UATSafetyError(RuntimeError):
     """Raised before UAT can reach any external or persistent side effect."""
 
@@ -137,8 +141,6 @@ def evaluate_valuation_report(
     *,
     report_status: str,
     sections: dict,
-    report_type: str,
-    validate_report,
     purchase_status: str,
     review_status: str | None,
 ) -> list[dict[str, object]]:
@@ -153,7 +155,7 @@ def evaluate_valuation_report(
     add("review_record", review_status == "awaiting_review", str(review_status))
 
     try:
-        validate_report(sections, report_type)
+        validate_generated_report(sections, "valuation_advisory")
     except ValueError as exc:
         add("report_validation", False, str(exc))
     else:
