@@ -1,0 +1,16 @@
+{
+  "pdf": "/Users/William.Cheong/Documents/Valuation and Finance App/output/pdf/accountiq-sample-indicative-valuation.pdf",
+  "output_dir": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/live-source-preview-20260705",
+  "resolution": 150,
+  "selection_mode": "manual",
+  "pages": [
+    {
+      "page": 24,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/live-source-preview-20260705/accountiq-sample-indicative-valuation-page-24-24.png"
+    },
+    {
+      "page": 25,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/live-source-preview-20260705/accountiq-sample-indicative-valuation-page-25-25.png"
+    }
+  ]
+}

@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo Indicative Valuation Report - AccountIQ Sample Limited</title>
+<style>
+
+    :root { --navy:#082b4c; --blue:#1769aa; --ink:#172033; --muted:#667085; --line:#d7dee8; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      margin:0;
+      background:#edf1f5;
+      color:var(--ink);
+      font-family:"Aptos","Segoe UI",Arial,sans-serif;
+      line-height:1.58;
+    }
+    .viewer-toolbar {
+      position:sticky;
+      top:0;
+      z-index:10;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      min-height:52px;
+      padding:8px max(20px, calc((100vw - 900px)/2));
+      background:rgba(8,43,76,.96);
+      color:white;
+      box-shadow:0 2px 10px rgba(8,43,76,.18);
+    }
+    .viewer-toolbar a { color:white; text-decoration:none; font-size:.875rem; font-weight:700; }
+    .viewer-toolbar span { font-size:.78rem; opacity:.82; }
+    .viewer-toolbar-actions { display:flex; align-items:center; gap:14px; }
+    .viewer-download {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:34px;
+      padding:7px 12px;
+      border:1px solid rgba(255,255,255,.56);
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+    }
+    .report { width:min(900px, calc(100% - 32px)); margin:28px auto 64px; }
+    .demo-banner {
+      margin:0 0 18px;
+      padding:14px 18px;
+      border:1px solid #e3ad55;
+      border-radius:8px;
+      background:#fff8e8;
+      color:#70450a;
+      font-size:.88rem;
+    }
+    .demo-banner strong { display:block; margin-bottom:2px; }
+    .report-page {
+      min-height:1120px;
+      margin:0 0 22px;
+      padding:78px 74px;
+      background:white;
+      box-shadow:0 12px 30px rgba(15,23,42,.10);
+    }
+    .cover {
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
+      overflow:hidden;
+      min-height:1120px;
+      margin:0 0 22px;
+      padding:84px 76px;
+      background:linear-gradient(150deg, #f8fbff 0 52%, #dceafb 52% 64%, #082b4c 64%);
+      color:white;
+    }
+    .cover::before { content:""; position:absolute; top:72px; left:76px; width:86px; height:7px; background:#2f80c5; }
+    .brand { position:absolute; top:98px; left:76px; color:var(--navy); font-size:1.05rem; font-weight:900; letter-spacing:.04em; }
+    .cover-copy {
+      position:relative;
+      max-width:760px;
+      padding:28px 32px 30px;
+      border:1px solid rgba(207,226,243,.28);
+      border-radius:22px;
+      background:rgba(8,43,76,.92);
+      box-shadow:0 20px 42px rgba(8,43,76,.24);
+    }
+    .cover-snapshot {
+      position:relative;
+      width:100%;
+      margin:0 0 78px;
+      padding:20px 24px 18px;
+      border:1px solid #c8d6e5;
+      border-radius:18px;
+      background:white;
+      color:var(--ink);
+      box-shadow:0 16px 35px rgba(8,43,76,.12);
+    }
+    .cover-snapshot span {
+      display:block;
+      margin:-20px -24px 16px;
+      padding:10px 24px;
+      border-radius:18px 18px 0 0;
+      background:var(--blue);
+      color:white;
+      font-size:.82rem;
+      font-weight:850;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+    .cover-snapshot table, .report-table { width:100%; border-collapse:collapse; }
+    .cover-snapshot th, .cover-snapshot td, .report-table th, .report-table td {
+      padding:10px 0;
+      border-bottom:1px solid var(--line);
+      vertical-align:top;
+      text-align:left;
+    }
+    .cover-snapshot th:not(:first-child), .cover-snapshot td:not(:first-child) { text-align:right; }
+    .cover-snapshot tbody td:not(:first-child) { font-weight:800; font-variant-numeric:tabular-nums; }
+    .cover-snapshot p { margin:10px 0 0; color:var(--muted); font-size:.76rem; }
+    .cover-report-basis {
+      position:relative;
+      width:100%;
+      margin:58px 0 34px;
+      padding:18px 22px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:rgba(255,255,255,.92);
+      color:var(--ink);
+      box-shadow:0 12px 28px rgba(8,43,76,.10);
+    }
+    .cover-report-basis span {
+      display:block;
+      margin:0 0 13px;
+      color:var(--blue);
+      font-size:.72rem;
+      font-weight:850;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .cover-report-basis dl { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:0; margin:0; }
+    .cover-report-basis div { min-width:0; padding:0 18px; border-left:1px solid var(--line); }
+    .cover-report-basis div:first-child { padding-left:0; border-left:0; }
+    .cover-report-basis dt { margin:0 0 5px; color:var(--navy); font-size:.78rem; font-weight:850; }
+    .cover-report-basis dd { margin:0; color:var(--muted); font-size:.7rem; line-height:1.35; }
+    .cover-kicker {
+      display:block;
+      margin-bottom:12px;
+      color:#b9d8f2;
+      font-size:.78rem;
+      font-weight:800;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+    }
+    .cover h1 { max-width:650px; margin:0 0 18px; font-size:3.3rem; line-height:1.05; letter-spacing:-.035em; }
+    .cover .company { margin:0; font-size:1.45rem; font-weight:600; }
+    .cover-brief { margin:30px 0 0; padding:18px 20px; border:1px solid rgba(207,226,243,.36); border-radius:14px; background:rgba(255,255,255,.08); }
+    .cover-brief dl { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px 20px; margin:0; }
+    .cover-brief dt { color:#cfe2f3; font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .cover-brief dd { margin:3px 0 0; color:white; font-weight:650; }
+    .contents h2, .basis-page h2, .report-section h2 { margin-top:0; color:var(--navy); font-size:2rem; letter-spacing:-.02em; }
+    .contents-frontmatter, .contents ol { display:grid; gap:9px; padding:0; list-style:none; }
+    .contents a {
+      display:grid;
+      grid-template-columns:86px 1fr;
+      gap:18px;
+      padding:11px 0;
+      border-bottom:1px solid var(--line);
+      color:var(--ink);
+      text-decoration:none;
+    }
+    .contents-number, .contents-frontmatter span, .section-kicker {
+      color:var(--blue);
+      font-size:.75rem;
+      font-weight:850;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .section-kicker { display:block; margin-bottom:10px; }
+    .report-section h3, .basis-page h3 { margin-top:28px; color:var(--navy); }
+    .basis-report-letter { margin:0 0 24px; padding:18px 20px; border:1px solid #dbeafe; border-radius:14px; background:linear-gradient(135deg, #f8fbff, #ffffff); }
+    .basis-report-letter h3 { margin-top:0; }
+    .report a { overflow-wrap:anywhere; }
+    .report-table { margin:18px 0 26px; font-size:.9rem; }
+    .report-table caption {
+      caption-side:top;
+      margin:0 0 8px;
+      color:var(--muted);
+      font-size:.72rem;
+      font-weight:850;
+      letter-spacing:.08em;
+      text-align:left;
+      text-transform:uppercase;
+    }
+    .report-table th { color:var(--navy); font-size:.75rem; letter-spacing:.06em; text-transform:uppercase; }
+    .section-sources .report-table td,
+    .section-comparable-evidence .report-table td { overflow-wrap:anywhere; word-break:break-word; }
+    .report-card, .callout, .info-card {
+      margin:18px 0;
+      padding:16px 18px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#f8fbff;
+    }
+    @media print {
+      body { background:white; }
+      .viewer-toolbar { display:none; }
+      .report { width:100%; margin:0; }
+      .cover, .report-page { box-shadow:none; page-break-after:always; }
+    }
+    
+</style>
+</head>
+<body>
+  <nav class="viewer-toolbar" aria-label="Report actions">
+    <a href="/wizard">← Back to wizard</a>
+    <span>Demo Indicative Valuation Report · AccountIQ Sample Limited</span>
+    <div class="viewer-toolbar-actions">
+      <a class="viewer-download" href="./pdf">Download PDF</a>
+    </div>
+  </nav>
+  <main class="report">
+    
+    <aside class="demo-banner" role="note">
+      <strong>Demo data - not for reliance.</strong>
+      Research, financial figures and valuation conclusions in this report are simulated
+      to demonstrate the AccountIQ experience.
+    </aside>
+    
+    <section class="cover">
+      <div class="brand">AccountIQ</div>
+      
+    <aside class="cover-report-basis" aria-label="Report basis">
+      <span>Report basis</span>
+      <dl><div><dt>Uploaded financials</dt><dd>Revenue, earnings and balance sheet</dd></div><div><dt>Five private inputs</dt><dd>Only facts management can confirm</dd></div><div><dt>Public-source trail</dt><dd>Research URLs retained for review</dd></div><div><dt>AccountIQ model</dt><dd>DCF, WACC, multiples and sensitivity</dd></div></dl>
+    </aside>
+    
+      
+        <aside class="cover-snapshot" aria-label="Valuation snapshot">
+          <span>Valuation snapshot</span>
+          <table>
+            <thead><tr><th>Output</th><th>High</th><th>Mid</th><th>Low</th></tr></thead>
+            <tbody><tr><td>Enterprise value</td><td>$2,831,000</td><td>$2,314,000</td><td>$1,898,000</td></tr><tr><td>Less: net debt</td><td>$65,000</td><td>$65,000</td><td>$65,000</td></tr><tr><td>Indicative equity value</td><td>$2,766,000</td><td>$2,249,000</td><td>$1,833,000</td></tr></tbody>
+          </table>
+          <p>Computed from the same valuation table used in the body of this report.</p>
+        </aside>
+        
+      <div class="cover-copy">
+        <span class="cover-kicker">Demo data - not for reliance</span>
+        <h1>Demo Indicative Valuation Report</h1>
+        <p class="company">AccountIQ Sample Limited</p>
+        
+    <aside class="cover-brief" aria-label="Report cover details">
+      <dl><div><dt>Prepared for</dt><dd>AccountIQ Sample Limited</dd></div><div><dt>Prepared by</dt><dd>AccountIQ</dd></div><div><dt>Report type</dt><dd>Demo Indicative Valuation Report</dd></div><div><dt>Reference</dt><dd>AIQ-VAL-009001</dd></div><div><dt>Valuation date</dt><dd>4 July 2026</dd></div><div><dt>Purpose</dt><dd>Understand what the business may be worth</dd></div><div><dt>Basis of value</dt><dd>Indicative fair-market value, going-concern basis</dd></div><div><dt>Reliance</dt><dd>Demo data only - not for reliance.</dd></div></dl>
+    </aside>
+    
+      </div>
+    </section>
+    <section class="report-page contents">
+      <h2>Contents</h2>
+      <div class="contents-frontmatter">
+        <a href="#basis-of-preparation"><span>Front matter</span>Report letter and basis of preparation</a>
+      </div>
+      <ol>
+        <li><a href='#introduction' aria-label='01 Introduction'><span class='contents-number'>01</span><span>Introduction</span></a></li><li><a href='#executive_summary' aria-label='02 Executive Summary'><span class='contents-number'>02</span><span>Executive Summary</span></a></li><li><a href='#business_overview' aria-label='03 Overview'><span class='contents-number'>03</span><span>Overview</span></a></li><li><a href='#market_position' aria-label='04 Market Position'><span class='contents-number'>04</span><span>Market Position</span></a></li><li><a href='#about_business_valuations' aria-label='05 About Business Valuations'><span class='contents-number'>05</span><span>About Business Valuations</span></a></li><li><a href='#valuation_methodology' aria-label='06 Valuation Methodology Adopted'><span class='contents-number'>06</span><span>Valuation Methodology Adopted</span></a></li><li><a href='#financial_performance' aria-label='07 Financial Performance'><span class='contents-number'>07</span><span>Financial Performance</span></a></li><li><a href='#financial_ratio_analysis' aria-label='08 Historical Ratio Analysis'><span class='contents-number'>08</span><span>Historical Ratio Analysis</span></a></li><li><a href='#normalisations_schedule' aria-label='09 Normalisations'><span class='contents-number'>09</span><span>Normalisations</span></a></li><li><a href='#balance_sheet_summary' aria-label='10 Balance Sheet Summary'><span class='contents-number'>10</span><span>Balance Sheet Summary</span></a></li><li><a href='#valuation_assumptions' aria-label='11 Valuation Approach and Assumptions'><span class='contents-number'>11</span><span>Valuation Approach and Assumptions</span></a></li><li><a href='#wacc_assumptions' aria-label='12 Weighted Average Cost of Capital'><span class='contents-number'>12</span><span>Weighted Average Cost of Capital</span></a></li><li><a href='#dcf_analysis' aria-label='13 Discounted Cash Flow Analysis'><span class='contents-number'>13</span><span>Discounted Cash Flow Analysis</span></a></li><li><a href='#valuation_summary' aria-label='14 Indicative Valuation Summary'><span class='contents-number'>14</span><span>Indicative Valuation Summary</span></a></li><li><a href='#multiples_crosscheck' aria-label='15 Multiples Cross-check'><span class='contents-number'>15</span><span>Multiples Cross-check</span></a></li><li><a href='#sensitivity_and_risks' aria-label='16 Sensitivity and Specific Risks'><span class='contents-number'>16</span><span>Sensitivity and Specific Risks</span></a></li><li><a href='#comparable_evidence' aria-label='17 Comparable Evidence Appendix'><span class='contents-number'>17</span><span>Comparable Evidence Appendix</span></a></li><li><a href='#sources' aria-label='18 Sources and References'><span class='contents-number'>18</span><span>Sources and References</span></a></li><li><a href='#disclaimer' aria-label='19 Disclaimer'><span class='contents-number'>19</span><span>Disclaimer</span></a></li><li><a href='#general_principles' aria-label='20 General Principles'><span class='contents-number'>20</span><span>General Principles</span></a></li><li><a href='#glossary' aria-label='21 Glossary'><span class='contents-number'>21</span><span>Glossary</span></a></li>
+      </ol>
+    </section>
+    
+    <section id="basis-of-preparation" class="report-page basis-page" aria-labelledby="basis-of-preparation-title">
+      <span class="section-kicker">Basis of preparation</span>
+      <h2 id="basis-of-preparation-title">Basis of preparation</h2>
+      <div class="basis-report-letter"><h3>Report letter</h3><p>AccountIQ has prepared this indicative valuation report for AccountIQ Sample Limited as a professional valuation report pack for Demo Indicative Valuation Report. It is intended to give the reader a clear valuation range, the evidence relied upon, the key limitations and the management-confirmed assumptions without requiring the owner to complete a long technical valuation questionnaire.</p><table class='report-table report-letter-table'><thead><tr><th>Letter item</th><th>Report position</th></tr></thead><tbody><tr><td>Prepared for</td><td>AccountIQ Sample Limited</td></tr><tr><td>Prepared by</td><td>AccountIQ valuation team</td></tr><tr><td>Preparer role</td><td>Valuation report preparation and evidence synthesis</td></tr><tr><td>Organisation</td><td>AccountIQ</td></tr><tr><td>Report channel</td><td>Secure AccountIQ workspace and downloadable PDF</td></tr><tr><td>Report type</td><td>Demo Indicative Valuation Report</td></tr><tr><td>Reference</td><td>AIQ-VAL-009001</td></tr><tr><td>Purpose and reliance</td><td>Understand what the business may be worth</td></tr><tr><td>Information relied upon</td><td>Uploaded financial statements, five management-confirmed private inputs, the earnings-adjustment review, public-source research and AccountIQ valuation calculations.</td></tr><tr><td>Work performed</td><td>AccountIQ prepared DCF, discount-rate, sensitivity, multiples and enterprise-to-equity schedules and used those outputs to draft the valuation narrative.</td></tr><tr><td>Important limitation</td><td>This is an indicative valuation report only and is not an audit or assurance engagement, legal advice, tax advice, a fairness opinion or a buyer-specific synergy assessment.</td></tr></tbody></table></div>
+      <p>This front-matter explains how AccountIQ prepared the indicative valuation from uploaded financial information, management-confirmed private inputs, public research and AccountIQ valuation calculations. Technical assumptions such as discount rate, terminal growth and forecast horizon are derived and disclosed rather than selected by management, so the reader can see what each conclusion relies on.</p>
+      <table class='report-table scope-table'><thead><tr><th>Scope item</th><th>Value</th></tr></thead><tbody><tr><td>Valuation purpose</td><td>Understand what the business may be worth</td></tr><tr><td>Valuation date</td><td>4 July 2026</td></tr><tr><td>Basis of value</td><td>Indicative fair-market value of the operating business on a going-concern basis, before buyer-specific synergies or transaction structure.</td></tr><tr><td>Reliance limitation</td><td>Indicative valuation support for the stated purpose only; not financial advice and not a substitute for independent professional advice.</td></tr><tr><td>Information basis</td><td>Prepared from uploaded financial statements, the five management-confirmed private inputs, the earnings-adjustment review, public-source research and AccountIQ valuation calculations available at the valuation date.</td></tr><tr><td>Scope exclusions</td><td>Does not constitute an audit, assurance engagement, legal advice, tax advice, transaction fairness opinion or buyer-specific synergy assessment.</td></tr></tbody></table>
+      <h3>Management input trail</h3>
+      <table class='report-table management-input-table'><thead><tr><th>Management input</th><th>Basis</th><th>How it informs the report</th></tr></thead><tbody><tr><td>Management input - Valuation purpose</td><td>Management-confirmed private input</td><td>Understand what the business may be worth. Frames the report scope, reliance wording and how the valuation conclusion is positioned.</td></tr><tr><td>Management input - Owner or key-person dependency</td><td>Management-confirmed private input</td><td>Responsibility is shared across leadership and team. Informs continuity, handover risk, transition risk and specific-risk commentary.</td></tr><tr><td>Management input - Largest-customer concentration</td><td>Management-confirmed private input</td><td>10% to 25%. Informs revenue-retention risk, diligence focus and concentration commentary.</td></tr><tr><td>Management input - Revenue predictability</td><td>Management-confirmed private input</td><td>A mix of recurring and one-off revenue. Informs cash-flow reliability, contract-security commentary and forecast support.</td></tr><tr><td>Management input - Revenue outlook</td><td>Management-confirmed private input</td><td>No specific forecast provided; growth derived from uploaded financial history. Informs the short-term growth assumption or, when no specific forecast is supplied, the decision to derive growth from uploaded financial history.</td></tr></tbody></table>
+      <h3>Evidence and model basis</h3>
+      <table class='report-table basis-table'><thead><tr><th>Input area</th><th>How it is used in the report</th></tr></thead><tbody><tr><td>Uploaded financial statements</td><td>Used for historical revenue, profitability, balance sheet items, working capital, candidate normalisations and financial ratio analysis.</td></tr><tr><td>Five management-confirmed private inputs</td><td>Used for purpose, owner or key-person dependency, customer concentration, revenue predictability and the realistic 12-24 month revenue outlook.</td></tr><tr><td>Earnings-adjustment review</td><td>Used to confirm genuine one-off, owner-specific or non-operating items before they appear in the normalisation schedule; recurring operating costs are intentionally left in the earnings base.</td></tr><tr><td>Optional public-source hints</td><td>Used only to match the correct business and guide research. They are not required from management and are treated as source hints until corroborated.</td></tr><tr><td>Simulated public research</td><td>Used for company and sector context, comparable evidence, RBNZ risk-free-rate context, Damodaran discount-rate inputs and inflation assumptions; URLs are retained in the sources section.</td></tr><tr><td>AccountIQ valuation model</td><td>AccountIQ calculates the DCF valuation, discount-rate scenarios, multiples cross-check, enterprise-to-equity bridge, sensitivity matrix and forecast cash-flow schedule before the narrative is written.</td></tr><tr><td>Derived technical assumptions</td><td>Discount rate, terminal growth and forecast horizon are derived by the AccountIQ valuation model and disclosed in the report rather than selected by management.</td></tr><tr><td>Questions intentionally not asked</td><td>Management is not asked to choose the forecast horizon, WACC, terminal growth or discount-rate scenarios; AccountIQ derives these technical inputs from uploaded financials, public market evidence and its valuation model.</td></tr></tbody></table>
+    </section>
+    
+    
+        <section id="introduction" class="report-section section-introduction">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">01</span> Introduction</h2>
+            
+            <h3>Client and report purpose</h3><p>This indicative valuation has been prepared to provide management and shareholders with an informed view of the fair-market value of 100% of the operating business. The stated purpose is to understand what the business may be worth before any sale, finance or shareholder discussion.</p><h3>Valuation date and basis of value</h3><p>The valuation is expressed as at the prepared date shown on the cover page. Value is considered on a going-concern fair-market basis for the operating business, before buyer-specific synergies, transaction structure, warranties or completion adjustments.</p><h3>Sources of information</h3><p>The report draws on uploaded financial information, management-confirmed private inputs, public-source research and AccountIQ valuation calculations. Public source URLs are retained in the sources section so a reader can inspect the evidence trail behind the valuation assumptions.</p><h3>Liability, confidentiality and compliance</h3><p>This report is indicative only and is prepared for the stated purpose. It is not an independent business valuation report, does not constitute financial advice and should not be relied on as a substitute for independent professional advice. Demo figures and simulated research are included only to demonstrate the AccountIQ report experience.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+        </section>
+        <section id="executive_summary" class="report-section executive-summary section-executive-summary">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">02</span> Executive Summary</h2>
+            
+            <p>The primary discounted cash flow analysis indicates an enterprise value range of $1.90 million to $2.83 million after the private-company illiquidity adjustment, with a midpoint of $2.31 million. The result is most sensitive to maintainable EBITDA, customer retention and the selected cost of capital.</p>
+            
+    <aside class="executive-highlights" aria-label="Valuation conclusion at a glance">
+      <h3>Valuation conclusion at a glance</h3>
+      <dl><div><dt>Enterprise value range</dt><dd>$1,898,000 - $2,831,000</dd><p>Primary DCF valuation range after the private-company illiquidity adjustment.</p></div><div><dt>Midpoint enterprise value</dt><dd>$2,314,000</dd><p>Central indication before the net debt and surplus asset bridge.</p></div><div><dt>Midpoint equity value</dt><dd>$2,249,000</dd><p>Central shareholder-value indication after the enterprise-to-equity bridge.</p></div><div><dt>Net debt adjustment</dt><dd>$65,000</dd><p>Bridge item applied consistently across the valuation scenarios.</p></div></dl>
+    </aside>
+    
+            
+    <aside class="valuation-range-visual" aria-label="Valuation range visual">
+      <h3>Valuation range visual</h3>
+      <p>Low, midpoint and high cases from AccountIQ&#x27;s valuation schedules.</p>
+      <div>
+        <div class="range-visual-row">
+          <div class="range-visual-label">
+            <strong>Enterprise value</strong>
+            <span>Operating-business value before the net-debt bridge.</span>
+          </div>
+          <div class="range-visual-track" aria-label="Enterprise value range">
+            <span class="range-visual-axis"></span>
+            <span class="range-visual-band" style="left:12.51%; width:80.59%"></span>
+            <span class="range-visual-mid" style="left:48.45%"></span>
+            <span class="range-visual-low" style="left:12.51%">$1,898,000</span>
+            <span class="range-visual-high" style="left:93.10%">$2,831,000</span>
+            <span class="range-visual-mid-label" style="left:48.45%">Mid $2,314,000</span>
+          </div>
+        </div>
+        
+        <div class="range-visual-row">
+          <div class="range-visual-label">
+            <strong>Indicative equity value</strong>
+            <span>Shareholder-value range after debt, cash and surplus assets.</span>
+          </div>
+          <div class="range-visual-track" aria-label="Indicative equity value range">
+            <span class="range-visual-axis"></span>
+            <span class="range-visual-band" style="left:6.90%; width:80.59%"></span>
+            <span class="range-visual-mid" style="left:42.83%"></span>
+            <span class="range-visual-low" style="left:6.90%">$1,833,000</span>
+            <span class="range-visual-high" style="left:87.49%">$2,766,000</span>
+            <span class="range-visual-mid-label" style="left:42.83%">Mid $2,249,000</span>
+          </div>
+        </div>
+        </div>
+    </aside>
+    
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Executive Summary detailed schedule</caption><thead><tr><th>Indicative valuation</th><th class="numeric-cell">High</th><th class="numeric-cell">Mid</th><th class="numeric-cell">Low</th></tr></thead><tbody><tr><td>Enterprise value</td><td class="numeric-cell">$2,831,000</td><td class="numeric-cell">$2,314,000</td><td class="numeric-cell">$1,898,000</td></tr><tr><td>Less: net debt</td><td class="numeric-cell">$65,000</td><td class="numeric-cell">$65,000</td><td class="numeric-cell">$65,000</td></tr><tr><td>Indicative equity value</td><td class="numeric-cell">$2,766,000</td><td class="numeric-cell">$2,249,000</td><td class="numeric-cell">$1,833,000</td></tr></tbody></table>
+            
+        </section>
+        <section id="business_overview" class="report-section section-business-overview">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">03</span> Overview</h2>
+            
+            <p>The subject company provides recurring business services to New Zealand SMEs. Public-source research indicates a stable market position supported by repeat customers, while management has confirmed that responsibility is shared across the operating team.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+    <aside class="reader-guidance" aria-label="Business context at a glance">
+      <h3>Business context at a glance</h3>
+      <dl><div><dt>Owner or key-person dependency</dt><dd>Responsibility is shared across leadership and team</dd><p>Management-supplied context used to frame transition and key-person risk.</p></div><div><dt>Customer concentration</dt><dd>10% to 25%</dd><p>Management-supplied context highlighting whether revenue is exposed to large customers.</p></div><div><dt>Revenue predictability</dt><dd>A mix of recurring and one-off revenue</dd><p>Management-supplied context distinguishing recurring, mixed and project-based revenue.</p></div><div><dt>Revenue outlook</dt><dd>No specific forecast provided; growth derived from uploaded financial history</dd><p>Management-supplied context used to support or derive the short-term growth assumption.</p></div></dl>
+    </aside>
+    
+        </section>
+        <section id="market_position" class="report-section section-market-position">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">04</span> Market Position</h2>
+            
+            <p>The relevant New Zealand services market remains fragmented. Competitive advantage depends on customer retention, delivery quality and trusted relationships. Public market evidence was cross-checked against the company&#x27;s private operating context.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+    <aside class="reader-guidance" aria-label="Market context at a glance">
+      <h3>Market context at a glance</h3>
+      <dl><div><dt>Public sources retained</dt><dd>4</dd><p>Source URLs are retained for market, profile and benchmark context.</p></div><div><dt>Benchmark evidence</dt><dd>Public evidence supports sector or EV/EBITDA context</dd><p>Explains whether public evidence supports market or EV/EBITDA context.</p></div><div><dt>Public profile support</dt><dd>Public sources support the company profile or operating context</dd><p>Explains whether public sources support company-profile or operating-context statements.</p></div><div><dt>Comparability caveat</dt><dd>Limitations explain the evidence is contextual, not direct pricing</dd><p>Explains that public evidence is used for context and cross-checking, not a direct price.</p></div></dl>
+    </aside>
+    
+        </section>
+        <section id="about_business_valuations" class="report-section section-about-business-valuations">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">05</span> About Business Valuations</h2>
+            
+            <h3>What the valuation represents</h3><p>A business valuation estimates what a willing, informed buyer might pay and a willing, informed seller might accept in an arm&#x27;s-length transaction at the valuation date. It is not the same as a guaranteed sale price. It assumes a going-concern operating business and focuses on maintainable earnings rather than a one-off result. The final consideration may also reflect buyer synergies, deal structure, warranties, working-capital adjustments and market conditions.</p><h3>Enterprise value and equity value</h3><p>Enterprise value is the value of the operating business before its financing position. Equity value is derived by deducting interest-bearing debt and adding available cash and separately identified surplus assets. This report therefore presents both measures.</p><h3>Why a range is used</h3><p>Private-company value is sensitive to forecasts, customer retention and the return required by a market participant or investor. High, midpoint and low cases communicate that uncertainty more honestly than a single point estimate.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+        </section>
+        <section id="valuation_methodology" class="report-section section-valuation-methodology">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">06</span> Valuation Methodology Adopted</h2>
+            
+            <h3>Primary method - discounted cash flow</h3><p>Discounted cash flow is the primary method because it directly reflects the company&#x27;s maintainable future cash-generating capacity. Expected free cash flows are forecast over five years and discounted to present value using a private-company cost of capital.</p><h3>Independent cross-check - market multiples</h3><p>Researched EV/EBITDA evidence provides an independent reasonableness cross-check. It is not used mechanically because disclosed transactions differ in scale, growth, customer mix, contract security and strategic value.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="Methodology at a glance">
+      <h3>Methodology at a glance</h3>
+      <dl><div><dt>Primary valuation method</dt><dd>Discounted cash flow</dd><p>Forecast free cash flows are the primary valuation basis.</p></div><div><dt>Discount-rate range</dt><dd>9.9% - 13.4%</dd><p>High, midpoint and low WACC scenarios create the valuation range.</p></div><div><dt>Market cross-check</dt><dd>5.0x - 7.0x EV/EBITDA</dd><p>Researched market multiples are used as a reasonableness check.</p></div><div><dt>Equity bridge</dt><dd>$2,249,000</dd><p>Enterprise value is bridged to shareholder value using debt, cash and surplus assets.</p></div></dl>
+    </aside>
+    
+            
+    <aside class="method-selection-visual" aria-label="Valuation approach selection">
+      <h3>Valuation approach selection</h3>
+      <p>Explains why the report adopts DCF, uses market multiples as a cross-check and does not rely on a net-asset method.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Approach</th>
+            <th>Role</th>
+            <th>Why this treatment is appropriate</th>
+            <th>Report treatment</th>
+          </tr>
+        </thead>
+        <tbody><tr><td>Income approach - DCF</td><td>Adopted as primary</td><td>Best matches a going-concern SME where value is driven by expected maintainable free cash flow.</td><td>Primary adjusted enterprise-value range: $1,898,000 - $2,831,000.</td></tr><tr><td>Market approach - EV/EBITDA</td><td>Reasonableness cross-check</td><td>Useful for market orientation, but not applied mechanically because public and transaction evidence differs in scale, liquidity, growth and participant-specific context.</td><td>Cross-check range: 5.0x - 7.0x EV/EBITDA.</td></tr><tr><td>Asset approach / net assets</td><td>Not primary</td><td>The report values the operating business as a going concern rather than on a liquidation or asset-accumulation basis.</td><td>Balance-sheet inputs are used for the enterprise-to-equity bridge; midpoint equity value is $2,249,000.</td></tr></tbody>
+      </table>
+    </aside>
+    
+            
+            
+            
+            
+            
+            
+            
+            
+            
+        </section>
+        <section id="financial_performance" class="report-section section-financial-performance">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">07</span> Financial Performance</h2>
+            
+            <p>Revenue increased from $980,000 in FY23 to $1.25 million in FY25, while the forecast year uses a more measured $1.35 million revenue base rather than assuming an aggressive step-change. Direct costs are shown separately so the reader can see the bridge from revenue to gross profit, and operating expenses are then deducted to arrive at EBITDA. The OPEX breakdown highlights the main controllable overheads: wages and salaries are the largest cost category, rent and occupancy is the next major recurring overhead, and marketing, insurance and other operating expenses are shown where they are material.</p><p>Gross profit improved from $588,000 to $787,500 over the historical period, while EBITDA increased from $165,000 to $240,000. The forecast keeps EBITDA margin broadly stable at 19.2%, which is deliberately conservative: it recognises recent operating leverage without assuming every efficiency gain repeats indefinitely. FY25 reported EBITDA of $240,000 is then adjusted separately in the normalisation schedule to reach the maintainable earnings base used for valuation.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="Trading performance at a glance">
+      <h3>Trading performance at a glance</h3>
+      <dl><div><dt>Revenue bridge</dt><dd>$980,000 to $1,350,000</dd><p>Top-line progression across the historical and forecast period shown in the report.</p></div><div><dt>Direct-cost bridge</dt><dd>($392,000) to ($499,500)</dd><p>Shows the cost-of-sales deduction used to move from revenue to gross profit.</p></div><div><dt>Gross profit bridge</dt><dd>$588,000 to $850,500</dd><p>Shows the trading margin available before overheads and other operating expenses.</p></div><div><dt>Operating expense bridge</dt><dd>($423,000) to ($591,500)</dd><p>Shows the overhead deduction used to reconcile gross profit to EBITDA.</p></div><div><dt>Wages and salaries</dt><dd>($240,000) to ($335,000)</dd><p>Highlights the main people-cost component inside operating expenses.</p></div><div><dt>Rent and occupancy</dt><dd>($84,000) to ($102,000)</dd><p>Highlights the main premises or occupancy cost inside operating expenses.</p></div><div><dt>Other operating expenses</dt><dd>($54,000) to ($89,500)</dd><p>Residual or other material overheads shown so EBITDA is easier to trace.</p></div><div><dt>EBITDA bridge</dt><dd>$165,000 to $259,000</dd><p>Operating earnings progression before the normalisation schedule is applied.</p></div><div><dt>EBITDA margin bridge</dt><dd>16.8% to 19.2%</dd><p>Shows whether operating leverage is improving, stable or weakening across the period.</p></div><div><dt>Latest actual EBITDA</dt><dd>$240,000</dd><p>Latest actual earnings reference point before forecast and valuation adjustments.</p></div></dl>
+    </aside>
+    
+            
+            
+    <aside class="financial-trend-visual" aria-label="Financial trend visual">
+      <div class="financial-trend-header">
+        <div>
+          <h3>Financial trend visual</h3>
+          <p>Revenue and EBITDA trend from the uploaded-financials schedule.</p>
+        </div>
+        <dl aria-label="Financial trend legend">
+          <div><dt>Revenue</dt><dd></dd></div>
+          <div><dt>EBITDA</dt><dd></dd></div>
+        </dl>
+      </div>
+      <div>
+        <div class="financial-trend-row">
+          <div class="financial-trend-period">
+            <strong>FY23 Actual</strong>
+            <span>EBITDA margin 16.8%</span>
+          </div>
+          <div class="financial-trend-bars">
+            <div class="financial-trend-bar revenue">
+              <span style="width:72.59%"></span>
+              <strong>$980,000</strong>
+            </div>
+            <div class="financial-trend-bar ebitda">
+              <span style="width:12.22%"></span>
+              <strong>$165,000</strong>
+            </div>
+          </div>
+        </div>
+        
+        <div class="financial-trend-row">
+          <div class="financial-trend-period">
+            <strong>FY24 Actual</strong>
+            <span>EBITDA margin 18.5%</span>
+          </div>
+          <div class="financial-trend-bars">
+            <div class="financial-trend-bar revenue">
+              <span style="width:82.22%"></span>
+              <strong>$1,110,000</strong>
+            </div>
+            <div class="financial-trend-bar ebitda">
+              <span style="width:15.19%"></span>
+              <strong>$205,000</strong>
+            </div>
+          </div>
+        </div>
+        
+        <div class="financial-trend-row">
+          <div class="financial-trend-period">
+            <strong>FY25 Actual</strong>
+            <span>EBITDA margin 19.2%</span>
+          </div>
+          <div class="financial-trend-bars">
+            <div class="financial-trend-bar revenue">
+              <span style="width:92.59%"></span>
+              <strong>$1,250,000</strong>
+            </div>
+            <div class="financial-trend-bar ebitda">
+              <span style="width:17.78%"></span>
+              <strong>$240,000</strong>
+            </div>
+          </div>
+        </div>
+        
+        <div class="financial-trend-row">
+          <div class="financial-trend-period">
+            <strong>FY26 Forecast</strong>
+            <span>EBITDA margin 19.2%</span>
+          </div>
+          <div class="financial-trend-bars">
+            <div class="financial-trend-bar revenue">
+              <span style="width:100.00%"></span>
+              <strong>$1,350,000</strong>
+            </div>
+            <div class="financial-trend-bar ebitda">
+              <span style="width:19.19%"></span>
+              <strong>$259,000</strong>
+            </div>
+          </div>
+        </div>
+        </div>
+    </aside>
+    
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Financial Performance detailed schedule</caption><thead><tr><th>Year ending March</th><th class="numeric-cell">FY23 Actual</th><th class="numeric-cell">FY24 Actual</th><th class="numeric-cell">FY25 Actual</th><th class="numeric-cell">FY26 Forecast</th></tr></thead><tbody><tr><td>Revenue</td><td class="numeric-cell">$980,000</td><td class="numeric-cell">$1,110,000</td><td class="numeric-cell">$1,250,000</td><td class="numeric-cell">$1,350,000</td></tr><tr><td>Less: direct costs / cost of sales</td><td class="numeric-cell">($392,000)</td><td class="numeric-cell">($427,400)</td><td class="numeric-cell">($462,500)</td><td class="numeric-cell">($499,500)</td></tr><tr><td>Gross profit</td><td class="numeric-cell">$588,000</td><td class="numeric-cell">$682,600</td><td class="numeric-cell">$787,500</td><td class="numeric-cell">$850,500</td></tr><tr><td>Less: operating expenses before EBITDA</td><td class="numeric-cell">($423,000)</td><td class="numeric-cell">($477,600)</td><td class="numeric-cell">($547,500)</td><td class="numeric-cell">($591,500)</td></tr><tr><td>OPEX breakdown - wages and salaries</td><td class="numeric-cell">($240,000)</td><td class="numeric-cell">($272,000)</td><td class="numeric-cell">($310,000)</td><td class="numeric-cell">($335,000)</td></tr><tr><td>OPEX breakdown - rent and occupancy</td><td class="numeric-cell">($84,000)</td><td class="numeric-cell">($90,000)</td><td class="numeric-cell">($96,000)</td><td class="numeric-cell">($102,000)</td></tr><tr><td>OPEX breakdown - advertising and marketing</td><td class="numeric-cell">($30,000)</td><td class="numeric-cell">($36,000)</td><td class="numeric-cell">($42,000)</td><td class="numeric-cell">($45,000)</td></tr><tr><td>OPEX breakdown - insurance</td><td class="numeric-cell">($15,000)</td><td class="numeric-cell">($16,600)</td><td class="numeric-cell">($18,000)</td><td class="numeric-cell">($20,000)</td></tr><tr><td>OPEX breakdown - other operating expenses</td><td class="numeric-cell">($54,000)</td><td class="numeric-cell">($63,000)</td><td class="numeric-cell">($81,500)</td><td class="numeric-cell">($89,500)</td></tr><tr><td>EBITDA</td><td class="numeric-cell">$165,000</td><td class="numeric-cell">$205,000</td><td class="numeric-cell">$240,000</td><td class="numeric-cell">$259,000</td></tr><tr><td>EBITDA margin</td><td class="numeric-cell">16.8%</td><td class="numeric-cell">18.5%</td><td class="numeric-cell">19.2%</td><td class="numeric-cell">19.2%</td></tr><tr><td>Less: depreciation and amortisation</td><td class="numeric-cell">($20,000)</td><td class="numeric-cell">($22,000)</td><td class="numeric-cell">($25,000)</td><td class="numeric-cell">($27,000)</td></tr><tr><td>EBIT</td><td class="numeric-cell">$145,000</td><td class="numeric-cell">$183,000</td><td class="numeric-cell">$215,000</td><td class="numeric-cell">$232,000</td></tr><tr><td>Net profit after tax</td><td class="numeric-cell">$105,000</td><td class="numeric-cell">$128,000</td><td class="numeric-cell">$150,000</td><td class="numeric-cell">$163,000</td></tr></tbody></table>
+            
+        </section>
+        <section id="financial_ratio_analysis" class="report-section section-financial-ratio-analysis">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">08</span> Historical Ratio Analysis</h2>
+            
+            <p>Historical ratios show improving scale and operating leverage. The forecast deliberately holds EBITDA margin broadly flat rather than assuming that the recent expansion continues indefinitely.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="Margin and growth at a glance">
+      <h3>Margin and growth at a glance</h3>
+      <dl><div><dt>Latest revenue growth</dt><dd>8.0%</dd><p>Latest growth rate shown in the uploaded-financials trend table.</p></div><div><dt>Gross margin bridge</dt><dd>60.0% to 63.0%</dd><p>Shows whether direct-cost efficiency is improving, stable or weakening.</p></div><div><dt>EBITDA margin bridge</dt><dd>16.8% to 19.2%</dd><p>Summarises operating leverage before valuation adjustments.</p></div><div><dt>Net profit margin bridge</dt><dd>10.7% to 12.1%</dd><p>Shows the after-tax profit conversion trend visible in the uploaded financials.</p></div></dl>
+    </aside>
+    
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Historical Ratio Analysis detailed schedule</caption><thead><tr><th>Ratio</th><th class="numeric-cell">FY23 Actual</th><th class="numeric-cell">FY24 Actual</th><th class="numeric-cell">FY25 Actual</th><th class="numeric-cell">FY26 Forecast</th></tr></thead><tbody><tr><td>Revenue growth</td><td class="numeric-cell">Not available</td><td class="numeric-cell">13.3%</td><td class="numeric-cell">12.6%</td><td class="numeric-cell">8.0%</td></tr><tr><td>Gross margin</td><td class="numeric-cell">60.0%</td><td class="numeric-cell">61.5%</td><td class="numeric-cell">63.0%</td><td class="numeric-cell">63.0%</td></tr><tr><td>EBITDA margin</td><td class="numeric-cell">16.8%</td><td class="numeric-cell">18.5%</td><td class="numeric-cell">19.2%</td><td class="numeric-cell">19.2%</td></tr><tr><td>Net profit margin</td><td class="numeric-cell">10.7%</td><td class="numeric-cell">11.5%</td><td class="numeric-cell">12.0%</td><td class="numeric-cell">12.1%</td></tr></tbody></table>
+            
+        </section>
+        <section id="normalisations_schedule" class="report-section section-normalisations-schedule">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">09</span> Normalisations</h2>
+            
+            <p>Normalisations isolate maintainable operating earnings from owner-specific and one-off expenditure.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="Normalisation impact at a glance">
+      <h3>Normalisation impact at a glance</h3>
+      <dl><div><dt>Confirmed adjustments</dt><dd>2</dd><p>Management-reviewed normalisation items included in the maintainable earnings bridge.</p></div><div><dt>Net EBITDA adjustment</dt><dd>$47,000</dd><p>Net add-back or deduction applied before the valuation earnings base.</p></div><div><dt>Largest adjustment</dt><dd>Owner remuneration above market - $35,000</dd><p>Largest individual normalisation item for adviser or management review.</p></div><div><dt>Normalised EBITDA</dt><dd>$287,000</dd><p>Maintainable earnings base used in the valuation analysis.</p></div></dl>
+    </aside>
+    
+            
+            
+            
+    <aside class="normalised-ebitda-bridge-visual" aria-label="Normalised EBITDA bridge">
+      <h3>Normalised EBITDA bridge</h3>
+      <p>Shows how uploaded operating earnings from the uploaded accounts convert to the maintainable EBITDA used in the valuation. Source basis: uploaded accounts plus confirmed adjustment rows from the earnings-adjustment review. Valuation use: the same normalised EBITDA is carried into DCF and multiples.</p>
+      <div class="normalised-ebitda-bridge-steps">
+        <div class="normalised-ebitda-bridge-card">
+          <strong>Uploaded EBITDA basis</strong>
+          <span>$240,000</span>
+          <p>Starting earnings base from the uploaded financial statements.</p>
+        </div>
+        <span class="normalised-ebitda-bridge-operator">+</span>
+        <div class="normalised-ebitda-bridge-card">
+          <strong>Net normalisation</strong>
+          <span>$47,000</span>
+          <p>Management-reviewed add-backs or deductions confirmed before valuing maintainable earnings.</p>
+        </div>
+        <span class="normalised-ebitda-bridge-operator">=</span>
+        <div class="normalised-ebitda-bridge-card">
+          <strong>Normalised EBITDA</strong>
+          <span>$287,000</span>
+          <p>Maintainable earnings base carried into DCF and market-multiple checks.</p>
+        </div>
+        <span class="normalised-ebitda-bridge-operator"></span>
+        <div class="normalised-ebitda-bridge-card">
+          <strong>Owner review</strong>
+          <span>2 adjustments</span>
+          <p>The earnings bridge comes from the earnings-adjustment review and uploaded accounts.</p>
+        </div>
+        <span class="normalised-ebitda-bridge-operator"></span>
+        <div class="normalised-ebitda-bridge-card">
+          <strong>Source basis</strong>
+          <span>Accounts + review</span>
+          <p>The bridge is calculated from uploaded accounts and confirmed adjustment rows.</p>
+        </div>
+        <span class="normalised-ebitda-bridge-operator"></span>
+        <div class="normalised-ebitda-bridge-card">
+          <strong>Valuation use</strong>
+          <span>DCF and multiples</span>
+          <p>The same normalised EBITDA is used consistently across valuation methods.</p>
+        </div>
+        </div>
+    </aside>
+    
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Normalisations detailed schedule</caption><thead><tr><th>Adjustment</th><th class="numeric-cell">Amount</th><th>Rationale</th></tr></thead><tbody><tr><td>Owner remuneration above market</td><td class="numeric-cell">$35,000</td><td>Replace with an arm&#x27;s-length management cost</td></tr><tr><td>One-off legal costs</td><td class="numeric-cell">$12,000</td><td>Non-recurring legal expenditure</td></tr><tr><td>Normalised FY25 EBITDA</td><td class="numeric-cell">$287,000</td><td>Reported EBITDA plus confirmed adjustments</td></tr></tbody></table>
+            
+        </section>
+        <section id="balance_sheet_summary" class="report-section section-balance-sheet-summary">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">10</span> Balance Sheet Summary</h2>
+            
+            <p>The balance sheet is shown for two reasons. First, it gives the reader context on the reported asset, liability and net-asset position of the business. Secondly, it explains how AccountIQ converts enterprise value, which values the operating business before financing, into equity value, which is the value attributable to shareholders.</p><p>The sample business has $370,000 of current assets and $260,000 of current liabilities, which supports the working-capital assumption used in the DCF. The operating asset base is mainly accounts receivable, stock and fixed assets, while the main operating liability is accounts payable. Net tangible operating assets are shown separately so the reader can see the operating asset position before cash and interest-bearing loans are considered.</p><p>Reported net assets of $430,000 are materially below the $2.249 million midpoint equity value because the valuation is based on maintainable cash flow rather than book value. Net debt of $65,000 is deducted from enterprise value and no separately identified surplus assets are added.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="Enterprise-to-equity bridge">
+      <h3>Enterprise-to-equity bridge</h3>
+      <dl><div><dt>Operating asset detail</dt><dd>$210,000 receivables, $65,000 stock and $185,000 fixed assets</dd><p>Shows the main operating asset items supporting the NTOA position.</p></div><div><dt>Operating liability detail</dt><dd>$155,000</dd><p>Shows the main operating payable deducted in the NTOA position.</p></div><div><dt>Loan detail</dt><dd>$60,000 current loans and $100,000 long-term loans</dd><p>Shows borrowings separately from operating assets and liabilities.</p></div><div><dt>NTOA position</dt><dd>$260,000</dd><p>Net tangible operating assets before cash, interest-bearing debt and surplus assets.</p></div><div><dt>Current balance sheet position</dt><dd>$370,000 current assets vs $260,000 current liabilities</dd><p>Summarises short-term balance-sheet scale before the valuation bridge.</p></div><div><dt>Total asset and liability base</dt><dd>$850,000 total assets vs $420,000 total liabilities</dd><p>Shows the reported balance-sheet base used as context, not as the primary valuation method.</p></div><div><dt>Reported net assets</dt><dd>$430,000</dd><p>Book equity is shown as context and should not be read as the going-concern valuation conclusion.</p></div><div><dt>Midpoint enterprise value</dt><dd>$2,314,000</dd><p>Operating-business value before the debt, cash and surplus-asset bridge.</p></div><div><dt>Net debt bridge</dt><dd>($65,000)</dd><p>Debt exceeds cash by this amount, reducing the value attributable to shareholders.</p></div><div><dt>Midpoint equity value</dt><dd>$2,249,000</dd><p>Central shareholder-value indication after the bridge from enterprise value.</p></div></dl>
+    </aside>
+    
+            
+            
+            
+            
+    <aside class="equity-bridge-visual" aria-label="Enterprise-to-equity visual">
+      <h3>Enterprise-to-equity visual</h3>
+      <p>Shows how operating-business value converts to shareholder value using existing balance-sheet inputs.</p>
+      <div class="equity-bridge-steps">
+        <div class="equity-bridge-card">
+          <strong>Midpoint enterprise value</strong>
+          <span>$2,314,000</span>
+          <p>Operating-business value before debt, cash and surplus assets.</p>
+        </div>
+        <span class="equity-bridge-operator">-</span>
+        <div class="equity-bridge-card">
+          <strong>Less net debt</strong>
+          <span>($65,000)</span>
+          <p>Interest-bearing debt less available cash.</p>
+        </div>
+        <span class="equity-bridge-operator">+</span>
+        <div class="equity-bridge-card">
+          <strong>Surplus assets</strong>
+          <span>$0</span>
+          <p>Separately identified non-operating assets added back.</p>
+        </div>
+        <span class="equity-bridge-operator">=</span>
+        <div class="equity-bridge-card">
+          <strong>Midpoint equity value</strong>
+          <span>$2,249,000</span>
+          <p>Indicative shareholder value after the balance-sheet bridge.</p>
+        </div>
+        </div>
+    </aside>
+    
+            
+            
+            
+            
+            <table class='report-table'><caption>Balance Sheet Summary detailed schedule</caption><thead><tr><th>Balance sheet item</th><th class="numeric-cell">Value</th><th>Commentary / treatment</th></tr></thead><tbody><tr><td>Cash and bank</td><td class="numeric-cell">$95,000</td><td>Available cash shown separately from operating assets and included in the equity bridge.</td></tr><tr><td>Accounts receivable / trade debtors</td><td class="numeric-cell">$210,000</td><td>Customer receivables included in operating asset and NTOA context.</td></tr><tr><td>Inventory / stock</td><td class="numeric-cell">$65,000</td><td>Stock on hand included in operating asset and NTOA context.</td></tr><tr><td>Total current assets</td><td class="numeric-cell">$370,000</td><td>Uploaded balance sheet current-asset total; supports the working-capital context.</td></tr><tr><td>Fixed assets (net)</td><td class="numeric-cell">$185,000</td><td>Operating asset base shown for context; not used as a standalone asset valuation.</td></tr><tr><td>Other non-current assets</td><td class="numeric-cell">$295,000</td><td>Other long-term assets shown for balance-sheet completeness.</td></tr><tr><td>Total assets</td><td class="numeric-cell">$850,000</td><td>Reported asset base shown as financial-position context.</td></tr><tr><td>Accounts payable / trade creditors</td><td class="numeric-cell">$155,000</td><td>Trade payables included in operating liability and NTOA context.</td></tr><tr><td>Other current liabilities</td><td class="numeric-cell">$45,000</td><td>Other operating current liabilities included in NTOA context where extracted.</td></tr><tr><td>Short-term loans / current borrowings</td><td class="numeric-cell">$60,000</td><td>Current interest-bearing borrowings included in the debt bridge.</td></tr><tr><td>Total current liabilities</td><td class="numeric-cell">$260,000</td><td>Uploaded balance sheet current-liability total; supports the working-capital context.</td></tr><tr><td>Long-term loans / borrowings</td><td class="numeric-cell">$100,000</td><td>Non-current interest-bearing borrowings included in the debt bridge.</td></tr><tr><td>Other non-current liabilities</td><td class="numeric-cell">$60,000</td><td>Other long-term liabilities shown for balance-sheet completeness.</td></tr><tr><td>Total liabilities</td><td class="numeric-cell">$420,000</td><td>Reported liability base shown as solvency and leverage context.</td></tr><tr><td>Shareholders&#x27; equity / net assets</td><td class="numeric-cell">$430,000</td><td>Book equity is shown for context and reconciled separately from going-concern enterprise value.</td></tr><tr><td>Net tangible operating assets (NTOA)</td><td class="numeric-cell">$260,000</td><td>Receivables, stock and fixed assets less accounts payable and other operating current liabilities, excluding cash and interest-bearing debt.</td></tr><tr><td>Operating working capital</td><td class="numeric-cell">$75,000</td><td>Accounts receivable and stock less accounts payable and other operating current liabilities.</td></tr><tr><td>Interest-bearing debt</td><td class="numeric-cell">$160,000</td><td>Borrowings deducted through the net-debt bridge.</td></tr><tr><td>Net debt</td><td class="numeric-cell">$65,000</td><td>Interest-bearing debt less cash and bank.</td></tr><tr><td>Surplus / non-operating assets</td><td class="numeric-cell">$0</td><td>No separately identified surplus assets in the sample case.</td></tr><tr><td>Midpoint enterprise value</td><td class="numeric-cell">$2,314,000</td><td>Central DCF operating-business value after illiquidity adjustment.</td></tr><tr><td>Less: net debt</td><td class="numeric-cell">($65,000)</td><td>Deducted to move from enterprise value to shareholder value.</td></tr><tr><td>Add: surplus assets</td><td class="numeric-cell">$0</td><td>No surplus assets added in the sample case.</td></tr><tr><td>Midpoint equity value</td><td class="numeric-cell">$2,249,000</td><td>Central shareholder-value indication after the bridge.</td></tr></tbody></table>
+            
+        </section>
+        <section id="valuation_assumptions" class="report-section section-valuation-assumptions">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">11</span> Valuation Approach and Assumptions</h2>
+            
+            <h3>Earnings and forecast period</h3><p>The model uses normalised FY25 EBITDA of $287,000 and a five-year explicit forecast period. Revenue and maintainable earnings grow at 8.0% a year, derived from uploaded revenue history because management did not provide a specific short-term forecast.</p><h3>Long-term and reinvestment assumptions</h3><p>A 2.5% terminal growth rate is anchored to long-run New Zealand inflation and remains below every WACC scenario. The model applies the 28% New Zealand corporate tax rate. Base depreciation of $25,000 is assumed to equal maintenance capital expenditure. Operating working capital is modelled at 5.0% of revenue, so growth requires a corresponding incremental cash investment.</p><h3>Ownership and customer context</h3><p>Management has indicated that operational responsibility is shared, no single customer represents more than 20% of revenue, and income is a mix of recurring and project work.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="Assumption basis at a glance">
+      <h3>Assumption basis at a glance</h3>
+      <dl><div><dt>Maintainable earnings base</dt><dd>$287,000</dd><p>Normalised EBITDA used as the valuation earnings base.</p></div><div><dt>Growth assumption</dt><dd>8.0%</dd><p>Forecast growth assumption disclosed with its source.</p></div><div><dt>Public research inputs</dt><dd>2</dd><p>Assumptions supported by public market, inflation or discount-rate evidence.</p></div><div><dt>Management-confirmed inputs</dt><dd>5</dd><p>Management-supplied private inputs used for business-specific assumptions.</p></div><div><dt>Technical model inputs</dt><dd>1</dd><p>Valuation-model conventions disclosed with the assumption basis.</p></div></dl>
+    </aside>
+    
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Valuation Approach and Assumptions detailed schedule</caption><thead><tr><th>Assumption / input</th><th>Value used</th><th>Primary source</th><th>Why it matters</th></tr></thead><tbody><tr><td>Normalised EBITDA</td><td>$287,000</td><td>Uploaded financial statements plus management-confirmed earnings adjustments</td><td>Sets the maintainable earnings base for DCF and multiples cross-checks.</td></tr><tr><td>Explicit forecast period</td><td>5 years</td><td>AccountIQ valuation model convention</td><td>Defines the period over which cash flows are forecast before terminal value.</td></tr><tr><td>Revenue and earnings growth</td><td>8.0%</td><td>Uploaded revenue history: CAGR capped between -5% and 12%</td><td>Drives the forecast cash-flow build and sensitivity matrix.</td></tr><tr><td>Terminal growth</td><td>2.5%</td><td>Public research: New Zealand inflation input</td><td>Anchors long-term growth and must remain below the discount rate.</td></tr><tr><td>WACC scenarios: high / mid / low valuation</td><td>9.9% / 11.5% / 13.4%</td><td>Public research: RBNZ risk-free rate and Damodaran ERP/beta</td><td>Discounts forecast cash flows and creates the valuation range.</td></tr><tr><td>Maintenance capital expenditure</td><td>$25,000</td><td>Uploaded financial statements: depreciation proxy</td><td>Converts EBITDA into free cash flow by allowing for asset reinvestment.</td></tr><tr><td>Operating working capital ratio</td><td>5.0%</td><td>Uploaded balance sheet: operating working-capital line items</td><td>Captures the cash investment required to support revenue growth.</td></tr><tr><td>Debt, cash and surplus assets</td><td>Debt $160,000; cash $95,000; surplus assets $0</td><td>Debt: uploaded balance sheet borrowings where extracted; cash: uploaded balance sheet cash balance; surplus assets: no management-supplied amount identified</td><td>Bridges enterprise value to indicative equity value.</td></tr><tr><td>Owner or key-person dependency</td><td>Responsibility is shared across leadership and team</td><td>Management-confirmed private input</td><td>Informs transition risk, key-person exposure and continuity planning.</td></tr><tr><td>Largest-customer concentration</td><td>10% to 25%</td><td>Management-confirmed private input</td><td>Highlights concentration risk that is not usually visible online.</td></tr><tr><td>Revenue predictability</td><td>A mix of recurring and one-off revenue</td><td>Management-confirmed private input</td><td>Distinguishes contracted revenue from transactional or project income.</td></tr><tr><td>Revenue outlook</td><td>No specific forecast provided; growth derived from uploaded financial history</td><td>Management-confirmed private input</td><td>Documents the short-term outlook used to support or derive the growth assumption.</td></tr></tbody></table>
+            
+        </section>
+        <section id="wacc_assumptions" class="report-section section-wacc-assumptions">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">12</span> Weighted Average Cost of Capital</h2>
+            
+            <p>The cost of capital was developed from current public data and adjusted for the risk and illiquidity of a privately held New Zealand SME. The high valuation uses the lowest WACC; the low valuation uses the highest WACC.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="How the discount rate drives the range">
+      <h3>How the discount rate drives the range</h3>
+      <dl><div><dt>High valuation discount rate</dt><dd>9.9%</dd><p>Lower WACC means forecast cash flows are discounted less heavily, producing the upper valuation case.</p></div><div><dt>Mid valuation discount rate</dt><dd>11.5%</dd><p>Base discount-rate case used for the central valuation conclusion.</p></div><div><dt>Low valuation discount rate</dt><dd>13.4%</dd><p>Higher WACC reflects more risk and produces the lower valuation case.</p></div><div><dt>Illiquidity discount</dt><dd>11.8%</dd><p>Private-company marketability discount shown explicitly rather than hidden in the conclusion.</p></div></dl>
+    </aside>
+    
+            
+            
+            
+            
+            
+    <aside class="wacc-build-visual" aria-label="WACC build visual">
+      <h3>WACC build visual</h3>
+      <p>Shows the mid-case discount-rate build from public market inputs before the separate illiquidity discount.</p>
+      <div class="wacc-build-rows"><div class="wacc-build-row">
+            <div class="wacc-build-card">
+              <strong>Risk-free rate</strong>
+              <span>4.4%</span>
+              <p>Public market base return before company and sector risk.</p>
+            </div>
+            <span class="wacc-build-operator">+</span>
+            <div class="wacc-build-card">
+              <strong>Beta-adjusted risk premium</strong>
+              <span>7.1%</span>
+              <p>Derived from 1.20 total beta and 5.9% equity risk premium.</p>
+            </div>
+            <span class="wacc-build-operator">=</span>
+            <div class="wacc-build-card">
+              <strong>Mid WACC</strong>
+              <span>11.5%</span>
+              <p>Discount rate applied to the mid-case forecast cash flows.</p>
+            </div>
+            </div><div class="wacc-build-row">
+            <div class="wacc-build-card">
+              <strong>Illiquidity discount</strong>
+              <span>11.8%</span>
+              <p>Separate private-company marketability adjustment applied after DCF value.</p>
+            </div>
+            <span class="wacc-build-operator"></span>
+            <div class="wacc-build-card">
+              <strong>Source inputs</strong>
+              <span>ERP 5.9% / beta 1.20</span>
+              <p>Public research inputs are disclosed as part of the valuation evidence trail.</p>
+            </div>
+            <span class="wacc-build-operator"></span>
+            <div class="wacc-build-card">
+              <strong>Technical inputs</strong>
+              <span>Derived</span>
+              <p>WACC, beta and equity-risk-premium assumptions are derived and disclosed as valuation-model inputs.</p>
+            </div>
+            </div></div>
+    </aside>
+    
+            
+            
+            
+            <table class='report-table'><caption>Weighted Average Cost of Capital detailed schedule</caption><thead><tr><th>Component</th><th class="numeric-cell">High valuation</th><th class="numeric-cell">Mid valuation</th><th class="numeric-cell">Low valuation</th></tr></thead><tbody><tr><td>Risk-free rate</td><td class="numeric-cell">4.4%</td><td class="numeric-cell">4.4%</td><td class="numeric-cell">4.4%</td></tr><tr><td>Equity risk premium</td><td class="numeric-cell">5.6%</td><td class="numeric-cell">5.9%</td><td class="numeric-cell">6.2%</td></tr><tr><td>Industry total beta</td><td class="numeric-cell">1.05</td><td class="numeric-cell">1.20</td><td class="numeric-cell">1.35</td></tr><tr><td>WACC</td><td class="numeric-cell">9.9%</td><td class="numeric-cell">11.5%</td><td class="numeric-cell">13.4%</td></tr><tr><td>Illiquidity discount</td><td class="numeric-cell">11.8%</td><td class="numeric-cell">11.8%</td><td class="numeric-cell">11.8%</td></tr></tbody></table>
+            
+        </section>
+        <section id="dcf_analysis" class="report-section section-dcf-analysis">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">13</span> Discounted Cash Flow Analysis</h2>
+            
+            <p>Forecast free cash flows are discounted at the three WACC scenarios. Terminal value uses the Gordon growth model and the 2.5% terminal growth rate remains below every discount-rate scenario. FCFF is EBIT after tax plus depreciation, less maintenance capital expenditure and change in operating working capital. The private-company illiquidity adjustment is shown explicitly rather than embedded in an opaque final multiple.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="DCF forecast bridge at a glance">
+      <h3>DCF forecast bridge at a glance</h3>
+      <dl><div><dt>Adjusted enterprise value range</dt><dd>$1,898,000 - $2,831,000</dd><p>DCF valuation range after the private-company illiquidity adjustment.</p></div><div><dt>Midpoint adjusted enterprise value</dt><dd>$2,314,000</dd><p>Central DCF indication before the enterprise-to-equity bridge.</p></div><div><dt>Revenue forecast bridge</dt><dd>$1,350,000 to $1,836,660</dd><p>Mid-case revenue progression across the explicit five-year forecast period.</p></div><div><dt>Free cash flow bridge</dt><dd>$198,731 to $270,372</dd><p>Mid-case free cash flow to firm after tax, capex and working-capital reinvestment.</p></div></dl>
+    </aside>
+    
+            
+            
+            
+            
+            
+            
+    <aside class="dcf-value-build-visual" aria-label="DCF value build visual">
+      <h3>DCF value build visual</h3>
+      <p>Shows how the mid-case discounted cash flows and terminal value convert to adjusted enterprise value.</p>
+      <div class="dcf-value-build-rows"><div class="dcf-value-build-row">
+            <div class="dcf-value-build-card">
+              <strong>PV explicit FCFF</strong>
+              <span>$836,951</span>
+              <p>Present value of the five-year forecast cash flows.</p>
+            </div>
+            <span class="dcf-value-build-operator">+</span>
+            <div class="dcf-value-build-card">
+              <strong>PV terminal value</strong>
+              <span>$1,787,049</span>
+              <p>Implied continuing value after the explicit forecast period.</p>
+            </div>
+            <span class="dcf-value-build-operator">=</span>
+            <div class="dcf-value-build-card">
+              <strong>EV before illiquidity</strong>
+              <span>$2,624,000</span>
+              <p>Mid-case DCF enterprise value before the private-company discount.</p>
+            </div>
+            </div><div class="dcf-value-build-row">
+            <div class="dcf-value-build-card">
+              <strong>EV before illiquidity</strong>
+              <span>$2,624,000</span>
+              <p>Starting point for the marketability adjustment.</p>
+            </div>
+            <span class="dcf-value-build-operator">-</span>
+            <div class="dcf-value-build-card">
+              <strong>Illiquidity discount</strong>
+              <span>$310,000</span>
+              <p>Explicit private-company marketability adjustment.</p>
+            </div>
+            <span class="dcf-value-build-operator">=</span>
+            <div class="dcf-value-build-card">
+              <strong>Adjusted enterprise value</strong>
+              <span>$2,314,000</span>
+              <p>Mid-case operating-business value used in the valuation summary.</p>
+            </div>
+            </div></div>
+    </aside>
+    
+            
+            
+            <table class='report-table'><caption>Discounted Cash Flow Analysis detailed schedule</caption><thead><tr><th>DCF item</th><th class="numeric-cell">High valuation</th><th class="numeric-cell">Mid valuation</th><th class="numeric-cell">Low valuation</th></tr></thead><tbody><tr><td>WACC</td><td class="numeric-cell">9.9%</td><td class="numeric-cell">11.5%</td><td class="numeric-cell">13.4%</td></tr><tr><td>Terminal growth</td><td class="numeric-cell">2.5%</td><td class="numeric-cell">2.5%</td><td class="numeric-cell">2.5%</td></tr><tr><td>Base revenue</td><td class="numeric-cell">$1,250,000</td><td class="numeric-cell">$1,250,000</td><td class="numeric-cell">$1,250,000</td></tr><tr><td>Normalised EBITDA</td><td class="numeric-cell">$287,000</td><td class="numeric-cell">$287,000</td><td class="numeric-cell">$287,000</td></tr><tr><td>Base depreciation</td><td class="numeric-cell">$25,000</td><td class="numeric-cell">$25,000</td><td class="numeric-cell">$25,000</td></tr><tr><td>Maintenance capex</td><td class="numeric-cell">$25,000</td><td class="numeric-cell">$25,000</td><td class="numeric-cell">$25,000</td></tr><tr><td>Operating working capital / revenue</td><td class="numeric-cell">5.0%</td><td class="numeric-cell">5.0%</td><td class="numeric-cell">5.0%</td></tr><tr><td>Enterprise value before illiquidity</td><td class="numeric-cell">$3,209,000</td><td class="numeric-cell">$2,624,000</td><td class="numeric-cell">$2,152,000</td></tr><tr><td>Illiquidity discount</td><td class="numeric-cell">11.8%</td><td class="numeric-cell">11.8%</td><td class="numeric-cell">11.8%</td></tr><tr><td>Adjusted enterprise value</td><td class="numeric-cell">$2,831,000</td><td class="numeric-cell">$2,314,000</td><td class="numeric-cell">$1,898,000</td></tr></tbody></table><h3>Mid-case forecast cash-flow schedule</h3><table class='report-table'><caption>Mid-case forecast cash-flow schedule</caption><thead><tr><th>Mid-case forecast</th><th class="numeric-cell">Year 1</th><th class="numeric-cell">Year 2</th><th class="numeric-cell">Year 3</th><th class="numeric-cell">Year 4</th><th class="numeric-cell">Year 5</th></tr></thead><tbody><tr><td>Revenue</td><td class="numeric-cell">$1,350,000</td><td class="numeric-cell">$1,458,000</td><td class="numeric-cell">$1,574,640</td><td class="numeric-cell">$1,700,611</td><td class="numeric-cell">$1,836,660</td></tr><tr><td>EBITDA</td><td class="numeric-cell">$309,960</td><td class="numeric-cell">$334,757</td><td class="numeric-cell">$361,537</td><td class="numeric-cell">$390,460</td><td class="numeric-cell">$421,697</td></tr><tr><td>EBIT</td><td class="numeric-cell">$282,960</td><td class="numeric-cell">$305,597</td><td class="numeric-cell">$330,045</td><td class="numeric-cell">$356,448</td><td class="numeric-cell">$384,964</td></tr><tr><td>Tax</td><td class="numeric-cell">$79,229</td><td class="numeric-cell">$85,567</td><td class="numeric-cell">$92,412</td><td class="numeric-cell">$99,805</td><td class="numeric-cell">$107,790</td></tr><tr><td>Maintenance capex</td><td class="numeric-cell">$27,000</td><td class="numeric-cell">$29,160</td><td class="numeric-cell">$31,493</td><td class="numeric-cell">$34,012</td><td class="numeric-cell">$36,733</td></tr><tr><td>Change in operating working capital</td><td class="numeric-cell">$5,000</td><td class="numeric-cell">$5,400</td><td class="numeric-cell">$5,832</td><td class="numeric-cell">$6,299</td><td class="numeric-cell">$6,802</td></tr><tr><td>Free cash flow to firm</td><td class="numeric-cell">$198,731</td><td class="numeric-cell">$214,630</td><td class="numeric-cell">$231,800</td><td class="numeric-cell">$250,344</td><td class="numeric-cell">$270,372</td></tr><tr><td>Discounted free cash flow</td><td class="numeric-cell">$178,234</td><td class="numeric-cell">$172,639</td><td class="numeric-cell">$167,220</td><td class="numeric-cell">$161,971</td><td class="numeric-cell">$156,887</td></tr></tbody></table>
+            
+        </section>
+        <section id="valuation_summary" class="report-section section-valuation-summary">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">14</span> Indicative Valuation Summary</h2>
+            
+            <p>The low DCF case overlaps the upper end of the market cross-check, while the midpoint DCF conclusion is higher at $2.31 million. This difference is driven by the assumed cash-flow growth and should be considered explicitly rather than averaged away. The DCF remains the primary conclusion and the multiple range is an independent check.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="Valuation range at a glance">
+      <h3>Valuation range at a glance</h3>
+      <dl><div><dt>Primary DCF range</dt><dd>$1,898,000 - $2,831,000</dd><p>Primary enterprise-value range after the private-company illiquidity adjustment.</p></div><div><dt>Midpoint equity value</dt><dd>$2,249,000</dd><p>Central shareholder-value indication after the net-debt bridge.</p></div><div><dt>Market cross-check range</dt><dd>$1,370,000 - $1,944,000</dd><p>Market multiples provide an independent reasonableness check, not the selected conclusion.</p></div><div><dt>DCF vs multiple midpoint</dt><dd>$592,000 above</dd><p>Shows where the primary DCF midpoint sits relative to the market cross-check midpoint.</p></div></dl>
+    </aside>
+    
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Indicative Valuation Summary detailed schedule</caption><thead><tr><th>Method / scenario</th><th>Input</th><th class="numeric-cell">Enterprise value</th><th class="numeric-cell">Adjusted EV</th><th class="numeric-cell">Equity value</th></tr></thead><tbody><tr><td>DCF - high valuation</td><td>9.9% WACC</td><td class="numeric-cell">$3,209,000</td><td class="numeric-cell">$2,831,000</td><td class="numeric-cell">$2,766,000</td></tr><tr><td>DCF - midpoint</td><td>11.5% WACC</td><td class="numeric-cell">$2,624,000</td><td class="numeric-cell">$2,314,000</td><td class="numeric-cell">$2,249,000</td></tr><tr><td>DCF - low valuation</td><td>13.4% WACC</td><td class="numeric-cell">$2,152,000</td><td class="numeric-cell">$1,898,000</td><td class="numeric-cell">$1,833,000</td></tr><tr><td>Multiples - low</td><td>5.0x EBITDA</td><td class="numeric-cell">$1,435,000</td><td class="numeric-cell">$1,435,000</td><td class="numeric-cell">$1,370,000</td></tr><tr><td>Multiples - midpoint</td><td>6.0x EBITDA</td><td class="numeric-cell">$1,722,000</td><td class="numeric-cell">$1,722,000</td><td class="numeric-cell">$1,657,000</td></tr><tr><td>Multiples - high</td><td>7.0x EBITDA</td><td class="numeric-cell">$2,009,000</td><td class="numeric-cell">$2,009,000</td><td class="numeric-cell">$1,944,000</td></tr></tbody></table>
+            
+        </section>
+        <section id="multiples_crosscheck" class="report-section section-multiples-crosscheck">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">15</span> Multiples Cross-check</h2>
+            
+            <p>Public benchmark evidence supports an indicative range of 5.0x to 7.0x normalised EBITDA. The DCF midpoint implies a higher multiple than the 6.0x market midpoint, so the cross-check is shown as a reasonableness tension rather than averaged into the conclusion. The range is not a direct pricing promise because observed businesses differ in scale, growth, customer mix, contract security and strategic value.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="How the market cross-check is used">
+      <h3>How the market cross-check is used</h3>
+      <dl><div><dt>Market multiple range</dt><dd>5.0x - 7.0x</dd><p>Indicative EV/EBITDA range from researched comparable evidence.</p></div><div><dt>Maintainable EBITDA applied</dt><dd>$287,000</dd><p>Earnings base used consistently across the market cross-check.</p></div><div><dt>Implied enterprise value range</dt><dd>$1,435,000 - $2,009,000</dd><p>Reasonableness range used to cross-check, not replace, the primary DCF conclusion.</p></div><div><dt>Midpoint market indication</dt><dd>$1,722,000</dd><p>Central market-multiple indication before the enterprise-to-equity bridge.</p></div></dl>
+    </aside>
+    
+            
+            
+            
+            
+            
+            
+            
+    <aside class="implied-multiple-visual" aria-label="Implied multiple reconciliation">
+      <h3>Implied multiple reconciliation</h3>
+      <p>Compares the primary DCF output with the researched EV/EBITDA cross-check range.</p>
+      <div class="implied-multiple-grid">
+        <div class="implied-multiple-card">
+          <strong>Normalised EBITDA</strong>
+          <span>$287,000</span>
+          <p>Maintainable earnings base used for the market and DCF implied multiple checks.</p>
+        </div>
+        
+        <div class="implied-multiple-card">
+          <strong>Market EV/EBITDA range</strong>
+          <span>5.0x - 7.0x</span>
+          <p>Researched market range used as a reasonableness cross-check.</p>
+        </div>
+        
+        <div class="implied-multiple-card">
+          <strong>DCF post-illiquidity range</strong>
+          <span>6.6x - 9.9x</span>
+          <p>Primary DCF adjusted enterprise-value range expressed as an EV/EBITDA multiple.</p>
+        </div>
+        
+        <div class="implied-multiple-card">
+          <strong>DCF pre-illiquidity range</strong>
+          <span>7.5x - 11.2x</span>
+          <p>DCF enterprise-value range before the private-company marketability discount.</p>
+        </div>
+        
+        <div class="implied-multiple-card">
+          <strong>DCF midpoint multiple</strong>
+          <span>8.1x</span>
+          <p>Midpoint adjusted DCF enterprise value divided by normalised EBITDA.</p>
+        </div>
+        
+        <div class="implied-multiple-card">
+          <strong>Cross-check tension</strong>
+          <span>2.1x above market midpoint</span>
+          <p>Shows whether the selected DCF midpoint sits above or below the market midpoint.</p>
+        </div>
+        </div>
+    </aside>
+    
+            
+            <table class='report-table'><caption>Multiples Cross-check detailed schedule</caption><thead><tr><th>Input</th><th class="numeric-cell">Low</th><th class="numeric-cell">Mid</th><th class="numeric-cell">High</th></tr></thead><tbody><tr><td>EV/EBITDA multiple</td><td class="numeric-cell">5.0x</td><td class="numeric-cell">6.0x</td><td class="numeric-cell">7.0x</td></tr><tr><td>Normalised EBITDA</td><td class="numeric-cell">$287,000</td><td class="numeric-cell">$287,000</td><td class="numeric-cell">$287,000</td></tr><tr><td>Indicated enterprise value</td><td class="numeric-cell">$1,435,000</td><td class="numeric-cell">$1,722,000</td><td class="numeric-cell">$2,009,000</td></tr></tbody></table>
+            
+        </section>
+        <section id="sensitivity_and_risks" class="report-section section-sensitivity-and-risks">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">16</span> Sensitivity and Specific Risks</h2>
+            
+            <h3>Quantified sensitivity</h3><p>The 8.0% growth and 11.5% WACC midpoint is the base case. Across the matrix, adjusted enterprise value ranges from $1.77 million at 6.0% growth and 13.4% WACC to $3.05 million at 10.0% growth and 9.9% WACC.</p><h3>Business-specific matters</h3><ul><li>Customer retention: although no single customer exceeds 20% of revenue, the aggregate retention of repeat customers remains important.</li><li>Revenue quality: mixed recurring and project income provides diversity but less certainty than fully contracted revenue.</li><li>Transition: shared management reduces key-person exposure, subject to confirming retention and handover arrangements.</li><li>Pipeline: unsigned opportunities have not been treated as contracted revenue.</li></ul><p>The matrix quantifies WACC and growth only. The business-specific matters remain unquantified and should be revisited if circumstances change before reliance or use.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="Sensitivity takeaway at a glance">
+      <h3>Sensitivity takeaway at a glance</h3>
+      <dl><div><dt>Base sensitivity case</dt><dd>$2,314,000</dd><p>Midpoint case using the base growth assumption and mid WACC scenario.</p></div><div><dt>Quantified EV span</dt><dd>$1,765,000 - $3,054,000</dd><p>Full adjusted enterprise-value span across the WACC and growth matrix.</p></div><div><dt>Growth cases tested</dt><dd>6.0% to 10.0%</dd><p>Growth sensitivity range tested without asking management for extra valuation inputs.</p></div><div><dt>Specific risk factors</dt><dd>5</dd><p>Qualitative risk factors carried into the report from the short management intake.</p></div></dl>
+    </aside>
+    
+            
+            
+            
+            
+            
+            
+            
+            
+    <aside class="sensitivity-spread-visual" aria-label="Sensitivity spread visual">
+      <h3>Sensitivity spread visual</h3>
+      <p>Downside, base and upside adjusted enterprise value from AccountIQ&#x27;s sensitivity analysis.</p>
+      <div>
+        <div class="range-visual-row">
+          <div class="range-visual-label">
+            <strong>Adjusted enterprise value sensitivity</strong>
+            <span>Across 6.0% to 10.0% growth and WACC cases.</span>
+          </div>
+          <div class="range-visual-track" aria-label="Adjusted enterprise value sensitivity range">
+            <span class="range-visual-axis"></span>
+            <span class="range-visual-band" style="left:6.90%; width:86.21%"></span>
+            <span class="range-visual-mid" style="left:43.61%"></span>
+            <span class="range-visual-low" style="left:6.90%">$1,765,000</span>
+            <span class="range-visual-high" style="left:93.10%">$3,054,000</span>
+            <span class="range-visual-mid-label" style="left:43.61%">Base $2,314,000</span>
+          </div>
+        </div>
+        </div>
+    </aside>
+    
+            <table class='report-table'><caption>Sensitivity and Specific Risks detailed schedule</caption><thead><tr><th>Growth assumption</th><th class="numeric-cell">High valuation / 9.9% WACC</th><th class="numeric-cell">Mid valuation / 11.5% WACC</th><th class="numeric-cell">Low valuation / 13.4% WACC</th></tr></thead><tbody><tr><td>6.0%</td><td class="numeric-cell">$2,621,000</td><td class="numeric-cell">$2,147,000</td><td class="numeric-cell">$1,765,000</td></tr><tr><td>8.0% - base</td><td class="numeric-cell">$2,831,000</td><td class="numeric-cell">$2,314,000</td><td class="numeric-cell">$1,898,000</td></tr><tr><td>10.0%</td><td class="numeric-cell">$3,054,000</td><td class="numeric-cell">$2,492,000</td><td class="numeric-cell">$2,040,000</td></tr></tbody></table><h3>Specific risk factors</h3><table class='report-table'><caption>Specific risk factors</caption><thead><tr><th>Specific risk factor</th><th>Management input</th><th>Valuation relevance</th><th>Report treatment</th></tr></thead><tbody><tr><td>Owner or key-person transition</td><td>Responsibility is shared across leadership and team</td><td>Affects operating continuity, handover depth and confidence in maintainable earnings.</td><td>Moderate transition risk; diligence should confirm responsibilities and handover depth.</td></tr><tr><td>Customer concentration</td><td>10% to 25%</td><td>Large customer exposure can increase earnings volatility and diligence risk.</td><td>Moderate concentration risk; review top-customer retention and contract terms.</td></tr><tr><td>Revenue predictability</td><td>A mix of recurring and one-off revenue</td><td>Contracted or recurring revenue usually supports more reliable cash-flow forecasts.</td><td>Mixed recurring and project revenue creates moderate earnings visibility.</td></tr><tr><td>Revenue outlook and pipeline</td><td>No specific forecast provided; growth derived from uploaded financial history</td><td>Growth expectations affect forecast cash flows and sensitivity cases.</td><td>Growth is derived from uploaded history rather than a management forecast; review pipeline evidence before reliance.</td></tr><tr><td>Other private context</td><td>A key contract renews next year.</td><td>Captures risks or opportunities not normally visible in public research.</td><td>Management-supplied context should be confirmed and reflected in diligence, forecast cases or reliance limitations.</td></tr></tbody></table>
+            
+        </section>
+        <section id="comparable_evidence" class="report-section section-comparable-evidence">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">17</span> Comparable Evidence Appendix</h2>
+            
+            <p>The evidence below is illustrative public-market and benchmark context for the sample report. It is broad-sector evidence rather than a set of directly comparable private transactions, so the observed range is used only as a reasonableness check.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="Comparable evidence at a glance">
+      <h3>Comparable evidence at a glance</h3>
+      <dl><div><dt>Evidence rows</dt><dd>3</dd><p>Public benchmark and context rows retained in the comparable evidence appendix.</p></div><div><dt>Source URLs retained</dt><dd>3</dd><p>Every evidence row should retain a URL so the reader can check the source trail.</p></div><div><dt>Market multiple support</dt><dd>Market evidence supports the EV/EBITDA cross-check</dd><p>Explains whether researched public evidence supports the EV/EBITDA cross-check range.</p></div><div><dt>Comparability caveat</dt><dd>Limitations explained as a reasonableness check</dd><p>Explains that public evidence is used for context and cross-checking, not as a direct private-company price.</p></div></dl>
+    </aside>
+    
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Comparable Evidence Appendix detailed schedule</caption><thead><tr><th>Evidence</th><th>Date</th><th>Metric / multiple</th><th>Relevance and limitation</th><th>Source</th></tr></thead><tbody><tr><td>Business services sector dataset</td><td>Current dataset</td><td>EV/EBITDA benchmark</td><td>Broad listed-company evidence; larger and more liquid than the subject</td><td>Damodaran Online - <a href="https://pages.stern.nyu.edu/~adamodar/New_Home_Page/data.html" target="_blank" rel="noopener noreferrer">https://pages.stern.nyu.edu/~adamodar/New_Home_Page/data.html</a></td></tr><tr><td>NZ private-company valuation context</td><td>Valuation date</td><td>Risk-free and inflation inputs</td><td>Supports discount-rate inputs, not a transaction multiple</td><td>Reserve Bank of New Zealand - <a href="https://www.rbnz.govt.nz/statistics/series/exchange-and-interest-rates" target="_blank" rel="noopener noreferrer">https://www.rbnz.govt.nz/statistics/series/exchange-and-interest-rates</a></td></tr><tr><td>Subject company public profile</td><td>Valuation date</td><td>Operating and market context</td><td>Public profile information retained for company-fact corroboration</td><td>NZ Companies Office - <a href="https://companies-register.companiesoffice.govt.nz/" target="_blank" rel="noopener noreferrer">https://companies-register.companiesoffice.govt.nz/</a></td></tr></tbody></table>
+            
+        </section>
+        <section id="sources" class="report-section section-sources">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">18</span> Sources and References</h2>
+            
+            <p>The following public sources support the sample report&#x27;s market, WACC, inflation and public-profile context. In a live report, each source is retained so the reader can review the evidence trail behind the valuation assumptions.</p>
+            
+            
+            
+    <aside class="reader-guidance" aria-label="Source trail at a glance">
+      <h3>Source trail at a glance</h3>
+      <dl><div><dt>Public URLs retained</dt><dd>4</dd><p>Source links are retained so a reader can inspect the public evidence trail.</p></div><div><dt>Discount-rate support</dt><dd>Public sources retained for WACC inputs</dd><p>Explains whether public evidence supports the risk-free-rate, equity-risk-premium or beta inputs.</p></div><div><dt>Terminal-growth support</dt><dd>Inflation source retained for terminal growth</dd><p>Explains whether public evidence supports inflation or long-term growth assumptions.</p></div><div><dt>Business context support</dt><dd>Public profile sources retained for business context</dd><p>Explains whether public sources support company-profile or market-context statements.</p></div></dl>
+    </aside>
+    
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Sources and References detailed schedule</caption><thead><tr><th>Source</th><th>URL</th><th>Supports / used for</th></tr></thead><tbody><tr><td>Reserve Bank of New Zealand, interest rates</td><td><a href="https://www.rbnz.govt.nz/statistics/series/exchange-and-interest-rates" target="_blank" rel="noopener noreferrer">https://www.rbnz.govt.nz/statistics/series/exchange-and-interest-rates</a></td><td>Risk-free-rate and discount-rate context</td></tr><tr><td>Reserve Bank of New Zealand, inflation</td><td><a href="https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/inflation" target="_blank" rel="noopener noreferrer">https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/inflation</a></td><td>Long-term inflation and terminal-growth context</td></tr><tr><td>Damodaran Online, data resources</td><td><a href="https://pages.stern.nyu.edu/~adamodar/New_Home_Page/data.html" target="_blank" rel="noopener noreferrer">https://pages.stern.nyu.edu/~adamodar/New_Home_Page/data.html</a></td><td>Equity risk premium, beta and private-company valuation inputs</td></tr><tr><td>NZ Companies Office</td><td><a href="https://companies-register.companiesoffice.govt.nz/" target="_blank" rel="noopener noreferrer">https://companies-register.companiesoffice.govt.nz/</a></td><td>Company public-profile corroboration</td></tr></tbody></table>
+            
+        </section>
+        <section id="disclaimer" class="report-section disclaimer section-disclaimer">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">19</span> Disclaimer</h2>
+            
+    <aside class="reader-guidance" aria-label="Reliance at a glance">
+      <h3>Reliance at a glance</h3>
+      <dl><div><dt>Intended use</dt><dd>Stated purpose only</dd><p>Reliance is limited to the valuation purpose stated in the report.</p></div><div><dt>Advice status</dt><dd>Not advice</dd><p>The report is not a substitute for independent professional advice.</p></div><div><dt>Information reliance</dt><dd>Management and public inputs</dd><p>Conclusions depend on management-supplied information, extracted financials and identified sources.</p></div><div><dt>Verification status</dt><dd>Not audited</dd><p>The scope is an indicative valuation pack, not an audit or assurance engagement.</p></div><div><dt>Third-party reliance</dt><dd>No responsibility accepted</dd><p>Third parties should not rely on the report without their own advice and diligence.</p></div></dl>
+    </aside>
+    
+            <h3>Indicative purpose and reliance</h3><p>This report is indicative only and has been prepared solely for the stated valuation purpose. It does not constitute financial advice and should not be relied upon as a substitute for independent professional, legal, tax or accounting advice. No responsibility is accepted to any third party who obtains or relies on this report.</p><h3>Information and valuation date</h3><p>The analysis relies on management-supplied information, extracted financial records and identified public sources. Those inputs have not been independently audited. Conclusions may change if information is incomplete, inaccurate or circumstances change after the valuation date.</p><h3>Regulatory context</h3><p>The report is prepared with regard to the Financial Markets Conduct Act (FMCA) context but is not a regulated product-disclosure statement, fairness opinion or assurance engagement.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+        </section>
+        <section id="general_principles" class="report-section section-general-principles">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">20</span> General Principles</h2>
+            
+            <h3>Basis of value</h3><ul><li>A willing but not anxious buyer and a willing but not anxious seller.</li><li>An arm&#x27;s-length transaction after proper marketing.</li><li>Both parties act knowledgeably, prudently and without compulsion.</li><li>The business continues as a going concern with assets used in their current operations.</li></ul><h3>Timing and information</h3><ul><li>Value is assessed at the stated valuation date and may change as markets, trading or capital costs change.</li><li>Forecasts are estimates, not guarantees, and depend on stated assumptions.</li><li>Buyer-specific synergies and unusual strategic premiums are excluded unless explicitly stated.</li></ul>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+        </section>
+        <section id="glossary" class="report-section section-glossary">
+            <span class="section-kicker">AccountIQ indicative valuation</span>
+            <h2><span class="section-number">21</span> Glossary</h2>
+            
+            <h3>Core valuation terms</h3><ul><li>DCF: Discounted cash flow. This method estimates value by forecasting the future cash flows the business is expected to generate and discounting those cash flows back to today&#x27;s dollars. It is useful where the business is expected to continue trading and value is driven by future maintainable performance.</li><li>Enterprise value: The value of the operating business before allowing for its financing position. It excludes the effect of surplus cash, interest-bearing debt and separately identified non-operating assets so readers can assess the value of the business operations themselves.</li><li>Equity value: The value attributable to shareholders after the enterprise-value bridge. It starts with enterprise value, deducts interest-bearing debt, adds available cash and adds any separately identified surplus or non-operating assets.</li><li>EBITDA: Earnings before interest, tax, depreciation and amortisation. It is a common proxy for operating earnings before financing, tax and non-cash depreciation charges, but it is not the same as cash flow because it excludes capital expenditure and working-capital movements.</li><li>Maintainable earnings: The level of earnings considered sustainable for valuation purposes after removing unusual, one-off, owner-specific or non-operating items. Maintainable earnings should represent the earnings a market participant could reasonably expect from normal operations.</li><li>Normalisation: A valuation adjustment that converts reported earnings into maintainable earnings. Examples include adding back genuine one-off legal costs or adjusting owner remuneration to an arm&#x27;s-length management cost.</li><li>Terminal value: The value attributed to cash flows beyond the explicit forecast period. In a DCF, it often represents a large portion of value, so the terminal growth assumption must be supportable and lower than the discount rate.</li><li>WACC: Weighted average cost of capital. It is the discount rate used to convert forecast cash flows into present value and reflects the return a market participant would require for the risk of investing in the business.</li><li>Illiquidity discount: An adjustment for the reduced marketability of a private-company interest compared with a listed security. It recognises that selling a private business interest can take longer, involve more diligence and attract a smaller buyer pool.</li><li>FMCA: The Financial Markets Conduct Act 2013. The report refers to this regulatory context to make clear that the output is indicative valuation support, not a regulated product-disclosure statement, fairness opinion or substitute for independent professional advice.</li></ul>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+        </section>
+  </main>
+</body>
+</html>

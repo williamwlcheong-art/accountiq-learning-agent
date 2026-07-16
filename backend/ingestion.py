@@ -42,6 +42,14 @@ PNL_ROWS = [
     ("revenue",              "Revenue / Sales"),
     ("cogs",                 "Cost of goods sold (COGS)"),
     ("gross_profit",         "Gross profit"),
+    ("wages_salaries",       "Wages, salaries and staff costs"),
+    ("rent_occupancy",       "Rent and occupancy costs"),
+    ("advertising_marketing", "Advertising and marketing"),
+    ("insurance",            "Insurance"),
+    ("motor_vehicle_expenses", "Motor vehicle expenses"),
+    ("repairs_maintenance",  "Repairs and maintenance"),
+    ("admin_professional_fees", "Administration and professional fees"),
+    ("other_operating_expenses", "Other operating expenses"),
     ("operating_expenses",   "Total operating expenses"),
     ("ebitda",               "EBITDA"),
     ("depreciation",         "Depreciation & amortisation"),
@@ -124,8 +132,10 @@ IFRS indicators:
 | shareholders_equity | Total stockholders' equity         | Total equity, Net assets                 |
 
 ## Canonical P&L Keys (statement: "pnl")
-revenue, cogs, gross_profit, operating_expenses, ebitda, depreciation,
-ebit, interest_expense, pbt, tax, net_profit
+revenue, cogs, gross_profit, wages_salaries, rent_occupancy, advertising_marketing,
+insurance, motor_vehicle_expenses, repairs_maintenance, admin_professional_fees,
+other_operating_expenses, operating_expenses, ebitda, depreciation, ebit,
+interest_expense, pbt, tax, net_profit
 
 ## Canonical Balance Sheet Keys (statement: "bs")
 cash_and_bank, trade_debtors, inventory, other_current_assets, total_current_assets,
@@ -146,10 +156,19 @@ opening_equity, net_profit, dividends_paid, other_equity_movements, closing_equi
 4. If stated in thousands/millions, set unit accordingly and keep values in that unit
 5. NEVER fabricate values — use null if not found
 6. Assign confidence 0–1 based on how clearly the value maps to the canonical key
-7. SIGN CONVENTION: Cost/expense keys (cogs, operating_expenses, depreciation,
+7. SIGN CONVENTION: Cost/expense keys (cogs, wages_salaries, rent_occupancy,
+   advertising_marketing, insurance, motor_vehicle_expenses, repairs_maintenance,
+   admin_professional_fees, other_operating_expenses, operating_expenses, depreciation,
    interest_expense, tax) must be returned as NEGATIVE numbers.
    Revenue and asset/equity keys must be POSITIVE.
    A post-processing normalisation layer enforces this, but supply the correct sign.
+8. BALANCE-SHEET CLASSIFICATION: Map only actual plant, equipment, vehicles or other
+   identified tangible operating assets to fixed_assets_net. Do not map a total
+   non-current-assets line to fixed assets; use other_noncurrent_assets unless the
+   source breaks out the fixed-asset amount. Map only stated loans, borrowings,
+   mortgages, hire purchase, leases or shareholder loans to debt. Do not map a
+   total non-current-liabilities line to long_term_debt; use other_noncurrent_liab
+   unless the source identifies the debt component.
 
 ## Narrative
 Write a 3–4 paragraph executive summary covering: revenue performance,

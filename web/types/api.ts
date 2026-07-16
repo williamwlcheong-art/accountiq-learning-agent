@@ -567,7 +567,7 @@ export interface paths {
         };
         /**
          * Wizard Report View
-         * @description Render a completed report as readable HTML (temporary viewer until Phase 7).
+         * @description Render a completed report as the browser review surface for the report pack.
          */
         get: operations["wizard_report_view_wizard_report__report_id__view_get"];
         put?: never;

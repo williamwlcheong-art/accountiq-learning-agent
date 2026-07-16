@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AccountIQ valuation visual parity review</title>
+  <style>
+    :root {
+      --navy: #082f4f;
+      --blue: #1f73b7;
+      --ink: #132033;
+      --muted: #607089;
+      --line: #d8e2ee;
+      --paper: #f5f8fb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+    }
+    header {
+      padding: 48px clamp(24px, 5vw, 72px);
+      background: linear-gradient(135deg, #082f4f, #0f4774);
+      color: white;
+    }
+    header p { max-width: 920px; color: #d8e7f6; }
+    main { padding: 32px clamp(18px, 4vw, 56px) 56px; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin: -58px 0 28px;
+    }
+    .summary-card, .section, .page-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: white;
+      box-shadow: 0 18px 45px rgba(8, 47, 79, .08);
+    }
+    .summary-card { padding: 22px; }
+    .summary-card strong { display: block; font-size: 2rem; color: var(--navy); }
+    .summary-card span { color: var(--muted); }
+    .section { padding: 24px; margin: 24px 0; }
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--blue);
+      font-size: .74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    h1, h2 { margin: 0 0 12px; line-height: 1.15; }
+    h1 { font-size: clamp(2rem, 4vw, 3.4rem); }
+    h2 { color: var(--navy); }
+    ul { padding-left: 1.2rem; }
+    .review-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+      padding: 0;
+      list-style: none;
+    }
+    .review-list li {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f9fbfe;
+    }
+    .review-list strong, .review-list span { display: block; }
+    .review-list span { color: var(--muted); font-size: .92rem; }
+    .page-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 24px;
+      align-items: start;
+    }
+    .page-card { overflow: hidden; }
+    .page-card-text { padding: 20px 20px 0; }
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+      align-items: start;
+      padding: 0 20px 20px;
+    }
+    figure { margin: 0; }
+    figcaption {
+      padding: 12px 0 0;
+      color: var(--muted);
+      font-size: .86rem;
+    }
+    figcaption strong, figcaption span { display: block; }
+    figcaption strong { color: var(--navy); }
+    figcaption p { margin: 8px 0 0; }
+    .reference-column {
+      display: grid;
+      gap: 16px;
+    }
+    .reference-placeholder {
+      margin-top: 18px;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      padding: 18px;
+      border: 1px dashed #b8c6d8;
+      border-radius: 12px;
+      background: #f9fbfe;
+      color: var(--muted);
+    }
+    .reference-placeholder strong { color: var(--navy); }
+    .target-list {
+      display: grid;
+      gap: 8px;
+      padding: 0;
+      list-style: none;
+    }
+    .target-list li {
+      padding: 10px 12px;
+      border-left: 3px solid var(--blue);
+      background: #f4f8fc;
+    }
+    .target-list strong, .target-list span { display: block; }
+    .target-list span { color: var(--muted); font-size: .82rem; }
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+      margin-top: 18px;
+      border-top: 1px solid var(--line);
+      background: white;
+    }
+    a { color: var(--blue); }
+    .warning {
+      border-left: 4px solid #f59e0b;
+      background: #fffbeb;
+    }
+    .command-stack {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    code {
+      display: block;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #0b1724;
+      color: #dceafe;
+      overflow-x: auto;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: .86rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">AccountIQ visual QA</p>
+    <h1>Valuation visual parity review</h1>
+    <p>
+      Generated 2026-07-08 from the current AccountIQ demo valuation PDF preview.
+      This pack reviews visual/report-structure parity against the available example-report extracts and links to
+      the rendered AccountIQ pages for manual inspection.
+    </p>
+  </header>
+  <main>
+    <section class="summary-grid" aria-label="Review summary">
+      <div class="summary-card"><strong>20</strong><span>Rendered pages included</span></div>
+      <div class="summary-card"><strong>20</strong><span>Automatic report targets checked</span></div>
+      <div class="summary-card"><strong>0</strong><span>Mapped reference images supplied</span></div>
+    </section>
+
+    <section class="section warning">
+      <p class="eyebrow">Evidence boundary</p>
+      <h2>What this proves and does not prove</h2>
+      <p>
+        This pack proves that the current AccountIQ sample has rendered review pages for the professional valuation-report spine captured in the example parity checklist. It does not prove final visual parity against the original example PDFs because those original PDFs are not stored as durable source artifacts in the repo.
+        See <a href="../../docs/valuation-example-parity-checklist.md">the example parity checklist</a> for the source criteria.
+      </p>
+      <p>Current PDF artifact: <a href="../../output/pdf/accountiq-demo-sample-indicative-valuation.pdf">/Users/William.Cheong/Documents/Valuation and Finance App/output/pdf/accountiq-demo-sample-indicative-valuation.pdf</a></p>
+      
+    </section>
+
+    <section class="section">
+      <p class="eyebrow">Source boundary</p>
+      <h2>Reference evidence available for this review</h2>
+      <ul><li>Marina Terrace text extract is available for detailed structure and wording cues.</li>
+<li>Propellerhead extract is sparse and mainly confirms the broad professional report spine.</li>
+<li>Original example PDFs/page images are not stored as durable QA inputs in this repo.</li>
+<li>This pack reviews the current AccountIQ rendered pages; final side-by-side visual parity still needs the original reference pages.</li></ul>
+    </section>
+
+    <section class="section">
+      <p class="eyebrow">Reference spine</p>
+      <h2>Professional report elements being compared</h2>
+      <ul><li>Cover/title and prepared-for party</li>
+<li>Contents</li>
+<li>Introduction, scope and reliance wording</li>
+<li>Overview and market/business context</li>
+<li>About business valuations</li>
+<li>Valuation methodology adopted</li>
+<li>Financial performance and normalisations</li>
+<li>Valuation approach and assumptions</li>
+<li>WACC, DCF, sensitivity and multiples cross-check</li>
+<li>Comparable evidence, sources, disclaimer, general principles and glossary</li></ul>
+    </section>
+
+    <section class="section">
+      <p class="eyebrow">Manual review prompts</p>
+      <h2>What to look for on the rendered pages</h2>
+      <ul class="review-list"><li><strong>First impression</strong><span>Cover page reads like a professional valuation pack, not a form confirmation screen.</span></li>
+<li><strong>Evidence basis</strong><span>Basis pages explain uploaded financials, five private inputs, public-source trail and AccountIQ model.</span></li>
+<li><strong>Reader navigation</strong><span>Contents and numbered sections make the report easy to cross-reference.</span></li>
+<li><strong>Valuation conclusion</strong><span>Executive summary and valuation summary show high/mid/low enterprise and equity value clearly.</span></li>
+<li><strong>Calculation trail</strong><span>WACC, DCF, multiples, equity bridge and sensitivity pages expose computed mechanics without asking the user for technical assumptions.</span></li>
+<li><strong>Source trail</strong><span>Comparable evidence and sources retain public URLs and explain what each source supports.</span></li>
+<li><strong>Reliance framing</strong><span>Disclaimer, general principles and glossary close the report like a deliberate professional pack.</span></li></ul>
+    </section>
+
+    <section class="section">
+      <p class="eyebrow">Regeneration commands</p>
+      <h2>Refresh this pack after changing report rendering</h2>
+      <p>
+        Run these from the repository root after changing valuation report content,
+        PDF rendering, page selection, or parity criteria.
+      </p>
+      <div class="command-stack"><code>source venv/bin/activate</code>
+<code>python scripts/generate_sample_valuation_pdf.py</code>
+<code>python scripts/render_valuation_pdf_preview.py --pdf output/pdf/accountiq-demo-sample-indicative-valuation.pdf --pages auto</code>
+<code>python scripts/build_valuation_visual_parity_pack.py</code></div>
+    </section>
+
+    <section class="page-grid" aria-label="Rendered AccountIQ report pages">
+      
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 1</p>
+                <h2>Page 1</h2>
+                <ul class="target-list"><li><strong>Cover valuation snapshot</strong><span>VALUATION SNAPSHOT, Enterprise value, Indicative equity value</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-01-01.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-01-01.png" alt="Rendered AccountIQ valuation PDF page 1">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 1</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 2</p>
+                <h2>Page 2</h2>
+                <ul class="target-list"><li><strong>Contents</strong><span>REPORT NAVIGATION, Contents</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-02-02.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-02-02.png" alt="Rendered AccountIQ valuation PDF page 2">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 2</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 3</p>
+                <h2>Page 3</h2>
+                <ul class="target-list"><li><strong>Basis of preparation</strong><span>BASIS OF PREPARATION, Basis of preparation</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-03-03.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-03-03.png" alt="Rendered AccountIQ valuation PDF page 3">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 3</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 5</p>
+                <h2>Page 5</h2>
+                <ul class="target-list"><li><strong>Evidence and model basis</strong><span>BASIS OF PREPARATION, Evidence and model basis</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-05-05.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-05-05.png" alt="Rendered AccountIQ valuation PDF page 5">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 5</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 7</p>
+                <h2>Page 7</h2>
+                <ul class="target-list"><li><strong>Executive valuation conclusion</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 02 Executive Summary, Valuation conclusion at a glance</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-07-07.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-07-07.png" alt="Rendered AccountIQ valuation PDF page 7">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 7</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 11</p>
+                <h2>Page 11</h2>
+                <ul class="target-list"><li><strong>Valuation methodology</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 06 Valuation Methodology Adopted</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-11-11.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-11-11.png" alt="Rendered AccountIQ valuation PDF page 11">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 11</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 12</p>
+                <h2>Page 12</h2>
+                <ul class="target-list"><li><strong>Financial performance</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 07 Financial Performance</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-12-12.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-12-12.png" alt="Rendered AccountIQ valuation PDF page 12">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 12</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 15</p>
+                <h2>Page 15</h2>
+                <ul class="target-list"><li><strong>Normalisations</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 09 Normalisations</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-15-15.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-15-15.png" alt="Rendered AccountIQ valuation PDF page 15">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 15</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 16</p>
+                <h2>Page 16</h2>
+                <ul class="target-list"><li><strong>Balance sheet summary</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 10 Balance Sheet Summary</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-16-16.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-16-16.png" alt="Rendered AccountIQ valuation PDF page 16">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 16</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 19</p>
+                <h2>Page 19</h2>
+                <ul class="target-list"><li><strong>Valuation assumptions</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 11 Valuation Approach and Assumptions</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-19-19.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-19-19.png" alt="Rendered AccountIQ valuation PDF page 19">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 19</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 22</p>
+                <h2>Page 22</h2>
+                <ul class="target-list"><li><strong>DCF analysis</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 13 Discounted Cash Flow Analysis</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-22-22.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-22-22.png" alt="Rendered AccountIQ valuation PDF page 22">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 22</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 24</p>
+                <h2>Page 24</h2>
+                <ul class="target-list"><li><strong>Indicative valuation summary</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 14 Indicative Valuation Summary</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-24-24.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-24-24.png" alt="Rendered AccountIQ valuation PDF page 24">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 24</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 25</p>
+                <h2>Page 25</h2>
+                <ul class="target-list"><li><strong>Multiples cross-check</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 15 Multiples Cross-check</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-25-25.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-25-25.png" alt="Rendered AccountIQ valuation PDF page 25">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 25</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 26</p>
+                <h2>Page 26</h2>
+                <ul class="target-list"><li><strong>Sensitivity</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 16 Sensitivity and Specific Risks</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-26-26.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-26-26.png" alt="Rendered AccountIQ valuation PDF page 26">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 26</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 27</p>
+                <h2>Page 27</h2>
+                <ul class="target-list"><li><strong>Specific risk factors</strong><span>Specific risk factors, Specific risk factor, Management input, Valuation relevance, Report treatment</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-27-27.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-27-27.png" alt="Rendered AccountIQ valuation PDF page 27">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 27</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 28</p>
+                <h2>Page 28</h2>
+                <ul class="target-list"><li><strong>Comparable evidence</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 17 Comparable Evidence Appendix</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-28-28.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-28-28.png" alt="Rendered AccountIQ valuation PDF page 28">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 28</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 29</p>
+                <h2>Page 29</h2>
+                <ul class="target-list"><li><strong>Sources</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 18 Sources and References</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-29-29.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-29-29.png" alt="Rendered AccountIQ valuation PDF page 29">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 29</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 30</p>
+                <h2>Page 30</h2>
+                <ul class="target-list"><li><strong>Disclaimer</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 19 Disclaimer</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-30-30.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-30-30.png" alt="Rendered AccountIQ valuation PDF page 30">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 30</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 31</p>
+                <h2>Page 31</h2>
+                <ul class="target-list"><li><strong>General principles</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 20 General Principles</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-31-31.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-31-31.png" alt="Rendered AccountIQ valuation PDF page 31">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 31</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+
+            <article class="page-card">
+              <div class="page-card-text">
+                <p class="eyebrow">AccountIQ rendered PDF page 32</p>
+                <h2>Page 32</h2>
+                <ul class="target-list"><li><strong>Glossary</strong><span>ACCOUNTIQ INDICATIVE VALUATION, 21 Glossary</span></li></ul>
+              </div>
+              <div class="comparison-grid">
+                <figure>
+                  <a href="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-32-32.png">
+                    <img src="../../tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-32-32.png" alt="Rendered AccountIQ valuation PDF page 32">
+                  </a>
+                  <figcaption>
+                    <strong>AccountIQ current output</strong>
+                    <span>Rendered PDF page 32</span>
+                  </figcaption>
+                </figure>
+                <div class="reference-column">
+                  
+        <div class="reference-placeholder">
+          <strong>No mapped reference image supplied yet.</strong>
+          <span>Add one in the optional reference manifest to make this a true side-by-side comparison.</span>
+        </div>
+        
+                </div>
+              </div>
+            </article>
+            
+    </section>
+  </main>
+</body>
+</html>

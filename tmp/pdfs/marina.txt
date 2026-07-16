@@ -1,0 +1,1740 @@
+Indicative company
+valuation report
+
+Bayleys Real Estate Limited
+June 2026
+Prepared for Marina Terrace Accommodation Limited
+Contents
+Introduction ................................................................................................................................... 4
+    Client......................................................................................................................................................................................... 4
+    Instructing Party .................................................................................................................................................................... 4
+    Purpose .................................................................................................................................................................................... 4
+    Date of Valuation ................................................................................................................................................................... 4
+    Sources of information ......................................................................................................................................................... 5
+    Basis of Valuation .................................................................................................................................................................. 5
+    Liability and Confidentiality ................................................................................................................................................ 5
+    Compliance Statement ......................................................................................................................................................... 6
+
+Overview ........................................................................................................................................ 9
+
+About business valuations ........................................................................................................... 10
+
+Valuation methodology adopted ................................................................................................ 12
+
+Financial performance ................................................................................................................. 14
+    MTAL revenue model ............................................................................................................................................................................. 14
+    Normalisations .......................................................................................................................................................................................... 19
+
+Valuation approach and assumptions......................................................................................... 21
+    Valuation outcome – sustainable operations ................................................................................................................ 22
+    Valuation assumptions ....................................................................................................................................................... 22
+    Growth in Earnings .............................................................................................................................................................. 22
+    Period from Which to Base Earnings .............................................................................................................................. 22
+    Key operating cost assumptions ...................................................................................................................................... 22
+    Working capital expenditure ............................................................................................................................................ 23
+    Capital expenditure ............................................................................................................................................................. 23
+    Corporate income taxation ............................................................................................................................................... 23
+    Weighted Average Cost of Capital.................................................................................................................................. 23
+    Sensitivity — apartment retention scenarios ................................................................................................................. 26
+    Multiples cross-check.......................................................................................................................................................... 27
+    Specific comparable transaction observed ................................................................................................................... 29
+
+Appendix ...................................................................................................................................... 29
+
+Disclaimer ..................................................................................................................................... 31
+
+General principles ....................................................................................................................... 32
+
+Glossary ........................................................................................................................................ 33
+
+
+
+
+                                                                                                                                                                                                                   2
+18 June 2026
+Karen Mackenzie, General Manager
+
+Marina Terrace Accommodation Limited
+
+c/o Gilligan Rowe & Associates LP, Newmarket, Auckland
+
+
+By email
+
+
+
+Indicative Valuation of Marina Terrace Accommodation Limited – accommodation
+management business
+We are pleased to present our indicative valuation of Marina Terrace Accommodation Limited (“MTAL”) as of
+18 June 2026, in accordance with our engagement letter dated March 2026.
+
+We note that, as an indicative valuation, our Report does not constitute an independent business valuation
+report in terms of Advisory Engagement Standard No. 2: Independent Business Valuation Engagements (AES
+2), issued by Chartered Accountants of Australia and New Zealand (“CAANZ). Further, any transaction should
+not proceed solely on the basis of this indicative valuation, due to the limited and high-level information upon
+which our calculations are based.
+
+In performing our indicative valuation, we have used and relied upon information provided by the company's
+management team (“Management”). We have not audited or specifically verified any of the information
+provided to us for valuation purposes and accordingly take no responsibility for any errors contained in the
+information provided to us and relied upon when performing our indicative valuation.
+
+Unless otherwise stated, all amounts in our valuation report are shown in New Zealand dollars, exclusive of
+goods and services tax (“GST). Reference to a financial year refers to the company’s financial reporting year,
+ending on 31 March. The financial statements that we have relied upon are not audited.
+
+Our report is based on historical and prospective financial information provided to us by management and
+other third parties. Users of this valuation report should be aware that business valuations are based on future
+earnings potential that may or may not materialise, we have taken care to understand the future maintainable
+earnings of the business, to the best of our ability, and used sound methodologies to provide a well-rounded
+indicative value. Therefore, the actual results achieved during the projection period will vary from the
+projections used in this valuation, and the variations may be material. The accompanying report discusses all
+the assumptions and limiting conditions that apply to this opinion of value and are integral to the
+understanding of the opinion.
+
+Should you wish to discuss any questions in regard to this indicative valuation, please do not hesitate to
+contact us.
+
+Yours sincerely,
+
+Bayleys Business | Strategic Transactions Services
+
+
+
+
+William Cheong, CA
+National Director Bayleys Business
+M: +64 21 022 73670
+E: william.cheong@bayleys.co.nz
+
+
+
+
+                                                                                                                   3
+Introduction
+
+Client              Marina Terrace Accommodation Limited
+
+                    Address: 65 Lakeside Road, Wanaka 9305 (Director: M L Tuck; General
+                    Manager: Karen Mackenzie)
+
+
+
+                    Marina Terrace Accommodation Limited (“MTAL”) operates an
+                    established accommodation-management business in Wanaka, New
+                    Zealand. MTAL acts as Building Manager for Marina Terrace Apartments
+                    under a Property Management Agreement with Body Corporate 550777,
+                    and as Letting Manager for individual apartment owners through 30-year
+                    Apartment Management Agreements.
+
+
+                    The company manages 14 apartments across seven buildings of the
+                    Marina Terrace complex (Spinnaker, Admiral, Nautilus Townside, Nautilus
+                    Northside, Navigator, Quayside and Anchorage) on Lakeside Road,
+                    Wanaka. Twelve of the fourteen apartments are subject to formal
+                    Apartment Management Agreements; the remaining two are managed
+                    informally on consistent commercial terms.
+
+                    MTAL was incorporated on 27 May 2016. Day-to-day operations are run
+                    by General Manager Karen Mackenzie (engaged through her vehicle All
+                    About The View Limited (“AATV”)) under a related-party management
+                    arrangement, with governance overseen by sole director M L Tuck. There
+                    are eight shareholders holding 110 shares between them; Karen
+                    Mackenzie is not a shareholder of MTAL.
+
+Instructing Party   Bayleys Real Estate Limited (Bayleys Business - Strategic Transactions
+                    Services), have been engaged by the directors of MTAL, pursuant to a
+                    letter of engagement to undertake an indicative valuation of the
+                    business.
+
+
+Purpose             This indicative valuation report has been prepared for the purpose of:
+
+                        •   To support consideration of a Heads of Agreement under which
+                            All About The View Limited (AATV) proposes to acquire MTAL
+                            from its current shareholders. The valuation is provided to assist
+                            the parties in their commercial discussions and is for internal
+                            advisory purposes only.
+
+
+Date of Valuation   The valuation is expressed as of the 18 June 2026 in New Zealand dollars.
+Sources of information   While undertaking this indicative valuation we have relied upon the
+                         following information:
+
+                             •   Special Purpose Financial Reports for the years ended 31 March
+                                 2022 to 31 March 2025, compiled by Property Management
+                                 Agreement between Body Corporate 550777 and MTAL dated
+                                 23 December 2020.
+                             •   Agreement to Lease (reception/cleaning area) dated 12
+                                 February 2021. Sample apartment-letting Management
+                                 Agreement (Apartment 20). Schedule of 14 managed
+                                 apartments (2026).
+                             •   Schedule of shareholders and basic organisation chart.
+                             •   Fixed asset register inferred from FY25 Special Purpose
+                                 Financial Report.
+                             •   Discussions and correspondence with the General Manager
+                                 Karen Mackenzie
+                             •   New Zealand Treasury inflation outlook
+                             •   10-year yield Government Bond secondary market.
+
+
+Basis of Valuation       The valuation achieved is an indicative market value. “The estimated
+                         amount which an asset or liability should exchange on the valuation date
+                         between a willing buyer and a willing seller in an arm’s length transaction,
+                         after proper marketing and where the parties had each acted
+                         knowledgeably, prudently and without compulsion. – IVS (January 2022)
+
+                         Bayleys has been approached to prepare an indicative valuation.
+
+                         We define this to mean that we are required to express an estimate of
+                         the range within which the value lies. We also note that under your
+                         instruction we have not performed the comprehensive analysis that
+                         would normally be required to support a valuation such as this.
+
+Liability and            Our indicative valuation and report is strictly confidential to the party to
+Confidentiality          whom it is addressed and is prepared solely for the specific purpose to
+                         which it refers. No responsibility whatsoever is accepted for reliance on
+                         the indicative valuation report for other purposes. Further, no
+                         responsibility whatsoever is accepted to persons other than the party to
+                         whom the indicative valuation and report is addressed any errors or
+                         omissions whether of fact or opinion.
+
+                         This report can be relied upon by the following parties for their
+                         respective purposes:
+
+                             •   Directors and shareholders of Marina Terrace Accommodation
+                                 Limited
+                             •   Karen Mackenzie and All About The View Limited
+
+                         This indicative valuation report is not intended for general circulation,
+                         publication or reproduction for any purpose without written permission
+                         in any specific instance. No responsibility is accepted nor any liability for
+                         losses occasioned by yourselves, any financier or other parties as a result
+                         of the circulation, reproduction or use of this indicative valuation report.
+
+                         We reserve the right, but not the obligation, to review the indicative
+                         valuation and revise our opinion after the release of this report, if any
+
+
+
+
+                                                                                                         5
+                       previously withheld information becomes known to us or erroneous
+                       information has been provided and relied upon.
+
+
+
+
+Compliance Statement   The indicative valuation undertaken does not meet Advisory Engagement
+                       Standard 2’s definition of an independent business valuation report and is
+                       hence considered indicative, and we confirm that:
+
+                           •   The statements of fact presented in the report are correct to the
+                               best of the preparer’s knowledge;
+                           •   The analyses and conclusions are limited only by the reported
+                               assumptions and conditions;
+                           •   The preparer of this report has no interest in the subject
+                               business;
+                           •   The preparer’s fee is not contingent upon any aspect of the
+                               report;
+                           •   The indicative valuation was performed in accordance with an
+                               ethical code and performance standards;
+                           •   The preparer has satisfied professional education requirements;
+
+                       No one, except those specified in the report, has provided professional
+                       assistance in preparing the report.
+
+                       While this indicative valuation report does not meet the requirements of
+                       Advisory Engagement Standard 2 (AES-2) for an independent business
+                       valuation, an indicative valuation is considered appropriate and
+                       proportionate for the purpose of this engagement. The purpose of this
+                       report is to inform commercial discussions between the existing
+                       shareholders of MTAL and the proposed related-party purchaser (All
+                       About The View Limited) under a Heads of Agreement, rather than to
+                       support a regulated transaction or court process. In that context, an
+                       indicative valuation prepared by a qualified Chartered Accountant,
+                       drawing on the Special Purpose Financial Reports for FY2022–FY2025
+                       and applying accepted DCF methodology, provides a reliable and
+                       credible basis for assessment. The conclusions reached are considered
+                       reasonable and supportable having regard to the information available
+                       and the purpose for which this valuation has been prepared.
+
+
+
+
+                                                                                                    6
+Executive summary
+Bayleys has been approached to provide an indicative valuation of the
+company. Please note the indicative valuation undertaken does not meet
+Advisory Engagement Standard 2’s definition of an independent business
+valuation report and is hence considered indicative.
+We understand that the primary reason for the valuation is to gain an understanding of company value to
+inform commercial discussions between the existing shareholders of MTAL and All About The View Limited
+(AATV), the proposed related-party purchaser under a Heads of Agreement.
+
+The primary purpose of this valuation is to assess the fair-market enterprise value of the accommodation-
+management business operated by MTAL, in support of a Heads of Agreement under which All About The
+View Limited (AATV) proposes to acquire the company from its current shareholders. Our valuation has been
+prepared on a notional arm’s-length basis, normalising for the existing related-party fee arrangement between
+MTAL and AATV, so that the indicated value reflects what an independent third-party purchaser could
+reasonably be expected to pay for the going-concern business.
+
+In undertaking this valuation, we have taken regard to the contractual coverage provided by:
+
+    •    the Body Corporate Property Management Agreement (10-year first term to 23 December 2030, with
+         Manager-controlled renewals to a maximum of 30 years),
+    •    the Apartment Management Agreements (30-year stated term, subject to each owner's 6-month at-
+         will termination right under clause 7.6, with the initial 2-year lockup at clause 7.7 having lapsed for
+         apartments with a 2022 or earlier commencement date),
+    •    and the stable performance of the 14-apartment managed portfolio.
+
+Our analysis’s long-term operating history and contractual revenue base supports a single going-concern
+scenario assessed using an income-based Discounted Cash Flow (DCF) approach.
+
+Table 1 summarises the indicative valuation Marina Terrace Accommodation Limited calculated using the
+Discounted Cash Flow approach. It is important that the inputs for the valuation are clearly understood as
+small changes in some assumptions can impact the indicative company valuation provided in this report.
+
+The valuation is indicative, and in our professional opinion represents a fair market value of the company’s
+enterprise value on a notional arm’s-length basis. The DCF analysis produces an indicative enterprise value
+range of $0.761m to $0.921m, with a mid-case of $0.841m. The valuation reflects the company’s stable
+contractual revenue base, modest scale, and reliance on a small number of key contracts.
+
+
+
+
+                                                                                                                   7
+In determining these values, interest expenses have been excluded, as the financing structure of the business
+is discretionary and may change if the business changes hands. The indicative valuation is prepared on the
+assumption that the business continues to operate as a going concern and that the current level of operational
+continuity is maintained, including continued performance under the Body Corporate Property Management
+Agreement and the 12 formal and 2 informal apartment-letting agreements.
+
+Indicative valuation summary
+
+
+ Indicative valuation summary
+                                                              High                Mid               Low
+ Fair Value                                                $0.921m            $0.841m           $0.761m
+
+
+
+ Of which:
+
+ Operating Fixed Assets (book value)                      $0.006m            $0.006m           $0.006m
+
+ Intangible Value (goodwill)                               $0.915m           $0.835m            $0.755m
+
+
+
+
+                                                                                                                 8
+Overview
+Introduction
+This report sets out the valuation rationale in respect of the proposed related-party acquisition of the
+accommodation-management business operated by Marina Terrace Accommodation Limited ("MTAL") under
+the contemplated Heads of Agreement.
+
+The purpose of the valuation is to assess the going-concern value of MTAL on a notional arm’s-length basis. In
+doing so, the existing management arrangement with All About The View Limited ("AATV") has been treated
+as quasi-owner remuneration and normalised, so that the resulting value indication reflects the consideration
+that an independent third-party purchaser could reasonably be expected to pay for the business.
+
+The valuation has been prepared using a Discounted Cash Flow (DCF) methodology, which is considered
+appropriate for assessing the present value of future maintainable cash flows generated by the business as a
+going concern. The analysis is expressed on a fair market value basis, assuming a notional transaction between
+a willing buyer and a willing seller dealing at arm’s length.
+
+Background
+MTAL operates within the Wanaka short-stay accommodation market, which has exhibited stable post-COVID
+demand supported by the town’s lakeside setting, year-round tourism appeal, and constrained supply of
+professionally managed apartment accommodation.
+
+Since its incorporation in May 2016, MTAL has operated as both Building Manager and Letting Manager for the
+Marina Terrace complex and has progressively expanded its managed portfolio to 14 apartments across the
+Spinnaker, Admiral, Nautilus Townside, Nautilus Northside, Navigator, Quayside and Anchorage buildings.
+
+MTAL is owned by eight shareholders holding 110 shares in aggregate. The largest shareholdings are Tallon
+Automotive Limited (29%), T G Tuck (20%) and Miller Financial Services (14%). Governance is overseen by
+director M L Tuck, while day-to-day operations are managed by Karen Mackenzie through AATV.
+The current operating platform is underpinned by several key features:
+
+    •   a 10-year Body Corporate management contract executed on 23 December 2020 with two 10-year
+        rights of renewal, providing contractual coverage to 2050;
+
+    •   an office and reception lease executed on 12 February 2021 at $0.013m + GST per annum, CPI-
+        indexed;
+
+    •   12 of 14 apartments are subject to formal Apartment Management Agreements; the remaining two
+        operate without a formal agreement; and
+
+    •   an established Wanaka tourism and accommodation market with stable post-COVID demand.
+
+On completion of the proposed Heads of Agreement, the existing related-party management arrangement
+between MTAL and AATV—under which AATV currently receives 50% of MTAL’s pre-fee profit—will cease, as
+AATV will become the owner of MTAL.
+
+Having now reached its 14-apartment operating footprint, MTAL has demonstrated a level of earnings stability
+sufficient to support the use of FY2026 as the base year for assessing sustainable maintainable earnings.
+
+Taken together, these contractual arrangements support both the continuity of the operating platform and
+the retention rationale for the current apartment owners. Under the proposed Heads of Agreement, AATV
+would step into the existing shareholder position, such that the contractual framework and operating platform
+would remain with the company.
+
+
+
+
+                                                                                                                 9
+About business valuations
+We understand that the primary
+reason the valuation is to gain an                              Definitions
+                                                                (Definition taken from International
+understanding of company value to                               Valuation Standards)
+
+establish a fair share value. In                                Fair market value:
+understanding the valuation process of                          This definition of “Fair Value is
+businesses, it pays to understand that                          generally synonymous with the term
+                                                                “Market Value as defined in the
+there are many different methods and
+                                                                International Valuation Standards –
+types of business valuations. Valuations                        IVS (effective 31 January 2022) as:
+will also differ dependent on the
+                                                                “The estimated amount which an
+purchaser as the risk profile assumptions                       asset or liability should exchange on
+going into the valuation model will change                      the valuation date between a willing
+depending on the purchaser.                                     buyer and a willing seller in an arm’s
+                                                                length transaction, after proper
+The most common methods of valuations businesses are            marketing and where the parties had
+the discounted cash flow (“DCF) method and the multiples        each acted knowledgeably, prudently
+method.                                                         and without compulsion.
+
+DCF is a direct valuation technique that values a company       Going concern: Going concern is an
+by projecting its future cash flows and then uses the Net       accounting term a company that has
+Present Value (“NPV) method to value those cash flows.          the resources needed to continue to
+                                                                operate indefinitely until a company
+The multiples approach is where the enterprise value is
+                                                                provides evidence to the contrary.
+usually derived from applying a multiple to the Earnings
+before Tax, Depreciation and Amortisation (“EBITDA)
+figure.
+                                                                In practice, owner operated
+The two methods described requires several assumptions to
+                                                                businesses are often sold on an “asset
+be made in order to arrive at a valid discount factor or
+                                                                sale basis or an “equity sale basis. The
+multiple which can be applied to the valuation model. The
+                                                                sale and purchase agreement will
+ultimate objective and most common outcome the
+                                                                often reflect the unique aspect of
+valuation exercise is to arrive at a fair market value of the
+                                                                each scenario.
+business on a going concern basis. E.g., 100% interest in the
+subject’s equity or assets.                                     Asset sale: The seller keeps the cash
+                                                                and receivables delivers the business
+                                                                free and clear of all debt
+
+                                                                Equity sale: The buyer is buying all
+                                                                the assets and liabilities of the
+                                                                business, on and off the balance sheet
+
+
+
+
+                                                                                                           10
+The following assumptions used for the DCF method also help derive the valuation of
+the business:
+
+
+
+Inputs                 Descriptions
+
+                       Beta reflects how the business responds in a reasonably inelastic fashion
+                       when compared with the market. By definition, the market has a beta of
+                       1.0, and individual businesses are ranked according to how much they
+                       deviate from the market. A business that swings more than the market
+                       over time has a beta above 1.0. If a business moves less than the market,
+                       the business’ beta is less than 1.0. High-beta businesses are supposed to
+                       be riskier and provide potentially higher returns; low- beta businesses
+                       pose less risk also lower returns.
+
+
+
+
+                       Equity risk premium, also referred to as simply equity premium, is the
+                       excess return that investing in an asset provides over a risk-free rate, such
+                       as the return from government treasury bonds. This excess return
+                       compensates investors taking on the relatively higher risk of equity
+                       investing. The size of the premium will vary depending on the level of risk.
+
+
+
+
+                       The risk-free rate of return is the theoretical rate of return of an
+                       investment with zero risk. The risk-free rate represents the interest an
+                       investor would expect from an absolutely risk-free investment over a
+                       specified period of time. For the purpose of this report, our risk-free rate is
+                       the 10-year government bond rate on the day the indicative valuation is
+                       prepared and assessed.
+
+
+
+
+                       Illiquidity discount is a discount which is applied to private business
+                       valuations. It is a discount which assumes that private to private
+                       transactions will have an element of illiquidity which has to be accounted
+                       in the price as the business is not as easily traded in the marketplace after
+                       the transaction is settled. We have derived this discount from a synthetic
+                       bid ask spread calculation which attempts to reflect the costs and time
+                       associated with transacting a private business transaction.
+
+
+
+
+                       This is the growth rate assumed to be carried on the business cash flows
+                       going forward for the periods after the final period of accountant
+                       prepared financial forecasts. The default rate for this will usually be the
+                       inflation rate to ensure that the business at least grows by this rate going
+                       forward.
+Valuation
+methodology adopted
+Fundamental to a company valuation is to determine the appropriate valuation
+method. In assessing Marina Terrace Accommodation Limited value, the
+Discounted Cash Flow model has been used. We believe this is the most
+appropriate valuation methodology for the reasons set out below.
+
+Further, we have assessed the value of Marina Terrace Accommodation Limited
+on a Free Cash Flow to Firm (FCFF) basis: the cash flows are unlevered (interest
+excluded) and are stated after corporate tax, and are discounted at the Weighted
+Average Cost of Capital (WACC), consistent with accepted valuation principles.
+
+Free cash flow to firm is derived from normalised maintainable EBITDA by
+deducting corporate tax at 28% and any incremental capital expenditure and
+movement in working capital.
+
+In this engagement no further capital expenditure (beyond routine maintenance)
+and no change in working capital are envisaged, and depreciation on the modest
+fixed-asset base is negligible, so that FCFF approximates normalised EBITDA less
+corporate tax at 28% (i.e. approximately 72% of EBITDA).
+
+
+Discounted Cash Flow
+DCF is a direct valuation technique that values a company by projecting its future cash flows and then
+uses the Net Present Value (NPV) method to value those cash flows.
+
+In the DCF analysis, the cash flows are projected by using a series of assumptions about how the business
+will perform in the future, and then forecasting how this business performance translates into the cash
+flow generated by the business. The DCF method should be used to provide an indicative value Marina
+Terrace Accommodation Limited as it attempts to measure the value created by a business directly. It is
+thus the most theoretically correct valuation method available; the value of a firm ultimately derives from
+the inherent value of its future cash flows to its equity holders.
+
+DCF is the most broadly used valuation technique, simply because of its theoretical underpinnings and its
+ability to be used in almost all scenarios. DCF is used by Investment Bankers, Corporate Finance
+professionals undertaking entity valuations and mergers and acquisitions, Business Development
+professionals, and Academics. NPV is a mathematical technique used in DCF modelling translating
+projected annual cash flow amounts into risk adjusted today equivalent values so that each year’s
+projected cash flows can be summed up in comparable, current-dollar amounts.
+
+
+
+
+                                                                                                              12
+In order to calculate the NPV of future cash flows, the Cost of Equity is calculated and used as the
+discount rate. The Cost of Equity is essentially the rate of return that equity investors require from their
+investment in the company and will vary based on a variety of factors such as:
+
+
+   Historical performance                  The probability of                     The propensity of
+      of the business and               achieving the cash flow               cash flows to change with
+    investor confidence in           forecasted (how conservative            macro-economic fluctuations
+  future business prospects               are the cash flows)                   (referred to as Beta)
+
+
+
+
+   International trade and
+                                          Country specific risk                 Management capability
+ foreign exchange variables
+
+
+
+
+                                                                                  Long term contracts
+   Liquidity and solvency                   Barriers to entry
+                                                                              or guarantees underpinning
+     risk of the business                     competitors
+                                                                                     performance
+
+
+
+
+Basis of Valuation
+
+The valuation has been prepared on a going-concern basis, reflecting the business’s continued operation
+at the valuation date. The valuation has been undertaken for commercial discussions between the existing
+shareholders of MTAL and the proposed related-party purchaser, AATV, and is expressed on a fair market
+value basis, assuming a notional, arm’s-length transaction between a willing but not anxious buyer and a
+willing but not anxious seller.
+
+In applying this basis, the business is assessed as an operating enterprise, rather than on a liquidation or
+break-up basis. The valuation focuses on the economic benefits expected to be derived from the business
+as conducted at the valuation date, having regard to the conditions under which it has operated.
+
+
+
+Valuation Methodology Adopted
+
+The valuation has been carried out using a Discounted Cash Flow (DCF) methodology. Under this
+approach, the value of the business is assessed by estimating future maintainable after-tax cash flows
+(free cash flow to firm, derived from normalised EBITDA less corporate tax at 28%) and discounting those
+cash flows to their present value using an appropriate discount rate that reflects time value and business
+risk.
+The DCF method has been adopted as it is considered appropriate in circumstances where:
+
+    •   the business has a long trading history supported by detailed financial information;
+
+    •   future performance can be assessed by reference to historical operating results and observable
+        operating conditions; and
+
+    •   the valuation purpose requires assessment of fair-market enterprise value supporting commercial
+        discussions between the existing shareholders and the proposed related-party purchaser.
+
+
+
+
+                                                                                                               13
+Financial performance
+MTAL revenue model
+MTAL operates a serviced-accommodation management business at Marina Terrace, earning income
+across short-stay accommodation revenue (the dominant driver), a body corporate management fee, and
+cost recoveries.
+
+Sales Trends:
+   •   Total income grew from $0.047m in FY22 to $0.428m in FY23, $0.847m in FY24, $1.197m in FY25,
+       and $1.356m in FY26 (draft management reports, reclassiﬁed to the FY25 presentation).
+   •   The key structural point sits at the FY23/FY24 boundary. In FY23, accommodation income was
+       reported within a single combined "Management Fee" line that bundled the body corporate
+       management fee and rent received together. From FY24 onwards these were separated into
+       distinct income lines — Rent Received and Management Fee shown individually — giving clearer
+       visibility into the revenue mix.
+   •   The total is unaﬀected by the change; the +97.7% FY23→FY24 movement reﬂects genuine growth
+       in the underlying apartment-management activity, now presented at a more granular level.
+   •    Growth moderated as the business scaled, from +97.7% (FY23→FY24) to +41.3% (FY24→FY25) and
+       +13.3% (FY25→FY26), consistent with a maturing revenue base. FY26 has accordingly been
+       adopted as the base year for sustainable maintainable earnings.
+   •   For forecasting purposes, FY2026 has been treated as the actual base year, with revenue
+       projected to grow at 3.1% per annum from FY2027 onward, in line with inflationary growth.
+   •   In our view, the current earnings base reflects a business that has reached a more stable
+       operating scale under the existing 14-apartment footprint and contractual arrangements.
+
+
+
+
+                                                                                                      14
+Gross Profit:
+   •   Gross profit rose from $0.047m in FY22 to $0.409m (FY23), $0.720m (FY24), $1.031m (FY25),
+       and $1.270m in FY26.
+   •   On the reclassified basis, FY26 cost of sales of $0.087m captures only the "purchases" equivalent
+       (amenities, body corporate recoverables, linen, owner recoverables, website) — consistent with
+       FY25's Purchases line of $0.166m. The major variable costs — OTA commissions of $0.167m and
+       housekeeping (contractor, products, laundry) of $0.030m — are carried in operating expenses,
+       matching the FY25 treatment.
+   •   Reported gross margin therefore reflects only the narrow direct-cost base, sitting at ~85–86% in
+       FY24–FY25 and ~93.6% in FY26 as the purchases-type costs fell relative to revenue. The fuller
+       profitability picture is best read at the EBITDA line, where the substantial variable operating costs
+       are captured.
+
+Operating Expenses:
+   •   Wages and salaries have scaled steadily alongside the operation, rising from $0.161m in
+       FY23 to $0.307m (FY24), $0.411m (FY25) and $0.499m (FY26). The decelerating growth profile
+       (+90%, +34%, then +21%) mirrors the maturing revenue base, and the line includes the General
+       Manager's salary, which has gradually increased from ~$0.070m over the years to ~$0.130m in
+       FY26 as the scope of the role expanded with the apartment pool. (In the FY26 draft this cost sits
+       under a COGS as "Wages Cleaning" label but represents the same wages and salaries line as prior
+       years, therefore has been shifted down.)
+
+   •   The balance of operating expenses comprises the office and reception lease, reception and
+       cleaning costs, linen, advertising and channel commissions, and the AATV related-party
+       management fee. The lease is contracted at $0.013m + GST per annum, CPI-indexed under the 12
+       February 2021 Agreement to Lease, translating to an actual cost of ~$0.015m in both FY25 and
+       FY26.
+
+   •   Online travel agent commissions are the most significant variable overhead and have grown in
+       step with booking volumes, from $0.066m (FY24) to $0.145m (FY25) and $0.167m (FY26). The
+       FY25 spend was concentrated across a small number of channels — Booking.com
+       (~$0.109m) accounted for the large majority, followed by Expedia (~$0.018m), other travel agents
+       (~$0.013m) and Airbnb (~$0.004m) — reflecting the company's reliance on third-party
+       distribution to drive occupancy.
+
+   •   The remaining overheads are modest relative to the scale of the operation and have stayed
+       broadly stable on a per-apartment basis. Merchant and eftpos fees edged up with card-settled
+       revenue ($0.048m to $0.051m), marketing held flat at ~$0.019m, and administrative costs —
+       insurance, accounting and professional fees, and IT — were each effectively unchanged year-on-
+       year, with subscriptions ($0.014m to $0.018m) the only notable mover.
+
+   •   The AATV related-party management fee, structured as 50% of pre-fee profit, grew alongside
+       earnings — from $0.054m (FY22) to $0.119m (FY24) and $0.154m (FY25) — making it the single
+       most material related-party item. It is non-arm's-length and absent from the FY26 draft accounts.
+
+
+
+EBITDA
+   •   Reported Net Profit Before Tax improved from a loss of $0.030m in FY2022, being a start-up
+       year, to $0.153m in FY2025. FY2026 results are management accounts, and does not include an
+       AATV management fee, reflecting the effective cessation of that arrangement on completion of
+       the proposed Heads of Agreement. After adjusting for the net normalization, the FY2026
+       Normalised EBITDA is $0.401m, compared with $0.252m in FY2025.
+   •   The FY2026 Normalised EBITDA of $0.401m provides a clearer measure of underlying operating
+       performance after replacing the non-arm’s-length AATV arrangement with a market-based
+       management cost structure.
+
+
+
+
+                                                                                                               15
+   •   The DCF model is anchored to FY2026, which reflects the first full year of mature trading at the
+       current scale. On that basis, the model adopts reported FY2026 EBITDA of $0.446m as the
+       starting point, reflecting the assumption that an acquirer would implement its own operating cost
+       structure following completion.
+   •   Sustained EBITDA performance will remain principally dependent on cost discipline and retention
+       of the underlying apartment management agreements, with earnings growth assumed to
+       moderate to approximately 3.1% per annum from FY2027 as the business continues to trade at a
+       more established operating scale.
+   •   Consistent with this approach, the DCF model applies an internally derived four-year (FY2026–
+       FY2029) EBITDA forecast growing at 3.1% per annum from the FY2026 reported base, noting that
+       no external FY2027 management forecast was available at the valuation date.
+
+Normalisations
+   •   The normalisations applied isolate the underlying operational performance from non-operating
+       income and owner-wage add-backs, supporting the assessment of sustainable maintainable
+       earnings under the DCF framework.
+
+   A few normalisations to EBITDA:
+
+   •   Interest income has been removed from maintainable earnings, as it is non-operating in nature
+       and not reflective of the core accommodation-management activities of the business.
+   •   The AATV related-party management fee has been added back, as the existing arrangement—
+       being 50% of MTAL’s pre-fee profit—is not considered arm’s-length and would not be expected to
+       continue in its current form under third-party ownership.
+   •   Karen Mackenzie’s existing General Manager remuneration has also been added back as part of
+       the normalisation process.
+   •   In place, a market-based replacement cost has been substituted, comprising $0.140m per annum
+       for a General Manager role and $0.170m on a fully loaded basis to reflect the broader function
+       currently performed across General Manager, part-time accounts support, and on-call night cover.
+   •   The replacement cost has been stepped from $0.150m in FY23–FY24 to $0.170m in FY25–FY26 to
+       reﬂect the gradual increase in operational scale, with earlier years requiring a reduced level of
+       managerial resourcing relative to the more fully established cost base in later periods.
+   •   Owner-discretionary expenditure has also been considered as part of the review. No material
+       additional adjustments were identified, given the limited scale of such expenditure within MTAL.
+
+
+
+
+                                                                                                           16
+Historical and forecast financial performance
+Table 2 presents the summary financial performance of Marina Terrace Accommodation Limited from
+FY2022 - FY2026 which has been relied on to arrive at this valuation. All figures are presented in millions
+of New Zealand dollars (NZ$m).
+
+Table 2: Financial performance (NZ$m)
+ Profit and loss summary
+                                   Actual            Actual             Actual            Actual       Management
+
+
+ Year ending March                 FY22               FY23              FY24              FY25                FY26
+
+ Management Fee                    0.047             0.428              0.073             0.070               0.074
+
+ Rent Received                         —                 —              0.774              1.127               1.282
+
+ Total Income                     0.047              0.428             0.847               1.197              1.356
+
+ Cost of Sales                   (0.001)           (0.020)            (0.126)            (0.166)           (0.086)
+
+ Gross Profit                     0.047              0.409             0.720              1.031               1.270
+
+ Other Income                          —             0.007             0.003              0.007               0.006
+
+
+ Rent                                  —              0.013             0.016             0.015               0.015
+
+ Wages                                 —              0.161            0.307               0.411              0.499
+
+ Management Fees                   0.054             0.100               0.119            0.154                   —
+ Other Operating
+                                   0.022             0.087               0.171            0.304               0.315
+ Expenses
+
+ Reported EBITDA                (0.030)              0.053              0.110             0.155               0.446
+
+ Normalisations                    0.054              0.014            0.046              0.097            (0.046)
+
+ Normalised EBITDA                0.024              0.067              0.155             0.252               0.401
+
+
+
+FY2026 draft Xero Statement of Profit or Loss (Marina Terrace Accommodation Limited, year ended 31 March
+2026 — draft Xero) figures have been reclassified to match FY25 financial accounts presentation.
+
+Notes:
+
+    •    FY2022 represents a partial first-year of trading and is not directly comparable with later years.
+    •    FY2026 draft Xero accounts have been adopted as the normalised earnings base; FY2027 onward
+         is projected at 3.1% revenue growth.
+    •    FY26 management accounts were adjusted to reclassify the expenses and COGS purchases in line
+         with FY25 financial accounts, to show like wise presentation. Further booking deposits for FY27
+         were removed from the original FY26 revenue to adjust for the accrual.
+
+
+
+
+                                                                                                                       17
+Historical ratio analysis
+Table 3 shows key financial ratio analysis for MTAL.
+
+Table 3: Ratio analysis
+
+
+ Historical ratio analysis
+                                      Actual           Actual   Actual   Actual   Management
+
+ Year ending March                    FY22             FY23     FY24     FY25          FY26
+
+ Apartments under management              5                8       12       14           14
+
+
+ Revenue Growth                           -            805%     98%       41%           13%
+
+ EBITDA Growth                            -            179%     131%      63%          59%
+
+ Gross Profit %                        98%              95%      85%     86%           94%
+
+ Wages as a % of Revenue                0%              38%      36%     34%           37%
+
+ Other Opex as a % of Revenue          47%             20%      20%       25%          23%
+
+ EBITDA Margin                          n/a             16%      18%      21%          30%
+Normalisations
+For the purpose of this analysis, we have normalised the P&L for other income which do not relate to the core
+operations of the business. Please refer to the normalisation schedule below for normalisations related to
+expenses, which do not relate to normal business operations.
+
+Table 4: Normalisations
+ Normalisation Schedule
+                                           Actual            Actual       Actual           Actual     Management
+
+ Year ending March                         FY22              FY23         FY24             FY25             FY26
+
+
+ Interest income                         0.000             (0.007)     (0.003)           (0.007)         (0.006)
+
+ AATV management fee                      0.054             0.100          0.119           0.154                —
+
+ Existing GM salary                         -               0.070        0.080             0.120           0.130
+
+ Market replacement (GM &
+                                                —          (0.150)      (0.150)          (0.170)          (0.170)
+ Accounts)
+
+
+ Net Add Backs                           0.054              0.014        0.046            0.097         (0.046)
+All figures in NZ$m; totals may not sum due to rounding.
+
+
+
+
+The process of normalising earnings is intended to derive earnings which can be anticipated to be sustainable
+for the future operations of the business. Normalisation adjustments may be required to remove or adjust
+abnormal and/or non-recurring items that are not representative of the ongoing operations of the business.
+Typical adjustments may include:
+
+    -   Items of income or expenditure that arise from non-operating (or surplus) assets or liabilities
+    -   Non-arm's-length transactions such as excessive or unsustainably low owner remunerations when
+        compared to market remuneration
+    -   The removal of personal non-business related expenditure
+    -   The impact of one-off or non-recurring expenditure.
+
+
+
+
+                                                                                                                    19
+Balance sheet summary
+
+ Balance Sheet summary
+
+                                                        Actual         Actual          Actual          Actual
+
+ Year ending March                                      FY22            FY23           FY24            FY25
+
+ Cash and Bank                                        0.019            0.109         0.323             0.855
+
+ Accounts Receivable                                  0.007               —         0.009             0.024
+
+ Other Current Assets                                0.000             0.001             —                 —
+ Current Liabilities                                  0.065            0.107         0.266             0.701
+
+ Working Capital (approx.)                          (0.039)           0.004         0.066              0.178
+
+ Operating Fixed Assets / PPE                        0.003            0.008         0.008             0.006
+
+ Net Assets / Equity                                (0.036)            0.012        0.074              0.184
+
+
+Note:
+
+    -   No FY2026 balance sheet was available at the valuation date.
+    -   Operating Fixed Assets are shown at estimated Net Book Value, derived from the FY2025 financial
+        statements and limited fixed asset register information provided by Management.
+
+Related-party arrangement commentary
+A material related-party arrangement exists between MTAL and All About The View Limited (AATV), the
+vehicle through which General Manager Karen Mackenzie provides services to MTAL. AATV currently receives
+a management fee equal to 50% of MTAL’s pre-fee profit. This section sets out the relevant facts, the
+normalisation applied for valuation purposes, and the impact of the proposed Heads of Agreement on the fee.
+
+Key facts
+
+    -   AATV is wholly owned by Karen Mackenzie and provides General Manager and operational services
+        to MTAL.
+    -   The related-party fee paid to AATV is 50% of MTAL’s pre-fee profit. AATV-related payable on the
+        FY24 balance sheet was $0.107m and on the FY25 balance sheet was $0.154m.
+    -   On a notional arm’s-length basis, MTAL would not pay 50% of pre-fee profit to a third-party General
+        Manager. A market-rate General Manager remuneration for an operation of MTAL’s scale is estimated
+        at $0.140m per annum (with $0.170m fully-loaded replacement cost; management estimates the
+        equivalent market-rate combination of General Manager, part-time Accounts, On-call Night Manager);
+        this is to replace GM current salary of $0.130m.
+    -   On completion of the proposed Heads of Agreement, AATV becomes the owner of MTAL. The
+        related-party fee falls away in any case, as Karen Mackenzie’s economic interest is then represented
+        by ownership of the equity rather than by the fee.
+
+Sensitivity of the General Manager substitute
+
+The current $0.130m per annum General Manager wage is to be substitute with a $0.170m fully-loaded
+replacement cost for combined GM and accounts functions adopted for normalisation purposes reflects an
+arm’s-length salary cost for a single General Manager role at the scale of MTAL’s operations.
+
+Readers should be aware that the existing General Manager, Karen Mackenzie, currently performs a broader
+range of functions than a stand-alone General Manager role would typically encompass — including day-to-
+day general management, internal accounting and bookkeeping support, and after-hours on-call cover for
+guests. Management has indicated that, post-completion, AATV expects to recruit a replacement General
+Manager, an accounts/administration resource, and a separate on-call night-cover arrangement to fulfil these
+functions on a sustainable basis.
+
+
+
+
+                                                                                                                20
+Valuation approach
+and assumptions
+We have adopted the DCF valuation methodology to undertake the indicative
+valuation of MTAL. The fundamental principle in this valuation methodology is to
+project the cash generating ability of the business into the future.
+
+
+Sustainable DCF Scenario
+
+
+This scenario reflects MTAL’s sustainable earning capacity under the current 14-apartment management
+footprint, assuming continued contractual coverage under the Body Corporate Property Management
+Agreement and the 30-year stated Apartment Management Agreements (each subject to a 6-month at-will
+owner termination right under clause 7.6), and substituting a market-rate General Manager remuneration in
+place of the existing AATV related-party fee arrangement. No alternative scenario has been modelled, as
+MTAL operates under stable contractual coverage and a mature operating footprint.
+
+
+
+
+                                                                                                            21
+Valuation outcome
+The DCF valuation reflects MTAL’s sustainable earning capacity under the current 14-apartment management
+footprint. FY2026 has been adopted as the normalised earnings base.
+
+This valuation is intended to represent MTAL’s earning capacity on a notional arm’s-length, fair-market basis,
+supporting commercial discussions between the existing shareholders and the proposed related-party
+purchaser under the Heads of Agreement.
+
+Based on the DCF valuation method, the Fair Value of MTAL is approximately between $0.761m and $0.921m
+with a midpoint of approximately $0.841m as per table 5 below.
+
+Table 5: Indicative valuation summary
+ Indicative valuation summary
+                                                                  High                 Mid                Low
+ Fair Value                                                   $0.921m             $0.841m             $0.761m
+
+
+
+ Of which:
+
+ Operating Fixed Assets (book value)                         $0.006m             $0.006m             $0.006m
+
+ Intangible Value (goodwill)                                  $0.915m             $0.835m             $0.755m
+
+
+
+Valuation assumptions
+Inherent in the DCF methodology are a number of assumptions that must be made in order to complete the
+valuation. The assumptions that have the largest impact on the Marina Terrace Accommodation Limited
+valuation are discussed below. The assumptions used as per the sustainable model include:
+
+
+Growth in Earnings
+A long-term nominal growth rate of 3.1% has been adopted for the DCF, sourced from the RBNZ April 2026
+published CPI and broadly in line with the contractual CPI-indexation of the Body Corporate management fee.
+
+The DCF model applies a 3.1% per-annum revenue growth assumption over the explicit forecast horizon
+(FY2026–FY2029), which is considered in line with inflationary growth, and a 3.1% terminal growth rate. No
+further allowance has been made for real growth above these rates. This approach reflects the objective of
+isolating sustainable earning capacity under stable operating conditions.
+
+
+
+Period from Which to Base Earnings
+The valuation has been prepared using FY2026 as the normalised earnings base, as this year reflects the first
+full year of mature 14-apartment trading, with the no AATV management fee and replacement with a market-
+rate General Manager substitute.
+
+FY2026 earnings are considered representative of sustainable performance and provide a suitable benchmark
+for assessing long-term maintainable cash flows under the current contractual arrangements (Body Corporate
+Property Management Agreement and the Apartment Management Agreements covering 12 of 14
+apartments).
+
+
+
+Key operating cost assumptions
+The valuation includes the assumption that the current cost base remains constant in perpetuity based on the
+fixed and variable split. This includes the assumption that employment expenses remain at modelled levels
+irrespective of ownership.
+
+
+
+
+                                                                                                                 22
+Working capital expenditure
+A nil change in working capital has been assumed, as the business’s accommodation management operations
+and organic year-on-year performance do not require material reinvestment in stock or receivables.
+
+Working capital requirements are modest for an owner-operated accommodation services operation of this
+scale and can be supported from existing cash flow. Management has confirmed that there are no inter-
+company balances between MTAL and any other entity that require settlement on completion of the
+proposed Heads of Agreement.
+
+The specific working-capital mechanism for the transaction (cash, bookings deposits held, and accrued
+Owner’s Share payables at completion) remains to be agreed between the parties and is not adjusted within
+the enterprise value indication.
+
+
+Capital expenditure
+No material capital expenditure has been assumed beyond routine maintenance.
+
+Management has identified a small program of near-term operating-asset replacements expected within the
+next 12–24 months, including a commercial washing machine and dryer, a commercial vacuum cleaner, and a
+company vehicle.
+
+In aggregate these items are not expected to be individually material relative to the indicated enterprise value
+but should be taken into account by a purchaser when assessing post-completion cash requirements.
+
+In addition, management has confirmed that the following operating capital items were incurred during
+FY2026 to date and are reflected in the FY2026 cost base: an Apple cell phone (approximately $1,000), an
+Apple laptop computer (approximately $1,500), and a website upgrade (approximately $5,000). These items
+are routine in nature and do not affect the FY2026 normalised maintainable earnings adopted as the valuation
+base.
+
+Sustainable cash flows are assumed to incorporate routine maintenance expenditure sufficient to maintain
+existing productive capacity, with no allowance for expansionary or growth-related capital investment. This
+assumption is consistent with modelling sustainable operations in perpetuity at the current 14-apartment
+footprint.
+
+
+Corporate income taxation
+Corporate tax has been applied at 28% in deriving the after-tax free cash flow to firm used in the DCF,
+consistent with a Free Cash Flow to Firm approach in which tax is charged on the unlevered (pre-interest)
+earnings. Applying 28% to the normalised maintainable earnings — a close proxy for taxable profit, given
+negligible depreciation on the $0.006m fixed-asset base — reduces each year’s cash flow to approximately
+72% of EBITDA. No incremental capital expenditure beyond routine maintenance, and no change in working
+capital, are assumed in arriving at FCFF. It has also been assumed that there are currently no tax losses
+available to be carried forward, given the indicative nature of this valuation.
+
+
+Weighted Average Cost of Capital
+We have adopted a pragmatic approach in assessing a likely cost of capital for Marina Terrace
+Accommodation Limited by building a Weighted Average Cost of Capital (WACC) from first principles.
+
+Drawing on our expertise and industry factors, we find a WACC reflective of the company's risk level. We also
+conducted sensitivity analysis to adjust expected equity returns through the equity risk premium.
+
+Using the following parameters in Table 6, we have calculated the low, mid and high nominal WACC for MTAL.
+The WACC built up in Table 6 is applied as the discount rate to the after-tax free cash flow to firm, consistent
+with a Free Cash Flow to Firm approach (after-tax cash flows discounted at a post-tax WACC).
+
+
+
+
+                                                                                                                   23
+Table 6: WACC Assumption
+ Weighted Average Cost of Capital Assumptions (Nominal)
+                                                                      High                      Mid                  Low
+ Equity Funding                                                      100%                      100%              100%
+ Business Beta (Damodaran Real Estate Ops &
+                                                                 3.5383                       3.5383           3.5383
+ Services, Total Unlevered)
+ Equity Risk Premium (Nominal)                                       7.66%                    8.32%              9.12%
+
+ Risk Free Debt Rate (Nominal)                                       4.32%                    4.32%             4.32%
+
+ Weighted Average Cost of Capital (Nominal)                          31.41%               33.75%               36.58%
+
+ Illiquidity Discount                                            12.96%                       12.96%           12.96%
+
+
+
+In order to calculate the above, the following assumptions have been used within the calculation:
+
+Beta
+
+Total Beta is a measure of the volatility of a business’ returns relative to the returns of the overall market.
+Total Beta is primarily used for private businesses where the Beta derived from listed entities is adjusted to
+take out the market risk and have this Beta reflect 100% of the private entity’s specific risk. We have adopted
+a Total Unlevered Beta of 3.5383, sourced from the Damodaran Real Estate (Operations & Services) industry
+dataset, as the proxy for the industry risk profile applicable to Marina Terrace Accommodation Limited.
+
+The Damodaran Real Estate (Operations & Services) Total Unlevered Beta is derived from a global sample of
+listed hospitality and accommodation companies and is updated annually. Using a published industry dataset
+provides a broader and more statistically robust basis than a small local-market regression.
+
+The listed companies underlying the Damodaran dataset are materially larger and more diversified than MTAL.
+In the absence of directly comparable private-company transaction data for small owner-operated
+accommodation managers in New Zealand, this Total Unlevered Beta represents the most defensible available
+proxy for industry risk.
+
+New Zealand and Australia sample list:
+                                     Exchange:                                                     SIC
+ Company name                                      Industry group         Primary sector                 Country
+                                       Ticker                                                     code
+ SkyCity Entertainment Group          NZSE:SKC       Hospitality /             Consumer           0200    New
+ (NZSE:SKC)                                           Lodging                 Discretionary              Zealand
+ Millennium & Copthorne Hotels       NZSE:MCK        Hospitality /             Consumer           5150    New
+ (NZSE:MCK)                                           Lodging                 Discretionary              Zealand
+ Tourism Holdings Limited             NZSE:THL       Hospitality /             Consumer           2020    New
+ (NZSE:THL)                                           Lodging                 Discretionary              Zealand
+ Event Hospitality & Entertainment    ASX:EVT        Hospitality /             Consumer           6799   Australia
+ (ASX:EVT)                                            Lodging                 Discretionary
+
+
+
+
+Equity return
+An equity return of 12.64% has been adopted as the required rate of return for a purchaser of this small,
+owner-operated accommodation management business. This rate reflects the company's limited scale,
+dependence on the General Manager's ongoing involvement, exposure to tourism market conditions and
+online travel agency ("OTA") dynamics, and the illiquid nature of a privately held business of this type.
+
+Additional risk factors include the concentration of operations within a single apartment complex in Wanaka,
+reliance on related parties for management services, and a relatively concentrated revenue base. The top
+three apartments are expected to generate approximately $0.610m of FY2026 letting revenue, increasing the
+business's exposure to the retention and performance of a small number of apartment owners.
+
+A significant component of the risk assessment relates to contractual security. While the Apartment
+Management Agreements have stated terms of up to 30 years, apartment owners retain the right to terminate
+
+
+
+
+                                                                                                                           24
+on six months' notice without cause (Clause 7.6). Accordingly, the effective contractual tenure is closer to six
+months per apartment rather than the nominal contract term. Furthermore, two of the fourteen managed
+apartments currently operate without formal management agreements. This limited contractual protection
+reduces earnings visibility and increases the risk profile of future cash flows.
+
+Collectively, these factors support the inclusion of a meaningful small-company and specific-risk premium
+within the adopted cost of equity. The 12.64% is the base equity return adopted for the purchaser; it is the
+input from which the equity risk premium is derived (equity risk premium = equity return less the 4.32% risk-
+free rate), and is not itself the discount rate. The 12.64% base equity return is sensitised by approximately
+±0.73% to produce the equity risk premium range of 7.66%–9.12% shown in Table 6, which, built up as risk-free
+rate + (Total Beta × equity risk premium), generates the nominal WACC of 31.41%–36.58%.
+
+It is this WACC that is applied as the discount rate to maintainable cash flows in determining value. The equity
+return has been selected by triangulation to observed pre-tax market earnings multiples, such that the
+resulting Fair Value sits within an indicative 1.9x–2.3x range on normalised EBITDA; the implied equity risk
+premium (7.66%–9.12%) remains at or above New Zealand market norms.
+
+
+Sensitivity — apartment retention scenarios
+Given the materiality of the apartment-level termination right (clause 7.6, 6 months' notice) intersecting with
+the revenue concentration of the top three apartments (approximately $0.610m of FY2026 letting revenue,
+excl GST), the table below illustrates the indicative impact on Normalised EBITDA and enterprise value of
+losing one or more of the top three apartments from the management pool.
+
+The calculation assumes the Manager's Share of letting receipts (50% of gross) is the gross-margin
+contribution from each apartment, and that approximately 75% of the lost Manager's Share flows through to
+EBITDA after partial offsets from variable cost savings (channel commissions, linen, incremental cleaning). The
+indicative enterprise-value impact is calculated by applying the Mid 2.5x EBITDA multiple derived from the
+comparable-transaction triangulation.
+                                                        Indicative EBITDA           Resulting         Indicative EV
+                                     Manager's
+ Scenario                                               impact (~75% flow-          Normalised        at Mid 2.5x
+                                     Share lost
+                                                        through)                    EBITDA            multiple
+ Base case (top three retained)      —                  —                           $0.401m           $1.002m
+
+ Loss of 1 of top-3 apartments       ($0.102m)          ($0.076m)                   $0.324m           $0.811m
+
+ Loss of 2 of top-3 apartments       ($0.203m)          ($0.153m)                   $0.248m           $0.620m
+
+ Loss of all top-3 apartments        ($0.305m)          ($0.229m)                   $0.172m           $0.430m
+
+The sensitivity analysis reflects a multiples-based valuation approach on a pre-illiquidity basis, whereas the DCF
+midpoint of $0.841m reflects the application of a 12.96% illiquidity discount to the derived enterprise value.
+
+
+
+The scenarios above illustrate that a buyer's valuation of MTAL is materially sensitive to retention of the top
+three apartments. Loss of all three top-three apartments — each individually exercisable on 6 months' written
+notice without cause once the 2-year lockup at clause 7.7 has lapsed — would reduce indicative enterprise
+value by approximately 57% from the base-case Mid scenario. Two of the 14 apartments under management
+have no formal Management Agreement and may withdraw at any time, further compounding this risk.
+
+Three mitigating considerations should be noted.
+
+    -    First, the 6-month notice mechanic means the impact of any termination is felt approximately six
+         months after notice is given, giving an acquiring party time to engage with the affected owners and
+         propose retention incentives.
+    -     Second, the Body Corporate Property Management Agreement is not terminable at will by the Body
+         Corporate (clause 5.4 reserves the termination right to the Manager) and provides a $0.021m per
+         annum revenue floor (excl GST, CPI-indexed and non-reducing) regardless of apartment-level
+         departures.
+    -    Third, in the specific context of the proposed AATV transaction, AATV is the existing related-party
+         Manager — the change of control is from one set of MTAL shareholders to AATV rather than to a third
+
+
+
+
+                                                                                                                      25
+        party unknown to the owners, which reduces the likelihood of owner-driven termination notices being
+        issued in the immediate post-completion period. None of these mitigants change the underlying
+        contractual position; they simply affect the timing and probability of the scenarios modelled above.
+
+Risk-free rate
+Being the 10-year government bond yield, sourced from the RBNZ Table B2 series and publicly available – 10-
+year government bond yield: 4.32% 1.
+
+
+
+Current inflation rate
+As most recently published on the RBNZ website – April 2026: 3.1% 2.
+
+
+
+Illiquidity discount
+Illiquidity discount is a discount applied to private business valuations to reflect the fact that private-to-
+private transactions are not as easily traded as listed securities. The illiquidity discount applied to the MTAL
+valuation is 12.96%, derived from a synthetic bid-ask spread calculation that considers the company’s revenues
+and cash as a percentage of equity. This reflects the costs and time associated with transacting a private
+business sale.
+
+
+
+Other specific matters
+The following matters have been brought to our attention by management and, while not directly quantified
+within the enterprise value indication, should be taken into account by the parties when considering the
+valuation outcome:
+
+    -   Body Corporate long-term maintenance plan: management has expressed a view that the Body
+        Corporate’s long-term maintenance reserves may be under-funded relative to the building’s
+        anticipated maintenance profile. This is a matter for the Body Corporate rather than MTAL directly;
+        however, future levy increases could affect Owners’ net returns from the letting pool and, indirectly,
+        the willingness of owners to remain in the pool.
+    -   Weathertightness: management has noted that the long-term weathertightness profile of the building
+        is uncertain. No specific liability has been identified at the date of this report, and any building-level
+        remediation would be a Body Corporate matter rather than an MTAL liability; however, the matter is
+        flagged here for the parties’ awareness.
+    -   Historical relationships and goodwill: management has indicated that the historical working
+        relationship between the Body Corporate, individual unit owners, and the original developers was at
+        times strained, and that the General Manager has invested significant effort over time in rebuilding
+        trust and constructive working relationships. This represents an element of accumulated relationship
+        capital that supports the continued stability of the letting pool but is also dependent on continued
+        constructive engagement post-completion.
+    -   Apartment-level fee variations: management has confirmed that a small subset of apartments operate
+        on bespoke commercial terms reflected in MTAL’s monthly statements. The blended outcome is
+        reflected in the FY2026 reported EBITDA used as the starting point for the DCF model.
+    -   Apartment-level termination right: each formal Apartment Management Agreement has a 30-year
+        stated term but is subject to the apartment owner's right under clause 7.6 to terminate at 6 months'
+        written notice without cause. The initial 2-year lockup under clause 7.7 has lapsed for the majority of
+        the pool (apartments with a 2022 or earlier commencement date). Two of the 14 apartments under
+        management have no formal Management Agreement and may withdraw at any time. From a buyer's
+        perspective, this means the substance of apartment-side contractual coverage is approximately 6
+        months per apartment, notwithstanding the 30-year stated term. This contractual feature has been
+        considered in the selection of the discount rate (cost of equity and small-company specific risk
+
+    1   Wholesale 10-year bond yield rate obtained from www.rbnz.govt.nz/statistics/b2 - rate as of April 2026
+    2   Last 12 months CPI rate as obtained from www.rbnz.govt.nz/statistics/series/economic-indicators/prices - rate as of
+        April 2026
+
+
+
+
+                                                                                                                              26
+        premium) and in the multiple cross-check, and intersects materially with the revenue concentration
+        matter noted below.
+    -   Revenue concentration: management has confirmed that the top three apartments contribute
+        approximately $0.610m (excl GST) of FY2026 letting revenue, representing material concentration
+        risk within the 14-apartment management pool. Loss of any of these top-three apartments from the
+        pool would have a disproportionate effect on maintainable earnings.
+    -   Booking deposits: guest prepayments (FY2025: $0.261m; FY2026 draft: $0.229m incl GST) are held in
+        a separately designated bank account ("02 Deposit Bank") rather than in a formal trust account.
+        While operationally segregated, the absence of trust-account status is a governance matter that
+        prospective owners should consider, particularly in the context of consumer-deposit handling and any
+        future regulatory change.
+    -   FY2026 accounts status: the FY2026 figures relied upon in this report are drawn from draft Xero
+        management accounts as at 11 May 2026. Final accountant-prepared FY2026 financial statements are
+        pending and may include further adjustments, including the recognition of deposits held for stays
+        from 1 April 2026 ($0.229m incl GST) and Owners' March 2026 income payable ($0.127m incl GST,
+        paid 4 April 2026). The valuation should be revisited once finalised FY2026 accounts are available.
+
+Multiples cross-check
+The DCF outcome has been compared against the implied EV/EBITDA multiples produced by the model itself.
+
+The three-scenario, post-tax free cash flow to firm enterprise value range of $0.875m to $1.059m (pre-
+illiquidity), divided by FY2026 normalised EBITDA of $0.401m, implies multiples of 2.18x (Low), 2.41x (Mid)
+and 2.64x (High). After applying the 12.96% illiquidity discount, the Fair Value range of $0.761m to $0.921m
+implies multiples of 1.90x to 2.30x relative to FY2026 normalised EBITDA of $0.401m.
+
+These after-tax FCFF multiples now sit within the lower end of the pre-tax market earnings multiple range
+(2.0x to 3.0x EBITDA); the equity return has been selected by triangulation to that market evidence, while the
+position toward the bottom of the range remains consistent with MTAL's materially shorter effective
+contractual tenure (about six months under clause 7.6) and revenue concentration.
+
+These multiples reflect the modest scale of the operation, single-location concentration on the Marina Terrace
+complex, and the small number of key contracts.
+
+
+
+Market Evidence
+As part of our assessment, we have considered a recent transaction involving the sale of a comparable
+apartment management and letting business in Queenstown. The business managed 19 apartments and
+transacted for $1.95 million, implying a multiple of approximately 4.0x EBITDA/SDE based on reported
+earnings of $0.483m.
+
+The transaction provides a useful market reference point given its exposure to the short-term accommodation
+sector and broadly comparable management model. However, several factors support a lower multiple for
+MTAL.
+
+Most notably, the Queenstown business benefited from stronger contractual security, with management rights
+extending through to December 2036, representing approximately 10 years of remaining tenure at the time of
+sale. In contrast, while MTAL's Apartment Management Agreements contain stated terms of up to 30 years,
+apartment owners retain the right to terminate on six months' notice without cause. As a result, the effective
+contractual protection underpinning MTAL's earnings is materially weaker in substance than the Queenstown
+comparable.
+
+The Queenstown operation was also larger in scale, managing 19 apartments compared with MTAL's 14
+apartments. In addition, two of MTAL's apartments currently operate without formal Management
+Agreements, further reducing earnings security. Location is another differentiating factor. Queenstown
+continues to attract a premium valuation position within the New Zealand tourism and accommodation sector,
+reflecting its international profile, constrained supply dynamics, and strong investor demand. Commentary
+provided in relation to the transaction noted that the 4.0x multiple was, in part, attributable to Queenstown's
+location premium and may not have been achievable in other regional markets with a similar remaining
+contract term.
+
+
+
+                                                                                                                  27
+Having regard to these differences, we consider it appropriate to apply a discount to the Queenstown
+benchmark when assessing MTAL. This supports an indicative market-based multiple range of approximately
+2.0x to 3.0x normalised EBITDA, with a midpoint of approximately 2.5x.
+
+
+
+Management rights comparable transactions
+As a further cross-check specific to MTAL’s own sector, we have considered recent management and letting
+rights (MLR) transaction evidence from Australia and New Zealand. In the Australian market, which is the
+deepest and most actively benchmarked MLR market, management rights businesses are valued by applying a
+multiplier to verified net operating profit (NOP), with the multiplier typically ranging from 3.5 to 6.5 times
+(MRM Finance; Ras360; Mike Phipps Finance; ResortBrokers Management Rights Report 2025). The multiplier
+is, in substance, a years’-purchase figure (a multiplier of 5.0 equates to a 20% capitalisation rate) and is driven
+principally by the length and security of the caretaking and letting agreements: agreements with 20-plus years
+of secure tenure attract the upper end of the range, while shorter or less secure agreements are discounted.
+
+New Zealand transaction evidence is thinner but directionally consistent. A 66-key Auckland CBD
+management rights business currently marketed by LINK Business Brokers is priced at $1,050,000 against
+maintainable profit of $300,000 — an implied multiple of approximately 3.5x — underpinned by a
+management agreement secured to December 2044 (approximately 18 years of remaining tenure). The
+Queenstown comparable already discussed above (19 apartments, $1.95m, approximately 4.0x, management
+rights to December 2036) sits slightly higher, consistent with its longer secure tenure and Queenstown’s
+location premium.
+
+The relevant observation for MTAL is that these comparable multiples — a sector floor of around 3.5x rising to
+6.5x — attach to businesses with long, secure contractual tenure (18–25 years in the cited comparables).
+MTAL’s position is materially weaker: notwithstanding the 30-year stated term of the Apartment Management
+Agreements, each owner may terminate on six months’ notice without cause under clause 7.6, giving an
+effective tenure closer to six months per apartment; two of the fourteen apartments operate without any
+formal agreement; and the business carries single-location and top-three revenue concentration
+(approximately $0.610m of FY2026 letting revenue). These are precisely the security factors the sector
+evidence identifies as the primary determinants of multiplier compression. Accordingly, MTAL is appropriately
+assessed below the sector floor, supporting the 2.0x–3.0x normalised EBITDA range adopted in this cross-
+check (mid 2.5x) ; on the post-tax FCFF basis, with the equity return calibrated as described, the DCF
+reconciles with the lower end of this market range.
+
+We note one definitional caveat: the Australian and New Zealand MLR multipliers above are struck on verified
+NOP / sellers’ discretionary earnings, which are generally stated before deduction of a full arm’s-length
+manager’s salary, whereas MTAL’s normalised EBITDA of $0.401m is already net of a $0.170m market-rate
+general manager replacement cost. On a like-for-like (pre-manager) basis MTAL’s implied multiple would be
+higher, meaning the 2.0x–3.0x range applied here is, if anything, conservative.
+
+
+
+
+                                                                                                                      28
+Appendix
+In preparing this valuation, we have reviewed publicly observed transaction multiples and benchmark datasets
+for hospitality, lodging and accommodation-services transactions. While none of these are directly
+comparable to an owner-operated accommodation manager of MTAL’s scale and operating profile, they
+provide a useful orientation of the multiples range typically associated with this sector. Comparable-
+transactions analysis has not been relied upon as a primary valuation input — it is shown here as a cross-check
+only — for the following reasons:
+
+    -   Scale mismatch — publicly observed hospitality and accommodation services transactions are
+        materially larger than MTAL (typically >A$50m EV) and are influenced by strategic, platform and
+        synergy premia that do not apply to an owner-operated micro-SME;
+    -   Owner-operator vs corporate/platform profile — MTAL is an owner-operated business, whereas the
+        publicly reported hospitality transactions (e.g. SkyCity, Event Hospitality) are corporate and platform
+        deals with professional management, diversified product mixes and capital-markets access;
+    -   Single-location concentration — MTAL operates from a single Wanaka complex (14 apartments across
+        seven buildings of Marina Terrace). No observed hospitality comparable reflects an equivalent single-
+        location operating profile;
+    -   Data opacity for small NZ hospitality deals — privately negotiated sales of small owner-operated
+        accommodation managers are rarely disclosed. As a result, comparable multiples have been drawn
+        from publicly available aggregate datasets (BizBuySell hospitality benchmarks) and larger listed
+        transactions rather than from direct private-company comps.
+
+For these reasons, the valuation of MTAL has been derived using a Discounted Cash Flow (DCF) approach.
+The DCF method better captures the intrinsic value of the going-concern accommodation-management
+business, its contractual coverage under the Body Corporate Property Management Agreement and the 12
+formal and 2 informal Apartment Management Agreements, and its single-location operating profile.
+
+
+
+
+                                                                                                                  29
+Hospitality and accommodation transaction reference data
+
+                                                                   Earnings
+ Source / Transaction       Scale               Multiple                          Comparability MTAL
+                                                                   metric
+
+                                                                                  Most directly
+                            Small owner-                                          comparable in scale
+ BizBuySell Hospitality     operator hotels                        SDE /          and ownership profile;
+                                                2.65x (avg);
+ benchmarks (USA,           & B&Bs; avg                            owner          indicative for small
+                                                2.33x (median)
+ 2021–2025 comps)           ~US$0.9m–                              earnings       owner-operated
+                            $1.3m                                                 accommodation
+                                                                                  managers.
+
+                                                                                  Secondary cross-check
+ BizBuySell Hospitality     Same dataset        1.05x (avg);                      only; earnings multiple
+                                                                   Revenue
+ — revenue multiple         as above            0.85x (median)                    is the primary indicator
+                                                                                  owner-operated SMEs.
+
+                                                                                  Corporate / platform
+ Grant Thornton                                                                   deals; not directly
+                            Mid- and large-
+ Australia — Dealtracker                                           EV /           comparable — included
+                            cap ANZ             ~9.5x (median)
+ Tourism & Leisure                                                 EBITDA         as a ceiling reference
+                            tourism deals
+ 2024                                                                             larger strategic
+                                                                                  transactions.
+
+                                                                                  ASX-listed integrated
+                            ASX-listed
+ Event Hospitality                                                                hospitality platform;
+                            integrated                             EV /
+ (ASX:EVT) — public                             ~7.5x                             scale, diversification
+                            hospitality                            EBITDA
+ market 2024-2025                                                                 and synergies not
+                            platform
+                                                                                  relevant to MTAL.
+
+                                                                                  Corporate
+                                                                                  accommodation
+ NZ/AU public-market        ASX/NZX listed;                                       services platform deal;
+                                                                   EV /
+ hospitality average        sample SkyCity,     ~7.0x – 9.0x                      synergy- and scale-
+                                                                   EBITDA
+ (FY24)                     MCK, THL, EVT                                         driven multiple not
+                                                                                  applicable to an owner-
+                                                                                  operated micro-SME.
+
+                                                                                  Consistent with
+ NZ/AU small-business                                                             BizBuySell aggregate;
+                            Privately                              SDE /
+ rule-of-thumb (owner-                                                            typical range small,
+                            negotiated SME      2.0x – 4.0x        normalised
+ operator                                                                         owner-reliant
+                            sales                                  EBITDA
+ accommodation)                                                                   operators absent
+                                                                                  strategic bidders.
+
+
+On balance, the reference data above suggests an indicative earnings multiple range of approximately 2.0x –
+4.0x normalised EBITDA for owner-operated accommodation-management businesses of similar scale to
+MTAL. This range is shown for orientation and cross-check purposes only and has not been applied in
+isolation; the DCF valuation remains the primary method of assessment given the contractual coverage and
+single-location operating profile of MTAL.
+
+The DCF model produces an implied EV/EBITDA multiple of 2.18x to 2.64x pre-illiquidity and 1.90x to 2.30x
+post-illiquidity (relative to FY2026 normalised EBITDA of $0.401m). On this after-tax FCFF basis these
+multiples sit within the lower end of the published pre-tax hospitality and accommodation benchmark range,
+consistent with the modest scale of the operation, single-location concentration on the Marina Terrace
+complex, and the small number of key contracts.
+
+
+
+
+                                                                                                              30
+Disclaimer
+Restriction on circulation and distribution of this report
+Bayleys Business does not provide patent attorney, legal, accounting services, or financial advice.
+Bayleys Business provides expert business and strategy advice. Bayleys Business is not a patent attorney, law, or
+accounting firm. This allows us to provide our clients with independent advice and insight with a business focus. If
+you require a detailed accounting analysis or a formal legal opinion, we encourage you to use your existing provider,
+or we can refer you to third-party providers who can offer these services if required.
+
+Our engagement is with MTAL, and we accept no responsibility to any other party.
+
+This letter is confidential to MTAL, and it is given on the understanding that it is not to be communicated, in whole or
+in part, to any third party without Bayleys’ written permission. Bayleys expressly disclaims any and all liability for any
+loss or damage of whatever kind to any person acting on information contained in this report. Neither the whole nor
+any part of this report, nor any reference thereto, may be included in any other document without our prior written
+permission in each specific instance. We assume no responsibility or liability for losses to any other party as a result
+of the circulation, publication, reproduction or use of our report or extracts from it contrary to the provisions of this
+paragraph. Neither will we have liability to any other persons who may seek to rely on the opinions we express.
+
+The valuation contained in this report is indicative only. An indicative valuation is one where the valuation conclusion
+is based upon the consideration of limited information provided to us, with no requirement to assess the
+reasonableness of the information or to gather further information. Because of the indicative nature of our valuations,
+we do not seek to comply with the requirements of AES-2: Business Valuation Engagements, issued by CAANZ.
+
+We list the principal information we have relied on in preparing our indicative valuation opinion. We have evaluated
+that information through analysis, enquiry, and examination. However, we have not verified the accuracy or
+completeness of any of the information. Accordingly, we cannot accept any responsibility for the consequences of
+errors or omissions contained therein. We do not imply, and it should not be construed, that we have carried out any
+form of audit or due diligence on the information provided to us and nor do we express any opinion on this
+information.
+
+We note that the forecasts and projections as supplied to us are based on assumptions about events and
+circumstances which have not yet transpired. The realisation of the prospective financial information is dependent on
+the continuing validity of the assumptions on which it is based. The assumptions will need to be reviewed and revised
+to reflect such changes in trading patterns, cost structures or the direction of the business as they emerge. Actual
+results are likely to be different from those shown in the prospective financial information because events and
+circumstances frequently do not occur as expected, and the differences may be material.
+
+Bayleys cannot provide any assurance that the estimates will be representative of the results which will actually be
+achieved during the forecast period. In particular we have not tested the assumptions or attempted to substantiate
+the veracity or integrity of such assumptions in relation to the prospective information. We accept no responsibility
+for the realisation of the prospective financial information. The information contained in this report is given in good
+faith and is derived from sources believed to be reliable and accurate. However, neither Bayleys nor any person
+involved in the preparation of this report accepts any form of liability for its contents.
+
+Our conclusions are based on forecasts and assumptions about future events which, by their nature, cannot be
+independently verified. Some assumptions inevitably will not materialise, and unanticipated events and
+circumstances may occur. Therefore, the actual results achieved during future years may vary from the forecasts, and
+these variations may be material.
+
+The opinions recorded in this report are expressed at the date of this report and reflect our assessment of the
+material factors based on the prevailing business and economic conditions existing at the date of indicative
+valuation. Such conditions may change in the future, with potentially material effects on the opinions we express in
+this report.
+
+We reserve the right, but not the obligation, to review all calculations included or referred to in this report and, if we
+consider it necessary, to revise our opinion in the light of any information existing at the date of the indicative
+valuation which become known to us after the date of this report.
+
+
+
+
+                                                                                                                             31
+General principles
+Item                     Description
+
+Market Value             The definition of Market Value as defined by the International Valuation Standards
+                         (IVS) effective 31 January 2022 is “the estimated amount which an asset or liability
+                         should exchange on the valuation date between a willing buyer and a willing seller in
+                         an arm’s length transaction, after proper marketing and where the parties had each
+                         acted knowledgeably, prudently and without compulsion.
+
+Information Supplied     The valuation assumes as being complete and correct information provided to us by
+                         the sources detailed in our report on any relevant matters including, without limitation,
+                         items such as rents, operating expenses, tenure, tenancies, and tenant’s improvements.
+                         We accept no responsibility, however, the completeness and accuracy of information
+                         provided to us.
+
+Indicative Valuation     The indicative valuation provided is our opinion of the market value. This value may
+                         change in the future due to market conditions and changes to the state of the
+                         property.
+                         For the purposes of our indicative valuation exercise we have assumed there will be no
+                         adverse market changes in the short to medium term.
+
+Validity                 Beyond six months from the date of valuation, it is recommended that the person to
+                         whom this report is addressed seek confirmation from the preparer that the indicative
+                         valuation can still be relied upon in the context of the current market. Failing to do so
+                         will nullify the validity of the report. Reference to the six-month time period does not
+                         imply that the value will remain static during this time.
+                         Unless previously agreed to in writing between BRE and the recipient and/or end user,
+                         if a copy of the report is relied upon, we cannot guarantee the accuracy of the same
+                         which could be at variance with the original document.
+                         This indicative valuation is valid by the preparer’s signature only.
+
+Practising Certificate   This indicative valuation has been carried out by a Chartered Accountant.
+
+
+Insurance                BRE hold Professional Indemnity cover that is at a level accepted by our large
+                         corporate clients and banks, and it is at/or above industry standards. A copy of our
+                         certificate is available upon request.
+
+Acceptance of            The use of this report by the client/instructing party for market value purposes in its
+                         current format is deemed an acceptance by the user of all value, terms, conditions, and
+Reports
+                         specification contained herein unless advised to the contrary immediately.
+
+Plant & Machinery        Our valuation has not undertaken valuation of the fixed assets, and they have been
+                         recorded at Book Value/ or Market Value (if valuation provided), as shown in the
+                         financial statements.
+
+Taxation, GST            In preparing our indicative valuation, no allowances are made for any liability which
+                         may arise for payment of income tax, or any other business-related tax, whether
+                         existing or which may arise on disposal, deemed or otherwise.
+                         In respect to Goods and Services Tax we specifically draw your attention to the fact
+                         that our valuation is carried out on the basis that the indicative valuation is plus GST (if
+                         any).
+
+Publication              Neither the whole nor any part of our reports, nor any reference thereto, may be
+                         included in any published document, circular or statement, nor published in any way
+                         without any written approval of the form and context of such publication or disclosure.
+                         Such approval is required whether or not Bayleys Real Estate Ltd referred to by name
+                         and whether or not the reports are combined with others.
+
+
+
+
+                                                                                                                        32
+Glossary
+Term                     Definition
+
+Assessment Date/         The specific point in time at which the preparer’s opinion of value applies.
+
+Valuation Date
+
+Business Enterprise      A commercial, industrial, service, or investment entity (or a combination thereof)
+                         pursuing an economic activity.
+
+Business Risk            The degree of uncertainty of realizing expected future returns of the business
+                         resulting from factors other than financial leverage.
+
+Capitalisation of        A valuation method that forms an opinion on the business value based on the
+                         sustainable profits generated by the business relative to the risk return expected. This
+Earnings Method
+                         method is a widely used and accepted methodology in business valuations.
+
+Capitalisation Rate or   Any divisor used to convert anticipated economic benefits of a single period into
+                         value. May also be referred to as the capitalisation multiple which is the inverse of the
+Cap Rate
+                         capitalisation rate.
+
+Cost of Capital          The expected rate of return (discount rate) that the market requires in order to attract
+                         funds.
+
+Discounted Cash Flow     A valuation method where the present value of the business is reflected in the future
+                         expected net cash flows calculated after applying a discount rate.
+Method
+
+Economic Life            The period of time over which a contract or asset is expected to generate economic
+                         benefits. For MTAL, the most material contracts are the Body Corporate Property
+                         Management Agreement (term to 2050 inclusive of renewals) and the 30-year
+                         Apartment Management Agreements.
+
+Fair Market Value        The price that would be negotiated in an open market between a knowledgeable,
+                         willing but not anxious buyer and a knowledgeable, willing but not anxious seller
+                         dealing at arm’s length within a reasonable time frame.
+
+Free Cash Flow to        A measure of the ability of the business to turn its after-tax profits into cash flow. The
+                         higher the FCFF, the higher the enterprise value, and the lower the implied
+Firm [FCFF]
+                         capitalisation rate. In this report, value has been assessed on a Free Cash Flow to Firm
+                         basis: FCFF is derived from normalised maintainable EBITDA less corporate tax at 28%
+                         (no incremental capital expenditure or working-capital movement being envisaged)
+                         and discounted at the WACC.
+
+Going Concern            An ongoing operating business enterprise.
+
+
+Going Concern Value      The value of a business enterprise that is expected to continue to operate into the
+                         future.
+
+Goodwill                 That intangible asset arising as a result of name, reputation, customer loyalty, location,
+                         products, and similar factors not separately identified.
+
+Goodwill Value           The value attributable to goodwill.
+
+
+Independence             (a) Independence of Mind: The state of mind that permits the expression of a
+                         conclusion without being affected by influences that compromise professional
+                         judgment, allowing an individual to act with integrity, and exercise objectivity and
+                         professional skepticism. (b) Independence in Appearance: The avoidance of facts and
+                         circumstances that are so significant that a reasonable and informed third party would
+                         be likely to conclude, weighing all the specific facts and circumstances, that a firm’s or
+                         a member of the engagement team’s integrity, objectivity or professional skepticism
+                         has been compromised.
+
+Intangible Assets        Non-physical assets that grant rights and privileges and have value the owner.
+                         Examples include goodwill, trademarks, patents, copyrights, and securities.
+
+
+
+
+                                                                                                                      33
+Term                   Definition
+
+Issue Date             The date that this report is finalized and issued, and conclusions are transmitted to the
+                       client.
+
+Net Book Value         With respect to a business enterprise, the difference between total assets (net of
+                       depreciation and amortisation) and total liabilities as they appear on the balance
+                       sheet. With respect to a specific asset, the capitalized cost less accumulated
+                       depreciation or amortisation as it appears on the books of account of the business
+                       enterprise.
+
+Net Present Value      The value, at a specified date, of future cash inflows less all cash outflows (including
+                       the cost of investment) calculated using an appropriate discount rate.
+
+Price/Earnings         The price of a share of stock divided by its earnings per share.
+
+Multiple
+
+Return on Investment   The reasonable return level that an investor would expect from a business.
+
+
+Risk Free Rate         The rate of return available in the market on an investment free of default risk.
+
+
+Surplus Assets         Assets that a business holds which are not necessary for the operation of the business,
+                       i.e., they are not contributing to the core income-generating activities of the business.
+
+Valuation Method       Within approaches, a specific way to determine value.
+
+
+Valuation Procedure    The act, manner, and technique of performing the steps of an appraisal method.
+
+
+
+
+                                                                                                                   34
+Bayleys Auckland
+Bayleys House
+30 Gaunt Street,
+Auckland Central 1010
++64 09 309 6020
+office@bayleys.co.nz    bayleys.co.nz
+

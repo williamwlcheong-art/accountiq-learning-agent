@@ -1,0 +1,151 @@
+{
+  "instructions": [
+    "Copy this file to reference-manifest.json.",
+    "Place original example-report page PNG/JPG files in the same folder.",
+    "For each reference image, fill title, source and path.",
+    "Keep accountiq_target exactly as generated so the visual review pack can map reference pages to AccountIQ pages.",
+    "Delete any unused reference rows before running build_valuation_visual_parity_pack.py --reference-manifest."
+  ],
+  "references": [
+    {
+      "accountiq_target": "Cover valuation snapshot",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 1; target markers: VALUATION SNAPSHOT, Enterprise value, Indicative equity value"
+    },
+    {
+      "accountiq_target": "Contents",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 2; target markers: REPORT NAVIGATION, Contents"
+    },
+    {
+      "accountiq_target": "Basis of preparation",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 3; target markers: BASIS OF PREPARATION, Basis of preparation"
+    },
+    {
+      "accountiq_target": "Evidence and model basis",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 5; target markers: BASIS OF PREPARATION, Evidence and model basis"
+    },
+    {
+      "accountiq_target": "Executive valuation conclusion",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 7; target markers: ACCOUNTIQ INDICATIVE VALUATION, 02 Executive Summary, Valuation conclusion at a glance"
+    },
+    {
+      "accountiq_target": "Valuation methodology",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 11; target markers: ACCOUNTIQ INDICATIVE VALUATION, 06 Valuation Methodology Adopted"
+    },
+    {
+      "accountiq_target": "Financial performance",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 12; target markers: ACCOUNTIQ INDICATIVE VALUATION, 07 Financial Performance"
+    },
+    {
+      "accountiq_target": "Normalisations",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 14; target markers: ACCOUNTIQ INDICATIVE VALUATION, 09 Normalisations"
+    },
+    {
+      "accountiq_target": "Balance sheet summary",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 15; target markers: ACCOUNTIQ INDICATIVE VALUATION, 10 Balance Sheet Summary"
+    },
+    {
+      "accountiq_target": "Valuation assumptions",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 16; target markers: ACCOUNTIQ INDICATIVE VALUATION, 11 Valuation Approach and Assumptions"
+    },
+    {
+      "accountiq_target": "DCF analysis",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 19; target markers: ACCOUNTIQ INDICATIVE VALUATION, 13 Discounted Cash Flow Analysis"
+    },
+    {
+      "accountiq_target": "Indicative valuation summary",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 21; target markers: ACCOUNTIQ INDICATIVE VALUATION, 14 Indicative Valuation Summary"
+    },
+    {
+      "accountiq_target": "Multiples cross-check",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 22; target markers: ACCOUNTIQ INDICATIVE VALUATION, 15 Multiples Cross-check"
+    },
+    {
+      "accountiq_target": "Sensitivity",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 23; target markers: ACCOUNTIQ INDICATIVE VALUATION, 16 Sensitivity and Specific Risks"
+    },
+    {
+      "accountiq_target": "Specific risk factors",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 24; target markers: Specific risk factors, Specific risk factor, Management input, Valuation relevance, Report treatment"
+    },
+    {
+      "accountiq_target": "Comparable evidence",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 25; target markers: ACCOUNTIQ INDICATIVE VALUATION, 17 Comparable Evidence Appendix"
+    },
+    {
+      "accountiq_target": "Sources",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 26; target markers: ACCOUNTIQ INDICATIVE VALUATION, 18 Sources and References"
+    },
+    {
+      "accountiq_target": "Disclaimer",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 27; target markers: ACCOUNTIQ INDICATIVE VALUATION, 19 Disclaimer"
+    },
+    {
+      "accountiq_target": "General principles",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 28; target markers: ACCOUNTIQ INDICATIVE VALUATION, 20 General Principles"
+    },
+    {
+      "accountiq_target": "Glossary",
+      "title": "",
+      "source": "",
+      "path": "",
+      "notes": "AccountIQ page 29; target markers: ACCOUNTIQ INDICATIVE VALUATION, 21 Glossary"
+    }
+  ]
+}

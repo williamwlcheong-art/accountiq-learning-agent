@@ -6,6 +6,7 @@ Uses PyJWT (HS256) for tokens and pwdlib (Argon2) for password hashing.
 Tokens are stored in HTTP-only cookies named 'accountiq_session'.
 """
 import os
+import secrets
 from datetime import datetime, timedelta, UTC
 
 from fastapi import APIRouter, Cookie, Depends, Form, HTTPException, Response
@@ -28,6 +29,8 @@ COOKIE_MAX_AGE = TOKEN_EXPIRE_DAYS * 24 * 60 * 60  # 604800
 COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
 OWNER_EMAIL = os.environ.get("OWNER_EMAIL", "").strip().lower()
 PASSWORD_MIN_LEN = 8
+DEFAULT_AUTH_BYPASS_EMAIL = "demo@accountiq.local"
+_TRUE_ENV_VALUES = {"1", "true", "yes", "on"}
 
 _password_hash = PasswordHash.recommended()
 
@@ -67,6 +70,58 @@ def _set_session_cookie(response: Response, token: str) -> None:
     )
 
 
+def auth_bypass_enabled() -> bool:
+    """Return whether local no-login testing is enabled.
+
+    This is intentionally controlled by an explicit environment variable rather
+    than piggy-backing on demo mode. Demo mode makes deterministic no-key report
+    generation safe; this flag separately controls whether protected routes
+    should receive a local test user without a browser session cookie.
+    """
+    return (
+        os.environ.get("ACCOUNTIQ_AUTH_DISABLED", "").strip().lower()
+        in _TRUE_ENV_VALUES
+    )
+
+
+async def _get_or_create_auth_bypass_user(db: aiosqlite.Connection) -> dict:
+    """Return a deterministic local user for no-login development testing."""
+    email = (
+        os.environ.get("ACCOUNTIQ_AUTH_BYPASS_EMAIL", DEFAULT_AUTH_BYPASS_EMAIL)
+        .strip()
+        .lower()
+        or DEFAULT_AUTH_BYPASS_EMAIL
+    )
+
+    async with db.execute(
+        "SELECT id, email, is_admin, created_at FROM users WHERE email=?", (email,)
+    ) as cur:
+        user = await cur.fetchone()
+    if user:
+        return dict(user)
+
+    # Give the synthetic account an unusable random password so it cannot be
+    # logged into accidentally if auth is later re-enabled.
+    hashed = hash_password(secrets.token_urlsafe(32))
+    try:
+        await db.execute(
+            "INSERT INTO users (email, hashed_pw, is_admin) VALUES (?, ?, 0)",
+            (email, hashed),
+        )
+        await db.commit()
+    except Exception as e:
+        if "UNIQUE constraint" not in str(e):
+            raise
+
+    async with db.execute(
+        "SELECT id, email, is_admin, created_at FROM users WHERE email=?", (email,)
+    ) as cur:
+        user = await cur.fetchone()
+    if not user:
+        raise HTTPException(500, "Local auth bypass user could not be created")
+    return dict(user)
+
+
 # ---------------------------------------------------------------------------
 # Dependency
 # ---------------------------------------------------------------------------
@@ -76,6 +131,9 @@ async def get_current_user(
     db: aiosqlite.Connection = Depends(get_db),
 ) -> dict:
     """Return the authenticated user dict, or raise 401."""
+    if auth_bypass_enabled():
+        return await _get_or_create_auth_bypass_user(db)
+
     if not accountiq_session:
         raise HTTPException(401, "Not authenticated")
     if not SECRET_KEY:

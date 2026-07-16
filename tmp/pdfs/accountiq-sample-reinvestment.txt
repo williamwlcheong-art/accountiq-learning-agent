@@ -1,0 +1,638 @@
+AccountIQ
+
+
+
+
+CONFIDENTIAL - INDICATIVE ONLY
+
+
+
+
+Indicative Valuation Report
+Sample NZ Services Limited
+
+Report #1001 | Prepared 4 July 2026
+ REPORT NAVIGATION
+
+
+
+ Contents
+01      Introduction
+
+02      Executive Summary
+
+03      Overview
+
+04      Market Position
+
+05      About Business Valuations
+
+06      Valuation Methodology Adopted
+
+07      Financial Performance
+
+08      Historical Ratio Analysis
+
+09      Normalisations
+
+10      Balance Sheet Summary
+
+11      Valuation Approach and Assumptions
+
+12      Weighted Average Cost of Capital
+
+13      Discounted Cash Flow Analysis
+
+14      Indicative Valuation Summary
+
+15      Multiples Cross-check
+
+16      Sensitivity and Specific Risks
+
+17      Comparable Evidence Appendix
+
+18      Sources and References
+
+19      Disclaimer
+
+20      General Principles
+
+21      Glossary
+
+
+
+
+AccountIQ                                    2
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Introduction
+ This indicative valuation has been prepared to provide the owner with an informed view of the fair market value of 100% of
+ the operating business. It draws on the financial information supplied, owner-confirmed private facts and independently
+ researched public market evidence.
+
+
+
+
+AccountIQ                                                                                                                     3
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Executive Summary
+ The primary discounted cash flow analysis indicates an enterprise value range of $1.90 million to $2.83 million after the
+ private-company illiquidity adjustment, with a midpoint of $2.31 million. The result is most sensitive to maintainable EBITDA,
+ customer retention and the selected cost of capital.
+
+
+   Indicative valuation                       High                         Mid                         Low
+
+
+   Enterprise value                           $2,831,000                   $2,314,000                  $1,898,000
+
+
+   Less: net debt                             $65,000                      $65,000                     $65,000
+
+
+   Indicative equity value                    $2,766,000                   $2,249,000                  $1,833,000
+
+
+
+
+AccountIQ                                                                                                                         4
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Overview
+ The sample company provides recurring business services to New Zealand SMEs. Public-source research indicates a
+ stable market position supported by repeat customers, while management has confirmed that responsibility is shared across
+ the operating team.
+
+
+
+
+AccountIQ                                                                                                                    5
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Market Position
+ The relevant New Zealand services market remains fragmented. Competitive advantage depends on customer retention,
+ delivery quality and trusted relationships. Public market evidence was cross-checked against the company's private
+ operating context.
+
+
+
+
+AccountIQ                                                                                                             6
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ About Business Valuations
+
+ What the valuation represents
+ A business valuation estimates what a willing, informed buyer might pay and a willing, informed seller might accept in an
+ arm's-length transaction at the valuation date. It is not the same as a guaranteed sale price. The final consideration may
+ also reflect buyer synergies, deal structure, warranties, working-capital adjustments and market conditions.
+
+
+
+ Enterprise value and equity value
+ Enterprise value is the value of the operating business before its financing position. Equity value is derived by deducting
+ interest-bearing debt and adding available cash and separately identified surplus assets. This report therefore presents both
+ measures.
+
+
+
+ Why a range is used
+ Private-company value is sensitive to forecasts, customer retention and the return required by a buyer. High, midpoint and
+ low cases communicate that uncertainty more honestly than a single point estimate.
+
+
+
+
+AccountIQ                                                                                                                        7
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Valuation Methodology Adopted
+
+ Primary method - discounted cash flow
+ Discounted cash flow is the primary method because it directly reflects the company's maintainable future cash-generating
+ capacity. Expected free cash flows are forecast over five years and discounted to present value using a private-company
+ cost of capital.
+
+
+
+ Independent cross-check - market multiples
+ Researched EV/EBITDA evidence provides an independent reasonableness cross-check. It is not used mechanically
+ because disclosed transactions differ in scale, growth, customer mix, contract security and strategic value.
+
+
+
+
+AccountIQ                                                                                                                    8
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Financial Performance
+ Revenue and EBITDA have grown over the observed period, with a moderation in the forecast year reflecting a sustainable
+ rather than aspirational earnings base. FY25 reported EBITDA of $240,000 is adjusted separately in the normalisation
+ schedule.
+
+
+   Year ending March                        FY23 Actual         FY24 Actual         FY25 Actual          FY26 Forecast
+
+
+   Revenue                                  $980,000            $1,110,000          $1,250,000           $1,350,000
+
+
+   Gross profit                             $588,000            $682,600            $787,500             $850,500
+
+
+   EBITDA                                   $165,000            $205,000            $240,000             $259,000
+
+
+   Net profit after tax                     $105,000            $128,000            $150,000             $163,000
+
+
+   EBITDA margin                            16.8%               18.5%               19.2%                19.2%
+
+
+
+
+AccountIQ                                                                                                                  9
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Historical Ratio Analysis
+ Historical ratios show improving scale and operating leverage. The forecast deliberately holds EBITDA margin broadly flat
+ rather than assuming that the recent expansion continues indefinitely.
+
+
+   Ratio                                     FY23 Actual          FY24 Actual          FY25 Actual          FY26 Forecast
+
+
+   Revenue growth                            Not available        13.3%                12.6%                8.0%
+
+
+   Gross margin                              60.0%                61.5%                63.0%                63.0%
+
+
+   EBITDA margin                             16.8%                18.5%                19.2%                19.2%
+
+
+   Net profit margin                         10.7%                11.5%                12.0%                12.1%
+
+
+
+
+AccountIQ                                                                                                                    10
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Normalisations
+ Normalisations isolate maintainable operating earnings from owner-specific and one-off expenditure.
+
+
+   Adjustment                                Amount                                   Rationale
+
+
+   Owner remuneration above market           $35,000                                  Replace with an arm's-length management
+                                                                                      cost
+
+
+   One-off legal costs                       $12,000                                  Non-recurring transaction expenditure
+
+
+   Normalised FY25 EBITDA                    $287,000                                 Reported EBITDA plus confirmed
+                                                                                      adjustments
+
+
+
+
+AccountIQ                                                                                                                     11
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Balance Sheet Summary
+ The enterprise-to-equity bridge deducts interest-bearing debt and adds available cash or separately identified surplus
+ assets.
+
+
+   Balance sheet item                                                     Value
+
+
+   Cash and bank                                                          $95,000
+
+
+   Interest-bearing debt                                                  $160,000
+
+
+   Net debt                                                               $65,000
+
+
+   Operating fixed assets                                                 $185,000
+
+
+   Surplus assets                                                         $0
+
+
+   Midpoint enterprise value                                              $2,314,000
+
+
+   Less: net debt                                                         ($65,000)
+
+
+   Midpoint equity value                                                  $2,249,000
+
+
+
+
+AccountIQ                                                                                                                 12
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Valuation Approach and Assumptions
+
+ Earnings and forecast period
+ The model uses normalised FY25 EBITDA of $287,000 and a five-year explicit forecast period. Revenue and maintainable
+ earnings grow at 8.0% a year, consistent with the owner's modest-growth outlook but below the most recent historical
+ growth rate.
+
+
+
+ Long-term and reinvestment assumptions
+ A 2.5% terminal growth rate is anchored to long-run New Zealand inflation and remains below every WACC scenario. The
+ model applies the 28% New Zealand corporate tax rate. Base depreciation of $25,000 is assumed to equal maintenance
+ capital expenditure. Operating working capital is modelled at 5.0% of revenue, so growth requires a corresponding
+ incremental cash investment.
+
+
+
+ Ownership and customer context
+ Management has indicated that operational responsibility is shared, no single customer represents more than 20% of
+ revenue, and income is a mix of recurring and project work.
+
+
+
+
+AccountIQ                                                                                                               13
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Weighted Average Cost of Capital
+ The cost of capital was developed from current public data and adjusted for the risk and illiquidity of a privately held New
+ Zealand SME. The high valuation uses the lowest WACC; the low valuation uses the highest WACC.
+
+
+   Component                                   High valuation               Mid valuation               Low valuation
+
+
+   Risk-free rate                              4.4%                         4.4%                        4.4%
+
+
+   Equity risk premium                         5.6%                         5.9%                        6.2%
+
+
+   Industry total beta                         1.05                         1.20                        1.35
+
+
+   WACC                                        9.9%                         11.5%                       13.4%
+
+
+   Illiquidity discount                        11.8%                        11.8%                       11.8%
+
+
+
+
+AccountIQ                                                                                                                       14
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Discounted Cash Flow Analysis
+ Forecast free cash flows are discounted at the three WACC scenarios. Terminal value uses the Gordon growth model and
+ the 2.5% terminal growth rate remains below every discount-rate scenario. FCFF is EBIT after tax plus depreciation, less
+ maintenance capital expenditure and change in operating working capital. The private-company illiquidity adjustment is
+ shown explicitly rather than embedded in an opaque final multiple.
+
+
+   DCF item                                  High valuation             Mid valuation               Low valuation
+
+
+   WACC                                      9.9%                       11.5%                       13.4%
+
+
+   Terminal growth                           2.5%                       2.5%                        2.5%
+
+
+   Base revenue                              $1,250,000                 $1,250,000                  $1,250,000
+
+
+   Normalised EBITDA                         $287,000                   $287,000                    $287,000
+
+
+   Base depreciation                         $25,000                    $25,000                     $25,000
+
+
+   Maintenance capex                         $25,000                    $25,000                     $25,000
+
+
+   Operating working capital / revenue       5.0%                       5.0%                        5.0%
+
+
+   Enterprise value before illiquidity       $3,209,000                 $2,624,000                  $2,152,000
+
+
+   Illiquidity discount                      11.8%                      11.8%                       11.8%
+
+
+   Adjusted enterprise value                 $2,831,000                 $2,314,000                  $1,898,000
+
+
+
+
+AccountIQ                                                                                                                   15
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Indicative Valuation Summary
+ The low DCF case overlaps the upper end of the market cross-check, while the midpoint DCF conclusion is higher at $2.31
+ million. This difference is driven by the assumed cash-flow growth and should be considered explicitly rather than averaged
+ away. The DCF remains the primary conclusion and the multiple range is an independent check.
+
+
+   Method / scenario                         Input                Enterprise value     Adjusted EV          Equity value
+
+
+   DCF - high valuation                      9.9% WACC            $3,209,000           $2,831,000           $2,766,000
+
+
+   DCF - midpoint                            11.5% WACC           $2,624,000           $2,314,000           $2,249,000
+
+
+   DCF - low valuation                       13.4% WACC           $2,152,000           $1,898,000           $1,833,000
+
+
+   Multiples - low                           5.0x EBITDA          $1,435,000           $1,435,000           $1,370,000
+
+
+   Multiples - midpoint                      6.0x EBITDA          $1,722,000           $1,722,000           $1,657,000
+
+
+   Multiples - high                          7.0x EBITDA          $2,009,000           $2,009,000           $1,944,000
+
+
+
+
+AccountIQ                                                                                                                      16
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Multiples Cross-check
+ Public benchmark evidence supports an indicative range of 5.0x to 7.0x normalised EBITDA. The DCF midpoint falls close
+ to the 6.0x market cross-check. The range is not a direct pricing promise because observed businesses differ in scale,
+ growth, customer mix, contract security and strategic value.
+
+
+   Input                                    Low                        Mid                        High
+
+
+   EV/EBITDA multiple                       5.0x                       6.0x                       7.0x
+
+
+   Normalised EBITDA                        $287,000                   $287,000                   $287,000
+
+
+   Indicated enterprise value               $1,435,000                 $1,722,000                 $2,009,000
+
+
+
+
+AccountIQ                                                                                                                 17
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Sensitivity and Specific Risks
+
+ Quantified sensitivity
+ Moving from the midpoint WACC of 11.5% to 9.9% increases adjusted enterprise value from $2.31 million to $2.83 million.
+ Moving to 13.4% reduces it to $1.90 million. A lower sustainable growth rate would also reduce forecast and terminal cash
+ flows.
+
+
+
+ Business-specific matters
+ • Customer retention: although no single customer exceeds 20% of revenue, the aggregate retention of repeat customers
+   remains important.
+
+ • Revenue quality: mixed recurring and project income provides diversity but less certainty than fully contracted revenue.
+
+ • Transition: shared management reduces key-person exposure, subject to confirming retention and handover
+   arrangements.
+
+ • Pipeline: unsigned opportunities have not been treated as contracted revenue.
+
+
+ These factors should be revisited if circumstances change before a transaction.
+
+
+
+
+AccountIQ                                                                                                                     18
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Comparable Evidence Appendix
+ The evidence below is illustrative public-market and benchmark context for the sample report. It is broad-sector evidence
+ rather than a set of directly comparable private transactions, so the observed range is used only as a reasonableness
+ check.
+
+
+   Evidence                                   Date                Metric / multiple    Relevance and          Source
+                                                                                       limitation
+
+
+   Business services sector dataset           Current dataset     EV/EBITDA            Broad                  Damodaran Online
+                                                                  benchmark            listed-company
+                                                                                       evidence; larger
+                                                                                       and more liquid
+                                                                                       than the subject
+
+
+   NZ private-company valuation context       Valuation date      Risk-free and        Supports               Reserve Bank of
+                                                                  inflation inputs     discount-rate          New Zealand
+                                                                                       inputs, not a
+                                                                                       transaction multiple
+
+
+   Subject company public profile             Valuation date      Operating and        Company-supplied       Company website
+                                                                  market context       public claims          and public records
+                                                                                       require
+                                                                                       corroboration
+
+
+
+
+AccountIQ                                                                                                                       19
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Sources and References
+ • Reserve Bank of New Zealand, Interest rates and exchange rates:
+   https://www.rbnz.govt.nz/statistics/series/exchange-and-interest-rates
+
+ • Reserve Bank of New Zealand, inflation data: https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/inflation
+
+ • Damodaran Online, data resources: https://pages.stern.nyu.edu/~adamodar/New_Home_Page/data.html
+
+ • Company website and public business records: background and market-position corroboration.
+
+
+
+
+AccountIQ                                                                                                                  20
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Disclaimer
+
+ Indicative purpose and reliance
+ This report is indicative only and has been prepared solely for the stated valuation purpose. It does not constitute financial
+ advice and should not be relied upon as a substitute for independent professional, legal, tax or accounting advice. No
+ responsibility is accepted to any third party who obtains or relies on this report.
+
+
+
+ Information and valuation date
+ The analysis relies on information supplied by the owner, extracted financial records and identified public sources. Those
+ inputs have not been independently audited. Conclusions may change if information is incomplete, inaccurate or
+ circumstances change after the valuation date.
+
+
+
+ Regulatory context
+ The report is prepared with regard to the Financial Markets Conduct Act (FMCA) context but is not a regulated
+ product-disclosure statement, fairness opinion or assurance engagement.
+
+
+
+
+AccountIQ                                                                                                                         21
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ General Principles
+
+ Basis of value
+ • A willing but not anxious buyer and a willing but not anxious seller.
+
+ • An arm's-length transaction after proper marketing.
+
+ • Both parties act knowledgeably, prudently and without compulsion.
+
+ • The business continues as a going concern with assets used in their current operations.
+
+
+
+ Timing and information
+ • Value is assessed at the stated valuation date and may change as markets, trading or capital costs change.
+
+ • Forecasts are estimates, not guarantees, and depend on stated assumptions.
+
+ • Buyer-specific synergies and unusual strategic premiums are excluded unless explicitly stated.
+
+
+
+
+AccountIQ                                                                                                       22
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Glossary
+
+ Core valuation terms
+ • DCF: Discounted cash flow, a method that converts forecast future cash flows to present value.
+
+ • Enterprise value: Value of the operating business before debt and available cash.
+
+ • Equity value: Enterprise value less debt, plus available cash and identified surplus assets.
+
+ • EBITDA: Earnings before interest, tax, depreciation and amortisation.
+
+ • Maintainable earnings: Earnings adjusted to reflect sustainable, arm's-length operations.
+
+ • Normalisation: An adjustment for owner-specific, non-recurring or non-operating items.
+
+ • Terminal value: Value attributed to cash flows beyond the explicit forecast period.
+
+ • WACC: Weighted average cost of capital used to discount future cash flows.
+
+ • Illiquidity discount: Adjustment reflecting the limited marketability of a private-company interest.
+
+ • FMCA: New Zealand's Financial Markets Conduct Act 2013.
+
+
+
+
+AccountIQ                                                                                                 23
+

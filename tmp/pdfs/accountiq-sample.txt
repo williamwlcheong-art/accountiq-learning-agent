@@ -1,0 +1,330 @@
+AccountIQ
+
+
+
+
+CONFIDENTIAL - INDICATIVE ONLY
+
+
+
+
+Indicative Valuation Report
+Sample NZ Services Limited
+
+Report #1001 | Prepared 3 July 2026
+ REPORT NAVIGATION
+
+
+
+ Contents
+01      Introduction
+
+02      Executive Summary
+
+03      Overview
+
+04      Market Position
+
+05      Financial Performance
+
+06      Normalisations
+
+07      Balance Sheet Summary
+
+08      Valuation Methodology Adopted
+
+09      Valuation Approach and Assumptions
+
+10      Weighted Average Cost of Capital
+
+11      Discounted Cash Flow Analysis
+
+12      Indicative Valuation Summary
+
+13      Multiples Cross-check
+
+14      Sensitivity and Specific Risks
+
+15      Sources and References
+
+16      Disclaimer
+
+
+
+
+AccountIQ                                    2
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Introduction
+ This indicative valuation has been prepared to provide the owner with an informed view of the fair market value of 100% of
+ the operating business. It draws on the financial information supplied, owner-confirmed private facts and independently
+ researched public market evidence.
+
+
+
+
+AccountIQ                                                                                                                     3
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Executive Summary
+ The primary discounted cash flow analysis indicates an enterprise value range of $1.62 million to $1.94 million, with a
+ midpoint of $1.78 million. The result is most sensitive to maintainable EBITDA, customer retention and the selected cost of
+ capital.
+
+
+   Indicative valuation                       High                        Mid                         Low
+
+
+   Enterprise value                           $1,940,000                  $1,780,000                  $1,620,000
+
+
+   Less: net debt                             $65,000                     $65,000                     $65,000
+
+
+   Indicative equity value                    $1,875,000                  $1,715,000                  $1,555,000
+
+
+
+
+AccountIQ                                                                                                                      4
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Overview
+ The sample company provides recurring business services to New Zealand SMEs. Public-source research indicates a
+ stable market position supported by repeat customers, while management has confirmed that responsibility is shared across
+ the operating team.
+
+
+
+
+AccountIQ                                                                                                                    5
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Market Position
+ The relevant New Zealand services market remains fragmented. Competitive advantage depends on customer retention,
+ delivery quality and trusted relationships. Public market evidence was cross-checked against the company's private
+ operating context.
+
+
+
+
+AccountIQ                                                                                                             6
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Financial Performance
+ Revenue and EBITDA have grown over the observed period, with a moderation in the forecast year reflecting a sustainable
+ rather than aspirational earnings base.
+
+
+   Year ending March                        FY23 Actual         FY24 Actual         FY25 Actual          FY26 Forecast
+
+
+   Revenue                                  $980,000            $1,110,000          $1,250,000           $1,350,000
+
+
+   EBITDA                                   $165,000            $205,000            $240,000             $259,000
+
+
+   EBITDA margin                            16.8%               18.5%               19.2%                19.2%
+
+
+
+
+AccountIQ                                                                                                                  7
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Normalisations
+ Normalisations isolate maintainable operating earnings from owner-specific and one-off expenditure.
+
+
+   Adjustment                                Amount                                   Rationale
+
+
+   Owner remuneration above market           $35,000                                  Replace with an arm's-length management
+                                                                                      cost
+
+
+   One-off legal costs                       $12,000                                  Non-recurring transaction expenditure
+
+
+
+
+AccountIQ                                                                                                                       8
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Balance Sheet Summary
+ The enterprise-to-equity bridge deducts interest-bearing debt and adds available cash or separately identified surplus
+ assets.
+
+
+   Balance sheet item                                                     Value
+
+
+   Cash and bank                                                          $95,000
+
+
+   Interest-bearing debt                                                  $160,000
+
+
+   Net debt                                                               $65,000
+
+
+   Operating fixed assets                                                 $185,000
+
+
+
+
+AccountIQ                                                                                                                 9
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Valuation Methodology Adopted
+ Discounted cash flow is the primary valuation method because it directly reflects the company's maintainable future
+ cash-generating capacity. Researched EV/EBITDA evidence provides an independent reasonableness cross-check.
+
+
+
+
+AccountIQ                                                                                                              10
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Valuation Approach and Assumptions
+ The model uses a five-year explicit forecast period, 8.0% annual growth during the forecast period, a 2.5% terminal growth
+ rate anchored to researched New Zealand inflation and the 28% New Zealand corporate tax rate.
+
+
+
+
+AccountIQ                                                                                                                     11
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Weighted Average Cost of Capital
+ The cost of capital was developed from current public data and adjusted for the risk and illiquidity of a privately held New
+ Zealand SME.
+
+
+   Component                                   High                         Mid                         Low
+
+
+   Risk-free rate                              4.4%                         4.4%                        4.4%
+
+
+   Equity risk premium                         5.6%                         5.9%                        6.2%
+
+
+   Industry total beta                         1.05                         1.20                        1.35
+
+
+   WACC                                        9.9%                         11.5%                       13.4%
+
+
+   Illiquidity discount                        11.8%                        11.8%                       11.8%
+
+
+
+
+AccountIQ                                                                                                                       12
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Discounted Cash Flow Analysis
+ Forecast free cash flows are discounted at the three WACC scenarios. Terminal value uses the Gordon growth model and is
+ checked to ensure the terminal growth rate remains below every discount-rate scenario.
+
+
+
+
+AccountIQ                                                                                                              13
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Indicative Valuation Summary
+ The DCF result and market cross-check overlap, supporting an indicative midpoint enterprise value of $1.78 million before
+ the enterprise-to-equity bridge.
+
+
+   Method                                    High                        Mid                         Low
+
+
+   DCF - illiquidity adjusted                $1,940,000                  $1,780,000                  $1,620,000
+
+
+   Market multiples cross-check              $2,009,000                  $1,721,000                  $1,433,000
+
+
+
+
+AccountIQ                                                                                                                    14
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Multiples Cross-check
+ Recent comparable evidence supports an indicative range of 5.0x to 7.0x normalised EBITDA. The range is used only as a
+ cross-check because disclosed transactions differ in scale, customer mix and strategic value.
+
+
+
+
+AccountIQ                                                                                                                 15
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Sensitivity and Specific Risks
+ The valuation is most sensitive to owner transition, retention of larger customers, renewal of recurring contracts and delivery
+ of the stated forward pipeline. These factors should be revisited if circumstances change before a transaction.
+
+
+
+
+AccountIQ                                                                                                                      16
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Sources and References
+ • Reserve Bank of New Zealand: government bond yields and inflation context.
+
+ • Damodaran Online: industry beta and equity risk premium datasets.
+
+ • Company website and public business records: background and market position.
+
+
+
+
+AccountIQ                                                                         17
+ ACCOUNTIQ INDICATIVE VALUATION
+
+
+
+ Disclaimer
+ This report is indicative only, does not constitute financial advice, is subject to the Financial Markets Conduct Act (FMCA),
+ and should not be relied upon as a substitute for independent professional, legal, tax or accounting advice.
+
+
+
+
+AccountIQ                                                                                                                        18
+

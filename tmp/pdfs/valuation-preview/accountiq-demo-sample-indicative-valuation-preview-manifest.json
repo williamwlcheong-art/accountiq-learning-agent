@@ -1,0 +1,255 @@
+{
+  "pdf": "/Users/William.Cheong/Documents/Valuation and Finance App/output/pdf/accountiq-demo-sample-indicative-valuation.pdf",
+  "output_dir": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview",
+  "resolution": 110,
+  "selection_mode": "auto",
+  "pages": [
+    {
+      "page": 1,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-01-01.png"
+    },
+    {
+      "page": 2,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-02-02.png"
+    },
+    {
+      "page": 3,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-03-03.png"
+    },
+    {
+      "page": 5,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-05-05.png"
+    },
+    {
+      "page": 7,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-07-07.png"
+    },
+    {
+      "page": 11,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-11-11.png"
+    },
+    {
+      "page": 12,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-12-12.png"
+    },
+    {
+      "page": 15,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-15-15.png"
+    },
+    {
+      "page": 16,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-16-16.png"
+    },
+    {
+      "page": 19,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-19-19.png"
+    },
+    {
+      "page": 22,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-22-22.png"
+    },
+    {
+      "page": 24,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-24-24.png"
+    },
+    {
+      "page": 25,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-25-25.png"
+    },
+    {
+      "page": 26,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-26-26.png"
+    },
+    {
+      "page": 27,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-27-27.png"
+    },
+    {
+      "page": 28,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-28-28.png"
+    },
+    {
+      "page": 29,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-29-29.png"
+    },
+    {
+      "page": 30,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-30-30.png"
+    },
+    {
+      "page": 31,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-31-31.png"
+    },
+    {
+      "page": 32,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-demo-sample-indicative-valuation-page-32-32.png"
+    }
+  ],
+  "page_targets": [
+    {
+      "label": "Cover valuation snapshot",
+      "page": 1,
+      "markers": [
+        "VALUATION SNAPSHOT",
+        "Enterprise value",
+        "Indicative equity value"
+      ]
+    },
+    {
+      "label": "Contents",
+      "page": 2,
+      "markers": [
+        "REPORT NAVIGATION",
+        "Contents"
+      ]
+    },
+    {
+      "label": "Basis of preparation",
+      "page": 3,
+      "markers": [
+        "BASIS OF PREPARATION",
+        "Basis of preparation"
+      ]
+    },
+    {
+      "label": "Evidence and model basis",
+      "page": 5,
+      "markers": [
+        "BASIS OF PREPARATION",
+        "Evidence and model basis"
+      ]
+    },
+    {
+      "label": "Executive valuation conclusion",
+      "page": 7,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "02 Executive Summary",
+        "Valuation conclusion at a glance"
+      ]
+    },
+    {
+      "label": "Valuation methodology",
+      "page": 11,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "06 Valuation Methodology Adopted"
+      ]
+    },
+    {
+      "label": "Financial performance",
+      "page": 12,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "07 Financial Performance"
+      ]
+    },
+    {
+      "label": "Normalisations",
+      "page": 15,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "09 Normalisations"
+      ]
+    },
+    {
+      "label": "Balance sheet summary",
+      "page": 16,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "10 Balance Sheet Summary"
+      ]
+    },
+    {
+      "label": "Valuation assumptions",
+      "page": 19,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "11 Valuation Approach and Assumptions"
+      ]
+    },
+    {
+      "label": "DCF analysis",
+      "page": 22,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "13 Discounted Cash Flow Analysis"
+      ]
+    },
+    {
+      "label": "Indicative valuation summary",
+      "page": 24,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "14 Indicative Valuation Summary"
+      ]
+    },
+    {
+      "label": "Multiples cross-check",
+      "page": 25,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "15 Multiples Cross-check"
+      ]
+    },
+    {
+      "label": "Sensitivity",
+      "page": 26,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "16 Sensitivity and Specific Risks"
+      ]
+    },
+    {
+      "label": "Specific risk factors",
+      "page": 27,
+      "markers": [
+        "Specific risk factors",
+        "Specific risk factor",
+        "Management input",
+        "Valuation relevance",
+        "Report treatment"
+      ]
+    },
+    {
+      "label": "Comparable evidence",
+      "page": 28,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "17 Comparable Evidence Appendix"
+      ]
+    },
+    {
+      "label": "Sources",
+      "page": 29,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "18 Sources and References"
+      ]
+    },
+    {
+      "label": "Disclaimer",
+      "page": 30,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "19 Disclaimer"
+      ]
+    },
+    {
+      "label": "General principles",
+      "page": 31,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "20 General Principles"
+      ]
+    },
+    {
+      "label": "Glossary",
+      "page": 32,
+      "markers": [
+        "ACCOUNTIQ INDICATIVE VALUATION",
+        "21 Glossary"
+      ]
+    }
+  ]
+}

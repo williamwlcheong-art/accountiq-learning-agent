@@ -1,0 +1,13 @@
+{
+  "pdf": "/Users/William.Cheong/Documents/Valuation and Finance App/output/pdf/accountiq-demo-sample-indicative-valuation.pdf",
+  "output_dir": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview-cover-check",
+  "resolution": 110,
+  "selection_mode": "manual",
+  "pages": [
+    {
+      "page": 1,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview-cover-check/accountiq-demo-sample-indicative-valuation-page-01-01.png"
+    }
+  ],
+  "page_targets": []
+}

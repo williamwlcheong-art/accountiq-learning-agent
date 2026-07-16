@@ -1,0 +1,72 @@
+{
+  "pdf": "/Users/William.Cheong/Documents/Valuation and Finance App/output/pdf/accountiq-sample-indicative-valuation.pdf",
+  "output_dir": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview",
+  "resolution": 120,
+  "selection_mode": "auto",
+  "pages": [
+    {
+      "page": 1,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-01-01.png"
+    },
+    {
+      "page": 2,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-02-02.png"
+    },
+    {
+      "page": 3,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-03-03.png"
+    },
+    {
+      "page": 4,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-04-04.png"
+    },
+    {
+      "page": 6,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-06-06.png"
+    },
+    {
+      "page": 10,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-10-10.png"
+    },
+    {
+      "page": 11,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-11-11.png"
+    },
+    {
+      "page": 13,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-13-13.png"
+    },
+    {
+      "page": 14,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-14-14.png"
+    },
+    {
+      "page": 15,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-15-15.png"
+    },
+    {
+      "page": 18,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-18-18.png"
+    },
+    {
+      "page": 22,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-22-22.png"
+    },
+    {
+      "page": 23,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-23-23.png"
+    },
+    {
+      "page": 24,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-24-24.png"
+    },
+    {
+      "page": 25,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-25-25.png"
+    },
+    {
+      "page": 26,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview/accountiq-sample-indicative-valuation-page-26-26.png"
+    }
+  ]
+}

@@ -44,11 +44,11 @@ A business owner uploads their financials, answers a few questions about their b
 - ✓ Support scanned image-only PDFs (OCR at 300 DPI, 100% row recovery verified) — Validated in Phase 4: Extraction Quality
 - [ ] Support structured HTML financial filings
 
-**Business profile intake:**
-- [ ] User can describe their business (industry, products/services, market position)
-- [ ] User can select industry/sector for comparable multiples and benchmarking
-- [ ] User can provide management team details (founders, key staff)
-- [ ] User can enter EBITDA add-backs / owner adjustments
+**Business profile and valuation intake:**
+- [~] User can provide the minimum private valuation facts needed for the valuation report — active worktree uses five required answers with progressive disclosure
+- [~] User can provide optional public-source hints and private context without making the first valuation screen feel like a long questionnaire
+- [~] User can review earnings adjustments separately from valuation questions, with examples of what to adjust and what to leave alone
+- [ ] User can manage a durable full business profile outside the valuation flow (industry, products/services, market position, management team, EBITDA adjustments)
 
 **Authentication & accounts:**
 - ✓ User can create an account and log in — Validated in Phase 1: Security & Auth Foundation
@@ -56,15 +56,15 @@ A business owner uploads their financials, answers a few questions about their b
 - [ ] User can manage their account and report purchase history
 
 **Report generation:**
-- [ ] Valuation report — DCF and/or EV/EBITDA multiple, supported by extracted financials
+- [~] Valuation report — active worktree includes computed DCF, WACC scenarios, multiples cross-check, sensitivity, source trail, management-input trail, and report-quality gates
 - [ ] Bank credit paper — structured write-up suitable for a lending submission
 - [ ] Financial forecast — forward projections based on historical financials and growth assumptions
 - [ ] Capital raising document — investor-ready summary of business and financials
 - [ ] Information memorandum (IM) — full document suitable for selling the business
 
 **Report delivery:**
-- [ ] Web viewer — reports readable in-app after generation
-- [ ] PDF export — downloadable, professionally formatted document
+- [~] Web viewer — active worktree includes professional valuation browser report structure and safe source-link rendering
+- [~] PDF export — active worktree includes professional valuation PDF rendering and artifact audits
 - [ ] Pay-per-report purchasing — user selects and pays for a report before it is generated
 
 ### Out of Scope
@@ -77,7 +77,8 @@ A business owner uploads their financials, answers a few questions about their b
 ## Context
 
 - The backend is Python FastAPI with SQLite (aiosqlite). The primary frontend is a Next.js App Router app in `web/`; the old `frontend/index.html` app is now an opt-in legacy fallback.
-- Extraction already uses Claude (claude-sonnet-4-6) with forced tool-use and a GAAP/IFRS system prompt. The same Claude API will power report generation.
+- Extraction already uses Claude (claude-sonnet-4-6) with forced tool-use and a GAAP/IFRS system prompt. The same Claude API powers live valuation research/report generation when `ANTHROPIC_API_KEY` is configured.
+- Local valuation-flow testing without an Anthropic key is explicit demo mode via `ACCOUNTIQ_DEMO_MODE=true` or `scripts/start-demo-backend.sh`. Demo mode must remain visibly labelled and must not silently replace live mode in production.
 - Security gaps from pre-Phase 1 (wildcard CORS, unsanitised filenames, innerHTML XSS, no auth) are now fixed. 4 code review criticals remain (empty SECRET_KEY, exception message leakage, env path disclosure, unvalidated claude_model write) — flagged for Phase 1 gap closure before external launch.
 - Phase 2 isolation: all company/document routes enforce `WHERE user_id=?` filters; IDOR returns 404 not 403 (D-01); analytics scoped per-user; `label_patterns` intentionally global (D-03). 3 code review criticals remain (retry_document write scope, analytics/overview label_patterns leakage, executescript transaction split) — flagged for gap closure.
 - The codebase map is at `.planning/codebase/` — read it before planning any backend phase.
@@ -96,7 +97,7 @@ A business owner uploads their financials, answers a few questions about their b
 |----------|-----------|---------|
 | Pay-per-report (not subscription) | Matches infrequent, high-value use case for SME owners | — Pending |
 | First-draft quality bar | Makes accuracy achievable; professionals still add value | — Pending |
-| All 5 report types in v1 | User wants full offering from launch | — Pending |
+| Valuation-first self-serve wedge before all five report types | Trust and willingness-to-pay are best proven with one high-value report before broadening the questionnaire/report surface | — Accepted for MVP |
 | Keep FastAPI as backend of record and migrate UI to Next.js | Preserves working ingestion/report engine while fixing frontend maintainability | — Accepted |
 
 ## Evolution
@@ -117,4 +118,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-02 - Next.js refactor merged; paid valuation MVP planning merged*
+*Last updated: 2026-07-05 - valuation-first report pack work in progress*

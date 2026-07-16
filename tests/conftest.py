@@ -32,6 +32,11 @@ for _candidate in [
         _load_dotenv(_candidate, override=False)  # override=False: env vars already set by CI take precedence
         break
 
+# Tests should not depend on a developer-local .env file. Keep the application
+# strict in normal runtime, but seed a sufficiently long test-only signing key
+# before importing auth/main so protected-route tests are reproducible.
+os.environ.setdefault("SECRET_KEY", "accountiq-test-secret-key-not-for-runtime-use")
+
 # CRITICAL: override DB_PATH BEFORE importing main (which imports db at module level)
 _TMP_DB_FD, _TMP_DB_PATH = tempfile.mkstemp(suffix="_test.db")
 os.close(_TMP_DB_FD)

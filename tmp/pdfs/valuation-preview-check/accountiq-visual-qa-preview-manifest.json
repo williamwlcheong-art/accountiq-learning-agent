@@ -1,0 +1,19 @@
+{
+  "pdf": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/accountiq-visual-qa.pdf",
+  "output_dir": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview-check",
+  "resolution": 72,
+  "pages": [
+    {
+      "page": 1,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview-check/accountiq-visual-qa-page-01-01.png"
+    },
+    {
+      "page": 2,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview-check/accountiq-visual-qa-page-02-02.png"
+    },
+    {
+      "page": 3,
+      "path": "/Users/William.Cheong/Documents/Valuation and Finance App/tmp/pdfs/valuation-preview-check/accountiq-visual-qa-page-03-03.png"
+    }
+  ]
+}
