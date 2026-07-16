@@ -10,7 +10,6 @@ mkdir -p "$ROOT/data" "$ROOT/data/pdfs"
 export ACCOUNTIQ_DB_PATH="$DB"
 export ACCOUNTIQ_E2E_MODE=true
 export SECRET_KEY="e2e-secret-key-not-for-production"
-export OWNER_EMAIL="owner-e2e@example.com"
 export ANTHROPIC_API_KEY="sk-ant-e2e-placeholder"
 export CLAUDE_MODEL="claude-sonnet-4-6"
 
@@ -29,6 +28,22 @@ if [[ ! -x "$UVICORN" ]]; then
     fi
   fi
 fi
+
+PYTHON="$(dirname "$UVICORN")/python"
+PYTHONPATH="$ROOT/backend" "$PYTHON" - <<'PY'
+import sqlite3
+from admin_provisioning import provision_admin
+from auth import hash_password
+from db import DB_PATH, init_db
+
+init_db()
+with sqlite3.connect(DB_PATH) as db:
+    db.execute(
+        "INSERT INTO users (email, hashed_pw) VALUES (?, ?)",
+        ("owner-e2e@example.com", hash_password("correcthorse")),
+    )
+provision_admin(DB_PATH, "owner-e2e@example.com")
+PY
 
 cd "$ROOT/backend"
 exec "$UVICORN" main:app --port 8765

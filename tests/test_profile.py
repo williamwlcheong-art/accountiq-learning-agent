@@ -22,17 +22,9 @@ from httpx import AsyncClient, ASGITransport
 # ---------------------------------------------------------------------------
 
 async def _register_admin(client, email, password="correcthorse"):
-    """Register a user and grant admin via module-level OWNER_EMAIL patching."""
-    import auth as _auth_module
-    original = _auth_module.OWNER_EMAIL
-    _auth_module.OWNER_EMAIL = email.lower()
-    try:
-        r = await client.post("/auth/register", data={"email": email, "password": password})
-    finally:
-        _auth_module.OWNER_EMAIL = original
-    assert r.status_code in (200, 201), f"Register failed for {email!r}: {r.text}"
-    return r
-
+    """Register and explicitly provision an admin test user."""
+    from account_helpers import register_test_admin
+    return await register_test_admin(client, email, password)
 
 async def _create_company(client, name, exchange="Private"):
     r = await client.post("/companies", data={"name": name, "exchange": exchange})

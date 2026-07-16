@@ -22,26 +22,7 @@ export async function login(page: Page, email: string) {
 }
 
 export async function loginOrRegisterAdmin(page: Page) {
-  const email = adminEmail();
-  await login(page, email);
-  const invalidLoginAlert = page.getByRole("alert").filter({ hasText: /incorrect email or password/i });
-  const loginResult = await Promise.race([
-    page.waitForURL(/\/admin$/, { timeout: 10_000 }).then(() => "ok").catch(() => null),
-    invalidLoginAlert
-      .waitFor({ state: "visible", timeout: 10_000 })
-      .then(() => "missing")
-      .catch(() => null),
-  ]);
-
-  if (loginResult === "ok") {
-    return;
-  }
-  await expect(invalidLoginAlert).toBeVisible();
-  await page.getByRole("button", { name: /^create account$/i }).click();
-  await page.getByLabel(/email address/i).fill(email);
-  await page.getByLabel(/^password$/i).fill(password);
-  await page.getByLabel(/confirm password/i).fill(password);
-  await page.getByRole("button", { name: /^create account$/i }).click();
+  await login(page, adminEmail());
   await expect(page).toHaveURL(/\/admin$/);
 }
 

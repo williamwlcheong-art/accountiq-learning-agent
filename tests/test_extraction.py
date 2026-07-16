@@ -24,17 +24,11 @@ if str(BACKEND_DIR) not in sys.path:
 # ---------------------------------------------------------------------------
 
 async def _register_and_login(client, email="ext-test@test.com", password="Pass1234!"):
-    """Register an admin user and return the access token."""
-    import auth as _auth_module
-    original = _auth_module.OWNER_EMAIL
-    _auth_module.OWNER_EMAIL = email.lower()
-    try:
-        await client.post("/auth/register", data={"email": email, "password": password})
-    finally:
-        _auth_module.OWNER_EMAIL = original
+    """Register, explicitly provision, and log in an admin test user."""
+    from account_helpers import register_test_admin
+    await register_test_admin(client, email, password)
     r = await client.post("/auth/login", data={"email": email, "password": password})
     return r.json().get("access_token", "")
-
 
 def _docx_file(name="financials.docx"):
     """Minimal docx-like bytes — enough to pass suffix check."""

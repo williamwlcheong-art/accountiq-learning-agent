@@ -26,7 +26,6 @@ TOKEN_EXPIRE_DAYS = 7
 COOKIE_NAME = "accountiq_session"
 COOKIE_MAX_AGE = TOKEN_EXPIRE_DAYS * 24 * 60 * 60  # 604800
 COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
-OWNER_EMAIL = os.environ.get("OWNER_EMAIL", "").strip().lower()
 PASSWORD_MIN_LEN = 8
 
 _password_hash = PasswordHash.recommended()
@@ -137,11 +136,6 @@ async def register(
         if "UNIQUE constraint" in str(e):
             raise HTTPException(409, "Email already registered")
         raise HTTPException(500, str(e))
-
-    # Promote to admin if registration email matches OWNER_EMAIL (per D-02)
-    if OWNER_EMAIL and email == OWNER_EMAIL:
-        await db.execute("UPDATE users SET is_admin = 1 WHERE id = ?", (user_id,))
-        await db.commit()
 
     token = create_access_token({"sub": str(user_id), "email": email})
     _set_session_cookie(response, token)
