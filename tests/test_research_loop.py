@@ -8,6 +8,7 @@ Wave 2 wizard checkpoint (Plan 04) and offline-only in CI.
 
 import sys
 import inspect
+from types import SimpleNamespace
 from pathlib import Path
 import pytest
 from pydantic import ValidationError
@@ -17,12 +18,14 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from research_loop import (
+    RESEARCH_SYSTEM_PROMPT,
     ResearchBrief,
     WEB_SEARCH_TOOL,
     _apply_guardrails,
     _extract_json_from_response,
     run_valuation_research,
 )
+import research_loop as research_loop_module
 
 
 # ---------------------------------------------------------------------------
@@ -161,37 +164,96 @@ def test_guardrail_placeholder_in_industry_category():
 
 
 # ---------------------------------------------------------------------------
-# Guardrail tests — missing RBNZ/Damodaran sources
+# Guardrail tests — missing RBNZ or Damodaran sources
 # ---------------------------------------------------------------------------
 
 def test_guardrail_missing_rbnz_and_damodaran_sources():
-    """Sources with no rbnz.govt.nz or damodaran URL raise ValueError."""
+    """Sources with neither rbnz.govt.nz nor Damodaran URL raise ValueError."""
     kwargs = _valid_brief_kwargs()
     kwargs["sources"] = [
         "https://www.someblog.com/wacc",
         "https://example.com",
     ]
     brief = ResearchBrief(**kwargs)
-    with pytest.raises(ValueError, match="RBNZ or Damodaran"):
+    with pytest.raises(ValueError, match="both RBNZ and Damodaran"):
         _apply_guardrails(brief)
 
 
-def test_guardrail_rbnz_source_accepted():
-    """A source containing 'rbnz.govt.nz' should pass the source guardrail."""
+def test_guardrail_rejects_rbnz_without_damodaran_source():
+    """RBNZ alone cannot verify Damodaran ERP/beta inputs."""
     kwargs = _valid_brief_kwargs()
     kwargs["sources"] = ["https://rbnz.govt.nz/statistics"]
     brief = ResearchBrief(**kwargs)
-    # Should not raise ValueError for the source guardrail
-    # (may raise for WACC range — use valid values)
-    _apply_guardrails(brief)  # no exception expected
+    with pytest.raises(ValueError, match="Damodaran"):
+        _apply_guardrails(brief)
 
 
-def test_guardrail_damodaran_source_accepted():
-    """A source containing 'damodaran' substring should pass the source guardrail."""
+def test_guardrail_rejects_damodaran_without_rbnz_source():
+    """Damodaran alone cannot verify NZ risk-free-rate or inflation inputs."""
     kwargs = _valid_brief_kwargs()
     kwargs["sources"] = ["https://pages.stern.nyu.edu/~adamodar/datafile/totalbeta.html"]
     brief = ResearchBrief(**kwargs)
+    with pytest.raises(ValueError, match="RBNZ"):
+        _apply_guardrails(brief)
+
+
+def test_guardrail_rbnz_and_damodaran_sources_accepted():
+    """Research needs both source families for a professional WACC evidence trail."""
+    kwargs = _valid_brief_kwargs()
+    brief = ResearchBrief(**kwargs)
     _apply_guardrails(brief)  # no exception expected
+
+
+def test_guardrail_rejects_source_without_http_scheme():
+    """Research sources must be real URLs so report source tables can render them."""
+    kwargs = _valid_brief_kwargs()
+    kwargs["sources"] = [
+        "rbnz.govt.nz/statistics/series/exchange-and-interest-rates",
+        "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/totalbeta.html",
+    ]
+    brief = ResearchBrief(**kwargs)
+
+    with pytest.raises(ValueError, match="valid http"):
+        _apply_guardrails(brief)
+
+
+def test_guardrail_rejects_source_with_unsupported_scheme():
+    """Only http(s) sources should be accepted as valuation report evidence."""
+    kwargs = _valid_brief_kwargs()
+    kwargs["sources"] = [
+        "ftp://rbnz.govt.nz/statistics/series/exchange-and-interest-rates",
+        "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/totalbeta.html",
+    ]
+    brief = ResearchBrief(**kwargs)
+
+    with pytest.raises(ValueError, match="valid http"):
+        _apply_guardrails(brief)
+
+
+def test_guardrail_rejects_lookalike_rbnz_source_host():
+    """A lookalike host containing rbnz.govt.nz must not pass as official RBNZ evidence."""
+    kwargs = _valid_brief_kwargs()
+    kwargs["sources"] = [
+        "https://rbnz.govt.nz.evil.example/statistics",
+        "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/totalbeta.html",
+    ]
+    brief = ResearchBrief(**kwargs)
+
+    with pytest.raises(ValueError, match="RBNZ"):
+        _apply_guardrails(brief)
+
+
+def test_guardrail_rejects_lookalike_damodaran_source_host():
+    """A URL merely mentioning Damodaran must not pass as official Damodaran evidence."""
+    kwargs = _valid_brief_kwargs()
+    kwargs["sources"] = [
+        "https://www.rbnz.govt.nz/statistics/series/exchange-and-interest-rates",
+        "https://example.com/damodaran-total-beta",
+    ]
+    brief = ResearchBrief(**kwargs)
+
+    with pytest.raises(ValueError, match="Damodaran"):
+        _apply_guardrails(brief)
 
 
 # ---------------------------------------------------------------------------
@@ -262,3 +324,139 @@ def test_module_exports_web_search_tool_config():
     assert WEB_SEARCH_TOOL["max_uses"] == 15
     assert WEB_SEARCH_TOOL["user_location"]["country"] == "NZ"
     assert WEB_SEARCH_TOOL["user_location"]["timezone"] == "Pacific/Auckland"
+
+
+def test_research_prompt_requires_full_http_source_urls():
+    """The prompt should ask for renderable URLs, matching the source guardrail."""
+    assert '"sources": ["https://...", "https://...", ...]' in RESEARCH_SYSTEM_PROMPT
+    assert "full http:// or https:// URL" in RESEARCH_SYSTEM_PROMPT
+    assert "no bare domains or host-only strings" in RESEARCH_SYSTEM_PROMPT
+
+
+def test_research_loop_uses_credentials_saved_after_module_import(monkeypatch):
+    """Admin Settings updates os.environ at runtime; research must see the new values."""
+    captured = {}
+    valid_json = __import__("json").dumps(_valid_brief_kwargs())
+
+    class _FakeMessages:
+        def create(self, **kwargs):
+            captured["model"] = kwargs["model"]
+            return SimpleNamespace(
+                content=[_StubTextBlock(valid_json)],
+                stop_reason="end_turn",
+                usage=SimpleNamespace(
+                    server_tool_use={},
+                    input_tokens=100,
+                    output_tokens=200,
+                ),
+            )
+
+    class _FakeClient:
+        def __init__(self, api_key):
+            captured["api_key"] = api_key
+            self.messages = _FakeMessages()
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-runtime-settings-value")
+    monkeypatch.setenv("CLAUDE_MODEL", "runtime-model")
+    monkeypatch.setattr(research_loop_module.anthropic, "Anthropic", _FakeClient)
+
+    brief = research_loop_module.run_research_loop_sync(
+        "Propellerhead Limited",
+        "Auckland, New Zealand",
+        "Digital services",
+    )
+
+    assert brief.risk_free_rate == 4.65
+    assert captured == {
+        "api_key": "sk-ant-runtime-settings-value",
+        "model": "runtime-model",
+    }
+
+
+def test_research_loop_includes_management_supplied_public_source_hints(monkeypatch):
+    """Management-supplied URLs should guide web research without becoming required questions."""
+    captured = {}
+    valid_json = __import__("json").dumps(_valid_brief_kwargs())
+
+    class _FakeMessages:
+        def create(self, **kwargs):
+            captured["prompt"] = kwargs["messages"][0]["content"]
+            return SimpleNamespace(
+                content=[_StubTextBlock(valid_json)],
+                stop_reason="end_turn",
+                usage=SimpleNamespace(
+                    server_tool_use={},
+                    input_tokens=100,
+                    output_tokens=200,
+                ),
+            )
+
+    class _FakeClient:
+        def __init__(self, api_key):
+            self.messages = _FakeMessages()
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-runtime-settings-value")
+    monkeypatch.setattr(research_loop_module.anthropic, "Anthropic", _FakeClient)
+
+    research_loop_module.run_research_loop_sync(
+        "Source Hints Limited",
+        "Auckland, New Zealand",
+        "Professional services",
+        company_website="https://source-hints.example",
+        public_source_urls=[
+            "https://companies-register.companiesoffice.govt.nz/source-hints",
+            "https://www.linkedin.com/company/source-hints",
+        ],
+    )
+
+    assert "Official website supplied by management: https://source-hints.example" in captured["prompt"]
+    assert "Additional public source URLs supplied by management:" in captured["prompt"]
+    assert "Location: Auckland, New Zealand" in captured["prompt"]
+    assert "companies-register.companiesoffice.govt.nz/source-hints" in captured["prompt"]
+    assert "linkedin.com/company/source-hints" in captured["prompt"]
+    assert "Use the management-supplied website and source URLs first" in captured["prompt"]
+    assert "Treat supplied URLs as source hints" in captured["prompt"]
+    assert "Do not use a public fact in the brief unless the supporting source URL is retained in sources" in captured["prompt"]
+    assert "If a supplied link cannot be corroborated, mention only that it was supplied as a matching hint" in captured["prompt"]
+
+
+def test_research_loop_rejects_malformed_management_source_hints_before_provider_call(monkeypatch):
+    """Direct research-loop calls should receive already-normalised public URLs."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-runtime-settings-value")
+
+    with pytest.raises(ValueError, match="company website must be a full public HTTP\\(S\\) URL"):
+        research_loop_module.run_research_loop_sync(
+            "Source Hints Limited",
+            "Auckland, New Zealand",
+            "Professional services",
+            company_website="source-hints.example",
+        )
+
+    with pytest.raises(ValueError, match="public source URL 1 must be a full public HTTP\\(S\\) URL"):
+        research_loop_module.run_research_loop_sync(
+            "Source Hints Limited",
+            "Auckland, New Zealand",
+            "Professional services",
+            public_source_urls=["linkedin.com/company/source-hints"],
+        )
+
+
+def test_research_loop_rejects_private_management_source_hints_before_provider_call(monkeypatch):
+    """Source hints are public online avenues, not local or private-network locations."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-runtime-settings-value")
+
+    with pytest.raises(ValueError, match="company website must be a public HTTP\\(S\\) URL"):
+        research_loop_module.run_research_loop_sync(
+            "Source Hints Limited",
+            "Auckland, New Zealand",
+            "Professional services",
+            company_website="http://localhost:3000/profile",
+        )
+
+    with pytest.raises(ValueError, match="public source URL 1 must be a public HTTP\\(S\\) URL"):
+        research_loop_module.run_research_loop_sync(
+            "Source Hints Limited",
+            "Auckland, New Zealand",
+            "Professional services",
+            public_source_urls=["http://192.168.1.10/internal-source"],
+        )

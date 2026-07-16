@@ -95,6 +95,179 @@ async def test_admin_user_companies_200(client, fresh_all_db):
     assert r.status_code == 200, r.text
 
 
+async def test_admin_settings_explains_demo_mode_without_treating_placeholder_as_live_key(
+    client,
+    fresh_all_db,
+    monkeypatch,
+):
+    import main as main_module
+
+    await _register_admin(client, "admin@example.com")
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-e2e-placeholder")
+
+    response = await client.get("/settings")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["demo_mode"] is True
+    assert response.json()["demo_mode_forced"] is True
+    assert response.json()["api_key_set"] is False
+    assert response.json()["api_key_preview"] == ""
+
+
+def test_admin_live_research_setup_error_names_demo_and_live_key_paths():
+    import main as main_module
+
+    detail = main_module._live_research_connection_error_detail({"is_admin": 1})
+
+    assert "Admin Settings" in detail
+    assert "enable demo mode" in detail
+    assert "Anthropic API key" in detail
+
+
+async def test_admin_settings_reports_explicit_demo_mode_without_live_key(
+    client,
+    fresh_all_db,
+    monkeypatch,
+):
+    import main as main_module
+
+    await _register_admin(client, "admin@example.com")
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.setenv("ACCOUNTIQ_DEMO_MODE", "true")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+    response = await client.get("/settings")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["demo_mode"] is True
+    assert response.json()["demo_mode_configured"] is True
+    assert response.json()["demo_mode_forced"] is False
+    assert response.json()["api_key_set"] is False
+
+
+async def test_regular_user_ai_connection_check_403(client, fresh_all_db):
+    """Only admins can verify the live AI connection."""
+    await _register(client, "user@example.com")
+    response = await client.post("/settings/ai-connection/check")
+    assert response.status_code == 403, response.text
+
+
+async def test_admin_ai_connection_check_reports_demo_mode(
+    client,
+    fresh_all_db,
+    monkeypatch,
+):
+    import main as main_module
+
+    await _register_admin(client, "admin@example.com")
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.setenv("ACCOUNTIQ_DEMO_MODE", "true")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+    response = await client.post("/settings/ai-connection/check")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["ok"] is True
+    assert response.json()["status"] == "demo_mode"
+    assert "continue testing" in response.json()["message"]
+    assert response.json()["demo_mode"] is True
+    assert response.json()["api_key_set"] is False
+
+
+async def test_admin_ai_connection_check_reports_missing_live_key(
+    client,
+    fresh_all_db,
+    monkeypatch,
+):
+    import main as main_module
+
+    await _register_admin(client, "admin@example.com")
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+    response = await client.post("/settings/ai-connection/check")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["ok"] is False
+    assert response.json()["status"] == "missing_key"
+    assert "Add an Anthropic API key" in response.json()["message"]
+    assert response.json()["demo_mode"] is False
+    assert response.json()["api_key_set"] is False
+
+
+async def test_admin_ai_connection_check_runs_live_preflight(
+    client,
+    fresh_all_db,
+    monkeypatch,
+):
+    import main as main_module
+
+    await _register_admin(client, "admin@example.com")
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-admin-connection-pass")
+    monkeypatch.setenv("CLAUDE_MODEL", "claude-sonnet-4-6")
+    main_module._live_research_preflight_cache.clear()
+
+    calls: list[tuple[str, str]] = []
+
+    def pass_preflight(api_key, model):
+        calls.append((api_key, model))
+
+    monkeypatch.setattr(
+        main_module,
+        "_anthropic_live_research_preflight_sync",
+        pass_preflight,
+    )
+
+    response = await client.post("/settings/ai-connection/check")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["ok"] is True
+    assert response.json()["status"] == "verified"
+    assert response.json()["cached"] is False
+    assert response.json()["model"] == "claude-sonnet-4-6"
+    assert calls == [("sk-ant-admin-connection-pass", "claude-sonnet-4-6")]
+
+
+async def test_admin_ai_connection_check_reports_failure_without_provider_leak(
+    client,
+    fresh_all_db,
+    monkeypatch,
+):
+    import main as main_module
+
+    await _register_admin(client, "admin@example.com")
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-admin-connection-fail")
+    main_module._live_research_preflight_cache.clear()
+
+    def fail_preflight(_api_key, _model):
+        raise RuntimeError(
+            "Anthropic invalid_request_error for Claude model with sk-ant-secret"
+        )
+
+    monkeypatch.setattr(
+        main_module,
+        "_anthropic_live_research_preflight_sync",
+        fail_preflight,
+    )
+
+    response = await client.post("/settings/ai-connection/check")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["ok"] is False
+    assert response.json()["status"] == "failed"
+    message = response.json()["message"]
+    assert "could not be verified" in message
+    lowered = message.lower()
+    for forbidden in ("invalid_request_error", "claude", "sk-ant-secret"):
+        assert forbidden not in lowered
+
+
 async def test_unauthenticated_returns_401_not_403(client, fresh_all_db):
     """AUTH-09: no-cookie request to admin-gated route returns 401, not 403."""
     client.cookies.clear()
@@ -120,6 +293,7 @@ async def test_wizard_upload_creates_company_and_document(client, fresh_all_db):
     assert "company_id" in body
     assert "document_id" in body
     assert body["status"] == "processing"
+    assert isinstance(body["demo_mode"], bool)
 
 
 async def test_wizard_upload_requires_auth(client, fresh_all_db):

@@ -246,23 +246,39 @@ def _migrate_db(conn: sqlite3.Connection):
             status          TEXT    NOT NULL DEFAULT 'queued',
             content         TEXT,
             error_message   TEXT,
+            demo_mode       INTEGER DEFAULT 0,
             created_at      TEXT    DEFAULT (datetime('now')),
             completed_at    TEXT
         )
     """)
+    try:
+        conn.execute("ALTER TABLE reports ADD COLUMN demo_mode INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
     conn.execute("""
         CREATE TABLE IF NOT EXISTS report_intake (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             report_id   INTEGER REFERENCES reports(id) ON DELETE CASCADE,
+            source_document_id INTEGER REFERENCES documents(id),
+            source_document_ids TEXT,
             answers     TEXT    NOT NULL,
             created_at  TEXT    DEFAULT (datetime('now'))
         )
     """)
+    try:
+        conn.execute("ALTER TABLE report_intake ADD COLUMN source_document_id INTEGER REFERENCES documents(id)")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE report_intake ADD COLUMN source_document_ids TEXT")
+    except sqlite3.OperationalError:
+        pass
     for idx_sql in [
         "CREATE INDEX IF NOT EXISTS idx_reports_company  ON reports(company_id)",
         "CREATE INDEX IF NOT EXISTS idx_reports_user     ON reports(user_id)",
         "CREATE INDEX IF NOT EXISTS idx_reports_status   ON reports(status)",
         "CREATE INDEX IF NOT EXISTS idx_report_intake_rpt ON report_intake(report_id)",
+        "CREATE INDEX IF NOT EXISTS idx_report_intake_source_doc ON report_intake(source_document_id)",
     ]:
         try:
             conn.execute(idx_sql)

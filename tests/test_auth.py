@@ -83,6 +83,22 @@ async def test_me_unauthenticated(client, fresh_db):
     assert r.status_code == 401
 
 
+async def test_auth_disabled_returns_local_demo_user_without_cookie(
+    client,
+    fresh_db,
+    monkeypatch,
+):
+    monkeypatch.setenv("ACCOUNTIQ_AUTH_DISABLED", "true")
+    client.cookies.clear()
+
+    r = await client.get("/auth/me")
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["email"] == "demo@accountiq.local"
+    assert body["is_admin"] == 0
+
+
 # ------------------------------------------------------------------
 # AUTH-06: Logout
 # ------------------------------------------------------------------

@@ -25,9 +25,11 @@ import os
 import json
 import asyncio
 import logging
+import ipaddress
 import re
 import time
 from typing import Optional
+from urllib.parse import urlparse
 
 import anthropic
 from pydantic import BaseModel, Field, ValidationError
@@ -35,7 +37,8 @@ from pydantic import BaseModel, Field, ValidationError
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Constants (env-loaded, never hardcoded)
+# Defaults captured at import for diagnostics. Runtime calls re-read the
+# environment so credentials saved through Admin Settings apply immediately.
 # ---------------------------------------------------------------------------
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -90,12 +93,13 @@ with this exact schema:
   "industry_beta": float,             // e.g. 1.08  (total beta from Damodaran)
   "industry_category": "string",      // Damodaran industry category used for beta
   "inflation_rate": float,            // e.g. 2.5
-  "sources": ["url1", "url2", ...]    // list of source URLs cited
+  "sources": ["https://...", "https://...", ...] // full http(s) source URLs cited; no bare domains or host-only strings
 }
 
 CRITICAL: Do not return the JSON until you have retrieved risk_free_rate, erp, and industry_beta
 from actual web search results. These values must come from RBNZ or Damodaran — do not estimate them.
-ev_ebitda_low must be less than ev_ebitda_high, and both must be positive."""
+ev_ebitda_low must be less than ev_ebitda_high, and both must be positive.
+Every entry in sources must be a full http:// or https:// URL that can be rendered as a clickable report link."""
 
 
 # ---------------------------------------------------------------------------
@@ -159,6 +163,120 @@ def _extract_json_from_response(response) -> dict:
     return json.loads(raw)
 
 
+def _is_local_or_private_host(hostname: str) -> bool:
+    """Return True for hostnames/IPs that should never be sent as public source hints."""
+    host = (hostname or "").strip().lower().strip("[]").rstrip(".")
+    if not host:
+        return True
+    if host == "localhost" or host.endswith(".localhost") or host.endswith(".local"):
+        return True
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return (
+        address.is_loopback
+        or address.is_link_local
+        or address.is_private
+        or address.is_multicast
+        or address.is_reserved
+        or address.is_unspecified
+    )
+
+
+def _normalise_prompt_source_hint_url(url: object, field_label: str) -> str:
+    """Return a safe public http(s) URL for the live research prompt, or raise."""
+    raw = str(url or "").strip()
+    if not raw:
+        return ""
+    if len(raw) > 2048:
+        raise ValueError(f"{field_label} is too long")
+    parsed = urlparse(raw)
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.hostname
+        or any(char.isspace() for char in raw)
+    ):
+        raise ValueError(f"{field_label} must be a full public HTTP(S) URL")
+    if _is_local_or_private_host(parsed.hostname):
+        raise ValueError(f"{field_label} must be a public HTTP(S) URL")
+    return raw.rstrip("/")
+
+
+def _coerce_public_source_urls(public_source_urls: object) -> list[str]:
+    """Coerce optional management-supplied public source hints into prompt-safe lines."""
+    if public_source_urls in (None, ""):
+        return []
+    if isinstance(public_source_urls, str):
+        candidates = re.split(r"[\n,]+", public_source_urls)
+    elif isinstance(public_source_urls, (list, tuple, set)):
+        candidates = [str(item) for item in public_source_urls]
+    else:
+        candidates = [str(public_source_urls)]
+    urls: list[str] = []
+    seen: set[str] = set()
+    for index, candidate in enumerate(candidates, start=1):
+        if not candidate or not candidate.strip():
+            continue
+        url = _normalise_prompt_source_hint_url(candidate, f"public source URL {index}")
+        key = url.lower()
+        if key in seen:
+            continue
+        urls.append(url)
+        seen.add(key)
+    if len(urls) > 10:
+        raise ValueError("public source URL hints can include up to 10 links")
+    return urls
+
+
+def _source_host(url: object) -> str:
+    """Return a lowercase URL host, accepting friendly host/path strings."""
+    raw = str(url or "").strip()
+    if not raw:
+        return ""
+    parsed = urlparse(raw if "://" in raw else f"https://{raw}")
+    return (parsed.hostname or "").lower().rstrip(".")
+
+
+def _source_path(url: object) -> str:
+    raw = str(url or "").strip()
+    if not raw:
+        return ""
+    parsed = urlparse(raw if "://" in raw else f"https://{raw}")
+    return parsed.path.lower()
+
+
+def _invalid_source_urls(sources: object) -> list[str]:
+    """Return research sources that cannot be rendered as real report links."""
+    invalid: list[str] = []
+    iterable = sources if isinstance(sources, list) else []
+    for source in iterable:
+        raw = str(source or "").strip()
+        parsed = urlparse(raw)
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or any(char.isspace() for char in raw)
+        ):
+            invalid.append(raw)
+    return invalid
+
+
+def _is_rbnz_source(url: object) -> bool:
+    """Return True only for RBNZ URLs, not lookalike hosts."""
+    host = _source_host(url)
+    return host == "rbnz.govt.nz" or host.endswith(".rbnz.govt.nz")
+
+
+def _is_damodaran_source(url: object) -> bool:
+    """Return True only for recognised Damodaran data-source URLs."""
+    host = _source_host(url)
+    path = _source_path(url)
+    if (host == "pages.stern.nyu.edu" or host.endswith(".stern.nyu.edu")) and "adamodar" in path:
+        return True
+    return host == "damodaran.com" or host.endswith(".damodaran.com")
+
+
 # ---------------------------------------------------------------------------
 # Guardrails (AI-SPEC Section 6 — Online guardrails)
 # ---------------------------------------------------------------------------
@@ -169,8 +287,9 @@ def _apply_guardrails(brief: ResearchBrief) -> None:
     Guardrail order (matches AI-SPEC Section 6):
     1. Decimal-form WACC detection (D-W6 / Pitfall 1)
     2. Placeholder detection
-    3. Missing RBNZ/Damodaran source URL
-    4. WACC range check (8–20% mid WACC for NZ private SME)
+    3. Invalid research source URLs
+    4. Missing RBNZ or Damodaran source URL
+    5. WACC range check (8–20% mid WACC for NZ private SME)
     """
     # 1. Decimal-form WACC detection (D-W6 / Pitfall 1)
     if brief.risk_free_rate < 1.0:
@@ -199,16 +318,29 @@ def _apply_guardrails(brief: ResearchBrief) -> None:
             raise ValueError(
                 f"Research brief field '{field_name}' contains placeholder text: '{value[:80]}'"
             )
-    # 3. Missing RBNZ/Damodaran source URL
-    # Damodaran's NYU pages use the URL path "~adamodar/" (his username) so we
-    # match both "damodaran" (his name/domain) and "adamodar" (NYU username).
-    sources_concat = " ".join(brief.sources).lower()
-    has_rbnz = "rbnz.govt.nz" in sources_concat
-    has_damodaran = "damodaran" in sources_concat or "adamodar" in sources_concat
-    if not has_rbnz and not has_damodaran:
+    # 3. Invalid research source URLs. The finished report can only render and
+    # validate evidence links that are real http(s) URLs.
+    invalid_sources = _invalid_source_urls(brief.sources)
+    if invalid_sources:
         raise ValueError(
-            "Research brief sources do not include an RBNZ or Damodaran URL. "
-            "WACC inputs cannot be verified as sourced from authoritative data. "
+            "Research brief sources must be valid http(s) URLs: "
+            f"{invalid_sources}"
+        )
+
+    # 4. Missing RBNZ or Damodaran source URL. Parse hosts/paths so lookalike
+    # URLs do not satisfy the professional evidence trail.
+    has_rbnz = any(_is_rbnz_source(source) for source in brief.sources)
+    has_damodaran = any(_is_damodaran_source(source) for source in brief.sources)
+    missing_authoritative_sources = []
+    if not has_rbnz:
+        missing_authoritative_sources.append("RBNZ")
+    if not has_damodaran:
+        missing_authoritative_sources.append("Damodaran")
+    if missing_authoritative_sources:
+        raise ValueError(
+            "Research brief sources must include both RBNZ and Damodaran URLs. "
+            "Risk-free-rate, inflation, ERP and beta inputs cannot be verified "
+            f"without: {', '.join(missing_authoritative_sources)}. "
             f"sources={brief.sources}"
         )
     # 4. WACC range check
@@ -228,6 +360,8 @@ def run_research_loop_sync(
     company_name: str,
     company_location: str,
     industry_sector: str,
+    company_website: str = "",
+    public_source_urls: object = None,
     max_retries: int = 2,
 ) -> ResearchBrief:
     """
@@ -237,17 +371,29 @@ def run_research_loop_sync(
     Raises RuntimeError on max_tokens, unbounded pause_turn loops, or empty API key.
     Raises ValueError when Pydantic validation or any guardrail fails.
     """
-    if not ANTHROPIC_API_KEY:
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    model = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+    if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY not set — cannot run research loop")
 
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    company_website = _normalise_prompt_source_hint_url(company_website, "company website")
+    source_urls = _coerce_public_source_urls(public_source_urls)
+    source_hint_text = "\n".join(f"- {url}" for url in source_urls) or "Not supplied"
+
+    client = anthropic.Anthropic(api_key=api_key)
 
     user_prompt = (
         f"Research this business for a valuation report:\n"
         f"Company: {company_name}\n"
+        f"Official website supplied by management: {company_website or 'Not supplied'}\n"
+        f"Additional public source URLs supplied by management:\n{source_hint_text}\n"
         f"Location: {company_location}\n"
         f"Sector: {industry_sector}\n\n"
-        f"Use web_search to retrieve current data. Return the structured JSON brief when complete."
+        f"Use the management-supplied website and source URLs first when available, then corroborate material facts "
+        f"with independent public sources. Treat supplied URLs as source hints, not proof on their own. "
+        f"Do not use a public fact in the brief unless the supporting source URL is retained in sources. "
+        f"If a supplied link cannot be corroborated, mention only that it was supplied as a matching hint. "
+        f"Return the structured JSON brief when complete."
     )
 
     messages = [{"role": "user", "content": user_prompt}]
@@ -259,7 +405,7 @@ def run_research_loop_sync(
         for _attempt in range(2):
             try:
                 response = client.messages.create(
-                    model=CLAUDE_MODEL,
+                    model=model,
                     max_tokens=MAX_TOKENS_RESEARCH,
                     system=RESEARCH_SYSTEM_PROMPT,
                     tools=[WEB_SEARCH_TOOL],
@@ -328,6 +474,8 @@ async def run_valuation_research(
     company_name: str,
     company_location: str,
     industry_sector: str,
+    company_website: str = "",
+    public_source_urls: object = None,
 ) -> ResearchBrief:
     """
     Async entry point for FastAPI background tasks.
@@ -341,4 +489,6 @@ async def run_valuation_research(
         company_name,
         company_location,
         industry_sector,
+        company_website,
+        public_source_urls,
     )

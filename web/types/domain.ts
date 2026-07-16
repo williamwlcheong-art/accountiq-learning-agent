@@ -41,6 +41,7 @@ export type ReportStatus = {
   error_message: string | null;
   created_at: string;
   completed_at: string | null;
+  demo_mode?: boolean;
 };
 
 export type ApiErrorBody = {

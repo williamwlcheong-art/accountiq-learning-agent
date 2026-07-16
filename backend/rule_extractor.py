@@ -19,7 +19,7 @@ PNL_SYNS: dict[str, list[str]] = {
         "gross revenue", "turnover", "total turnover", "net turnover",
         "total fees", "fee revenue", "service revenue", "contract revenue",
         # AU/NZ SME income additions
-        "other income", "sundry income", "miscellaneous income",
+        "trading income", "total trading income",
     ],
     "cogs": [
         "cost of goods sold", "cost of sales", "cost of revenue", "cost of services",
@@ -31,6 +31,41 @@ PNL_SYNS: dict[str, list[str]] = {
     "gross_profit": [
         "gross profit", "gross margin", "gross profit margin", "gross income",
     ],
+    "wages_salaries": [
+        "wages", "wages and salaries", "salaries and wages", "salaries",
+        "staff costs", "employee costs", "payroll", "payroll expenses",
+        "employee benefits", "employee expenses", "contract wages",
+    ],
+    "rent_occupancy": [
+        "rent", "rent expense", "rental expense", "premises rent",
+        "occupancy costs", "lease costs", "property rent", "factory rent",
+        "warehouse rent", "office rent",
+    ],
+    "advertising_marketing": [
+        "advertising", "marketing", "advertising and marketing",
+        "promotion", "promotional expenses", "sales and marketing",
+    ],
+    "insurance": [
+        "insurance", "insurance expense", "business insurance",
+        "vehicle insurance", "public liability insurance",
+    ],
+    "motor_vehicle_expenses": [
+        "motor vehicle expenses", "vehicle costs", "vehicle expenses",
+        "fuel", "fuel and oil", "repairs motor vehicle",
+    ],
+    "repairs_maintenance": [
+        "repairs and maintenance", "repairs", "maintenance",
+        "plant repairs", "equipment repairs", "repairs & maintenance",
+    ],
+    "admin_professional_fees": [
+        "administration expenses", "admin expenses", "accounting fees",
+        "legal fees", "professional fees", "consulting fees", "office expenses",
+        "office administration",
+    ],
+    "other_operating_expenses": [
+        "other operating expenses", "other expenses", "sundry expenses",
+        "miscellaneous expenses", "general expenses",
+    ],
     "operating_expenses": [
         "total operating expenses", "total expenses", "total operating costs",
         "operating expenditure", "total expenditure", "total costs",
@@ -38,9 +73,6 @@ PNL_SYNS: dict[str, list[str]] = {
         # AU/NZ SME additions
         "owners drawings", "drawings",
         "directors fees", "directors remuneration",
-        "wages", "wages and salaries", "salaries and wages",
-        "administration expenses", "admin expenses",
-        "motor vehicle expenses", "vehicle costs",
     ],
     "ebitda": [
         "ebitda", "earnings before interest tax depreciation amortisation",
@@ -60,7 +92,7 @@ PNL_SYNS: dict[str, list[str]] = {
     "interest_expense": [
         "interest expense", "finance costs", "finance cost", "interest costs",
         "net interest expense", "borrowing costs", "interest and finance charges",
-        "interest paid", "net finance costs",
+        "interest paid", "net finance costs", "interest",
     ],
     "pbt": [
         "profit before tax", "loss before tax", "profit before income tax",
@@ -107,12 +139,12 @@ BS_SYNS: dict[str, list[str]] = {
         "property plant and equipment", "property, plant and equipment",
         "total property plant and equipment", "fixed assets", "net book value",
         "right of use assets", "right-of-use assets",
-        "total non current assets", "total noncurrent assets",
         "plant equipment and vehicles", "capital assets",
     ],
     "other_noncurrent_assets": [
         "intangible assets", "goodwill", "other non-current assets",
-        "deferred tax assets", "investments",
+        "deferred tax assets", "investments", "total non current assets",
+        "total noncurrent assets",
     ],
     "total_assets": [
         "total assets",
@@ -137,13 +169,13 @@ BS_SYNS: dict[str, list[str]] = {
     "long_term_debt": [
         "term loans", "term loan", "non-current borrowings", "borrowings",
         "long term loans", "long-term loans", "mortgage",
-        "total non current liabilities", "total noncurrent liabilities",
         "finance lease", "hire purchase", "shareholder loans",
         "related party loans", "loans payable", "loans",
     ],
     "other_noncurrent_liab": [
         "other non-current liabilities", "deferred tax liabilities",
-        "non-current provisions",
+        "non-current provisions", "total non current liabilities",
+        "total noncurrent liabilities",
     ],
     "total_liabilities": [
         "total liabilities",
@@ -214,7 +246,10 @@ def _norm(text: str) -> str:
 
 def _extract_numbers(line: str) -> list[Optional[float]]:
     """Extract numbers preserving None for dashes (null values)."""
-    tokens = re.findall(r'\([\d,]+\)|[-\u2013\u2014](?=\s|$)|\d[\d,]*', line)
+    tokens = re.findall(
+        r'\([\d,]+(?:\.\d+)?\)|[-\u2013\u2014](?=\s|$)|-?\d[\d,]*(?:\.\d+)?',
+        line,
+    )
     result = []
     for t in tokens:
         if re.match(r'^[-\u2013\u2014]$', t):
@@ -253,10 +288,12 @@ def _match_row(label_norm: str, syns: dict[str, list[str]]) -> Optional[str]:
     """Return canonical key for a normalised label, longest-match first."""
     best_key = None
     best_len = 0
+    label_compact = label_norm.replace(" ", "")
     for key, synonyms in syns.items():
         for syn in synonyms:
             sn = _norm(syn)
-            if sn in label_norm or label_norm in sn:
+            sn_compact = sn.replace(" ", "")
+            if sn in label_norm or sn_compact in label_compact:
                 if len(sn) > best_len:
                     best_len = len(sn)
                     best_key = key
