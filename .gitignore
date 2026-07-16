@@ -43,3 +43,6 @@ web/openapi.json
 data/accountiq_e2e.db
 data/accountiq_e2e.db-wal
 data/accountiq_e2e.db-shm
+
+# Local browser automation artefacts
+.playwright-mcp/

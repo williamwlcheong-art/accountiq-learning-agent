@@ -33,7 +33,12 @@ from payments import (
 )
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
 from report_rendering import render_report_html, report_pdf_path, write_pdf
-from report_prompts import build_prompt, SECTION_SCHEMAS, compute_bank_credit_figures
+from report_prompts import (
+    build_prompt,
+    SECTION_SCHEMAS,
+    TABLE_SECTIONS_VALUATION,
+    compute_bank_credit_figures,
+)
 from research_loop import run_valuation_research
 from valuation import (
     compute_wacc_scenarios, compute_dcf, compute_illiquidity_discount,
@@ -99,7 +104,7 @@ def _e2e_report_content(report_type: str) -> dict:
                 "is not regulated advice under the FMCA, and should not be relied "
                 "on without independent professional advice."
             )
-        elif section.endswith("summary") or section in {"valuation_summary", "financial_summary"}:
+        elif section in TABLE_SECTIONS_VALUATION or section.endswith("summary"):
             content[section] = {
                 "narrative": f"E2E generated {title} with <script>escaped text</script> for safety checks.",
                 "table": {
@@ -1090,6 +1095,7 @@ async def _store_generated_report(
     report_type: str,
     content_json: dict,
 ) -> str:
+    _validate_generated_report(content_json, report_type)
     next_status = "awaiting_review" if _requires_admin_review(report_type) else "done"
     if next_status == "done":
         cursor = await db.execute("""
@@ -1937,6 +1943,14 @@ async def admin_report_approve(
 # Both use the same full report-type keys (e.g. 'valuation_advisory').
 REPORT_SECTIONS = SECTION_SCHEMAS  # alias — do not remove
 
+_SAFE_REPORT_GENERATION_ERROR = (
+    "We couldn't generate a complete report. Please retry, or contact support if the problem continues."
+)
+
+
+# Backwards-compatible private alias for focused tests and storage callers.
+from report_validation import validate_generated_report as _validate_generated_report
+
 
 async def _generate_report(
     report_id: int,
@@ -2201,44 +2215,7 @@ async def _generate_report(
                 sections=SECTION_SCHEMAS[report_type],
             )
 
-            # --- 8. Validate JSON: all expected sections must be present ---
-            expected_sections = SECTION_SCHEMAS[report_type]
-            missing = [s for s in expected_sections if s not in content_json]
-            if missing:
-                raise ValueError(
-                    f"Claude response missing required sections: {missing}. "
-                    "Report marked failed — please retry."
-                )
-
-            # --- 8b. FMCA disclaimer compliance gate (REPT-06 + AI-SPEC guardrail) ---
-            if report_type == "valuation_advisory":
-                disclaimer_section = content_json.get("disclaimer", "")
-                if isinstance(disclaimer_section, dict):
-                    disclaimer_text = str(disclaimer_section.get("narrative", ""))
-                else:
-                    disclaimer_text = str(disclaimer_section)
-                lowered = disclaimer_text.lower()
-                required_phrases = [
-                    ("indicative", ("indicative",)),
-                    ("financial advice", ("financial advice",)),
-                    ("FMCA or FMCA name", ("fmca", "financial markets conduct")),
-                    ("not relied", ("not relied", "should not be relied")),
-                ]
-                missing_phrases = []
-                for label, needles in required_phrases:
-                    if not any(n in lowered for n in needles):
-                        missing_phrases.append(label)
-                if missing_phrases:
-                    err = f"Disclaimer compliance check failed — missing required phrases: {missing_phrases}"
-                    print(f"[REPORT ERROR] report_id={report_id} disclaimer_incomplete: {missing_phrases}")
-                    await db.execute(
-                        "UPDATE reports SET status='failed', error_message=? WHERE id=?",
-                        (err, report_id),
-                    )
-                    await db.commit()
-                    return
-
-            # --- 9. Store content; paid valuations wait for reviewer approval before release ---
+            # --- 8. Store validated content; paid valuations wait for reviewer approval ---
             next_status = await _store_generated_report(
                 db,
                 report_id=report_id,
@@ -2267,9 +2244,9 @@ async def _generate_report(
             try:
                 await db.execute("""
                     UPDATE reports
-                    SET status='failed', error_message=?
+                    SET status='failed', content=NULL, error_message=?
                     WHERE id=?
-                """, (err_msg, report_id))
+                """, (_SAFE_REPORT_GENERATION_ERROR, report_id))
                 await db.commit()
             except Exception as db_exc:
                 print(f"[REPORT ERROR] Failed to mark report failed: {db_exc}")
@@ -2303,15 +2280,16 @@ async def _call_claude_for_report(
     raw_text = response.content[0].text if response.content else ""
 
     # Parse JSON from Claude's response
-    content_json = _parse_json_from_response(raw_text, sections)
+    content_json = _parse_json_from_response(raw_text)
     return content_json
 
 
-def _parse_json_from_response(raw_text: str, sections: list[str]) -> dict:
+def _parse_json_from_response(raw_text: str) -> dict:
     """
-    Extract JSON from Claude's response text.
-    Handles cases where Claude wraps JSON in markdown code fences.
-    Falls back to a stub dict if parsing fails.
+    Extract a JSON object from Claude's response text.
+
+    Markdown fences and surrounding prose are tolerated, but malformed JSON and
+    non-object JSON fail closed. Content completeness is validated separately.
     """
     text = raw_text.strip()
 
@@ -2326,10 +2304,6 @@ def _parse_json_from_response(raw_text: str, sections: list[str]) -> dict:
     try:
         parsed = json.loads(text)
         if isinstance(parsed, dict):
-            # Ensure all expected sections are present
-            for s in sections:
-                if s not in parsed:
-                    parsed[s] = f"[Section '{s}' not generated — please retry]"
             return parsed
     except json.JSONDecodeError:
         pass
@@ -2341,16 +2315,11 @@ def _parse_json_from_response(raw_text: str, sections: list[str]) -> dict:
         try:
             parsed = json.loads(match.group(0))
             if isinstance(parsed, dict):
-                for s in sections:
-                    if s not in parsed:
-                        parsed[s] = f"[Section '{s}' not generated — please retry]"
                 return parsed
         except json.JSONDecodeError:
             pass
 
-    # Fallback stub
-    print(f"[REPORT] Failed to parse JSON from Claude response, using stub. Raw: {raw_text[:200]}")
-    return {s: f"[Generation error — section '{s}' could not be parsed]" for s in sections}
+    raise ValueError("Claude response must contain a valid JSON object")
 
 
 # ---------------------------------------------------------------------------

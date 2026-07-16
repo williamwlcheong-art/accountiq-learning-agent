@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PVM-07 public valuation offer complete
-stopped_at: PVM-07 complete in PR #12; PVM-08 live report UAT is next
-last_updated: "2026-07-14T07:31:58+12:00"
+status: PVM-08 deterministic hardening complete; live/domain UAT pending
+stopped_at: PVM-08 guarded harness and fail-closed validation verified; methodology corrections precede the live run
+last_updated: "2026-07-16T10:45:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -48,22 +48,22 @@ Completed implementation slice:
 - PR #11 / PVM-06: the authenticated account page lists owner-filtered purchases with payment and report-delivery status. Viewer and PDF actions appear only after release.
 - PR #12 / PVM-07: the public `/valuation` page explains the bounded early-access offer without an unapproved numeric price, keeps compliance limitations visible, and routes every conversion CTA through `/login`.
 
-Next validation slice:
+Next validation slices:
 
-- PVM-08: run live report UAT with William against the reviewed valuation workflow.
+- PVM-08A: land the deterministic migration/report/UAT hardening and correct known methodology/security blockers (admin provisioning, net debt, FCFF inputs, authoritative document selection).
+- PVM-08B: run one guarded live valuation UAT and record William's domain disposition. No live Anthropic request has been made yet.
 
-Latest verified checks:
+Latest verified checks on `codex/pvm-08-live-report-uat`:
 
-- Backend pytest: 138 passed, 1 skipped
+- Backend pytest: 169 passed, 1 skipped
+- Focused UAT safety suite: 17 passed
 - `pnpm lint`
 - `pnpm typecheck`
 - `pnpm build`
-- Focused public valuation Playwright: 2 passed
-- Full dev Playwright: 13 passed, including the public valuation offer at desktop and 320px
+- Full dev Playwright: 13 passed
 - Full production Playwright: 13 passed against `next start`
-- Focused PDF-delivery pytest: 4 passed
-- Focused wizard Playwright: 2 passed, including reload/resume and PDF-link coverage
-- WeasyPrint 69.0 visual check: branded 2-page A4 sample rendered and inspected
+- `git diff --check`
+- No database, PDF, credentials, or private UAT evidence in git status
 
 External parity review follow-up (2026-07-01):
 
@@ -100,9 +100,9 @@ Commercialization review (2026-07-01):
 ---
 ## Session Continuity
 
-Last session: 2026-07-14
-Stopped at: PVM-07 complete in PR #12; PVM-08 live report UAT is next.
-Resume file: docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md
+Last session: 2026-07-16
+Stopped at: PVM-08 deterministic hardening verified; methodology/security fixes precede live UAT.
+Resume file: .planning/phases/05.1-valuation-advisory-redesign/PVM-08-UAT.md
 
 ---
 *Initialized: 2026-05-04 | Next.js refactor merged: 2026-07-01 | Paid valuation plan merged: 2026-07-02*
