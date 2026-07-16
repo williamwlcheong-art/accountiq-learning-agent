@@ -2207,10 +2207,7 @@ async def _generate_report(
             )
 
             # --- 7. Call Claude API (non-tool-use, plain JSON response) ---
-            content_json = await _call_claude_for_report(
-                system_prompt, user_message,
-                sections=SECTION_SCHEMAS[report_type],
-            )
+            content_json = await _call_claude_for_report(system_prompt, user_message)
 
             # --- 8. Store validated content; paid valuations wait for reviewer approval ---
             next_status = await _store_generated_report(
@@ -2252,12 +2249,8 @@ async def _generate_report(
 async def _call_claude_for_report(
     system_prompt: str,
     user_message: str,
-    sections: list[str],
 ) -> dict:
-    """
-    Call Claude claude-sonnet-4-6 for report generation (plain JSON, no tool-use).
-    Returns parsed dict with section keys.
-    """
+    """Call Claude for report generation and return its parsed JSON object."""
     import anthropic as _anthropic
     key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not key:

@@ -175,6 +175,11 @@ async def run(args: argparse.Namespace) -> Path:
     evidence_root = args.evidence_root.expanduser().resolve()
     if evidence_root.is_relative_to(ROOT):
         raise RuntimeError("--evidence-root must be outside the repository")
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
+    output_dir = evidence_root / run_id
+    output_dir.mkdir(parents=True, exist_ok=False)
+    os.chmod(output_dir, 0o700)
+    evidence_path = output_dir / "evidence.json"
 
     # Backend modules are imported only after the environment has passed preflight.
     import db as db_module
@@ -211,12 +216,6 @@ async def run(args: argparse.Namespace) -> Path:
         purchase_status=result["purchase_status"],
         review_status=result["review_status"],
     )
-
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
-    output_dir = evidence_root / run_id
-    output_dir.mkdir(parents=True, exist_ok=False)
-    os.chmod(output_dir, 0o700)
-    evidence_path = output_dir / "evidence.json"
 
     evidence = {
         "schema_version": 1,
