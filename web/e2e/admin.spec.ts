@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { approvePendingReport, completeValuationIntake, loginOrRegisterAdmin } from "./helpers";
 
-test("owner email registers as admin and can use admin workflows", async ({ page }) => {
+test("provisioned admin can use admin workflows", async ({ page }) => {
   await loginOrRegisterAdmin(page);
   await expect(page).toHaveURL(/\/admin$/);
 

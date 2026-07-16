@@ -14,16 +14,14 @@ import pytest_asyncio
 
 
 async def _register_admin(client, email, password="correcthorse"):
-    """Register a user and grant admin via module-level OWNER_EMAIL patching."""
-    import auth as _auth_module
-    original = _auth_module.OWNER_EMAIL
-    _auth_module.OWNER_EMAIL = email.lower()
-    try:
-        r = await client.post("/auth/register", data={"email": email, "password": password})
-    finally:
-        _auth_module.OWNER_EMAIL = original
-    assert r.status_code in (200, 201), f"Register failed: {r.text}"
-
+    """Register and explicitly provision an admin test user."""
+    r = await client.post(
+        "/auth/register",
+        data={"email": email, "password": password},
+    )
+    from account_helpers import provision_test_admin
+    await provision_test_admin(email)
+    return r
 
 async def _create_company(client, name):
     r = await client.post("/companies", data={"name": name, "exchange": "Private"})

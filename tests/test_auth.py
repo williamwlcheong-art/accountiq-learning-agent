@@ -131,12 +131,9 @@ async def test_protected_route_no_auth(client, fresh_db):
 
 
 async def test_protected_route_with_auth(client, fresh_db):
-    import auth as _auth_module
-    _auth_module.OWNER_EMAIL = "prot@example.com"
-    try:
-        await _register(client, email="prot@example.com")
-    finally:
-        _auth_module.OWNER_EMAIL = ""
+    from account_helpers import provision_test_admin
+    await _register(client, email="prot@example.com")
+    await provision_test_admin("prot@example.com")
     r = await client.get("/companies")
     assert r.status_code == 200, r.text
 

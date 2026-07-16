@@ -15,38 +15,34 @@ async def _register(client, email="alice@example.com", password="correcthorse"):
 
 
 async def _register_admin(client, email="admin@example.com", password="correcthorse"):
-    """Register a user as admin by patching the module-level OWNER_EMAIL constant."""
-    import auth as _auth_module
-    original = _auth_module.OWNER_EMAIL
-    _auth_module.OWNER_EMAIL = email.lower()
-    try:
-        r = await client.post(
-            "/auth/register",
-            data={"email": email, "password": password},
-        )
-    finally:
-        _auth_module.OWNER_EMAIL = original
+    """Register and explicitly provision an admin test user."""
+    r = await client.post(
+        "/auth/register",
+        data={"email": email, "password": password},
+    )
+    from account_helpers import provision_test_admin
+    await provision_test_admin(email)
     return r
-
 
 # ---------------------------------------------------------------------------
 # AUTH-09: is_admin assignment at registration
 # ---------------------------------------------------------------------------
 
-async def test_owner_email_gets_admin(client, fresh_all_db):
-    """AUTH-09: OWNER_EMAIL registration grants is_admin=1."""
-    r = await _register_admin(client, "admin@example.com")
+async def test_registration_never_grants_admin(client, fresh_all_db):
+    """Public registration always creates a regular user."""
+    r = await _register(client, "owner@example.com")
     assert r.status_code == 201, r.text
     me = await client.get("/auth/me")
     assert me.status_code == 200, me.text
-    assert me.json()["is_admin"] == 1
-
-
-async def test_regular_user_not_admin(client, fresh_all_db):
-    """AUTH-09: non-OWNER_EMAIL registration gets is_admin=0."""
-    await _register(client, "user@example.com")
-    me = await client.get("/auth/me")
     assert me.json()["is_admin"] == 0
+
+
+async def test_explicitly_provisioned_user_gets_admin(client, fresh_all_db):
+    """Offline test provisioning grants database-backed admin access."""
+    r = await _register_admin(client, "admin@example.com")
+    assert r.status_code == 201, r.text
+    me = await client.get("/auth/me")
+    assert me.json()["is_admin"] == 1
 
 
 async def test_me_returns_is_admin(client, fresh_all_db):

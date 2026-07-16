@@ -11,6 +11,9 @@ from httpx import AsyncClient, ASGITransport
 # Ensure backend/ is importable
 BACKEND_DIR = Path(__file__).resolve().parent.parent / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
+SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
 # Ensure tests/ itself is importable so test modules can do `import conftest`
 # to access shared test state like _TMP_DB_PATH.

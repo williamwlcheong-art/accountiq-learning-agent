@@ -16,15 +16,16 @@ async def _register(client, email: str, password: str = "password123"):
 
 
 async def _register_admin(client, email: str = "reviewer@example.com", password: str = "password123"):
-    import auth as auth_module
-
-    original = auth_module.OWNER_EMAIL
-    auth_module.OWNER_EMAIL = email.lower()
-    try:
-        return await _register(client, email, password)
-    finally:
-        auth_module.OWNER_EMAIL = original
-
+    """Register and explicitly provision an admin test user."""
+    r = await client.post(
+        "/auth/register",
+        data={"email": email, "password": password},
+    )
+    from account_helpers import provision_test_admin
+    await provision_test_admin(email)
+    me = await client.get("/auth/me")
+    assert me.status_code == 200, me.text
+    return me.json()
 
 async def _login(client, email: str, password: str = "password123"):
     res = await client.post("/auth/login", data={"email": email, "password": password})
