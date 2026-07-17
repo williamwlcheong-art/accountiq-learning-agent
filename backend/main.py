@@ -6,7 +6,8 @@ import os
 import json
 import shutil
 import asyncio
-import sqlite3
+import hashlib
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
@@ -23,6 +24,13 @@ ENV_PATH = Path(__file__).parent.parent / ".env"
 load_dotenv(ENV_PATH, override=False)
 
 from db import init_db, get_db, get_pattern_library, DB_PATH
+from financial_authority import (
+    AuthorityConflictError,
+    authoritative_financial_rows,
+    claim_document_retry,
+    complete_document_authority,
+    promote_document_authority,
+)
 from ingestion import ingest_document
 from auth import auth_router, get_current_user, require_admin
 from payments import (
@@ -277,23 +285,23 @@ async def profile_status(
         adj_count = (await cur.fetchone())["n"]
     ebitda_complete = adj_count > 0
 
-    # EBITDA bridge: most recent period with net_profit / depreciation_amortisation / depreciation
+    # EBITDA bridge: most recent authoritative period with profit and depreciation rows
     reported_ebitda = None
-    has_financials = False
-    async with db.execute("""
-        SELECT MAX(period) as max_period FROM financial_rows
-        WHERE company_id=? AND row_key IN ('net_profit', 'depreciation_amortisation', 'depreciation')
-    """, (company_id,)) as cur:
-        period_row = await cur.fetchone()
-    max_period = period_row["max_period"] if period_row else None
+    authoritative_rows = await authoritative_financial_rows(db, company_id, "pnl")
+    bridge_rows = [
+        row for row in authoritative_rows
+        if row["row_key"] in {
+            "net_profit", "depreciation_amortisation", "depreciation"
+        }
+    ]
+    has_financials = bool(bridge_rows)
+    max_period = max((row["period"] for row in bridge_rows), default=None)
     if max_period:
-        has_financials = True
-        async with db.execute("""
-            SELECT row_key, value FROM financial_rows
-            WHERE company_id=? AND period=?
-              AND row_key IN ('net_profit', 'depreciation_amortisation', 'depreciation')
-        """, (company_id, max_period)) as cur:
-            fin_rows = {r["row_key"]: r["value"] for r in await cur.fetchall()}
+        fin_rows = {
+            row["row_key"]: row["value"]
+            for row in bridge_rows
+            if row["period"] == max_period
+        }
         net_profit = fin_rows.get("net_profit") or 0
         # Prefer depreciation_amortisation; fall back to depreciation alone
         da = fin_rows.get("depreciation_amortisation")
@@ -578,6 +586,35 @@ async def _resolve_or_create_company(db, name: str, user_id: int) -> tuple[int, 
     return company_id, name
 
 
+def _revision_path(company_dir: Path, original_name: str) -> Path:
+    """Build a non-reusable path while retaining the safe original filename."""
+    safe_name = Path(original_name).name
+    stem = Path(safe_name).stem
+    suffix = Path(safe_name).suffix
+    return company_dir / f"{stem}-{uuid.uuid4().hex}{suffix}"
+
+
+async def _previous_revision(db, company_id: int, filename: str):
+    async with db.execute(
+        """
+        SELECT id FROM documents
+        WHERE company_id=? AND filename=?
+        ORDER BY id DESC LIMIT 1
+        """,
+        (company_id, filename),
+    ) as cur:
+        return await cur.fetchone()
+
+
+def _write_upload_revision(file, destination: Path) -> str:
+    digest = hashlib.sha256()
+    with open(destination, "xb") as output:
+        while chunk := file.read(1024 * 1024):
+            digest.update(chunk)
+            output.write(chunk)
+    return digest.hexdigest()
+
+
 @app.post("/documents/upload")
 async def upload_document(
     background_tasks: BackgroundTasks,
@@ -619,9 +656,9 @@ async def upload_document(
             # Save to a temp location first so we can read it for name extraction
             tmp_dir = PDF_DIR / "_tmp"
             tmp_dir.mkdir(exist_ok=True)
-            tmp_path = tmp_dir / Path(file.filename).name
+            tmp_path = _revision_path(tmp_dir, file.filename)
             contents = await file.read()
-            with open(tmp_path, "wb") as f:
+            with open(tmp_path, "xb") as f:
                 f.write(contents)
             # Extract company name from PDF page 1 via Claude
             loop = asyncio.get_running_loop()
@@ -641,23 +678,23 @@ async def upload_document(
     company_dir = PDF_DIR / str(company_id)
     company_dir.mkdir(exist_ok=True)
     safe_name = Path(file.filename).name
-    dest = company_dir / safe_name
+    previous = await _previous_revision(db, company_id, safe_name)
+    dest = _revision_path(company_dir, safe_name)
 
-    # Clean up tmp file if it was written there
-    tmp_candidate = PDF_DIR / "_tmp" / safe_name
-    if tmp_candidate.exists():
-        import shutil as _shutil
-        _shutil.move(str(tmp_candidate), str(dest))
+    if "tmp_path" in locals() and tmp_path.exists():
+        shutil.move(str(tmp_path), str(dest))
+        file_hash = hashlib.sha256(contents).hexdigest()
     else:
-        with open(dest, "wb") as f:
-            shutil.copyfileobj(file.file, f)
+        file_hash = _write_upload_revision(file.file, dest)
 
     async with db.execute("""
         INSERT INTO documents
-            (company_id, filename, filepath, report_type, entity_type, fiscal_year_end, user_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+            (company_id, filename, filepath, report_type, entity_type,
+             fiscal_year_end, user_id, file_hash, supersedes_document_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (company_id, safe_name, str(dest),
-          report_type, entity_type, fiscal_year_end, current_user["id"])) as cur:
+          report_type, entity_type, fiscal_year_end, current_user["id"],
+          file_hash, previous["id"] if previous else None)) as cur:
         document_id = cur.lastrowid
     await db.commit()
 
@@ -703,10 +740,8 @@ async def _run_ingestion(document_id, company_id, filepath, entity_type, exchang
                 await db.execute(
                     """
                     UPDATE documents
-                    SET extraction_status='done',
-                        page_count=1,
+                    SET page_count=1,
                         has_ocr=0,
-                        confidence_score=0.99,
                         narrative='E2E generated narrative with <script>escaped text</script>.',
                         reporting_standard='E2E',
                         updated_at=datetime('now')
@@ -719,6 +754,28 @@ async def _run_ingestion(document_id, company_id, filepath, entity_type, exchang
                     (document_id, "E2E ingestion shortcut completed"),
                 )
                 await db.commit()
+                try:
+                    await complete_document_authority(db, document_id, 0.99)
+                except AuthorityConflictError as authority_error:
+                    await db.execute("BEGIN IMMEDIATE")
+                    try:
+                        await db.execute(
+                            """
+                            UPDATE documents SET extraction_status='done',
+                                extraction_completed_at=datetime('now'),
+                                confidence_score=0.99, updated_at=datetime('now')
+                            WHERE id=? AND extraction_status='processing'
+                            """,
+                            (document_id,),
+                        )
+                        await db.execute(
+                            "INSERT INTO extraction_log (document_id, level, message) VALUES (?, 'warn', ?)",
+                            (document_id, f"Authority conflict: {authority_error.conflicts}"),
+                        )
+                        await db.commit()
+                    except Exception:
+                        await db.rollback()
+                        raise
                 return
 
             await ingest_document(
@@ -792,27 +849,21 @@ async def company_financials(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
-    """Return all financial rows for a company, aggregated across documents."""
-    query = """
-        SELECT fr.statement, fr.row_key, fr.row_label, fr.period,
-               AVG(fr.value) as value, fr.currency, fr.unit,
-               AVG(fr.confidence) as confidence,
-               COUNT(*) as source_count
-        FROM financial_rows fr
-        JOIN documents d ON d.id = fr.document_id
-        JOIN companies c ON c.id = fr.company_id
-        WHERE fr.company_id = ? AND d.extraction_status = 'done'
-          AND c.user_id = ?
-    """
-    params = [company_id, current_user["id"]]
-    if statement:
-        query += " AND fr.statement = ?"
-        params.append(statement)
-    query += " GROUP BY fr.statement, fr.row_key, fr.period ORDER BY fr.statement, fr.row_key, fr.period DESC"
-
-    async with db.execute(query, params) as cur:
-        rows = await cur.fetchall()
-    return [dict(r) for r in rows]
+    """Return authoritative financial rows for a company."""
+    async with db.execute(
+        "SELECT id FROM companies WHERE id=? AND user_id=?",
+        (company_id, current_user["id"]),
+    ) as cur:
+        if not await cur.fetchone():
+            return []
+    rows = await authoritative_financial_rows(db, company_id, statement)
+    return [
+        {
+            **row,
+            "source_count": 1,
+        }
+        for row in rows
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -986,11 +1037,19 @@ async def retry_document(
     if not doc:
         raise HTTPException(404, "Document not found")
 
-    # Reset status and clear old data — include user_id in every write to prevent TOCTOU/IDOR
-    await db.execute(
-        "UPDATE documents SET extraction_status='pending', updated_at=datetime('now') WHERE id=? AND user_id=?",
-        (document_id, current_user["id"])
-    )
+    if doc["extraction_status"] not in {"pending", "failed"}:
+        raise HTTPException(409, "Only pending or failed documents can be retried")
+    async with db.execute(
+        "SELECT 1 FROM document_authority WHERE document_id=? LIMIT 1",
+        (document_id,),
+    ) as cur:
+        if await cur.fetchone():
+            raise HTTPException(409, "Authoritative document revisions cannot be retried in place")
+
+    if not await claim_document_retry(db, document_id, current_user["id"]):
+        raise HTTPException(409, "Document retry was already claimed or is no longer eligible")
+
+    # Clear partial data only after this request has atomically claimed the retry.
     await db.execute(
         "DELETE FROM financial_rows WHERE document_id=? AND document_id IN (SELECT id FROM documents WHERE user_id=?)",
         (document_id, current_user["id"])
@@ -1034,37 +1093,29 @@ async def wizard_upload(
     # Idempotent company creation — reuses existing helper (D-06)
     company_id, _ = await _resolve_or_create_company(db, name, current_user["id"])
 
-    # Save file into company directory (project security rule: Path(file.filename).name)
+    # Save an immutable file revision; the original safe name remains metadata.
     company_dir = PDF_DIR / str(company_id)
     company_dir.mkdir(exist_ok=True)
     safe_name = Path(file.filename).name
-    dest = company_dir / safe_name
-    with open(dest, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    previous = await _previous_revision(db, company_id, safe_name)
+    dest = _revision_path(company_dir, safe_name)
+    file_hash = _write_upload_revision(file.file, dest)
 
-    # Insert document record — handle re-upload of same filename gracefully
-    try:
-        async with db.execute("""
-            INSERT INTO documents
-                (company_id, filename, filepath, report_type, entity_type, fiscal_year_end, user_id)
-            VALUES (?, ?, ?, 'compilation', 'sme', '', ?)
-        """, (company_id, safe_name, str(dest), current_user["id"])) as cur:
-            document_id = cur.lastrowid
-        await db.commit()
-    except sqlite3.IntegrityError:
-        # Same file uploaded again — reset existing record and re-run ingestion
-        await db.execute(
-            "UPDATE documents SET extraction_status='pending' WHERE filepath=?",
-            (str(dest),)
-        )
-        await db.commit()
-        async with db.execute(
-            "SELECT id FROM documents WHERE filepath=?", (str(dest),)
-        ) as cur:
-            row = await cur.fetchone()
-        if row is None:
-            raise HTTPException(500, "Failed to locate existing document record")
-        document_id = row[0]
+    async with db.execute("""
+        INSERT INTO documents
+            (company_id, filename, filepath, report_type, entity_type,
+             fiscal_year_end, user_id, file_hash, supersedes_document_id)
+        VALUES (?, ?, ?, 'compilation', 'sme', '', ?, ?, ?)
+    """, (
+        company_id,
+        safe_name,
+        str(dest),
+        current_user["id"],
+        file_hash,
+        previous["id"] if previous else None,
+    )) as cur:
+        document_id = cur.lastrowid
+    await db.commit()
 
     # Kick off background ingestion — same task as admin upload (D-06)
     background_tasks.add_task(
@@ -2025,14 +2076,8 @@ async def _generate_report(
             """, (company_id,)) as cur:
                 ebitda_adjustments = [dict(r) for r in await cur.fetchall()]
 
-            # --- 4. Financial rows — all periods for all statement types ---
-            async with db.execute("""
-                SELECT statement, row_key, row_label, period, value
-                FROM financial_rows
-                WHERE company_id=?
-                ORDER BY statement, row_key, period DESC
-            """, (company_id,)) as cur:
-                raw_fin_rows = [dict(r) for r in await cur.fetchall()]
+            # --- 4. Authoritative financial rows — all periods and statements ---
+            raw_fin_rows = await authoritative_financial_rows(db, company_id)
 
             # Transform flat (statement, row_key, period, value) rows into the
             # grouped format expected by build_prompt(): each row has

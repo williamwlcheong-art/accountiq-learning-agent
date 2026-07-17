@@ -27,6 +27,10 @@ except ImportError:
 
 import aiosqlite
 from db import record_patterns, get_pattern_library, normalise_label
+from financial_authority import (
+    AuthorityConflictError,
+    complete_document_authority,
+)
 
 # ---------------------------------------------------------------------------
 # Config
@@ -589,16 +593,31 @@ async def ingest_document(
         result["rows_saved"] = rows_saved
         result["periods"]    = parsed.get("periods", [])
 
-        # 5. Mark done
+        # 5. Publish completion and authority together so readers never observe
+        # a completed document without its authority decision.
         avg_conf = sum(r.get("confidence", 0.8) for r in parsed.get("rows", [])) / max(len(parsed.get("rows", [])), 1)
-        await db.execute("""
-            UPDATE documents SET
-                extraction_status = 'done',
-                confidence_score  = ?,
-                updated_at        = datetime('now')
-            WHERE id = ?
-        """, (avg_conf, document_id))
-        await db.commit()
+        try:
+            await complete_document_authority(db, document_id, avg_conf)
+        except AuthorityConflictError as authority_error:
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                await db.execute(
+                    """
+                    UPDATE documents SET extraction_status='done',
+                        confidence_score=?, extraction_completed_at=datetime('now'),
+                        updated_at=datetime('now')
+                    WHERE id=? AND extraction_status='processing'
+                    """,
+                    (avg_conf, document_id),
+                )
+                await db.execute(
+                    "INSERT INTO extraction_log (document_id, level, message) VALUES (?, 'warn', ?)",
+                    (document_id, f"Authority conflict: {authority_error.conflicts}"),
+                )
+                await db.commit()
+            except Exception:
+                await db.rollback()
+                raise
         await log("info", f"Done ({extraction_method}). {rows_saved} rows, avg conf {avg_conf:.2f}")
 
     except Exception as e:

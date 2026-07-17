@@ -1,6 +1,6 @@
 # AccountIQ Backlog
 
-Last updated: 2026-07-13
+Last updated: 2026-07-17
 
 This is the lightweight working backlog for the paid Valuation Advisory MVP. Keep the detailed implementation instructions in `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`; keep this file as the current source of truth for what is done, in progress, next, and waiting on domain review.
 
@@ -30,11 +30,11 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-05 | Add professional PDF export | Done | #10 | Technical + William | Branded A4 export, safe narrative/table rendering, approved owner-only download, caching, and resumable customer status are implemented and verified. William still owns final disclaimer wording. |
 | PVM-06 | Add account purchase history | Done | #11 | Technical | Owner-filtered purchase API and account table show payment/delivery status; released reports expose viewer and PDF actions. Backend, build, and full browser regression gates pass. |
 | PVM-07 | Add public valuation offer page | Done | #12 | Product + Technical | Static public offer uses early-access fixed-fee language without a numeric amount and routes conversion links through `/login`; all frontend gates pass. |
-| PVM-08 | Live report UAT with William | In progress | - | William + Technical | Deterministic hardening and guarded UAT harness are implemented on `codex/pvm-08-live-report-uat`; methodology corrections and the explicit live run/domain disposition remain. |
+| PVM-08 | Live report UAT with William | In progress | - | William + Technical | Deterministic hardening and guarded UAT harness are implemented. Document-authority PR 1A is implemented locally: immutable upload revisions, explicit statement-period authority, conflict surfacing, and authoritative readers. Methodology corrections and the explicit live run/domain disposition remain. |
 
 ## Next Three PRs
 
-1. PVM-08A: Land deterministic report/UAT hardening, then correct admin provisioning, net debt, FCFF inputs, and authoritative document selection.
+1. PVM-08A / PR 1A: review and land immutable document revisions plus explicit financial authority; PR 1B report snapshots follows separately.
 2. PVM-08B: Run one guarded live report UAT and record William's disposition.
 3. Define pre-payment serviceability plus payment failure, cancellation, void, and refund states before live Stripe activation.
 

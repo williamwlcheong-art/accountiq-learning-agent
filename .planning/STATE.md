@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PVM-08 deterministic hardening complete; live/domain UAT pending
-stopped_at: PVM-08 guarded harness and fail-closed validation verified; methodology corrections precede the live run
-last_updated: "2026-07-16T10:45:00+12:00"
+status: PVM-08 document-authority PR 1A implemented and verified; review pending
+stopped_at: Immutable upload revisions and explicit statement-period authority implemented; PR 1B report snapshots remain separate
+last_updated: "2026-07-17T12:00:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -50,10 +50,17 @@ Completed implementation slice:
 
 Next validation slices:
 
-- PVM-08A: land the deterministic migration/report/UAT hardening and correct known methodology/security blockers (admin provisioning, net debt, FCFF inputs, authoritative document selection).
+- PVM-08A / PR 1A: immutable upload revisions and explicit `(company, statement, period)` authority are implemented locally. Only completed extractions qualify, failed replacements preserve prior authority, and unrelated overlaps surface conflicts. Review and land this slice before PR 1B report snapshots.
 - PVM-08B: run one guarded live valuation UAT and record William's domain disposition. No live Anthropic request has been made yet.
 
-Latest verified checks on `codex/pvm-08-live-report-uat`:
+Latest verified checks on the PR 1A working tree:
+
+- Backend pytest: 182 passed, 1 skipped
+- Focused authority suite: 7 passed, including two-connection concurrency coverage
+- `git diff --check`
+- No frontend files changed; frontend verification was not required for this backend-only slice
+
+Previous verified checks on `codex/pvm-08-live-report-uat`:
 
 - Backend pytest: 169 passed, 1 skipped
 - Focused UAT safety suite: 17 passed
