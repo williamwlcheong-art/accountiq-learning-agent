@@ -214,9 +214,8 @@ async def test_runner_uses_existing_generation_and_private_render_boundaries(tmp
 
     calls = {"generation": 0, "pdf": 0}
 
-    async def fake_generate(report_id, company_id, user_id, report_type, intake_answers):
+    async def fake_generate(report_id):
         calls["generation"] += 1
-        assert report_type == "valuation_advisory"
         async with aiosqlite.connect(database_path) as db:
             await db.execute(
                 "UPDATE reports SET status='awaiting_review', content=? WHERE id=? AND status='queued'",

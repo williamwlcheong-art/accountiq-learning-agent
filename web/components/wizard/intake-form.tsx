@@ -359,7 +359,7 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
           Back
         </button>
         <button type="submit" className="button button-primary" disabled={loading}>
-          {loading ? "Generating..." : "Generate Report"}
+          {loading ? "Preparing..." : "Review and continue"}
         </button>
       </div>
     </form>

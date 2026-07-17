@@ -155,6 +155,8 @@ def _migrate_db(conn: sqlite3.Connection):
         "ALTER TABLE documents ADD COLUMN file_hash TEXT",
         "ALTER TABLE documents ADD COLUMN extraction_completed_at TEXT",
         "ALTER TABLE documents ADD COLUMN supersedes_document_id INTEGER REFERENCES documents(id)",
+        "ALTER TABLE purchases ADD COLUMN checkout_idempotency_key TEXT",
+        "ALTER TABLE purchases ADD COLUMN stripe_checkout_url TEXT",
     ]:
         try:
             conn.execute(sql)
@@ -313,10 +315,12 @@ def _migrate_db(conn: sqlite3.Connection):
             report_id                   INTEGER NOT NULL REFERENCES reports(id) ON DELETE CASCADE,
             user_id                     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             stripe_checkout_session_id  TEXT UNIQUE,
+            stripe_checkout_url         TEXT,
             stripe_payment_intent_id    TEXT,
             amount_cents                INTEGER NOT NULL,
             currency                    TEXT NOT NULL DEFAULT 'nzd',
             status                      TEXT NOT NULL DEFAULT 'pending',
+            checkout_idempotency_key    TEXT,
             paid_at                     TEXT,
             created_at                  TEXT DEFAULT (datetime('now'))
         )
@@ -334,6 +338,34 @@ def _migrate_db(conn: sqlite3.Connection):
             approved_at         TEXT
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS report_input_snapshots (
+            id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+            report_id                INTEGER NOT NULL UNIQUE REFERENCES reports(id) ON DELETE CASCADE,
+            document_manifest        TEXT NOT NULL,
+            frozen_inputs            TEXT NOT NULL,
+            schema_version           TEXT NOT NULL,
+            valuation_engine_version TEXT NOT NULL,
+            canonical_digest         TEXT NOT NULL,
+            created_at               TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS report_snapshot_rows (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            snapshot_id INTEGER NOT NULL REFERENCES report_input_snapshots(id) ON DELETE CASCADE,
+            document_id INTEGER NOT NULL,
+            statement   TEXT NOT NULL,
+            row_key     TEXT NOT NULL,
+            row_label   TEXT NOT NULL,
+            period      TEXT NOT NULL,
+            value       REAL,
+            currency    TEXT NOT NULL,
+            unit        TEXT NOT NULL,
+            source_text TEXT,
+            confidence  REAL
+        )
+    """)
     for idx_sql in [
         "CREATE INDEX IF NOT EXISTS idx_reports_company  ON reports(company_id)",
         "CREATE INDEX IF NOT EXISTS idx_reports_user     ON reports(user_id)",
@@ -342,8 +374,10 @@ def _migrate_db(conn: sqlite3.Connection):
         "CREATE INDEX IF NOT EXISTS idx_purchases_user   ON purchases(user_id)",
         "CREATE INDEX IF NOT EXISTS idx_purchases_report ON purchases(report_id)",
         "CREATE INDEX IF NOT EXISTS idx_purchases_status ON purchases(status)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_purchases_user_checkout_key ON purchases(user_id, checkout_idempotency_key) WHERE checkout_idempotency_key IS NOT NULL",
         "CREATE INDEX IF NOT EXISTS idx_reviews_status ON reviews(status)",
         "CREATE INDEX IF NOT EXISTS idx_reviews_reviewer ON reviews(reviewer_user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_report_snapshot_rows_snapshot ON report_snapshot_rows(snapshot_id)",
     ]:
         try:
             conn.execute(idx_sql)

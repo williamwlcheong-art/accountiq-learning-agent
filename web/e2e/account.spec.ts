@@ -4,9 +4,11 @@ import path from "node:path";
 import {
   approvePendingReport,
   completeValuationIntake,
+  continueFromUploadWhenReady,
   loginOrRegisterAdmin,
   register,
   regularEmail,
+  submitValuationCheckout,
 } from "./helpers";
 
 test("customer account shows purchase delivery status and released report actions", async ({ page, browser }) => {
@@ -14,10 +16,11 @@ test("customer account shows purchase delivery status and released report action
   await page.getByLabel(/business name/i).fill("History E2E Ltd");
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await page.getByRole("button", { name: /continue/i }).click();
+  await continueFromUploadWhenReady(page);
   await page.getByRole("button", { name: /valuation advisory/i }).click();
   await page.getByRole("button", { name: /continue/i }).click();
   await completeValuationIntake(page);
-  await page.getByRole("button", { name: /generate report/i }).click();
+  await submitValuationCheckout(page);
   await expect(page.getByText(/your report is under review/i)).toBeVisible({ timeout: 15_000 });
 
   await page.goto("/account");

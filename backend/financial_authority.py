@@ -222,7 +222,7 @@ async def authoritative_financial_rows(
     async with db.execute(
         f"""
         SELECT fr.statement, fr.row_key, fr.row_label, fr.period, fr.value,
-               fr.currency, fr.unit, fr.confidence, fr.document_id
+               fr.currency, fr.unit, fr.source_text, fr.confidence, fr.document_id
         FROM financial_rows fr
         JOIN documents d ON d.id=fr.document_id
         JOIN document_authority da
@@ -245,23 +245,53 @@ async def authoritative_financial_rows(
         conflict_params.append(statement)
     async with db.execute(
         f"""
-        SELECT fr.statement, fr.period, COUNT(DISTINCT fr.document_id) AS source_count
+        SELECT fr.statement, fr.period, fr.document_id, da.document_id AS authority_document_id
         FROM financial_rows fr
         JOIN documents d ON d.id=fr.document_id AND d.extraction_status='done'
         LEFT JOIN document_authority da
           ON da.company_id=fr.company_id
          AND da.statement=fr.statement
          AND da.period=fr.period
-        WHERE fr.company_id=? AND da.id IS NULL
+        WHERE fr.company_id=?
               {conflict_filter}
-        GROUP BY fr.statement, fr.period
-        HAVING COUNT(DISTINCT fr.document_id) > 1
-        ORDER BY fr.statement, fr.period
+        GROUP BY fr.statement, fr.period, fr.document_id, da.document_id
+        ORDER BY fr.statement, fr.period, fr.document_id
         """,
         conflict_params,
     ) as cur:
-        unresolved = [dict(row) for row in await cur.fetchall()]
+        candidates = [dict(row) for row in await cur.fetchall()]
+
+    unresolved: set[tuple[str, str, int]] = set()
+    slot_counts: dict[tuple[str, str], int] = {}
+    ancestor_cache: dict[int, set[int]] = {}
+
+    async def ancestors(document_id: int) -> set[int]:
+        if document_id not in ancestor_cache:
+            ancestor_cache[document_id] = await _superseded_revision_ids(db, document_id)
+        return ancestor_cache[document_id]
+
+    for candidate in candidates:
+        slot = (candidate["statement"], candidate["period"])
+        slot_counts[slot] = slot_counts.get(slot, 0) + 1
+    for candidate in candidates:
+        authority_id = candidate["authority_document_id"]
+        candidate_id = candidate["document_id"]
+        slot = (candidate["statement"], candidate["period"])
+        if authority_id is None:
+            if slot_counts[slot] > 1:
+                unresolved.add((*slot, candidate_id))
+            continue
+        if candidate_id == authority_id:
+            continue
+        authority_ancestors = await ancestors(authority_id)
+        candidate_ancestors = await ancestors(candidate_id)
+        if candidate_id in authority_ancestors or authority_id in candidate_ancestors:
+            continue
+        unresolved.add((*slot, candidate_id))
     if unresolved:
-        raise AuthorityConflictError(unresolved)
+        raise AuthorityConflictError([
+            {"statement": statement, "period": period, "document_id": document_id}
+            for statement, period, document_id in sorted(unresolved)
+        ])
 
     return rows

@@ -79,6 +79,7 @@ async def test_only_done_documents_can_be_promoted(tmp_path):
                 value REAL,
                 currency TEXT DEFAULT 'NZD',
                 unit TEXT DEFAULT 'whole',
+                source_text TEXT,
                 confidence REAL
             );
             CREATE TABLE document_authority (
@@ -129,6 +130,7 @@ async def test_overlapping_completed_document_surfaces_conflict_without_replacin
                 value REAL,
                 currency TEXT DEFAULT 'NZD',
                 unit TEXT DEFAULT 'whole',
+                source_text TEXT,
                 confidence REAL
             );
             CREATE TABLE document_authority (
@@ -187,6 +189,7 @@ async def test_completed_replacement_promotes_only_slots_owned_by_superseded_rev
                 value REAL,
                 currency TEXT DEFAULT 'NZD',
                 unit TEXT DEFAULT 'whole',
+                source_text TEXT,
                 confidence REAL
             );
             CREATE TABLE document_authority (
@@ -249,6 +252,7 @@ async def test_failed_intermediate_revision_does_not_block_later_successful_repl
                 value REAL,
                 currency TEXT DEFAULT 'NZD',
                 unit TEXT DEFAULT 'whole',
+                source_text TEXT,
                 confidence REAL
             );
             CREATE TABLE document_authority (
@@ -305,6 +309,7 @@ async def test_reader_rejects_unassigned_overlap_instead_of_choosing_newest(tmp_
                 value REAL,
                 currency TEXT DEFAULT 'NZD',
                 unit TEXT DEFAULT 'whole',
+                source_text TEXT,
                 confidence REAL
             );
             CREATE TABLE document_authority (
@@ -322,6 +327,44 @@ async def test_reader_rejects_unassigned_overlap_instead_of_choosing_newest(tmp_
         await _insert_document(db, company_id=1, document_id=11)
         await _insert_row(db, 10, 1, "pnl", "2025", 100)
         await _insert_row(db, 11, 1, "pnl", "2025", 200)
+        await db.commit()
+
+        with pytest.raises(AuthorityConflictError):
+            await authoritative_financial_rows(db, 1)
+
+
+@pytest.mark.asyncio
+async def test_reader_rejects_completed_source_that_overlaps_selected_authority(tmp_path):
+    async with aiosqlite.connect(tmp_path / "authority.db") as db:
+        db.row_factory = aiosqlite.Row
+        await db.executescript(
+            """
+            CREATE TABLE documents (
+                id INTEGER PRIMARY KEY, company_id INTEGER, filename TEXT,
+                filepath TEXT UNIQUE, extraction_status TEXT,
+                extraction_completed_at TEXT, supersedes_document_id INTEGER
+            );
+            CREATE TABLE financial_rows (
+                id INTEGER PRIMARY KEY, document_id INTEGER, company_id INTEGER,
+                statement TEXT, row_key TEXT, row_label TEXT, period TEXT,
+                value REAL, currency TEXT DEFAULT 'NZD', unit TEXT DEFAULT 'whole',
+                source_text TEXT, confidence REAL
+            );
+            CREATE TABLE document_authority (
+                id INTEGER PRIMARY KEY, company_id INTEGER NOT NULL,
+                statement TEXT NOT NULL, period TEXT NOT NULL,
+                document_id INTEGER NOT NULL, assigned_at TEXT DEFAULT (datetime('now')),
+                UNIQUE(company_id, statement, period)
+            );
+            """
+        )
+        await _insert_document(db, company_id=1, document_id=10)
+        await _insert_document(db, company_id=1, document_id=11)
+        await _insert_row(db, 10, 1, "pnl", "2025", 100)
+        await _insert_row(db, 11, 1, "pnl", "2025", 200)
+        await db.execute(
+            "INSERT INTO document_authority (company_id, statement, period, document_id) VALUES (1, 'pnl', '2025', 10)"
+        )
         await db.commit()
 
         with pytest.raises(AuthorityConflictError):
@@ -354,6 +397,7 @@ async def test_late_completion_cannot_promote_when_newer_revision_exists(tmp_pat
                 value REAL,
                 currency TEXT DEFAULT 'NZD',
                 unit TEXT DEFAULT 'whole',
+                source_text TEXT,
                 confidence REAL
             );
             CREATE TABLE document_authority (
@@ -409,6 +453,7 @@ async def test_concurrent_unrelated_promotions_do_not_silently_replace(tmp_path)
                 value REAL,
                 currency TEXT DEFAULT 'NZD',
                 unit TEXT DEFAULT 'whole',
+                source_text TEXT,
                 confidence REAL
             );
             CREATE TABLE document_authority (

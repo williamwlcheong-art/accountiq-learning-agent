@@ -73,6 +73,7 @@ def create_checkout_session(
             "purchase_id": str(purchase_id),
             "report_type": "valuation_advisory",
         },
+        idempotency_key=f"accountiq-checkout-purchase-{purchase_id}",
     )
     session_id = _stripe_value(session, "id")
     url = _stripe_value(session, "url")

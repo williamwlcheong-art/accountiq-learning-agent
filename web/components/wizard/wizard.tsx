@@ -4,14 +4,16 @@ import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import { CheckoutConfirmation } from "@/components/wizard/checkout-confirmation";
 import { IntakeForm } from "@/components/wizard/intake-form";
 import { ReportStatusCard } from "@/components/wizard/report-status-card";
 import { ReportTypePicker, type WizardReportType } from "@/components/wizard/report-type-picker";
-import { ApiError, postForm, postJson } from "@/lib/api-client";
+import { UploadReadinessCard } from "@/components/wizard/upload-readiness-card";
+import { ApiError, apiFetch, postForm, postJson } from "@/lib/api-client";
 import { FINANCIAL_FILE_ACCEPT, validateFinancialFile } from "@/lib/upload-files";
-import type { CurrentUser } from "@/types/domain";
+import type { CurrentUser, WizardReadiness } from "@/types/domain";
 
-type WizardStep = "upload" | "report-type" | "intake" | "status";
+type WizardStep = "upload" | "readiness" | "report-type" | "intake" | "confirm" | "status";
 
 type UploadResult = {
   company_id: number;
@@ -37,7 +39,10 @@ export function Wizard({ user }: WizardProps) {
   const [file, setFile] = useState<File | null>(null);
   const [draggingFile, setDraggingFile] = useState(false);
   const [upload, setUpload] = useState<UploadResult | null>(null);
+  const [readiness, setReadiness] = useState<WizardReadiness | null>(null);
   const [reportType, setReportType] = useState<WizardReportType | null>(null);
+  const [intakeAnswers, setIntakeAnswers] = useState<Record<string, unknown> | null>(null);
+  const [checkoutIdempotencyKey, setCheckoutIdempotencyKey] = useState("");
   const [reportId, setReportId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,6 +66,35 @@ export function Wizard({ user }: WizardProps) {
     }
     return false;
   }
+
+  useEffect(() => {
+    if (step !== "readiness" || !upload) return;
+    let cancelled = false;
+    let timer: number | undefined;
+
+    const check = async () => {
+      try {
+        const result = await apiFetch<WizardReadiness>(
+          `/wizard/company/${upload.company_id}/readiness?document_id=${upload.document_id}`,
+        );
+        if (cancelled) return;
+        setReadiness(result);
+        if (result.state === "processing") timer = window.setTimeout(check, 1000);
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 401) {
+          router.replace("/login");
+        } else {
+          setError(err instanceof Error ? err.message : "Could not check document readiness.");
+        }
+      }
+    };
+    void check();
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [step, upload, router]);
 
   function handleFile(nextFile: File | null) {
     setError("");
@@ -107,7 +141,8 @@ export function Wizard({ user }: WizardProps) {
     try {
       const result = await postForm<UploadResult>("/wizard/upload", body);
       setUpload(result);
-      setStep("report-type");
+      setReadiness(null);
+      setStep("readiness");
     } catch (err) {
       if (!handleAuthError(err)) {
         setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
@@ -117,8 +152,14 @@ export function Wizard({ user }: WizardProps) {
     }
   }
 
-  async function generateReport(answers: Record<string, unknown>) {
-    if (!upload || !reportType) {
+  function reviewReport(answers: Record<string, unknown>) {
+    setIntakeAnswers(answers);
+    setCheckoutIdempotencyKey((current) => current || crypto.randomUUID());
+    setStep("confirm");
+  }
+
+  async function generateReport() {
+    if (!upload || !reportType || !intakeAnswers) {
       setError("Missing upload or report type.");
       return;
     }
@@ -128,8 +169,10 @@ export function Wizard({ user }: WizardProps) {
     try {
       const result = await postJson<GenerateResult>("/wizard/report/checkout", {
         company_id: upload.company_id,
+        document_id: upload.document_id,
         report_type: reportType,
-        intake_answers: answers,
+        intake_answers: intakeAnswers,
+        idempotency_key: checkoutIdempotencyKey,
       });
       if (result.checkout_url) {
         window.location.href = result.checkout_url;
@@ -154,19 +197,30 @@ export function Wizard({ user }: WizardProps) {
     setFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     setUpload(null);
+    setReadiness(null);
     setReportType(null);
+    setIntakeAnswers(null);
+    setCheckoutIdempotencyKey("");
     setReportId(null);
     setError("");
   }
 
   const selectedFileLabel = file ? `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)` : "";
+  const stepNumbers: Record<WizardStep, number> = {
+    upload: 1,
+    readiness: 1,
+    "report-type": 2,
+    intake: 2,
+    confirm: 3,
+    status: 4,
+  };
 
   return (
     <>
       <nav className="top-nav">
         <div className="nav-brand">
           <strong>AccountIQ</strong>
-          <span>Step {step === "upload" ? "1" : step === "status" ? "3" : "2"} of 3</span>
+          <span>Step {stepNumbers[step]} of 4</span>
         </div>
         <div className="nav-user">
           <span>{user.email}</span>
@@ -229,6 +283,14 @@ export function Wizard({ user }: WizardProps) {
           </section>
         ) : null}
 
+        {step === "readiness" ? (
+          <UploadReadinessCard
+            readiness={readiness}
+            onContinue={() => setStep("report-type")}
+            onReset={reset}
+          />
+        ) : null}
+
         {step === "report-type" ? (
           <section className="wizard-card">
             <h1>What report do you need?</h1>
@@ -251,10 +313,21 @@ export function Wizard({ user }: WizardProps) {
               reportType={reportType}
               companyId={upload.company_id}
               onBack={() => setStep("report-type")}
-              onSubmit={generateReport}
+              onSubmit={reviewReport}
               loading={loading}
             />
           </section>
+        ) : null}
+
+        {step === "confirm" && readiness && intakeAnswers ? (
+          <CheckoutConfirmation
+            businessName={businessName}
+            readiness={readiness}
+            answers={intakeAnswers}
+            loading={loading}
+            onBack={() => setStep("intake")}
+            onConfirm={generateReport}
+          />
         ) : null}
 
         {step === "status" && reportId ? (

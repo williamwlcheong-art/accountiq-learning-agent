@@ -34,6 +34,37 @@ export type DocumentRecord = {
   logs?: Array<{ level: string; message: string; created_at: string }>;
 };
 
+export type WizardReadiness = {
+  state: "processing" | "failed" | "conflict" | "ready";
+  code: string;
+  message: string;
+  document: {
+    id: number;
+    filename: string;
+    extraction_status: string;
+  };
+  source_periods: Array<{
+    statement: string;
+    period: string;
+    document_id: number;
+    filename: string;
+  }>;
+  profile: {
+    name: string;
+    sector: string | null;
+    description: string | null;
+    country: string | null;
+    exchange: string | null;
+    management_team_count: number;
+    ebitda_adjustment_count: number;
+  };
+  checkout: {
+    report_type: "valuation_advisory";
+    amount_cents: number;
+    currency: string;
+  };
+};
+
 export type ReportStatus = {
   id: number;
   report_type: string;
