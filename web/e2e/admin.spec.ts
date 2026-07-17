@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
 
-import { approvePendingReport, completeValuationIntake, loginOrRegisterAdmin } from "./helpers";
+import { approvePendingReport, completeValuationIntake, continueFromUploadWhenReady, loginOrRegisterAdmin, submitValuationCheckout } from "./helpers";
 
 test("provisioned admin can use admin workflows", async ({ page }) => {
   await loginOrRegisterAdmin(page);
@@ -49,10 +49,11 @@ test("provisioned admin can use admin workflows", async ({ page }) => {
   await page.getByLabel(/business name/i).fill("Admin Review E2E Ltd");
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await page.getByRole("button", { name: /continue/i }).click();
+  await continueFromUploadWhenReady(page);
   await page.getByRole("button", { name: /valuation advisory/i }).click();
   await page.getByRole("button", { name: /continue/i }).click();
   await completeValuationIntake(page);
-  await page.getByRole("button", { name: /generate report/i }).click();
+  await submitValuationCheckout(page);
   await expect(page.getByText(/your report is under review/i)).toBeVisible({ timeout: 15_000 });
 
   await approvePendingReport(page, "Admin Review E2E Ltd");

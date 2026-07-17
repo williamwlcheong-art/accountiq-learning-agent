@@ -126,9 +126,7 @@ async def test_invalid_generated_report_is_failed_with_safe_customer_error(
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.setattr(main_module, "_call_claude_for_report", fake_report_call)
 
-    await main_module._generate_report(
-        report_id, company_id, user_id, report_type, {}
-    )
+    await main_module._generate_report(report_id)
 
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row

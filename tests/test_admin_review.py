@@ -58,6 +58,7 @@ async def _create_paid_valuation(client, company_name: str = "Review Queue Ltd")
             "company_id": upload.json()["company_id"],
             "report_type": "valuation_advisory",
             "intake_answers": _valuation_answers(),
+            "idempotency_key": "admin-review-checkout",
         },
     )
     assert checkout.status_code == 201, checkout.text
@@ -270,13 +271,7 @@ async def test_late_generation_task_does_not_regress_approved_report(client, fre
     assert approve.status_code == 200, approve.text
 
     before = await _report_status(report_id)
-    await main_module._generate_report(
-        report_id,
-        before["company_id"],
-        buyer["id"],
-        "valuation_advisory",
-        _valuation_answers(),
-    )
+    await main_module._generate_report(report_id)
     after = await _report_status(report_id)
 
     assert after["status"] == "done"

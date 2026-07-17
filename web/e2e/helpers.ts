@@ -26,6 +26,17 @@ export async function loginOrRegisterAdmin(page: Page) {
   await expect(page).toHaveURL(/\/admin$/);
 }
 
+export async function continueFromUploadWhenReady(page: Page) {
+  await expect(page.getByText(/ready for valuation intake/i)).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /continue to report/i }).click();
+}
+
+export async function submitValuationCheckout(page: Page) {
+  await page.getByRole("button", { name: /review and continue/i }).click();
+  await expect(page.getByRole("heading", { name: /confirm your valuation order/i })).toBeVisible();
+  await page.getByRole("button", { name: /proceed to secure checkout/i }).click();
+}
+
 export async function completeValuationIntake(page: Page) {
   await page.getByLabel(/forecast horizon/i).selectOption("3");
   await page.getByLabel(/revenue growth rate/i).fill("8");

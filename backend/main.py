@@ -41,6 +41,11 @@ from payments import (
 )
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
 from report_rendering import render_report_html, report_pdf_path, write_pdf
+from report_snapshots import (
+    SnapshotIntegrityError,
+    create_report_input_snapshot,
+    load_report_input_snapshot,
+)
 from report_validation import validate_generated_report
 from report_prompts import (
     build_prompt,
@@ -1125,6 +1130,112 @@ async def wizard_upload(
     return {"company_id": company_id, "document_id": document_id, "status": "processing"}
 
 
+async def _wizard_readiness(
+    db: aiosqlite.Connection,
+    company_id: int,
+    document_id: int | None,
+    user_id: int,
+) -> dict:
+    document_filter = "d.id=? AND" if document_id is not None else ""
+    params = (
+        (document_id, company_id, user_id, user_id)
+        if document_id is not None
+        else (company_id, user_id, user_id)
+    )
+    async with db.execute(
+        f"""
+        SELECT d.id, d.filename, d.extraction_status
+        FROM documents d
+        JOIN companies c ON c.id=d.company_id
+        WHERE {document_filter} d.company_id=? AND d.user_id=? AND c.user_id=?
+        ORDER BY d.id DESC
+        LIMIT 1
+        """,
+        params,
+    ) as cur:
+        document = await cur.fetchone()
+    if not document:
+        raise HTTPException(404, "Company or document not found")
+
+    status = document["extraction_status"]
+    state = "processing"
+    code = "extraction_processing"
+    message = "We are extracting and checking your financial statements."
+    if status == "failed":
+        state = "failed"
+        code = "extraction_failed"
+        message = "We could not extract this document. Upload a clearer financial statement to continue."
+    elif status == "done":
+        try:
+            rows = await authoritative_financial_rows(db, company_id)
+            if rows and any(row["document_id"] == document["id"] for row in rows):
+                state = "ready"
+                code = "ready"
+                message = "Your financial statements are ready for valuation intake."
+            elif rows:
+                state = "failed"
+                code = "document_not_selected"
+                message = "This upload did not contribute usable authoritative financial rows."
+            else:
+                state = "failed"
+                code = "no_financial_rows"
+                message = "No usable financial rows were found in this document."
+        except AuthorityConflictError:
+            state = "conflict"
+            code = "authority_conflict"
+            message = "More than one source covers the same statement period. An adviser must resolve the source before checkout."
+
+    async with db.execute(
+        """
+        SELECT da.statement, da.period, da.document_id, d.filename
+        FROM document_authority da
+        JOIN documents d ON d.id=da.document_id AND d.extraction_status='done'
+        WHERE da.company_id=?
+        ORDER BY da.period DESC, da.statement, da.document_id
+        """,
+        (company_id,),
+    ) as cur:
+        source_periods = [dict(row) for row in await cur.fetchall()]
+    async with db.execute(
+        """
+        SELECT c.name, c.sector, c.description, c.country, c.exchange,
+               (SELECT COUNT(*) FROM management_team mt WHERE mt.company_id=c.id)
+                   AS management_team_count,
+               (SELECT COUNT(*) FROM ebitda_adjustments ea WHERE ea.company_id=c.id)
+                   AS ebitda_adjustment_count
+        FROM companies c
+        WHERE c.id=? AND c.user_id=?
+        """,
+        (company_id, user_id),
+    ) as cur:
+        profile = dict(await cur.fetchone())
+    config = checkout_config()
+    return {
+        "state": state,
+        "code": code,
+        "message": message,
+        "document": dict(document),
+        "source_periods": source_periods,
+        "profile": profile,
+        "checkout": {
+            "report_type": "valuation_advisory",
+            "amount_cents": config.price_cents,
+            "currency": config.currency,
+        },
+    }
+
+
+@app.get("/wizard/company/{company_id}/readiness")
+async def wizard_company_readiness(
+    company_id: int,
+    document_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Return owner-scoped extraction and authority readiness for checkout."""
+    return await _wizard_readiness(db, company_id, document_id, current_user["id"])
+
+
 # ---------------------------------------------------------------------------
 # Wizard — report generation (Phase 5)
 # ---------------------------------------------------------------------------
@@ -1262,26 +1373,35 @@ async def wizard_report_generate(
     # Verify the company belongs to this user
     await _ensure_user_company(db, company_id, current_user["id"])
 
-    # Create report row (status = queued per D-04)
-    report_id = await _insert_report_job(
-        db,
-        company_id=company_id,
-        user_id=current_user["id"],
-        report_type=report_type,
-        status="queued",
-        intake_answers=intake_answers,
-    )
-    await db.commit()
+    # Create the report and its immutable generation inputs together.
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        report_id = await _insert_report_job(
+            db,
+            company_id=company_id,
+            user_id=current_user["id"],
+            report_type=report_type,
+            status="queued",
+            intake_answers=intake_answers,
+        )
+        await create_report_input_snapshot(
+            db, report_id, company_id, current_user["id"]
+        )
+        await db.commit()
+    except (AuthorityConflictError, ValueError) as exc:
+        await db.rollback()
+        detail = (
+            "Financial document authority must be resolved before generation."
+            if isinstance(exc, AuthorityConflictError)
+            else str(exc)
+        )
+        raise HTTPException(409, detail)
+    except Exception:
+        await db.rollback()
+        raise
 
     # Queue background generation task
-    background_tasks.add_task(
-        _generate_report,
-        report_id,
-        company_id,
-        current_user["id"],
-        report_type,
-        intake_answers,
-    )
+    background_tasks.add_task(_generate_report, report_id)
 
     return {"report_id": report_id, "status": "queued"}
 
@@ -1295,8 +1415,15 @@ async def wizard_report_checkout(
 ):
     """Create a pending paid valuation and return a Stripe Checkout URL."""
     company_id, report_type, intake_answers = await _read_report_payload(request)
+    body = await request.json()
+    idempotency_key = body.get("idempotency_key")
+    document_id = body.get("document_id")
     if report_type != "valuation_advisory":
         raise HTTPException(400, "Checkout is currently only available for valuation_advisory.")
+    if not isinstance(idempotency_key, str) or not 8 <= len(idempotency_key) <= 128:
+        raise HTTPException(400, "idempotency_key must be 8-128 characters")
+    if document_id is not None and (not isinstance(document_id, int) or document_id <= 0):
+        raise HTTPException(400, "document_id must be a positive integer")
 
     await _ensure_user_company(db, company_id, current_user["id"])
 
@@ -1304,19 +1431,81 @@ async def wizard_report_checkout(
     if not E2E_MODE and not stripe_enabled():
         raise HTTPException(503, "Stripe checkout is not configured.")
 
-    report_id = await _insert_report_job(
-        db,
-        company_id=company_id,
-        user_id=current_user["id"],
-        report_type=report_type,
-        status="pending_payment",
-        intake_answers=intake_answers,
-    )
-    async with db.execute("""
-        INSERT INTO purchases (report_id, user_id, amount_cents, currency, status)
-        VALUES (?, ?, ?, ?, 'pending')
-    """, (report_id, current_user["id"], config.price_cents, config.currency)) as cur:
-        purchase_id = cur.lastrowid
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        # Reconfirm ownership and readiness while holding the short persistence transaction.
+        await _ensure_user_company(db, company_id, current_user["id"])
+        readiness = await _wizard_readiness(
+            db, company_id, document_id, current_user["id"]
+        )
+        if readiness["state"] != "ready":
+            raise HTTPException(
+                409,
+                {
+                    "state": readiness["state"],
+                    "code": readiness["code"],
+                    "message": readiness["message"],
+                },
+            )
+        async with db.execute(
+            """
+            SELECT p.id AS purchase_id, p.report_id, p.status, p.stripe_checkout_session_id,
+                   p.stripe_checkout_url, r.status AS report_status
+            FROM purchases p JOIN reports r ON r.id=p.report_id
+            WHERE p.user_id=? AND p.checkout_idempotency_key=?
+            """,
+            (current_user["id"], idempotency_key),
+        ) as cur:
+            existing_order = await cur.fetchone()
+        if existing_order:
+            await db.commit()
+            report_id = existing_order["report_id"]
+            purchase_id = existing_order["purchase_id"]
+        else:
+            report_id = await _insert_report_job(
+                db,
+                company_id=company_id,
+                user_id=current_user["id"],
+                report_type=report_type,
+                status="pending_payment",
+                intake_answers=intake_answers,
+            )
+            await create_report_input_snapshot(
+                db, report_id, company_id, current_user["id"]
+            )
+            async with db.execute("""
+                INSERT INTO purchases
+                    (report_id, user_id, amount_cents, currency, status, checkout_idempotency_key)
+                VALUES (?, ?, ?, ?, 'pending', ?)
+            """, (
+                report_id, current_user["id"], config.price_cents, config.currency,
+                idempotency_key,
+            )) as cur:
+                purchase_id = cur.lastrowid
+            await db.commit()
+    except (AuthorityConflictError, ValueError) as exc:
+        await db.rollback()
+        if isinstance(exc, AuthorityConflictError):
+            detail = {
+                "state": "conflict",
+                "code": "authority_conflict",
+                "message": "Financial document authority must be resolved before checkout.",
+            }
+        else:
+            message = str(exc)
+            detail = {
+                "state": "conflict",
+                "code": (
+                    "source_file_unavailable"
+                    if "retained file is missing" in message
+                    else "snapshot_unavailable"
+                ),
+                "message": message,
+            }
+        raise HTTPException(409, detail)
+    except Exception:
+        await db.rollback()
+        raise
 
     status = "pending_payment"
     checkout_url = None
@@ -1324,35 +1513,33 @@ async def wizard_report_checkout(
     if E2E_MODE:
         await db.execute("""
             UPDATE purchases
-            SET status='paid', paid_at=datetime('now')
+            SET status='paid', paid_at=COALESCE(paid_at, datetime('now'))
             WHERE id=?
         """, (purchase_id,))
-        await db.execute(
-            "UPDATE reports SET status='queued' WHERE id=?",
+        queue_cursor = await db.execute(
+            "UPDATE reports SET status='queued' WHERE id=? AND status='pending_payment'",
             (report_id,),
         )
-        status = "queued"
-        background_tasks.add_task(
-            _generate_report,
-            report_id,
-            company_id,
-            current_user["id"],
-            report_type,
-            intake_answers,
-        )
+        if queue_cursor.rowcount == 1:
+            background_tasks.add_task(_generate_report, report_id)
+        async with db.execute("SELECT status FROM reports WHERE id=?", (report_id,)) as cur:
+            status = (await cur.fetchone())["status"]
     else:
-        session = create_checkout_session(
-            report_id=report_id,
-            purchase_id=purchase_id,
-            user_email=current_user["email"],
-            config=config,
-        )
-        await db.execute("""
-            UPDATE purchases
-            SET stripe_checkout_session_id=?
-            WHERE id=?
-        """, (session.session_id, purchase_id))
-        checkout_url = session.url
+        if existing_order and existing_order["stripe_checkout_url"]:
+            checkout_url = existing_order["stripe_checkout_url"]
+        else:
+            session = create_checkout_session(
+                report_id=report_id,
+                purchase_id=purchase_id,
+                user_email=current_user["email"],
+                config=config,
+            )
+            await db.execute("""
+                UPDATE purchases
+                SET stripe_checkout_session_id=?, stripe_checkout_url=?
+                WHERE id=?
+            """, (session.session_id, session.url, purchase_id))
+            checkout_url = session.url
 
     await db.commit()
     return {
@@ -1379,10 +1566,16 @@ async def stripe_webhook(
         raise HTTPException(400, "Invalid Stripe webhook payload or signature")
 
     event_type = _object_get(event, "type")
-    if event_type != "checkout.session.completed":
+    payable_event_types = {
+        "checkout.session.completed",
+        "checkout.session.async_payment_succeeded",
+    }
+    if event_type not in payable_event_types:
         return {"received": True, "ignored": True}
 
     session = _object_get(_object_get(event, "data") or {}, "object") or {}
+    if _object_get(session, "payment_status") != "paid":
+        return {"received": True, "ignored": True}
     session_id = _object_get(session, "id")
     payment_intent_id = _object_get(session, "payment_intent")
     if not session_id:
@@ -1411,7 +1604,33 @@ async def stripe_webhook(
             row = await cur.fetchone()
 
         if not row:
-            raise HTTPException(404, "Purchase not found")
+            metadata = _object_get(session, "metadata") or {}
+            purchase_id = _object_get(metadata, "purchase_id")
+            if purchase_id and str(purchase_id).isdigit():
+                async with db.execute(
+                    """
+                    SELECT p.id AS purchase_id, p.report_id
+                    FROM purchases p
+                    JOIN reports r ON r.id=p.report_id
+                    WHERE p.id=? AND p.status='pending' AND r.status='pending_payment'
+                    """,
+                    (int(purchase_id),),
+                ) as cur:
+                    row = await cur.fetchone()
+                if row:
+                    cursor = await db.execute(
+                        """
+                        UPDATE purchases
+                        SET stripe_checkout_session_id=?
+                        WHERE id=? AND stripe_checkout_session_id IS NULL
+                        """,
+                        (session_id, row["purchase_id"]),
+                    )
+                    if cursor.rowcount != 1:
+                        await db.rollback()
+                        raise HTTPException(409, "Checkout session could not be reconciled")
+            if not row:
+                raise HTTPException(404, "Purchase not found")
 
         await db.execute("""
             UPDATE purchases
@@ -1421,24 +1640,15 @@ async def stripe_webhook(
             WHERE id=?
         """, (payment_intent_id, row["purchase_id"]))
 
-        should_queue = row["report_status"] == "pending_payment"
-        if should_queue:
-            await db.execute(
-                "UPDATE reports SET status='queued' WHERE id=?",
-                (row["report_id"],),
-            )
+        queue_cursor = await db.execute(
+            "UPDATE reports SET status='queued' WHERE id=? AND status='pending_payment'",
+            (row["report_id"],),
+        )
+        should_queue = queue_cursor.rowcount == 1
         await db.commit()
 
     if should_queue:
-        intake_answers = json.loads(row["answers"]) if row["answers"] else {}
-        background_tasks.add_task(
-            _generate_report,
-            row["report_id"],
-            row["company_id"],
-            row["user_id"],
-            row["report_type"],
-            intake_answers,
-        )
+        background_tasks.add_task(_generate_report, row["report_id"])
 
     return {"received": True}
 
@@ -1488,30 +1698,23 @@ async def wizard_report_retry(
     if report["status"] != "failed":
         raise HTTPException(409, f"Report is not in failed state (current: {report['status']})")
 
-    # Fetch the original intake answers for re-use
-    async with db.execute(
-        "SELECT answers FROM report_intake WHERE report_id=? ORDER BY id DESC LIMIT 1",
-        (report_id,)
-    ) as cur:
-        intake_row = await cur.fetchone()
-    intake_answers = json.loads(intake_row["answers"]) if intake_row else {}
+    # Verify the original immutable snapshot before requeueing.
+    try:
+        await load_report_input_snapshot(db, report_id)
+    except SnapshotIntegrityError:
+        raise HTTPException(409, "Report input snapshot failed integrity verification")
 
-    # Reset status
-    await db.execute("""
+    # Reset status conditionally so duplicate retries cannot queue twice.
+    cursor = await db.execute("""
         UPDATE reports
         SET status='queued', error_message=NULL, completed_at=NULL
-        WHERE id=? AND user_id=?
+        WHERE id=? AND user_id=? AND status='failed'
     """, (report_id, current_user["id"]))
     await db.commit()
+    if cursor.rowcount != 1:
+        raise HTTPException(409, "Report retry was already claimed")
 
-    background_tasks.add_task(
-        _generate_report,
-        report_id,
-        report["company_id"],
-        current_user["id"],
-        report["report_type"],
-        intake_answers,
-    )
+    background_tasks.add_task(_generate_report, report_id)
     return {"report_id": report_id, "status": "queued"}
 
 
@@ -2000,13 +2203,7 @@ _SAFE_REPORT_GENERATION_ERROR = (
 )
 
 
-async def _generate_report(
-    report_id: int,
-    company_id: int,
-    user_id: int,
-    report_type: str,
-    intake_answers: dict,
-) -> None:
+async def _generate_report(report_id: int) -> None:
     """
     Background task: read financial data + profile, run Python algorithms
     (Valuation Advisory only), call Claude for narrative, store JSON content,
@@ -2034,7 +2231,25 @@ async def _generate_report(
                 current_status = row["status"] if row else "missing"
                 print(f"[REPORT] Skipping report_id={report_id}; status={current_status}")
                 return
-            print(f"[REPORT] Generating report_id={report_id} type={report_type}")
+            print(f"[REPORT] Generating report_id={report_id}")
+
+            snapshot = await load_report_input_snapshot(db, report_id)
+            async with db.execute(
+                "SELECT user_id FROM reports WHERE id=?", (report_id,)
+            ) as cur:
+                report_owner = await cur.fetchone()
+            if not report_owner:
+                raise SnapshotIntegrityError("Report is missing")
+            user_id = report_owner["user_id"]
+            company = snapshot["company"]
+            company_name = company["name"]
+            company_sector = company.get("sector") or ""
+            company_description = company.get("description") or ""
+            mgmt_team = snapshot["management_team"]
+            ebitda_adjustments = snapshot["ebitda_adjustments"]
+            raw_fin_rows = snapshot["financial_rows"]
+            intake_answers = snapshot["intake_answers"]
+            report_type = snapshot["report_type"]
 
             if E2E_MODE:
                 await asyncio.sleep(0.05)
@@ -2049,39 +2264,8 @@ async def _generate_report(
                 print(f"[REPORT] E2E report_id={report_id} {next_status} ({report_type})")
                 return
 
-            # --- 1. Load company profile ---
-            async with db.execute("""
-                SELECT c.name, c.sector, c.description
-                FROM companies c WHERE c.id=?
-            """, (company_id,)) as cur:
-                company = await cur.fetchone()
-            if not company:
-                raise RuntimeError(f"Company {company_id} not found")
-
-            company_name = company["name"]
-            company_sector = company["sector"] or ""
-            company_description = company["description"] or ""
-
-            # --- 2. Management team ---
-            async with db.execute("""
-                SELECT name, title, bio FROM management_team
-                WHERE company_id=? ORDER BY id ASC
-            """, (company_id,)) as cur:
-                mgmt_team = [dict(r) for r in await cur.fetchall()]
-
-            # --- 3. EBITDA adjustments (add-backs from Phase 3) ---
-            async with db.execute("""
-                SELECT label, amount, rationale FROM ebitda_adjustments
-                WHERE company_id=? ORDER BY id ASC
-            """, (company_id,)) as cur:
-                ebitda_adjustments = [dict(r) for r in await cur.fetchall()]
-
-            # --- 4. Authoritative financial rows — all periods and statements ---
-            raw_fin_rows = await authoritative_financial_rows(db, company_id)
-
-            # Transform flat (statement, row_key, period, value) rows into the
-            # grouped format expected by build_prompt(): each row has
-            # {canonical_key, statement, values: {period: value}}
+            # Transform frozen financial rows into the grouped format expected by
+            # build_prompt(): each row has {canonical_key, statement, values}.
             from collections import defaultdict as _dd
             _grouped: dict[str, dict[str, dict]] = _dd(lambda: _dd(dict))
             for r in raw_fin_rows:

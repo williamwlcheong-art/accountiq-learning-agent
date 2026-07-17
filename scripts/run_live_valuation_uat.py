@@ -41,10 +41,16 @@ def _load_fixture(path: Path) -> dict:
     return value
 
 
-async def _seed_database(database_path: Path, fixture: dict, insert_report_job) -> tuple[int, int, int]:
+async def _seed_database(
+    database_path: Path,
+    fixture: dict,
+    insert_report_job,
+    create_report_snapshot,
+) -> tuple[int, int, int]:
     import aiosqlite
 
     async with aiosqlite.connect(database_path) as db:
+        db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys=ON")
         async with db.execute(
             "INSERT INTO users (email, hashed_pw) VALUES (?, ?)",
@@ -79,18 +85,48 @@ async def _seed_database(database_path: Path, fixture: dict, insert_report_job) 
                 for adjustment in fixture["ebitda_adjustments"]
             ],
         )
+        fixture_bytes = json.dumps(fixture, sort_keys=True).encode("utf-8")
+        async with db.execute(
+            """
+            INSERT INTO documents
+                (company_id, user_id, filename, filepath, extraction_status,
+                 extraction_completed_at, file_hash)
+            VALUES (?, ?, 'synthetic-uat-accounts.json', ?, 'done', datetime('now'), ?)
+            """,
+            (
+                company_id,
+                user_id,
+                str(database_path.with_suffix(".synthetic-source.json")),
+                hashlib.sha256(fixture_bytes).hexdigest(),
+            ),
+        ) as cursor:
+            document_id = cursor.lastrowid
         await db.executemany(
             """
             INSERT INTO financial_rows
-                (company_id, statement, row_key, row_label, period, value, currency, unit, confidence)
-            VALUES (?, ?, ?, ?, ?, ?, 'NZD', 'whole', 1.0)
+                (document_id, company_id, statement, row_key, row_label, period,
+                 value, currency, unit, confidence)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'NZD', 'whole', 1.0)
             """,
             [
                 (
-                    company_id, row["statement"], row["row_key"], row["row_label"],
-                    row["period"], row["value"],
+                    document_id, company_id, row["statement"], row["row_key"],
+                    row["row_label"], row["period"], row["value"],
                 )
                 for row in fixture["financial_rows"]
+            ],
+        )
+        await db.executemany(
+            """
+            INSERT INTO document_authority (company_id, statement, period, document_id)
+            VALUES (?, ?, ?, ?)
+            """,
+            [
+                (company_id, statement, period, document_id)
+                for statement, period in sorted({
+                    (row["statement"], row["period"])
+                    for row in fixture["financial_rows"]
+                })
             ],
         )
 
@@ -102,6 +138,7 @@ async def _seed_database(database_path: Path, fixture: dict, insert_report_job) 
             status="queued",
             intake_answers=fixture["intake_answers"],
         )
+        await create_report_snapshot(db, report_id, company_id, user_id)
         await db.execute(
             """
             INSERT INTO purchases (report_id, user_id, amount_cents, currency, status, paid_at)
@@ -200,14 +237,9 @@ async def run(args: argparse.Namespace) -> Path:
         preflight.database_path,
         fixture,
         main_module._insert_report_job,
+        main_module.create_report_input_snapshot,
     )
-    await main_module._generate_report(
-        report_id,
-        company_id,
-        user_id,
-        "valuation_advisory",
-        fixture["intake_answers"],
-    )
+    await main_module._generate_report(report_id)
     result = await _load_result(preflight.database_path, report_id)
     sections = json.loads(result["content"]) if result["content"] else {}
     checks = evaluate_valuation_report(
