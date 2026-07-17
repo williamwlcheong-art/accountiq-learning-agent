@@ -92,6 +92,52 @@ async def _register_and_upload(client, email="buyer@example.com"):
 
 
 @pytest.mark.asyncio
+async def test_checkout_invalid_valuation_inputs_fail_before_persistence_or_stripe(
+    client, fresh_all_db, monkeypatch
+):
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+    monkeypatch.setattr(main_module, "stripe_enabled", lambda: True)
+    stripe_calls = []
+    monkeypatch.setattr(
+        main_module,
+        "create_checkout_session",
+        lambda **kwargs: stripe_calls.append(kwargs),
+    )
+    company_id = await _register_and_upload(client, email="clarification@example.com")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE financial_rows SET currency='AUD' WHERE company_id=? AND row_key='cash_and_bank'",
+            (company_id,),
+        )
+        await db.commit()
+
+    response = await client.post(
+        "/wizard/report/checkout",
+        json={
+            "company_id": company_id,
+            "report_type": "valuation_advisory",
+            "intake_answers": _valuation_answers(),
+            "idempotency_key": "clarification-checkout-key",
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "state": "needs_clarification",
+        "code": "needs_clarification",
+        "reason_code": "mixed_currency",
+        "message": "All valuation inputs must use one valid three-letter currency code.",
+        "details": {"currencies": ["AUD", "NZD"]},
+    }
+    assert stripe_calls == []
+    async with aiosqlite.connect(DB_PATH) as db:
+        assert (await (await db.execute("SELECT COUNT(*) FROM reports")).fetchone())[0] == 0
+        assert (await (await db.execute("SELECT COUNT(*) FROM purchases")).fetchone())[0] == 0
+        assert (await (await db.execute("SELECT COUNT(*) FROM report_input_snapshots")).fetchone())[0] == 0
+
+
+@pytest.mark.asyncio
 async def test_e2e_checkout_creates_queued_report(client, fresh_all_db, monkeypatch):
     monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
     monkeypatch.setattr(main_module, "E2E_MODE", True)

@@ -6,7 +6,7 @@ from pathlib import Path
 from financial_authority import authoritative_financial_rows
 
 SNAPSHOT_SCHEMA_VERSION = "1"
-VALUATION_ENGINE_VERSION = "prototype-dcf-v1"
+VALUATION_ENGINE_VERSION = "typed-inputs-v2"
 
 
 class SnapshotIntegrityError(RuntimeError):
@@ -34,37 +34,54 @@ def _digest_payload(
     return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
 
 
-async def create_report_input_snapshot(
+async def build_report_input_snapshot_candidate(
     db,
-    report_id: int,
-    company_id: int,
-    user_id: int,
-) -> int:
-    """Copy the report's authoritative inputs while the caller holds a transaction."""
-    async with db.execute(
-        "SELECT id FROM report_input_snapshots WHERE report_id=?",
-        (report_id,),
-    ) as cur:
-        existing = await cur.fetchone()
-    if existing:
-        return existing["id"]
+    report_id: int | None = None,
+    company_id: int | None = None,
+    user_id: int | None = None,
+    *,
+    report_type: str | None = None,
+    intake_answers: dict | None = None,
+) -> dict:
+    """Build canonical report inputs without persisting a snapshot."""
+    if company_id is None or user_id is None:
+        raise ValueError("company_id and user_id are required")
+    if report_id is None and (report_type is None or intake_answers is None):
+        raise ValueError(
+            "report_type and intake_answers are required before report creation"
+        )
 
-    async with db.execute(
-        """
-        SELECT r.id, r.report_type, c.name, c.sector, c.description, c.country,
-               c.exchange, ri.answers
-        FROM reports r
-        JOIN companies c ON c.id=r.company_id AND c.user_id=r.user_id
-        LEFT JOIN report_intake ri ON ri.report_id=r.id
-        WHERE r.id=? AND r.company_id=? AND r.user_id=?
-        ORDER BY ri.id DESC
-        LIMIT 1
-        """,
-        (report_id, company_id, user_id),
-    ) as cur:
-        source = await cur.fetchone()
-    if not source:
-        raise ValueError("Report or owned company not found")
+    if report_id is not None:
+        async with db.execute(
+            """
+            SELECT r.id, r.report_type, c.name, c.sector, c.description, c.country,
+                   c.exchange, ri.answers
+            FROM reports r
+            JOIN companies c ON c.id=r.company_id AND c.user_id=r.user_id
+            LEFT JOIN report_intake ri ON ri.report_id=r.id
+            WHERE r.id=? AND r.company_id=? AND r.user_id=?
+            ORDER BY ri.id DESC
+            LIMIT 1
+            """,
+            (report_id, company_id, user_id),
+        ) as cur:
+            source = await cur.fetchone()
+        if not source:
+            raise ValueError("Report or owned company not found")
+        report_type = source["report_type"]
+        intake_answers = json.loads(source["answers"]) if source["answers"] else {}
+    else:
+        async with db.execute(
+            """
+            SELECT name, sector, description, country, exchange
+            FROM companies
+            WHERE id=? AND user_id=?
+            """,
+            (company_id, user_id),
+        ) as cur:
+            source = await cur.fetchone()
+        if not source:
+            raise ValueError("Owned company not found")
 
     financial_rows = await authoritative_financial_rows(db, company_id)
     if not financial_rows:
@@ -85,7 +102,7 @@ async def create_report_input_snapshot(
     if len(documents) != len(document_ids):
         raise ValueError("Authoritative documents are unavailable")
     for document in documents:
-        if document["file_hash"] or source["report_type"] != "valuation_advisory":
+        if document["file_hash"] or report_type != "valuation_advisory":
             continue
         retained_path = Path(document["filepath"])
         if not retained_path.is_file():
@@ -125,7 +142,6 @@ async def create_report_input_snapshot(
     ) as cur:
         adjustments = [dict(row) for row in await cur.fetchall()]
 
-    intake_answers = json.loads(source["answers"]) if source["answers"] else {}
     frozen_inputs = {
         "company": {
             "name": source["name"],
@@ -134,7 +150,7 @@ async def create_report_input_snapshot(
             "country": source["country"],
             "exchange": source["exchange"],
         },
-        "report_type": source["report_type"],
+        "report_type": report_type,
         "management_team": management_team,
         "ebitda_adjustments": adjustments,
         "intake_answers": intake_answers,
@@ -148,8 +164,8 @@ async def create_report_input_snapshot(
             "row_label": row["row_label"],
             "period": row["period"],
             "value": row["value"],
-            "currency": row["currency"] or "NZD",
-            "unit": row["unit"] or "whole",
+            "currency": row["currency"],
+            "unit": row["unit"],
             "source_text": row.get("source_text"),
             "confidence": row["confidence"],
         }
@@ -163,6 +179,48 @@ async def create_report_input_snapshot(
         SNAPSHOT_SCHEMA_VERSION, VALUATION_ENGINE_VERSION,
     )
 
+    return {
+        **frozen_inputs,
+        "document_manifest": manifest,
+        "financial_rows": rows,
+        "schema_version": SNAPSHOT_SCHEMA_VERSION,
+        "valuation_engine_version": VALUATION_ENGINE_VERSION,
+        "canonical_digest": digest,
+    }
+
+
+async def persist_report_input_snapshot(db, report_id: int, candidate: dict) -> int:
+    """Persist an already built candidate without rereading mutable inputs."""
+    async with db.execute(
+        "SELECT id FROM report_input_snapshots WHERE report_id=?",
+        (report_id,),
+    ) as cur:
+        existing = await cur.fetchone()
+    if existing:
+        return existing["id"]
+
+    manifest = candidate["document_manifest"]
+    rows = candidate["financial_rows"]
+    frozen_inputs = {
+        key: value
+        for key, value in candidate.items()
+        if key not in {
+            "document_manifest",
+            "financial_rows",
+            "schema_version",
+            "valuation_engine_version",
+            "canonical_digest",
+        }
+    }
+    schema_version = candidate["schema_version"]
+    valuation_engine_version = candidate["valuation_engine_version"]
+    digest = candidate["canonical_digest"]
+    expected_digest = _digest_payload(
+        manifest, frozen_inputs, rows, schema_version, valuation_engine_version
+    )
+    if digest != expected_digest:
+        raise SnapshotIntegrityError("Candidate report snapshot digest verification failed")
+
     try:
         async with db.execute(
             """
@@ -175,8 +233,8 @@ async def create_report_input_snapshot(
                 report_id,
                 _canonical_json(manifest),
                 _canonical_json(frozen_inputs),
-                SNAPSHOT_SCHEMA_VERSION,
-                VALUATION_ENGINE_VERSION,
+                schema_version,
+                valuation_engine_version,
                 digest,
             ),
         ) as cur:
@@ -208,6 +266,27 @@ async def create_report_input_snapshot(
         ],
     )
     return snapshot_id
+
+
+async def create_report_input_snapshot(
+    db,
+    report_id: int,
+    company_id: int,
+    user_id: int,
+) -> int:
+    """Build and persist the report's authoritative inputs."""
+    async with db.execute(
+        "SELECT id FROM report_input_snapshots WHERE report_id=?",
+        (report_id,),
+    ) as cur:
+        existing = await cur.fetchone()
+    if existing:
+        return existing["id"]
+
+    candidate = await build_report_input_snapshot_candidate(
+        db, report_id, company_id, user_id
+    )
+    return await persist_report_input_snapshot(db, report_id, candidate)
 
 
 async def load_report_input_snapshot(db, report_id: int) -> dict:

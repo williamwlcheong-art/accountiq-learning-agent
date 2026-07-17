@@ -20,6 +20,7 @@ TABLE_SECTIONS_VALUATION = [
     "balance_sheet_summary",
     "wacc_assumptions",
     "valuation_summary",
+    "multiples_crosscheck",
 ]
 
 SECTION_SCHEMAS: dict[str, list[str]] = {
@@ -295,14 +296,14 @@ def build_prompt(
             "illiquidity_discount": valuation_result.get("illiquidity_discount", {}),
             "normalised_ebitda": valuation_result.get("normalised_ebitda"),
             "revenues": valuation_result.get("revenues"),
-            "net_debt": valuation_result.get("net_debt"),
-            "cash": valuation_result.get("cash"),
+            "valuation_inputs": valuation_result.get("valuation_inputs", {}),
+            "scenario_bridges": valuation_result.get("scenario_bridges", {}),
         }
         dcf_block_text = json.dumps(dcf_block, indent=2)
         multiples_result = valuation_result.get("multiples_result") or {}
         multiples_block_text = json.dumps(multiples_result, indent=2)
 
-        normalisations = intake_answers.get("normalisations", []) if isinstance(intake_answers, dict) else []
+        normalisations = valuation_result.get("normalisations") or []
         narrative_intake = {k: v for k, v in (intake_answers or {}).items() if k != "normalisations"}
         narrative_intake_text = "\n".join(f"- {k}: {v}" for k, v in narrative_intake.items()) or "Not provided."
         norm_lines = (
@@ -352,17 +353,17 @@ def build_prompt(
 ```
 
 ## Section-specific instructions
-- introduction: Engagement scope, basis of valuation, indicative nature, FMCA compliance. State that two independent methodologies (DCF and comparable market multiples) were used to cross-validate the range.
+- introduction: Engagement scope, basis of valuation, indicative nature, FMCA compliance. State that DCF is the primary method and comparable market multiples are a cross-check.
 - business_overview: Use research_brief.company_summary; do not invent facts.
 - market_position: Use research_brief.sector_summary; reference at least one NZ-specific competitor or regulator.
 - financial_performance: Provide narrative + table {{headers: [Year, Revenue, EBITDA, Net Profit, ...], rows: [...]}} sourced from Extracted Financials.
-- normalisations_schedule: narrative + table {{headers: [Label, Amount ($), Rationale], rows: [...]}} sourced from the Normalisation Schedule intake.
-- balance_sheet_summary: narrative + table {{headers: [Item, Value], rows: [...]}} including fixed assets, working capital, net debt, surplus assets; conclude with the EV→Equity bridge per D-S4.
-- valuation_methodology: Explain that two methodologies are used — DCF (primary) and comparable market multiples (cross-check). Explain the DCF WACC derivation and how the business risk score (0–1 scale from 8 qualitative dimensions) positions the business within the market multiple range.
-- wacc_assumptions: narrative + table {{headers: [Component, High, Mid, Low], rows: includes Risk-free rate, ERP, Industry Beta, Total Beta, WACC %}} from wacc_scenarios_pct.
-- dcf_analysis: Narrative on base-period, growth assumptions, terminal value, scenarios; reference dcf_scenarios numbers verbatim.
-- valuation_summary: narrative + table {{headers: [Method, Scenario / Input, Enterprise Value, Illiquidity-adj. EV, Equity Value], rows: [DCF High, DCF Mid, DCF Low, Multiples (risk-adjusted)]}}. Use dcf_scenarios + illiquidity_discount for DCF rows; use multiples_result.enterprise_value for the multiples row (no illiquidity adjustment needed as multiples already reflect private market pricing). Conclude with a convergence paragraph: do the two methods agree? If they bracket similar ranges, state confidence level.
-- multiples_crosscheck: narrative + table {{headers: [Input, Value], rows: [Market multiple range, Risk score, Applied multiple, Normalised EBITDA, Indicated EV]}} using multiples_result figures verbatim. Cite research_brief.comparable_transactions as the source for the multiple range. Explain what the risk score reflects (the 8 business quality dimensions assessed in the intake).
+- normalisations_schedule: narrative + table {{headers: [Label, Amount, Rationale], rows: [...]}} sourced from the Normalisation Schedule intake, using valuation_inputs.currency.
+- balance_sheet_summary: narrative + table {{headers: [Item, Value], rows: [...]}} including interest-bearing debt, unrestricted cash, net debt and approved surplus assets from valuation_inputs; conclude with the EV to Equity bridge.
+- valuation_methodology: Explain that DCF is the primary method and comparable market multiples provide a range cross-check. Do not mention or apply a business risk score.
+- wacc_assumptions: narrative + table {{headers: [Component, High WACC / Low Value, Mid WACC / Mid Value, Low WACC / High Value], rows: includes Risk-free rate, ERP, Industry Beta, Total Beta, WACC %}} from wacc_scenarios_pct.
+- dcf_analysis: Narrative on base period, growth assumptions, terminal value and scenarios; use scenario_bridges and dcf_scenarios verbatim.
+- valuation_summary: narrative + table {{headers: [Method, Scenario, Enterprise Value, Interest-bearing Debt, Unrestricted Cash, Net Debt, Surplus Assets, Equity Value], rows: [High WACC / Low Value, Mid WACC / Mid Value, Low WACC / High Value]}}. Copy every value from scenario_bridges without recalculation. The DCF scenarios form the conclusion.
+- multiples_crosscheck: narrative + table {{headers: [Input, Low, High], rows: [Market multiple, Normalised EBITDA, Indicated enterprise value]}} using multiples_result verbatim. Label it as a cross-check only, with no selected multiple or concluded value.
 - disclaimer: Full FMCA-compliant disclaimer paragraph containing: 'indicative', 'does not constitute financial advice', 'FMCA' or 'Financial Markets Conduct', and 'not relied' or 'should not be relied'.
 
 All figures in JSON blocks above are Python-computed — copy them verbatim into the report. Do not estimate, round, or recalculate. This report is indicative only and does not constitute financial advice."""

@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PVM-08 document-authority PR 1A implemented and verified; review pending
-stopped_at: Immutable upload revisions and explicit statement-period authority implemented; PR 1B report snapshots remain separate
-last_updated: "2026-07-17T12:00:00+12:00"
+status: PVM-08 PRs #15 and #16 complete; typed valuation inputs and EV-to-equity PR 2A active
+stopped_at: PR 2A implementing typed financial inputs and explicit EV-to-equity bridge; FCFF remains separate PR 2B
+last_updated: "2026-07-18T12:00:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -43,22 +43,22 @@ The primary UI now lives in `web/` as a Next.js App Router app. FastAPI remains 
 
 The working backlog lives at `.planning/BACKLOG.md`. The detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Payment checkout gating, the technical admin review-before-release gate, professional PDF delivery, purchase history, and the public valuation offer are complete. William's live report UAT and production approval/disclaimer review follow.
 
-Completed implementation slice:
+Completed PVM-08A input-authority slices:
 
-- PR #11 / PVM-06: the authenticated account page lists owner-filtered purchases with payment and report-delivery status. Viewer and PDF actions appear only after release.
-- PR #12 / PVM-07: the public `/valuation` page explains the bounded early-access offer without an unapproved numeric price, keeps compliance limitations visible, and routes every conversion CTA through `/login`.
+- PR #15 / PR 1A: immutable, hashed upload revisions and explicit `(company, statement, period)` authority. Only completed extractions qualify, failed replacements preserve prior authority, and unrelated overlaps surface conflicts.
+- PR #16 / PR 1B: checkout freezes authoritative documents, financial rows, profile data, adjustments, and intake in a versioned snapshot. Generation and retry verify and consume only that snapshot.
 
-Next validation slices:
+Active valuation correction slices:
 
-- PVM-08A / PR 1A: immutable upload revisions and explicit `(company, statement, period)` authority are implemented locally. Only completed extractions qualify, failed replacements preserve prior authority, and unrelated overlaps surface conflicts. Review and land this slice before PR 1B report snapshots.
-- PVM-08B: run one guarded live valuation UAT and record William's domain disposition. No live Anthropic request has been made yet.
+- PVM-08A / PR 2A: typed valuation inputs, fail-closed unit/currency/period handling, explicit debt and cash classifications, approved surplus assets, EBITDA selection, and EV-to-equity calculations.
+- PVM-08A / PR 2B: FCFF calculation corrections remain separate from PR 2A.
+- PVM-08B: run one guarded live valuation UAT after both correction slices and record William's domain disposition. No live Anthropic request has been made yet.
 
-Latest verified checks on the PR 1A working tree:
+Latest merged verification:
 
-- Backend pytest: 182 passed, 1 skipped
-- Focused authority suite: 7 passed, including two-connection concurrency coverage
-- `git diff --check`
-- No frontend files changed; frontend verification was not required for this backend-only slice
+- PR #15: focused authority/migration/profile/upload tests 30 passed; full backend 184 passed, 1 skipped.
+- PR #16: backend 202 passed, 1 skipped; lint, typecheck, build, and both Playwright suites passed with 13 tests each.
+- `git diff --check` passed for both slices.
 
 Previous verified checks on `codex/pvm-08-live-report-uat`:
 
@@ -103,12 +103,13 @@ Commercialization review (2026-07-01):
 | 2026-07-01 | Narrow launch strategy to valuation wedge first | Paid launch should prove trust and willingness-to-pay with one high-value report before broadening to all five report families |
 | 2026-07-12 | Persist the active report ID per authenticated user in the wizard | Customers must be able to resume a long-running review/delivery state after reload; report access remains owner-filtered by the backend |
 | 2026-07-13 | Use early-access fixed-fee language without a public numeric valuation price | Conflicting planning figures are not approved marketing claims; checkout remains the source of the fee before payment |
+| 2026-07-18 | Use typed valuation inputs and an explicit EV-to-equity bridge in PR 2A | Normalise supported units to whole currency units; require one currency and compatible annual periods; classify debt, unrestricted cash, and approved surplus assets explicitly; use reported EBITDA before same-period EBIT plus depreciation; keep FCFF corrections in PR 2B |
 
 ---
 ## Session Continuity
 
-Last session: 2026-07-16
-Stopped at: PVM-08 deterministic hardening verified; methodology/security fixes precede live UAT.
+Last session: 2026-07-18
+Stopped at: PRs #15 and #16 merged; typed valuation inputs and EV-to-equity PR 2A active; FCFF PR 2B follows.
 Resume file: .planning/phases/05.1-valuation-advisory-redesign/PVM-08-UAT.md
 
 ---

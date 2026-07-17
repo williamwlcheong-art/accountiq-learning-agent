@@ -188,7 +188,31 @@ def compute_illiquidity_discount(
 
 
 # ---------------------------------------------------------------------------
-# Business risk scoring — condensed 8-question set (Phase 05.1 dual-method)
+# Enterprise value to equity value bridge
+# ---------------------------------------------------------------------------
+
+
+def compute_equity_bridge(
+    enterprise_value: float,
+    interest_bearing_debt: float,
+    unrestricted_cash: float,
+    approved_surplus_assets: float = 0.0,
+) -> dict:
+    """Reconcile enterprise value to equity value using explicit balance-sheet inputs."""
+    net_debt = interest_bearing_debt - unrestricted_cash
+    equity_value = enterprise_value - net_debt + approved_surplus_assets
+    return {
+        "enterprise_value": round(enterprise_value, 2),
+        "interest_bearing_debt": round(interest_bearing_debt, 2),
+        "unrestricted_cash": round(unrestricted_cash, 2),
+        "net_debt": round(net_debt, 2),
+        "approved_surplus_assets": round(approved_surplus_assets, 2),
+        "equity_value": round(equity_value, 2),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Legacy business risk scoring
 # ---------------------------------------------------------------------------
 
 # Each key maps to a 1-5 scored radio answer from the frontend intake.
@@ -225,6 +249,22 @@ def compute_risk_score(risk_answers: dict) -> float:
     n = len(RISK_QUESTION_KEYS)
     # min possible = n*1, max possible = n*5; normalise to [0, 1]
     return round((total - n) / (4 * n), 4)
+
+
+def compute_multiples_crosscheck(
+    normalised_ebitda: float,
+    ev_ebitda_low: float,
+    ev_ebitda_high: float,
+) -> dict:
+    """Return the researched comparable range without selecting a scored multiple."""
+    return {
+        "multiple_low": ev_ebitda_low,
+        "multiple_high": ev_ebitda_high,
+        "enterprise_value_low": round(normalised_ebitda * ev_ebitda_low, 2),
+        "enterprise_value_high": round(normalised_ebitda * ev_ebitda_high, 2),
+        "normalised_ebitda": round(normalised_ebitda, 2),
+        "purpose": "cross_check_only",
+    }
 
 
 def compute_multiples_ev(

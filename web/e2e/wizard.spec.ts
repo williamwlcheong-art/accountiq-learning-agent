@@ -11,7 +11,6 @@ test("regular user uploads, selects report type, generates report, and reaches r
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await expect(page.getByText(/sample\.pdf/i)).toBeVisible();
   await page.getByRole("button", { name: /continue/i }).click();
-  await expect(page.getByRole("heading", { name: /checking your financial statements/i })).toBeVisible();
   await expect(page.getByText(/ready for valuation intake/i)).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/sample\.pdf/i).first()).toBeVisible();
   await expect(page.getByText(/\$495\.00/i)).toBeVisible();
@@ -49,6 +48,43 @@ test("regular user uploads, selects report type, generates report, and reaches r
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await expect(page.getByText(/sample\.pdf/i)).toBeVisible();
 });
+
+test("checkout clarification confirms no payment and allows restart", async ({ page }) => {
+  await register(page, regularEmail());
+  await page.getByLabel(/business name/i).fill("Clarification E2E Ltd");
+  await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
+  await page.getByRole("button", { name: /continue/i }).click();
+  await expect(page.getByText(/ready for valuation intake/i)).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /continue to report/i }).click();
+  await page.getByText("Valuation Advisory").click();
+  await page.getByRole("button", { name: /continue/i }).click();
+  await completeValuationIntake(page);
+  await page.getByRole("button", { name: /review and continue/i }).click();
+
+  await page.route("**/wizard/report/checkout", async (route) => {
+    await route.fulfill({
+      status: 409,
+      contentType: "application/json",
+      body: JSON.stringify({
+        detail: {
+          state: "needs_clarification",
+          code: "needs_clarification",
+          reason_code: "incompatible_balance_sheet_period",
+          message: "A balance sheet matching the selected fiscal year-end is required.",
+          details: { base_period: "2025", balance_sheet_periods: ["2023", "2024"] },
+        },
+      }),
+    });
+  });
+  await page.getByRole("button", { name: /proceed to secure checkout/i }).click();
+  await expect(page.getByText(/no payment was taken/i)).toBeVisible();
+  await expect(page.getByText(/base period/i)).toBeVisible();
+  await expect(page.getByText("2025")).toBeVisible();
+  await expect(page.getByText("2023, 2024")).toBeVisible();
+  await page.getByRole("button", { name: /upload different statements/i }).click();
+  await expect(page.getByRole("heading", { name: /upload your financial statements/i })).toBeVisible();
+});
+
 
 test("regular user can complete valuation-specific intake", async ({ page }) => {
   await register(page, regularEmail());

@@ -56,7 +56,9 @@ A business owner uploads their financials, answers a few questions about their b
 - ✓ User can view account and report purchase history — PVM-06
 
 **Report generation:**
-- ✓ Valuation report — implemented with deterministic calculations, review gate, and PVM-08 domain UAT pending
+- ✓ Valuation report authority and paid-input snapshotting: immutable document authority and frozen report inputs merged in PRs #15 and #16
+- [ ] Typed valuation inputs and EV-to-equity bridge: active PR 2A; FCFF corrections remain separate PR 2B
+- [ ] Live Valuation Advisory UAT: run after PR 2A and PR 2B, then record William's disposition
 - [ ] Bank credit paper — advisor pilot; not validated for self-serve
 - [ ] Financial forecast — advisor pilot; not validated for self-serve
 - [ ] Capital raising document — advisor pilot; not validated for self-serve
@@ -97,7 +99,9 @@ A business owner uploads their financials, answers a few questions about their b
 | Pay-per-report (not subscription) | Matches infrequent, high-value use case for SME owners | — Pending |
 | First-draft quality bar | Makes accuracy achievable; professionals still add value | — Pending |
 | All 5 report types in v1 | User wants full offering from launch | — Pending |
-| Keep FastAPI as backend of record and migrate UI to Next.js | Preserves working ingestion/report engine while fixing frontend maintainability | — Accepted |
+| Keep FastAPI as backend of record and migrate UI to Next.js | Preserves working ingestion/report engine while fixing frontend maintainability | Accepted |
+| Use typed valuation inputs and an explicit EV-to-equity bridge before live UAT | Financial arithmetic must use one currency, supported units and compatible periods, explicit balance-sheet classifications, and a defined EBITDA hierarchy | Active in PR 2A |
+| Keep FCFF corrections separate from typed inputs and EV-to-equity | A separate PR 2B keeps the cash-flow methodology change reviewable | Planned |
 
 ## Evolution
 
@@ -117,4 +121,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-16 - PVM-08 deterministic hardening implemented; methodology and live domain UAT pending*
+*Last updated: 2026-07-18 - PRs #15 and #16 merged; typed valuation inputs and EV-to-equity PR 2A active; FCFF PR 2B remains separate*

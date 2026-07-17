@@ -86,6 +86,107 @@ def test_generated_valuation_validation_fails_closed(mutate, error_match):
         validate_generated_report(report, "valuation_advisory")
 
 
+def test_valuation_summary_must_match_deterministic_bridge():
+    report = _valid_report()
+    report["valuation_summary"]["table"] = {
+        "headers": [
+            "Method", "Scenario", "Enterprise Value", "Interest-bearing Debt",
+            "Unrestricted Cash", "Net Debt", "Surplus Assets", "Equity Value",
+        ],
+        "rows": [
+            ["DCF", "High WACC / Low Value", "400", "100", "20", "80", "0", "320"],
+            ["DCF", "Mid WACC / Mid Value", "500", "100", "20", "80", "0", "420"],
+            ["DCF", "Low WACC / High Value", "600", "100", "20", "80", "0", "520"],
+        ],
+    }
+    bridges = {
+        "scenario_bridges": {
+            key: {
+                "enterprise_value": ev,
+                "interest_bearing_debt": 100,
+                "unrestricted_cash": 20,
+                "net_debt": 80,
+                "approved_surplus_assets": 0,
+                "equity_value": ev - 80,
+            }
+            for key, ev in (
+                ("high_wacc_low_value", 400),
+                ("mid_wacc_mid_value", 500),
+                ("low_wacc_high_value", 600),
+            )
+        },
+        "multiples_result": {
+            "multiple_low": 3.0,
+            "multiple_high": 4.0,
+            "normalised_ebitda": 100,
+            "enterprise_value_low": 300,
+            "enterprise_value_high": 400,
+        },
+    }
+    report["multiples_crosscheck"]["table"] = {
+        "headers": ["Input", "Low", "High"],
+        "rows": [
+            ["Market multiple", "3", "4"],
+            ["Normalised EBITDA", "100", "100"],
+            ["Indicated enterprise value", "300", "400"],
+        ],
+    }
+    validate_generated_report(report, "valuation_advisory", bridges)
+
+    report["valuation_summary"]["table"]["rows"][1][-1] = "421"
+    with pytest.raises(ValueError, match="differs from deterministic"):
+        validate_generated_report(report, "valuation_advisory", bridges)
+
+
+def test_valuation_validation_rejects_non_finite_and_changed_multiples():
+    report = _valid_report()
+    report["valuation_summary"]["table"] = {
+        "headers": [
+            "Method", "Scenario", "Enterprise Value", "Interest-bearing Debt",
+            "Unrestricted Cash", "Net Debt", "Surplus Assets", "Equity Value",
+        ],
+        "rows": [
+            ["DCF", "High WACC / Low Value", "NaN", "100", "20", "80", "0", "320"],
+            ["DCF", "Mid WACC / Mid Value", "500", "100", "20", "80", "0", "420"],
+            ["DCF", "Low WACC / High Value", "600", "100", "20", "80", "0", "520"],
+        ],
+    }
+    report["multiples_crosscheck"]["table"] = {
+        "headers": ["Input", "Low", "High"],
+        "rows": [
+            ["Market multiple", "3", "4"],
+            ["Normalised EBITDA", "100", "100"],
+            ["Indicated enterprise value", "300", "400"],
+        ],
+    }
+    valuation_result = {
+        "scenario_bridges": {
+            key: {
+                "enterprise_value": ev, "interest_bearing_debt": 100,
+                "unrestricted_cash": 20, "net_debt": 80,
+                "approved_surplus_assets": 0, "equity_value": ev - 80,
+            }
+            for key, ev in (
+                ("high_wacc_low_value", 400),
+                ("mid_wacc_mid_value", 500),
+                ("low_wacc_high_value", 600),
+            )
+        },
+        "multiples_result": {
+            "multiple_low": 3, "multiple_high": 4,
+            "normalised_ebitda": 100,
+            "enterprise_value_low": 300, "enterprise_value_high": 400,
+        },
+    }
+    with pytest.raises(ValueError, match="non-finite"):
+        validate_generated_report(report, "valuation_advisory", valuation_result)
+
+    report["valuation_summary"]["table"]["rows"][0][2] = "400"
+    report["multiples_crosscheck"]["table"]["rows"][2][2] = "401"
+    with pytest.raises(ValueError, match="multiples cross-check differs"):
+        validate_generated_report(report, "valuation_advisory", valuation_result)
+
+
 def test_generated_valuation_validation_accepts_complete_report():
     report = _valid_report()
 

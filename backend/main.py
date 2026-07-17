@@ -43,8 +43,10 @@ from report_email import send_report_ready_email, REPORT_TYPE_LABELS
 from report_rendering import render_report_html, report_pdf_path, write_pdf
 from report_snapshots import (
     SnapshotIntegrityError,
+    build_report_input_snapshot_candidate,
     create_report_input_snapshot,
     load_report_input_snapshot,
+    persist_report_input_snapshot,
 )
 from report_validation import validate_generated_report
 from report_prompts import (
@@ -56,8 +58,9 @@ from report_prompts import (
 from research_loop import run_valuation_research
 from valuation import (
     compute_wacc_scenarios, compute_dcf, compute_illiquidity_discount,
-    compute_risk_score, compute_multiples_ev,
+    compute_equity_bridge, compute_multiples_crosscheck,
 )
+from valuation_inputs import ValuationInputError, build_valuation_inputs
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -103,6 +106,8 @@ def _e2e_financial_rows() -> list[tuple[str, str, str, str, float, float]]:
         ("pnl", "ebitda", "EBITDA", "2025", 240_000.0, 0.98),
         ("pnl", "net_profit", "Net Profit", "2025", 150_000.0, 0.97),
         ("bs", "cash_and_bank", "Cash & bank", "2025", 95_000.0, 0.98),
+        ("bs", "short_term_debt", "Bank overdraft", "2025", 0.0, 0.98),
+        ("bs", "long_term_debt", "Bank loan", "2025", 120_000.0, 0.98),
         ("bs", "total_assets", "Total Assets", "2025", 850_000.0, 0.98),
     ]
 
@@ -1257,8 +1262,9 @@ async def _store_generated_report(
     report_id: int,
     report_type: str,
     content_json: dict,
+    valuation_result: dict | None = None,
 ) -> str:
-    validate_generated_report(content_json, report_type)
+    validate_generated_report(content_json, report_type, valuation_result)
     next_status = "awaiting_review" if _requires_admin_review(report_type) else "done"
     if next_status == "done":
         cursor = await db.execute("""
@@ -1462,6 +1468,16 @@ async def wizard_report_checkout(
             report_id = existing_order["report_id"]
             purchase_id = existing_order["purchase_id"]
         else:
+            snapshot_candidate = await build_report_input_snapshot_candidate(
+                db,
+                company_id=company_id,
+                user_id=current_user["id"],
+                report_type=report_type,
+                intake_answers=intake_answers,
+            )
+            build_valuation_inputs(
+                snapshot_candidate["financial_rows"], snapshot_candidate
+            )
             report_id = await _insert_report_job(
                 db,
                 company_id=company_id,
@@ -1470,9 +1486,7 @@ async def wizard_report_checkout(
                 status="pending_payment",
                 intake_answers=intake_answers,
             )
-            await create_report_input_snapshot(
-                db, report_id, company_id, current_user["id"]
-            )
+            await persist_report_input_snapshot(db, report_id, snapshot_candidate)
             async with db.execute("""
                 INSERT INTO purchases
                     (report_id, user_id, amount_cents, currency, status, checkout_idempotency_key)
@@ -1483,6 +1497,18 @@ async def wizard_report_checkout(
             )) as cur:
                 purchase_id = cur.lastrowid
             await db.commit()
+    except ValuationInputError as exc:
+        await db.rollback()
+        raise HTTPException(
+            409,
+            {
+                "state": "needs_clarification",
+                "code": "needs_clarification",
+                "reason_code": exc.code,
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
     except (AuthorityConflictError, ValueError) as exc:
         await db.rollback()
         if isinstance(exc, AuthorityConflictError):
@@ -2312,48 +2338,13 @@ async def _generate_report(report_id: int) -> None:
                     erp=brief.erp,
                 )
 
-                # Extract financial inputs from raw_fin_rows
-                pnl_by_key: dict = {}
-                bs_by_key: dict = {}
-                for r in raw_fin_rows:
-                    key = r.get("row_key", "")
-                    period = r.get("period", "")
-                    value = r.get("value")
-                    if value is None:
-                        continue
-                    if r.get("statement") == "pnl":
-                        pnl_by_key.setdefault(key, []).append((period, float(value)))
-                    elif r.get("statement") == "bs":
-                        bs_by_key.setdefault(key, []).append((period, float(value)))
-
-                def _latest_value(rows_by_key: dict, key: str) -> float:
-                    entries = rows_by_key.get(key, [])
-                    if not entries:
-                        return 0.0
-                    return sorted(entries, key=lambda x: x[0], reverse=True)[0][1]
-
-                extracted_ebitda = _latest_value(pnl_by_key, "ebitda")
-                if extracted_ebitda == 0.0:
-                    net_p = _latest_value(pnl_by_key, "net_profit")
-                    da = _latest_value(pnl_by_key, "depreciation_amortisation") or _latest_value(pnl_by_key, "depreciation")
-                    extracted_ebitda = net_p + abs(da)
-
-                revenues_val = _latest_value(pnl_by_key, "revenue")
-                net_profit_latest = _latest_value(pnl_by_key, "net_profit")
-                cash_val = abs(
-                    _latest_value(bs_by_key, "cash_and_equivalents") or
-                    _latest_value(bs_by_key, "cash_and_bank") or
-                    _latest_value(bs_by_key, "cash")
-                )
-
-                # Use new intake normalisations array as authoritative add-back source;
-                # fall back to Phase 3 ebitda_adjustments if not provided.
-                intake_norms = intake_answers.get("normalisations") if isinstance(intake_answers, dict) else None
-                if isinstance(intake_norms, list) and len(intake_norms) > 0:
-                    addbacks_total = sum(float(n.get("amount", 0) or 0) for n in intake_norms)
-                else:
-                    addbacks_total = sum(float(a.get("amount", 0) or 0) for a in ebitda_adjustments)
-                normalised_ebitda = extracted_ebitda + addbacks_total
+                typed_inputs = build_valuation_inputs(raw_fin_rows, snapshot)
+                normalised_ebitda = float(typed_inputs.normalised_ebitda.value)
+                revenues_val = float(typed_inputs.revenue.value)
+                cash_val = float(typed_inputs.unrestricted_cash.value)
+                net_debt = float(typed_inputs.net_debt.value)
+                interest_bearing_debt = float(typed_inputs.interest_bearing_debt.value)
+                approved_surplus_assets = float(typed_inputs.approved_surplus_assets.value)
 
                 forecast_years = int(intake_answers.get("forecast_horizon", 5)) if isinstance(intake_answers, dict) else 5
                 revenue_growth_pct = float(intake_answers.get("revenue_growth_cagr", 5.0) or 5.0) if isinstance(intake_answers, dict) else 5.0
@@ -2384,7 +2375,7 @@ async def _generate_report(report_id: int) -> None:
                     None,
                     compute_illiquidity_discount,
                     revenues_val,
-                    (net_profit_latest > 0),
+                    (normalised_ebitda > 0),
                     cash_val,
                     ev_mid,
                 )
@@ -2394,13 +2385,23 @@ async def _generate_report(report_id: int) -> None:
                     "low":  _ev_from_dcf(dcf_low) * (1.0 - illiq_rate),
                 }
 
-                # Comparable multiples method — risk-score positions within market range
-                risk_answers = {k: v for k, v in (intake_answers or {}).items()
-                                if k.startswith("rq_")}
-                risk_score = compute_risk_score(risk_answers)
-                multiples_result = compute_multiples_ev(
+                scenario_bridges = {
+                    "high_wacc_low_value": compute_equity_bridge(
+                        ev_adjusted["high"], interest_bearing_debt, cash_val,
+                        approved_surplus_assets,
+                    ),
+                    "mid_wacc_mid_value": compute_equity_bridge(
+                        ev_adjusted["mid"], interest_bearing_debt, cash_val,
+                        approved_surplus_assets,
+                    ),
+                    "low_wacc_high_value": compute_equity_bridge(
+                        ev_adjusted["low"], interest_bearing_debt, cash_val,
+                        approved_surplus_assets,
+                    ),
+                }
+
+                multiples_result = compute_multiples_crosscheck(
                     normalised_ebitda=normalised_ebitda,
-                    risk_score=risk_score,
                     ev_ebitda_low=brief.ev_ebitda_low,
                     ev_ebitda_high=brief.ev_ebitda_high,
                 )
@@ -2408,12 +2409,31 @@ async def _generate_report(report_id: int) -> None:
                 valuation_result = {
                     "research_brief": brief.model_dump(),
                     "wacc_scenarios_pct": wacc_pct,
-                    "dcf_scenarios": {"high": dcf_high, "mid": dcf_mid, "low": dcf_low},
+                    "dcf_scenarios": {
+                        "high_wacc_low_value": dcf_high,
+                        "mid_wacc_mid_value": dcf_mid,
+                        "low_wacc_high_value": dcf_low,
+                    },
                     "illiquidity_discount": {"rate": illiq_rate, "ev_adjusted": ev_adjusted},
                     "normalised_ebitda": normalised_ebitda,
+                    "normalisations": [
+                        {
+                            "label": item.label,
+                            "amount": float(item.amount),
+                            "rationale": item.rationale,
+                        }
+                        for item in typed_inputs.normalisations
+                    ],
                     "revenues": revenues_val,
-                    "net_debt": 0.0,
-                    "cash": cash_val,
+                    "valuation_inputs": {
+                        "currency": typed_inputs.currency,
+                        "base_period": typed_inputs.base_period.original,
+                        "interest_bearing_debt": interest_bearing_debt,
+                        "unrestricted_cash": cash_val,
+                        "net_debt": net_debt,
+                        "approved_surplus_assets": approved_surplus_assets,
+                    },
+                    "scenario_bridges": scenario_bridges,
                     "multiples_result": multiples_result,
                 }
             elif report_type == "bank_credit_paper":
@@ -2444,6 +2464,7 @@ async def _generate_report(report_id: int) -> None:
                 report_id=report_id,
                 report_type=report_type,
                 content_json=content_json,
+                valuation_result=valuation_result,
             )
             await db.commit()
             print(f"[REPORT] report_id={report_id} {next_status} ({report_type})")
