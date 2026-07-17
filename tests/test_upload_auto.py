@@ -9,8 +9,13 @@ Covers:
   - PDF upload with no company_id falls back to extracted name (mocked) or filename stem
 """
 import io
+from pathlib import Path
+
+import aiosqlite
 import pytest
 import pytest_asyncio
+
+from db import DB_PATH
 
 
 async def _register_admin(client, email, password="correcthorse"):
@@ -109,6 +114,43 @@ async def test_upload_with_explicit_company_id(client, fresh_all_db):
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["company_id"] == cid
+
+
+@pytest.mark.asyncio
+async def test_reupload_creates_immutable_revision_with_unique_path(client, fresh_all_db):
+    await _register_admin(client, "upload-revision@test.com")
+    cid = await _create_company(client, "Revision Co")
+
+    first = await client.post(
+        "/documents/upload",
+        files={"file": _excel_file("accounts.xlsx")},
+        data={"entity_type": "sme", "company_id": cid},
+    )
+    second = await client.post(
+        "/documents/upload",
+        files={"file": ("accounts.xlsx", io.BytesIO(b"PK\x03\x04replacement"), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        data={"entity_type": "sme", "company_id": cid},
+    )
+
+    assert first.status_code == 200, first.text
+    assert second.status_code == 200, second.text
+    assert first.json()["document_id"] != second.json()["document_id"]
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await (await db.execute(
+            """
+            SELECT id, filepath, file_hash, supersedes_document_id
+            FROM documents WHERE company_id=? ORDER BY id
+            """,
+            (cid,),
+        )).fetchall()
+    assert len(rows) == 2
+    assert rows[0]["filepath"] != rows[1]["filepath"]
+    assert rows[0]["file_hash"] != rows[1]["file_hash"]
+    assert rows[1]["supersedes_document_id"] == rows[0]["id"]
+    assert Path(rows[0]["filepath"]).exists()
+    assert Path(rows[1]["filepath"]).exists()
 
 
 @pytest.mark.asyncio

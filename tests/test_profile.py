@@ -229,7 +229,12 @@ async def test_ebitda_bridge_calculation(client, fresh_all_db):
     async with aiosqlite.connect(db_path) as conn:
         # Need a document_id — insert a dummy document
         cur = await conn.execute(
-            "INSERT INTO documents (company_id, filename, filepath, user_id) VALUES (?, ?, ?, ?)",
+            """
+            INSERT INTO documents
+                (company_id, filename, filepath, user_id, extraction_status,
+                 extraction_completed_at)
+            VALUES (?, ?, ?, ?, 'done', datetime('now'))
+            """,
             (cid, "dummy.pdf", f"/tmp/dummy-{cid}.pdf", 1),
         )
         doc_id = cur.lastrowid
@@ -241,6 +246,14 @@ async def test_ebitda_bridge_calculation(client, fresh_all_db):
         await conn.execute(
             "INSERT INTO financial_rows (document_id, company_id, statement, row_key, row_label, period, value) VALUES (?, ?, 'pnl', 'depreciation_amortisation', 'D&A', '2024', 50000)",
             (doc_id, cid),
+        )
+        await conn.execute(
+            """
+            INSERT INTO document_authority
+                (company_id, statement, period, document_id)
+            VALUES (?, 'pnl', '2024', ?)
+            """,
+            (cid, doc_id),
         )
         await conn.commit()
     # Now profile-status should return reported_ebitda = 250_000

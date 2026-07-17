@@ -46,6 +46,9 @@ CREATE TABLE IF NOT EXISTS documents (
     extraction_model  TEXT,                  -- claude model used
     raw_claude_response TEXT,               -- full JSON from Claude
     confidence_score  REAL,                 -- 0–1 overall confidence
+    file_hash        TEXT,                  -- SHA-256 of the immutable uploaded bytes
+    extraction_completed_at TEXT,
+    supersedes_document_id INTEGER REFERENCES documents(id),
     created_at      TEXT    DEFAULT (datetime('now')),
     updated_at      TEXT    DEFAULT (datetime('now'))
 );
@@ -104,6 +107,19 @@ CREATE INDEX IF NOT EXISTS idx_fin_rows_key    ON financial_rows(row_key, period
 CREATE INDEX IF NOT EXISTS idx_patterns_key    ON label_patterns(canonical_key);
 CREATE INDEX IF NOT EXISTS idx_patterns_raw    ON label_patterns(raw_label);
 CREATE INDEX IF NOT EXISTS idx_users_email     ON users(email);
+
+-- Explicit source assignment for each company statement period
+CREATE TABLE IF NOT EXISTS document_authority (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id  INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    statement   TEXT    NOT NULL,
+    period      TEXT    NOT NULL,
+    document_id INTEGER NOT NULL REFERENCES documents(id),
+    assigned_at TEXT    DEFAULT (datetime('now')),
+    UNIQUE(company_id, statement, period)
+);
+CREATE INDEX IF NOT EXISTS idx_document_authority_document
+    ON document_authority(document_id);
 """
 
 
@@ -135,11 +151,47 @@ def _migrate_db(conn: sqlite3.Connection):
         "ALTER TABLE companies ADD COLUMN description TEXT",
         # Phase 3.5: admin role
         "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0",
+        # Document authority: immutable upload revision metadata
+        "ALTER TABLE documents ADD COLUMN file_hash TEXT",
+        "ALTER TABLE documents ADD COLUMN extraction_completed_at TEXT",
+        "ALTER TABLE documents ADD COLUMN supersedes_document_id INTEGER REFERENCES documents(id)",
     ]:
         try:
             conn.execute(sql)
         except sqlite3.OperationalError:
             pass  # column already exists
+
+    # Document authority is explicit per company, statement, and period.
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS document_authority (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id  INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+            statement   TEXT    NOT NULL,
+            period      TEXT    NOT NULL,
+            document_id INTEGER NOT NULL REFERENCES documents(id),
+            assigned_at TEXT    DEFAULT (datetime('now')),
+            UNIQUE(company_id, statement, period)
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_document_authority_document
+        ON document_authority(document_id)
+    """)
+    # Preserve legacy behaviour where there is exactly one completed source.
+    # Ambiguous historical slots remain unassigned and must be resolved explicitly.
+    try:
+        conn.execute("""
+            INSERT OR IGNORE INTO document_authority
+                (company_id, statement, period, document_id)
+            SELECT fr.company_id, fr.statement, fr.period, MIN(fr.document_id)
+            FROM financial_rows fr
+            JOIN documents d ON d.id=fr.document_id AND d.extraction_status='done'
+            GROUP BY fr.company_id, fr.statement, fr.period
+            HAVING COUNT(DISTINCT fr.document_id)=1
+        """)
+    except sqlite3.OperationalError as error:
+        if "no such table: financial_rows" not in str(error):
+            raise
 
     # Phase 2: rebuild companies UNIQUE constraint to include user_id.
     # SQLite cannot ALTER a UNIQUE constraint — must use table-rename pattern.

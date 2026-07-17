@@ -12,11 +12,13 @@ from httpx import AsyncClient, ASGITransport
 BACKEND_DIR = Path(__file__).resolve().parent.parent / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
-# Ensure tests/ itself is importable so test modules can do `import conftest`
-# to access shared test state like _TMP_DB_PATH.
+# Ensure tests/ itself is importable for shared test helpers. Pytest may load this
+# file as tests.conftest during full collection; alias it so a later plain
+# `import conftest` cannot initialise a second database and fixture module.
 _TESTS_DIR = Path(__file__).resolve().parent
 if str(_TESTS_DIR) not in sys.path:
     sys.path.insert(0, str(_TESTS_DIR))
+sys.modules.setdefault("conftest", sys.modules[__name__])
 
 # Load .env before any module imports so SECRET_KEY and ANTHROPIC_API_KEY are available.
 # Walk up from the tests/ dir to find the .env (handles both worktree and main-repo runs).
@@ -85,11 +87,13 @@ async def fresh_all_db():
     async with aiosqlite.connect(_TMP_DB_PATH) as conn:
         await conn.execute("PRAGMA foreign_keys=ON")
         for table in [
+            "document_authority",
             "financial_rows",
             "extraction_log",
             "management_team",
             "ebitda_adjustments",
             "report_intake",
+            "reviews",
             "purchases",
             "reports",
             "documents",
