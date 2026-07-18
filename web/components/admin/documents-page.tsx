@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ApiError, apiFetch } from "@/lib/api-client";
+import { reportStatusLabel } from "@/lib/presentation";
 import type { DocumentRecord } from "@/types/domain";
 
 export function DocumentsPage() {
@@ -84,7 +85,7 @@ export function DocumentsPage() {
         {loading ? (
           <p className="muted">Loading documents...</p>
         ) : documents.length ? (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0}>
             <table>
               <thead>
                 <tr>
@@ -107,7 +108,7 @@ export function DocumentsPage() {
                     <td>{doc.entity_type || "-"}</td>
                     <td>{doc.reporting_standard || "-"}</td>
                     <td>
-                      <span className={`status-pill status-${doc.extraction_status}`}>{doc.extraction_status}</span>
+                      <span className={`status-pill status-${doc.extraction_status}`}>{reportStatusLabel(doc.extraction_status)}</span>
                     </td>
                     <td>{doc.confidence_score == null ? "-" : `${(doc.confidence_score * 100).toFixed(0)}%`}</td>
                     <td>

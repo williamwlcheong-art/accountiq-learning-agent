@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { ApiError, postForm } from "@/lib/api-client";
@@ -73,8 +74,8 @@ export function AuthCard() {
   return (
     <section className="auth-card" aria-label="AccountIQ authentication">
       <div className="auth-brand">
-        <h1>AccountIQ</h1>
-        <p>Financial Intelligence Platform</p>
+        <h1>{isRegister ? "Create your AccountIQ account" : "Sign in to AccountIQ"}</h1>
+        <p>{isRegister ? "Start your valuation with a secure account." : "Access your valuations and report delivery."}</p>
       </div>
 
       {error ? (
@@ -90,6 +91,7 @@ export function AuthCard() {
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
+          required
           autoComplete="username"
         />
 
@@ -99,6 +101,7 @@ export function AuthCard() {
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
+          required
           autoComplete={isRegister ? "new-password" : "current-password"}
         />
 
@@ -110,6 +113,7 @@ export function AuthCard() {
               type="password"
               value={confirm}
               onChange={(event) => setConfirm(event.target.value)}
+              required
               autoComplete="new-password"
             />
             <p className="field-note">Minimum 8 characters</p>
@@ -120,6 +124,10 @@ export function AuthCard() {
           {loading ? "Working..." : isRegister ? "Create account" : "Sign in"}
         </button>
       </form>
+
+      <Link className="auth-valuation-link" href="/valuation">
+        Learn about the valuation advisory
+      </Link>
 
       {isRegister ? (
         <button type="button" className="button button-link" onClick={() => switchMode("login")}>

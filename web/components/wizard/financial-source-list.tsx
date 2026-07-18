@@ -1,3 +1,4 @@
+import { financialStatementLabel } from "@/lib/presentation";
 import type { WizardReadiness } from "@/types/domain";
 
 type SourcePeriod = WizardReadiness["source_periods"][number];
@@ -16,12 +17,7 @@ export function formatMoney(amountCents: number, currency: string) {
 }
 
 export function formatStatement(statement: string) {
-  const labels: Record<string, string> = {
-    balance_sheet: "Balance sheet",
-    cash_flow: "Cash flow",
-    pnl: "Profit and loss",
-  };
-  return labels[statement] ?? statement.replaceAll("_", " ");
+  return financialStatementLabel(statement);
 }
 
 export function FinancialSourceList({ sources, className, filenameFirst = false }: FinancialSourceListProps) {

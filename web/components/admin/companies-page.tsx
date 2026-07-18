@@ -204,7 +204,7 @@ export function CompaniesPage() {
         {loading ? (
           <p className="muted">Loading companies...</p>
         ) : companies.length ? (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0}>
             <table>
               <thead>
                 <tr>

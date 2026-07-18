@@ -32,6 +32,7 @@ def test_renders_dict_section_with_table():
     }
     html = _render_report_sections_html(sections, ["wacc_assumptions"])
     assert "<table class='report-table'>" in html
+    assert "class='table-scroll' tabindex='0' role='region' aria-label='Wacc Assumptions table'" in html
     assert "<th>Component</th>" in html
     assert "<th>High</th>" in html
     assert "<td>Risk-free rate</td>" in html

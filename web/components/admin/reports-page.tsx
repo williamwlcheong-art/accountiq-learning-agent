@@ -4,19 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ApiError, apiFetch } from "@/lib/api-client";
+import { reportStatusLabel, reportTypeLabel } from "@/lib/presentation";
 import type { AdminPendingReport } from "@/types/domain";
 
 type ApproveResponse = {
   id: number;
   status: string;
 };
-
-function reportLabel(reportType: string) {
-  return reportType
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
 
 function formatPaidAmount(report: AdminPendingReport) {
   if (report.amount_cents == null) return "-";
@@ -116,7 +110,7 @@ export function ReportsPage() {
         {loading ? (
           <p className="muted">Loading reports...</p>
         ) : reports.length ? (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0}>
             <table>
               <thead>
                 <tr>
@@ -134,10 +128,10 @@ export function ReportsPage() {
                   <tr key={report.id}>
                     <td>{report.company_name}</td>
                     <td>{report.user_email}</td>
-                    <td>{reportLabel(report.report_type)}</td>
+                    <td>{reportTypeLabel(report.report_type)}</td>
                     <td>{formatPaidAmount(report)}</td>
                     <td>
-                      <span className={`status-pill status-${report.status}`}>{report.status}</span>
+                      <span className={`status-pill status-${report.status}`}>{reportStatusLabel(report.status)}</span>
                     </td>
                     <td>{new Date(report.created_at).toLocaleString()}</td>
                     <td>

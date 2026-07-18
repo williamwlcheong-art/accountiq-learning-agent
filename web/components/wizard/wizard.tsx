@@ -3,7 +3,7 @@
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { LogoutButton } from "@/components/auth/logout-button";
+import { CustomerHeader } from "@/components/customer-header";
 import { CheckoutClarificationCard } from "@/components/wizard/checkout-clarification-card";
 import { CheckoutConfirmation } from "@/components/wizard/checkout-confirmation";
 import { IntakeForm } from "@/components/wizard/intake-form";
@@ -220,30 +220,22 @@ export function Wizard({ user }: WizardProps) {
   }
 
   const selectedFileLabel = file ? `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)` : "";
-  const stepNumbers: Record<WizardStep, number> = {
-    upload: 1,
-    readiness: 1,
-    "report-type": 2,
-    intake: 2,
-    confirm: 3,
-    clarification: 3,
-    status: 4,
+  const phaseLabels: Record<WizardStep, string> = {
+    upload: "Financial statements",
+    readiness: "Financial statements",
+    "report-type": "Business details",
+    intake: "Business details",
+    confirm: "Review and payment",
+    clarification: "Review and payment",
+    status: "Report delivery",
   };
 
   return (
     <>
-      <nav className="top-nav">
-        <div className="nav-brand">
-          <strong>AccountIQ</strong>
-          <span>Step {stepNumbers[step]} of 4</span>
-        </div>
-        <div className="nav-user">
-          <span>{user.email}</span>
-          <LogoutButton />
-        </div>
-      </nav>
+      <CustomerHeader email={user.email} activePage="wizard" />
 
       <main className="wizard-shell">
+        <p className="wizard-phase" aria-live="polite">{phaseLabels[step]}</p>
         {error ? (
           <div role="alert" className="alert alert-error">
             {error}
@@ -293,7 +285,7 @@ export function Wizard({ user }: WizardProps) {
               {file ? <p className="wizard-note">{selectedFileLabel}</p> : null}
             </div>
             <button className="button button-primary" onClick={submitUpload} disabled={loading}>
-              {loading ? "Uploading..." : "Continue ->"}
+              {loading ? "Uploading..." : "Continue"}
             </button>
           </section>
         ) : null}
@@ -312,10 +304,10 @@ export function Wizard({ user }: WizardProps) {
             <ReportTypePicker selected={reportType} onSelect={setReportType} />
             <div className="wizard-actions">
               <button className="button button-secondary" onClick={() => setStep("upload")}>
-                {"<- Back"}
+                Back
               </button>
               <button className="button button-primary" onClick={() => setStep("intake")} disabled={!reportType}>
-                Continue -&gt;
+                Continue
               </button>
             </div>
           </section>
@@ -353,7 +345,7 @@ export function Wizard({ user }: WizardProps) {
           <>
             <ReportStatusCard reportId={reportId} userEmail={user.email} />
             <button className="button button-secondary wizard-reset" onClick={reset}>
-              Upload another -&gt;
+              Start another valuation
             </button>
           </>
         ) : null}

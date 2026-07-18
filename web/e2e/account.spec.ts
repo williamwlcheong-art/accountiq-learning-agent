@@ -12,8 +12,9 @@ import {
 } from "./helpers";
 
 test("customer account shows purchase delivery status and released report actions", async ({ page, browser }) => {
+  const companyName = `History E2E Ltd ${Date.now()}`;
   await register(page, regularEmail());
-  await page.getByLabel(/business name/i).fill("History E2E Ltd");
+  await page.getByLabel(/business name/i).fill(companyName);
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await page.getByRole("button", { name: /continue/i }).click();
   await continueFromUploadWhenReady(page);
@@ -24,20 +25,20 @@ test("customer account shows purchase delivery status and released report action
   await expect(page.getByText(/your report is under review/i)).toBeVisible({ timeout: 15_000 });
 
   await page.goto("/account");
-  const purchase = page.locator("tr").filter({ hasText: "History E2E Ltd" });
+  const purchase = page.locator("tr").filter({ hasText: companyName });
   await expect(purchase).toBeVisible();
   await expect(purchase).toContainText("$495.00");
-  await expect(purchase).toContainText("Awaiting review");
+  await expect(purchase).toContainText("Under review");
   await expect(purchase.getByRole("link", { name: /open report/i })).toHaveCount(0);
 
   const adminContext = await browser.newContext();
   const adminPage = await adminContext.newPage();
   await loginOrRegisterAdmin(adminPage);
-  await approvePendingReport(adminPage, "History E2E Ltd");
+  await approvePendingReport(adminPage, companyName);
   await adminContext.close();
 
   await page.reload();
-  const releasedPurchase = page.locator("tr").filter({ hasText: "History E2E Ltd" });
+  const releasedPurchase = page.locator("tr").filter({ hasText: companyName });
   await expect(releasedPurchase).toContainText("Ready");
   await expect(releasedPurchase.getByRole("link", { name: /open report/i })).toBeVisible();
   await expect(releasedPurchase.getByRole("link", { name: /download pdf/i })).toBeVisible();
