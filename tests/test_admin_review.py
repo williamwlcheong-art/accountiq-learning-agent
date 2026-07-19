@@ -30,9 +30,21 @@ async def _login(client, email: str, password: str = "password123"):
 
 def _valuation_answers():
     return {
-        "forecast_horizon": 3,
-        "revenue_growth_cagr": 8,
-        "terminal_growth_rate": 3,
+        "fcff_assumptions": {
+            "forecast": {"horizon_years": 3, "revenue_growth_rate": 0.08, "terminal_growth_rate": 0.03, "confirmed": True},
+            "depreciation": {
+                "rate": 0.028, "confirmed": True, "rationale": "Synthetic accounts.",
+                "confirmation_method": "calculated", "confirmation_source": "financial_statements", "source_period": "2025",
+            },
+            "capex": {
+                "rate": 0.04, "confirmed": True, "rationale": "Synthetic forecast.",
+                "confirmation_method": "manual", "confirmation_source": "customer",
+            },
+            "operating_nwc": {
+                "rate": 0.124, "confirmed": True, "rationale": "Synthetic accounts.",
+                "confirmation_method": "calculated", "confirmation_source": "financial_statements", "source_period": "2025",
+            },
+        },
         "rq_revenue_quality": 3,
         "rq_owner_dependency": 3,
         "rq_ebitda_growth": 3,

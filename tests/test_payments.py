@@ -1,4 +1,5 @@
 import asyncio
+import copy
 
 import aiosqlite
 import pytest
@@ -66,9 +67,28 @@ def test_stripe_enabled_requires_secret_key(monkeypatch):
 
 def _valuation_answers():
     return {
-        "forecast_horizon": 3,
-        "revenue_growth_cagr": 8,
-        "terminal_growth_rate": 3,
+        "fcff_assumptions": {
+            "forecast": {
+                "horizon_years": 3,
+                "revenue_growth_rate": 0.08,
+                "terminal_growth_rate": 0.03,
+                "confirmed": True,
+            },
+            "depreciation": {
+                "rate": 0.028, "confirmed": True, "rationale": "Matches accounts.",
+                "confirmation_method": "calculated", "confirmation_source": "financial_statements",
+                "source_period": "2025",
+            },
+            "capex": {
+                "rate": 0.04, "confirmed": True, "rationale": "Confirmed plan.",
+                "confirmation_method": "manual", "confirmation_source": "customer",
+            },
+            "operating_nwc": {
+                "rate": 0.124, "confirmed": True, "rationale": "Matches accounts.",
+                "confirmation_method": "calculated", "confirmation_source": "financial_statements",
+                "source_period": "2025",
+            },
+        },
         "rq_revenue_quality": 3,
         "rq_owner_dependency": 3,
         "rq_ebitda_growth": 3,
@@ -82,6 +102,24 @@ def _valuation_answers():
 
 async def _register_and_upload(client, email="buyer@example.com"):
     await client.post("/auth/register", data={"email": email, "password": "password123"})
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO wacc_assumption_sets
+                (name, version, status, active, risk_free_rate, equity_risk_premium,
+                 beta, beta_type, cost_of_debt, target_debt_weight,
+                 target_equity_weight, additional_premium, scenario_spread,
+                 source_references, publisher, as_of_date, rationale, approved_at,
+                 approved_by_user_id)
+            VALUES ('Synthetic payment test', 1, 'approved', 1, '4', '5.5',
+                    '1', 'synthetic_test', '6', '30', '70', '2', '1',
+                    'Deterministic payment fixture', 'Test suite', '2026-07-01',
+                    'Automated checkout tests only', '2026-07-01 00:00:00',
+                    (SELECT id FROM users WHERE email=?))
+            """,
+            (email,),
+        )
+        await db.commit()
     upload = await client.post(
         "/wizard/upload",
         data={"business_name": "Paid Valuation Ltd"},
@@ -202,6 +240,39 @@ async def test_checkout_idempotency_key_reuses_order(client, fresh_all_db, monke
     async with aiosqlite.connect(DB_PATH) as db:
         assert (await (await db.execute("SELECT COUNT(*) FROM purchases")).fetchone())[0] == 1
         assert (await (await db.execute("SELECT COUNT(*) FROM report_input_snapshots")).fetchone())[0] == 1
+
+
+@pytest.mark.asyncio
+async def test_checkout_idempotency_key_rejects_changed_nested_capex_before_external_call(
+    client, fresh_all_db, monkeypatch
+):
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+    company_id = await _register_and_upload(client, email="changed-idempotency@example.com")
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.setattr(main_module, "stripe_enabled", lambda: True)
+    external_calls = 0
+
+    def create_session(**_kwargs):
+        nonlocal external_calls
+        external_calls += 1
+        return CheckoutSession("cs_original", "https://checkout.stripe.test/original")
+
+    monkeypatch.setattr(main_module, "create_checkout_session", create_session)
+    payload = {
+        "company_id": company_id,
+        "report_type": "valuation_advisory",
+        "intake_answers": _valuation_answers(),
+        "idempotency_key": "changed-capex-checkout-key",
+    }
+    first = await client.post("/wizard/report/checkout", json=payload)
+    changed = copy.deepcopy(payload)
+    changed["intake_answers"]["fcff_assumptions"]["capex"]["rate"] = 0.09
+    second = await client.post("/wizard/report/checkout", json=changed)
+
+    assert first.status_code == 201, first.text
+    assert second.status_code == 409, second.text
+    assert second.json()["detail"]["code"] == "idempotency_key_reused"
+    assert external_calls == 1
 
 
 @pytest.mark.asyncio

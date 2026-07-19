@@ -92,6 +92,7 @@ async def fresh_all_db():
             "extraction_log",
             "management_team",
             "ebitda_adjustments",
+            "wacc_assumption_sets",
             "report_intake",
             "reviews",
             "purchases",

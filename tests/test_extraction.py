@@ -57,7 +57,7 @@ def test_cf_eq_statement_types():
         from ingestion import CF_ROWS, EQ_ROWS
     except ImportError:
         pytest.fail("CF_ROWS/EQ_ROWS not yet defined in ingestion.py — RED stub")
-    assert len(CF_ROWS) == 4, f"Expected 4 CF rows, got {len(CF_ROWS)}"
+    assert len(CF_ROWS) == 6, f"Expected 6 CF rows, got {len(CF_ROWS)}"
     assert len(EQ_ROWS) == 5, f"Expected 5 EQ rows, got {len(EQ_ROWS)}"
 
 
@@ -101,6 +101,22 @@ def test_normalize_signs_does_not_flip_revenue():
     assert result[0]["values"]["2025"] == 500000.0, (
         f"Expected 500000.0, got {result[0]['values']['2025']}"
     )
+
+
+def test_explicit_capex_keys_preserve_source_sign_and_exclude_aggregate_investing_cashflow():
+    from ingestion import CF_ROWS, _normalize_signs
+
+    keys = {key for key, _label in CF_ROWS}
+    assert "purchases_property_plant_equipment" in keys
+    assert "purchases_intangible_assets" in keys
+    assert "investing_cashflow" in keys
+
+    rows = [
+        {"canonical_key": "purchases_property_plant_equipment", "values": {"2025": -75000.0}},
+        {"canonical_key": "purchases_intangible_assets", "values": {"2025": 12000.0}},
+        {"canonical_key": "investing_cashflow", "values": {"2025": -100000.0}},
+    ]
+    assert _normalize_signs(rows) == rows
 
 
 # ---------------------------------------------------------------------------

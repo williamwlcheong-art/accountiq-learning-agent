@@ -13,6 +13,27 @@ type CheckoutConfirmationProps = {
 
 export function CheckoutConfirmation({ businessName, readiness, answers, loading, onBack, onConfirm }: CheckoutConfirmationProps) {
   const normalisations = Array.isArray(answers.normalisations) ? answers.normalisations as Array<Record<string, unknown>> : [];
+  const fcff = answers.fcff_assumptions && typeof answers.fcff_assumptions === "object"
+    ? answers.fcff_assumptions as Record<string, Record<string, unknown>>
+    : {};
+  const forecast = fcff.forecast ?? {};
+  const assumptionLabel = (key: "depreciation" | "capex" | "operating_nwc") => {
+    const item = fcff[key] ?? {};
+    const percentage = Number(item.rate) * 100;
+    const method = item.confirmation_method === "calculated"
+      ? `Calculated from the financial statements${item.source_period ? ` for ${String(item.source_period)}` : ""}`
+      : item.confirmation_method === "override"
+        ? "Updated by you"
+        : "Provided by you";
+    return {
+      percentage: Number.isFinite(percentage) ? `${percentage.toFixed(1)}% of revenue` : "Not supplied",
+      method,
+      rationale: String(item.rationale ?? "").trim(),
+    };
+  };
+  const depreciation = assumptionLabel("depreciation");
+  const capex = assumptionLabel("capex");
+  const operatingNwc = assumptionLabel("operating_nwc");
   return (
     <section className="wizard-card confirmation-card">
       <p className="eyebrow">Final check before payment</p>
@@ -37,9 +58,14 @@ export function CheckoutConfirmation({ businessName, readiness, answers, loading
 
       <div className="confirmation-section">
         <h2>Assumptions and normalisations</h2>
-        <p>
-          Forecast: {String(answers.forecast_horizon ?? "Not supplied")} years · Revenue growth {String(answers.revenue_growth_cagr ?? "Not supplied")}% · Terminal growth {String(answers.terminal_growth_rate ?? "Not supplied")}%
-        </p>
+        <dl className="confirmation-grid">
+          <div><dt>Forecast period</dt><dd>{String(forecast.horizon_years ?? "Not supplied")} years</dd></div>
+          <div><dt>Revenue growth</dt><dd>{Number.isFinite(Number(forecast.revenue_growth_rate)) ? `${(Number(forecast.revenue_growth_rate) * 100).toFixed(1)}% each year` : "Not supplied"}</dd></div>
+          <div><dt>Terminal growth</dt><dd>{Number.isFinite(Number(forecast.terminal_growth_rate)) ? `${(Number(forecast.terminal_growth_rate) * 100).toFixed(1)}%` : "Not supplied"}</dd></div>
+          <div><dt>Depreciation and amortisation</dt><dd>{depreciation.percentage}<br />{depreciation.method}{depreciation.rationale ? <><br />Reason: {depreciation.rationale}</> : null}</dd></div>
+          <div><dt>Capital expenditure</dt><dd>{capex.percentage}<br />{capex.method}{capex.rationale ? <><br />Reason: {capex.rationale}</> : null}</dd></div>
+          <div><dt>Operating working capital</dt><dd>{operatingNwc.percentage}<br />{operatingNwc.method}{operatingNwc.rationale ? <><br />Reason: {operatingNwc.rationale}</> : null}</dd></div>
+        </dl>
         {normalisations.length ? (
           <ul className="confirmation-list">
             {normalisations.map((item, index) => (

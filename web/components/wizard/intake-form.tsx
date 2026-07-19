@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 
 import { apiFetch } from "@/lib/api-client";
 import type { WizardReportType } from "@/components/wizard/report-type-picker";
+import type { FcffAssumptionReadiness, FcffAssumptionsInput } from "@/types/domain";
 
 type EbitdaAdjustment = {
   id: number;
@@ -131,6 +132,8 @@ function renderField(field: (typeof simpleFields)["bank_credit_paper"][number]) 
 export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }: IntakeFormProps) {
   const [normalisations, setNormalisations] = useState<NormalisationRow[]>([]);
   const [profileStatus, setProfileStatus] = useState<ProfileStatus | null>(null);
+  const [fcffReadiness, setFcffReadiness] = useState<FcffAssumptionReadiness | null>(null);
+  const [assumptionOverrides, setAssumptionOverrides] = useState<Record<string, boolean>>({});
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -167,6 +170,30 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
       })
       .catch(() => {
         if (!cancelled) setNormalisations([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId, reportType]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (reportType !== "valuation_advisory") return;
+
+    apiFetch<FcffAssumptionReadiness>(`/wizard/company/${companyId}/fcff-assumptions`)
+      .then((readiness) => {
+        if (!cancelled) setFcffReadiness(readiness);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFcffReadiness({
+            state: "needs_adviser_assistance",
+            message: "We need an adviser to confirm the investment assumptions from your statements.",
+            depreciation: { rate: null, status: "missing" },
+            operating_nwc: { rate: null, status: "missing" },
+          });
+        }
       });
 
     return () => {
@@ -220,6 +247,76 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
         setError(`Please select a ${missingRisk[1].toLowerCase()} rating.`);
         return;
       }
+      if (fcffReadiness?.state === "needs_adviser_assistance") {
+        setError("An adviser needs to confirm the investment and working capital assumptions before you can continue.");
+        return;
+      }
+      for (const [field, zeroRationaleField] of [
+        ["depreciation_ratio", "depreciation_zero_rationale"],
+        ["operating_nwc_ratio", "operating_nwc_zero_rationale"],
+        ["capex_ratio", "capex_zero_rationale"],
+      ]) {
+        const value = Number(answers[field]);
+        if (!Number.isFinite(value) || value < 0 || value > 100) {
+          setError("Please enter each investment and working capital ratio as a percentage between 0 and 100.");
+          return;
+        }
+        if (value === 0 && !answers[zeroRationaleField]) {
+          setError("Please explain why an investment or working capital ratio is zero.");
+          return;
+        }
+      }
+      for (const field of ["depreciation", "operating_nwc"]) {
+        if (!answers[`${field}_confirmation`]) {
+          setError("Please confirm each figure derived from your statements or provide an updated figure.");
+          return;
+        }
+        if (answers[`${field}_confirmation`] === "override" && !answers[`${field}_override_rationale`]) {
+          setError("Please explain why you are using an updated figure.");
+          return;
+        }
+      }
+      const forecastHorizon = Number(answers.forecast_horizon);
+      const fcffAssumptions: FcffAssumptionsInput = {
+        forecast: {
+          horizon_years: forecastHorizon,
+          revenue_growth_rate: cagr / 100,
+          terminal_growth_rate: terminalGrowth / 100,
+          confirmed: true,
+        },
+        depreciation: {
+          rate: Number(answers.depreciation_ratio) / 100,
+          confirmed: true,
+          rationale: String(answers.depreciation_override_rationale ?? answers.depreciation_zero_rationale ?? ""),
+          confirmation_method: answers.depreciation_confirmation === "override" ? "override" : "calculated",
+          confirmation_source: answers.depreciation_confirmation === "override" ? "customer" : "financial_statements",
+          source_period: answers.depreciation_confirmation === "override" ? undefined : fcffReadiness?.depreciation.source_period ?? undefined,
+        },
+        capex: {
+          rate: Number(answers.capex_ratio) / 100,
+          confirmed: true,
+          rationale: String(answers.capex_zero_rationale ?? ""),
+          confirmation_method: "manual",
+          confirmation_source: "customer",
+        },
+        operating_nwc: {
+          rate: Number(answers.operating_nwc_ratio) / 100,
+          confirmed: true,
+          rationale: String(answers.operating_nwc_override_rationale ?? answers.operating_nwc_zero_rationale ?? ""),
+          confirmation_method: answers.operating_nwc_confirmation === "override" ? "override" : "calculated",
+          confirmation_source: answers.operating_nwc_confirmation === "override" ? "customer" : "financial_statements",
+          source_period: answers.operating_nwc_confirmation === "override" ? undefined : fcffReadiness?.operating_nwc.source_period ?? undefined,
+        },
+      };
+      answers.fcff_assumptions = fcffAssumptions;
+      delete answers.forecast_horizon;
+      delete answers.revenue_growth_cagr;
+      delete answers.terminal_growth_rate;
+      for (const field of [
+        "depreciation_ratio", "depreciation_confirmation", "depreciation_override_rationale", "depreciation_zero_rationale",
+        "capex_ratio", "capex_zero_rationale",
+        "operating_nwc_ratio", "operating_nwc_confirmation", "operating_nwc_override_rationale", "operating_nwc_zero_rationale",
+      ]) delete answers[field];
       answers.normalisations = normalisations
         .filter((row) => row.label.trim())
         .map((row) => ({
@@ -320,6 +417,104 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
               Terminal growth rate (%)
               <input id="terminal-growth-rate" name="terminal_growth_rate" type="number" min="0" max="20" step="0.1" required />
             </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Investment and working capital</legend>
+            <p className="muted">
+              These assumptions help estimate cash available to investors. We have kept the accounting detail out of the main flow.
+            </p>
+            {fcffReadiness?.state === "needs_adviser_assistance" ? (
+              <div className="alert alert-warning" role="status">
+                <p>{fcffReadiness.message}</p>
+                <p>An adviser will help confirm these assumptions before any payment step.</p>
+              </div>
+            ) : null}
+            <details>
+              <summary>How we derived these figures</summary>
+              <p>
+                Depreciation and amortisation, and operating working capital, are shown as percentages of revenue only when the
+                same reporting period supports the calculation.
+              </p>
+            </details>
+            {([
+              ["depreciation", "Depreciation and amortisation", fcffReadiness?.depreciation],
+              ["operating_nwc", "Operating working capital", fcffReadiness?.operating_nwc],
+            ] as const).map(([key, label, derived]) => {
+              const ratioName = `${key}_ratio`;
+              const isAvailable = derived?.status === "available" && derived.rate != null;
+              return (
+                <section className="panel" key={key}>
+                  <h3>{label}</h3>
+                  {isAvailable ? (
+                    <p>
+                      We calculated <strong>{((derived.rate ?? 0) * 100).toFixed(1)}% of revenue</strong>{derived.source_period ? ` from ${derived.source_period}` : ""}.
+                    </p>
+                  ) : (
+                    <p className="muted">We could not safely calculate this figure from the statements provided.</p>
+                  )}
+                  <fieldset>
+                    <legend>Use this figure?</legend>
+                    <label>
+                      <input
+                        type="radio"
+                        name={`${key}_confirmation`}
+                        value="confirm"
+                        required
+                        disabled={!isAvailable}
+                        onChange={() => setAssumptionOverrides((current) => ({ ...current, [key]: false }))}
+                      />
+                      Yes, use the calculated figure
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        name={`${key}_confirmation`}
+                        value="override"
+                        required
+                        onChange={() => setAssumptionOverrides((current) => ({ ...current, [key]: true }))}
+                      />
+                      Use an updated figure
+                    </label>
+                  </fieldset>
+                  <label htmlFor={`${key}-ratio`}>
+                    {label} (% of revenue)
+                    <input
+                      id={`${key}-ratio`}
+                      name={ratioName}
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      defaultValue={isAvailable ? (derived.rate ?? 0) * 100 : undefined}
+                      readOnly={isAvailable && !assumptionOverrides[key]}
+                      aria-readonly={isAvailable && !assumptionOverrides[key]}
+                      required
+                    />
+                  </label>
+                  <label htmlFor={`${key}-override-rationale`}>
+                    Why are you using this figure?
+                    <textarea id={`${key}-override-rationale`} name={`${key}_override_rationale`} rows={2} />
+                  </label>
+                  <label htmlFor={`${key}-zero-rationale`}>
+                    If this is zero, why?
+                    <textarea id={`${key}-zero-rationale`} name={`${key}_zero_rationale`} rows={2} />
+                  </label>
+                </section>
+              );
+            })}
+            <section className="panel">
+              <h3>Capital investment (capex)</h3>
+              <p>Enter the annual capital investment you expect as a percentage of revenue. We cannot safely derive this from your statements.</p>
+              <label htmlFor="capex-ratio">
+                Capital investment (% of revenue)
+                <input id="capex-ratio" name="capex_ratio" type="number" min="0" max="100" step="0.1" required />
+              </label>
+              <label htmlFor="capex-zero-rationale">
+                If this is zero, why?
+                <textarea id="capex-zero-rationale" name="capex_zero_rationale" rows={2} />
+              </label>
+            </section>
           </fieldset>
 
           <fieldset>

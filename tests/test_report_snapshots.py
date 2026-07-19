@@ -7,8 +7,10 @@ import pytest
 
 from db import DB_PATH, init_db
 from report_snapshots import (
+    SNAPSHOT_SCHEMA_VERSION,
     VALUATION_ENGINE_VERSION,
     SnapshotIntegrityError,
+    _approved_wacc_assumption_set,
     build_report_input_snapshot_candidate,
     create_report_input_snapshot,
     load_report_input_snapshot,
@@ -90,6 +92,42 @@ async def _seed_snapshot_source(db):
 
 
 @pytest.mark.asyncio
+async def test_approved_wacc_percentages_freeze_as_lossless_decimal_ratios(fresh_all_db):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        user = await db.execute(
+            "INSERT INTO users (email, hashed_pw) VALUES ('wacc-snapshot@example.com', 'hash')"
+        )
+        await db.execute(
+            """
+            INSERT INTO wacc_assumption_sets
+                (name, version, status, active, risk_free_rate,
+                 equity_risk_premium, beta, beta_type, cost_of_debt,
+                 target_debt_weight, target_equity_weight, additional_premium,
+                 scenario_spread, source_references, publisher, as_of_date,
+                 rationale, approved_at, approved_by_user_id)
+            VALUES ('NZ SME', 1, 'approved', 1, '4.5', '5.50', '1.1',
+                    'industry', '6.25', '28', '72', '2.00', '1.25',
+                    'Source', 'Publisher', '2026-07-01', 'Rationale',
+                    datetime('now'), ?)
+            """,
+            (user.lastrowid,),
+        )
+        await db.commit()
+
+        frozen = await _approved_wacc_assumption_set(db)
+
+    assert frozen["risk_free_rate"] == "0.045"
+    assert frozen["equity_risk_premium"] == "0.055"
+    assert frozen["beta"] == "1.1"
+    assert frozen["cost_of_debt"] == "0.0625"
+    assert frozen["target_debt_weight"] == "0.28"
+    assert frozen["target_equity_weight"] == "0.72"
+    assert frozen["additional_premium"] == "0.02"
+    assert frozen["scenario_spread"] == "0.0125"
+
+
+@pytest.mark.asyncio
 async def test_candidate_can_be_validated_before_snapshot_persistence(fresh_all_db):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -113,7 +151,9 @@ async def test_candidate_can_be_validated_before_snapshot_persistence(fresh_all_
     assert candidate["report_type"] == "valuation_advisory"
     assert candidate["intake_answers"] == {"forecast_horizon": 7}
     assert candidate["financial_rows"][0]["row_key"] == "ebitda"
-    assert candidate["valuation_engine_version"] == "typed-inputs-v2"
+    assert candidate["schema_version"] == "2"
+    assert candidate["schema_version"] == SNAPSHOT_SCHEMA_VERSION
+    assert candidate["valuation_engine_version"] == "fcff-assumptions-v1"
     assert candidate["valuation_engine_version"] == VALUATION_ENGINE_VERSION
     assert len(candidate["canonical_digest"]) == 64
 
@@ -215,6 +255,35 @@ async def test_snapshot_digest_binds_stored_versions(fresh_all_db):
         await db.commit()
 
         with pytest.raises(SnapshotIntegrityError, match="version"):
+            await load_report_input_snapshot(db, report_id)
+
+
+@pytest.mark.asyncio
+async def test_completed_schema_one_snapshot_remains_readable_but_pending_does_not(fresh_all_db):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        user_id, company_id, report_id = await _seed_snapshot_source(db)
+        candidate = await build_report_input_snapshot_candidate(db, report_id, company_id, user_id)
+        candidate["schema_version"] = "1"
+        candidate["valuation_engine_version"] = "typed-inputs-v2"
+        from report_snapshots import _digest_payload
+        frozen = {
+            key: value for key, value in candidate.items()
+            if key not in {"document_manifest", "financial_rows", "schema_version", "valuation_engine_version", "canonical_digest"}
+        }
+        candidate["canonical_digest"] = _digest_payload(
+            candidate["document_manifest"], frozen, candidate["financial_rows"], "1", "typed-inputs-v2"
+        )
+        await persist_report_input_snapshot(db, report_id, candidate)
+        await db.execute("UPDATE reports SET status='done' WHERE id=?", (report_id,))
+        await db.commit()
+
+        completed = await load_report_input_snapshot(db, report_id)
+        assert completed["schema_version"] == "1"
+
+        await db.execute("UPDATE reports SET status='failed' WHERE id=?", (report_id,))
+        await db.commit()
+        with pytest.raises(SnapshotIntegrityError, match="restart"):
             await load_report_input_snapshot(db, report_id)
 
 
