@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PVM-08 PRs #15 and #16 complete; typed valuation inputs and EV-to-equity PR 2A active
-stopped_at: PR 2A implementing typed financial inputs and explicit EV-to-equity bridge; FCFF remains separate PR 2B
-last_updated: "2026-07-18T12:00:00+12:00"
+status: PRs #15 to #18 merged; 3A branch pushed with no PR
+stopped_at: Open a PR for feature/fcff-assumptions , then review it before implementing PR 3B Decimal FCFF engine and PR 3C Python-owned deterministic tables
+last_updated: "2026-07-20T12:00:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -13,7 +13,7 @@ progress:
   percent: 95
 ---
 
-# AccountIQ — Project State
+# AccountIQ - Project State
 
 ## Project Reference
 
@@ -47,14 +47,30 @@ Completed PVM-08A input-authority slices:
 
 - PR #15 / PR 1A: immutable, hashed upload revisions and explicit `(company, statement, period)` authority. Only completed extractions qualify, failed replacements preserve prior authority, and unrelated overlaps surface conflicts.
 - PR #16 / PR 1B: checkout freezes authoritative documents, financial rows, profile data, adjustments, and intake in a versioned snapshot. Generation and retry verify and consume only that snapshot.
+- PR #17 / PR 2A: typed valuation inputs and the explicit EV-to-equity bridge.
+- PR #18: UI polish.
 
-Active valuation correction slices:
+PR 3A is implemented on pushed `feature/fcff-assumptions`, but has no PR yet. It adds frozen FCFF and adviser-approved WACC assumptions, schema 2, admin WACC UI, and intake changes.
 
-- PVM-08A / PR 2A: typed valuation inputs, fail-closed unit/currency/period handling, explicit debt and cash classifications, approved surplus assets, EBITDA selection, and EV-to-equity calculations.
-- PVM-08A / PR 2B: FCFF calculation corrections remain separate from PR 2A.
-- PVM-08B: run one guarded live valuation UAT after both correction slices and record William's domain disposition. No live Anthropic request has been made yet.
+Current valuation sequence:
 
-Latest merged verification:
+1. Open a PR for the 3A branch and review it.
+2. Implement PR 3B, the Decimal FCFF engine.
+3. Implement PR 3C, Python-owned deterministic tables.
+4. Run a synthetic service rehearsal.
+5. Run live Anthropic UAT only with separate explicit approval, then record William's domain disposition.
+6. Close or explicitly waive launch gates for a private pilot.
+
+Public payments remain blocked while all eight launch gates are open. Valuation is the only self-serve launch product. Bank credit papers, forecasts, capital raising documents, and information memorandums remain adviser pilots.
+
+Latest prior verification:
+
+- Backend: 263 passed, 1 skipped.
+- Frontend: `pnpm typecheck`, `pnpm lint`, and `pnpm build` passed.
+
+No fresh verification or live UAT is recorded here.
+
+Earlier per-PR verification:
 
 - PR #15: focused authority/migration/profile/upload tests 30 passed; full backend 184 passed, 1 skipped.
 - PR #16: backend 202 passed, 1 skipped; lint, typecheck, build, and both Playwright suites passed with 13 tests each.
@@ -82,7 +98,7 @@ External parity review follow-up (2026-07-01):
 Commercialization review (2026-07-01):
 
 - Strongest wedge: launch a focused **Indicative SME Valuation + Exit Readiness Report** for NZ/AU owners and advisors, not all five report types at once.
-- Best initial motion: productized service with automation underneath; manually review the first 20-50 paid reports before fully self-serve delivery.
+- Best initial motion: productized service with automation underneath; manually review the first 20 to 50 paid reports before fully self-serve delivery.
 - Highest launch gaps: Stripe payment gate, professional PDF artifact, purchase history, admin review-before-release queue, quality gates for missing profile/financial data, production legal/trust pages, and a public acquisition/pricing surface.
 - Pricing hypothesis: free extraction/readiness teaser, $495 launch self-serve valuation moving toward $795-$995, $1,500-$2,500 advisor-reviewed valuation, and partner/broker bundles after pilot validation.
 
@@ -95,21 +111,22 @@ Commercialization review (2026-07-01):
 | 2026-05-04 | Existing data kept as shared demo | Avoid data loss; useful for testing |
 | 2026-05-04 | Extend existing stack (no rewrite) | Avoid migration cost; existing extraction already works |
 | 2026-05-04 | First-draft quality bar | Makes accuracy achievable; professionals add value |
-| 2026-05-06 | Phase 1 complete — auth wall, CORS, XSS, path-traversal all hardened | All 6 success criteria verified; 4 code review criticals documented for gap closure |
-| 2026-05-07 | Phase 2 planned — 3 plans in 3 waves covering AUTH-07 and DATA-01 | DB migration → route filtering → integration tests; verification passed (0 blockers) |
-| 2026-05-13 | Phase 3.5 complete — admin/wizard split, OWNER_EMAIL gate, require_admin on all 25 routes | AUTH-09 + UX-01 delivered; 49 tests passing; drag-and-drop added post-checkpoint |
+| 2026-05-06 | Phase 1 complete, auth wall, CORS, XSS, path-traversal all hardened | All 6 success criteria verified; 4 code review criticals documented for gap closure |
+| 2026-05-07 | Phase 2 planned, 3 plans in 3 waves covering AUTH-07 and DATA-01 | DB migration → route filtering → integration tests; verification passed (0 blockers) |
+| 2026-05-13 | Phase 3.5 complete, admin/wizard split, OWNER_EMAIL gate, require_admin on all 25 routes | AUTH-09 + UX-01 delivered; 49 tests passing; drag-and-drop added post-checkpoint |
 | 2026-07-01 | Migrated primary frontend to Next.js App Router | Replaces single-file vanilla UI while preserving FastAPI uploads, extraction, reports, auth cookies, and SQLite writes |
 | 2026-07-01 | Added deterministic Playwright E2E in dev and standalone modes | Validates auth, wizard, admin workflows, upload/report generation, report viewer escaping, and responsive smoke checks |
 | 2026-07-01 | Narrow launch strategy to valuation wedge first | Paid launch should prove trust and willingness-to-pay with one high-value report before broadening to all five report families |
 | 2026-07-12 | Persist the active report ID per authenticated user in the wizard | Customers must be able to resume a long-running review/delivery state after reload; report access remains owner-filtered by the backend |
 | 2026-07-13 | Use early-access fixed-fee language without a public numeric valuation price | Conflicting planning figures are not approved marketing claims; checkout remains the source of the fee before payment |
 | 2026-07-18 | Use typed valuation inputs and an explicit EV-to-equity bridge in PR 2A | Normalise supported units to whole currency units; require one currency and compatible annual periods; classify debt, unrestricted cash, and approved surplus assets explicitly; use reported EBITDA before same-period EBIT plus depreciation; keep FCFF corrections in PR 2B |
+| 2026-07-19 | Sequence valuation corrections through PRs 3A, 3B, and 3C before service rehearsal | PR 3A freezes FCFF and adviser-approved WACC assumptions; PR 3B introduces Decimal FCFF; PR 3C makes valuation tables deterministic and Python-owned before any explicitly approved live Anthropic UAT |
 
 ---
 ## Session Continuity
 
-Last session: 2026-07-18
-Stopped at: PRs #15 and #16 merged; typed valuation inputs and EV-to-equity PR 2A active; FCFF PR 2B follows.
+Last session: 2026-07-20
+Stopped at: PRs #15 to #18 merged; the 3A branch is pushed without a PR. Open and review its PR next. PR 3B, PR 3C, synthetic service rehearsal, explicitly approved live Anthropic UAT, and launch-gate closure/private pilot follow.
 Resume file: .planning/phases/05.1-valuation-advisory-redesign/PVM-08-UAT.md
 
 ---

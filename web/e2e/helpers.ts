@@ -41,6 +41,9 @@ export async function completeValuationIntake(page: Page) {
   await page.getByLabel(/forecast horizon/i).selectOption("3");
   await page.getByLabel(/revenue growth rate/i).fill("8");
   await page.getByLabel(/terminal growth rate/i).fill("3");
+  await page.locator('input[name="depreciation_confirmation"][value="confirm"]').check();
+  await page.locator('input[name="operating_nwc_confirmation"][value="confirm"]').check();
+  await page.getByLabel(/capital investment \(% of revenue\)/i).fill("4");
   for (const name of [
     "rq_revenue_quality",
     "rq_owner_dependency",

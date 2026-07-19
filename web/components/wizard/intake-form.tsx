@@ -85,6 +85,10 @@ const riskQuestions = [
   ["rq_management_depth", "Management depth", ["1 - owner does everything", "2", "3", "4", "5 - deep bench"]],
 ] as const;
 
+function percentageToRatio(value: unknown): number {
+  return Number((Number(value) / 100).toFixed(10));
+}
+
 function toAnswerValue(value: FormDataEntryValue): string | number {
   const text = String(value).trim();
   if (text === "") return "";
@@ -280,12 +284,12 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
       const fcffAssumptions: FcffAssumptionsInput = {
         forecast: {
           horizon_years: forecastHorizon,
-          revenue_growth_rate: cagr / 100,
-          terminal_growth_rate: terminalGrowth / 100,
+          revenue_growth_rate: percentageToRatio(cagr),
+          terminal_growth_rate: percentageToRatio(terminalGrowth),
           confirmed: true,
         },
         depreciation: {
-          rate: Number(answers.depreciation_ratio) / 100,
+          rate: percentageToRatio(answers.depreciation_ratio),
           confirmed: true,
           rationale: String(answers.depreciation_override_rationale ?? answers.depreciation_zero_rationale ?? ""),
           confirmation_method: answers.depreciation_confirmation === "override" ? "override" : "calculated",
@@ -293,14 +297,14 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
           source_period: answers.depreciation_confirmation === "override" ? undefined : fcffReadiness?.depreciation.source_period ?? undefined,
         },
         capex: {
-          rate: Number(answers.capex_ratio) / 100,
+          rate: percentageToRatio(answers.capex_ratio),
           confirmed: true,
           rationale: String(answers.capex_zero_rationale ?? ""),
           confirmation_method: "manual",
           confirmation_source: "customer",
         },
         operating_nwc: {
-          rate: Number(answers.operating_nwc_ratio) / 100,
+          rate: percentageToRatio(answers.operating_nwc_ratio),
           confirmed: true,
           rationale: String(answers.operating_nwc_override_rationale ?? answers.operating_nwc_zero_rationale ?? ""),
           confirmation_method: answers.operating_nwc_confirmation === "override" ? "override" : "calculated",
