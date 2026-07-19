@@ -4,21 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ApiError, apiFetch } from "@/lib/api-client";
-import { reportStatusLabel, reportTypeLabel } from "@/lib/presentation";
+import { StatusPill } from "@/components/status-pill";
+import { formatMoney, reportTypeLabel } from "@/lib/presentation";
 import type { AdminPendingReport } from "@/types/domain";
 
 type ApproveResponse = {
   id: number;
   status: string;
 };
-
-function formatPaidAmount(report: AdminPendingReport) {
-  if (report.amount_cents == null) return "-";
-  return new Intl.NumberFormat("en-NZ", {
-    style: "currency",
-    currency: report.currency || "NZD",
-  }).format(report.amount_cents / 100);
-}
 
 export function ReportsPage() {
   const router = useRouter();
@@ -28,45 +21,28 @@ export function ReportsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const loadReports = useCallback(async () => {
+  const loadReports = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true);
-      setReports(await apiFetch<AdminPendingReport[]>("/admin/reports/pending"));
+      setReports(await apiFetch<AdminPendingReport[]>("/admin/reports/pending", { signal }));
       setError("");
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       if (err instanceof ApiError && err.status === 401) {
         router.replace("/login");
         return;
       }
       setError(err instanceof Error ? err.message : "Reports failed to load.");
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, [router]);
 
   useEffect(() => {
-    let cancelled = false;
-    apiFetch<AdminPendingReport[]>("/admin/reports/pending")
-      .then((rows) => {
-        if (cancelled) return;
-        setReports(rows);
-        setError("");
-      })
-      .catch((err) => {
-        if (err instanceof ApiError && err.status === 401) {
-          router.replace("/login");
-          return;
-        }
-        if (!cancelled) setError(err instanceof Error ? err.message : "Reports failed to load.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
+    const controller = new AbortController();
+    queueMicrotask(() => void loadReports(controller.signal));
+    return () => controller.abort();
+  }, [loadReports]);
 
   async function approve(reportId: number) {
     try {
@@ -89,7 +65,7 @@ export function ReportsPage() {
     <section className="admin-page">
       <header className="page-header">
         <h1>Reports</h1>
-        <button className="button button-secondary" onClick={loadReports}>
+        <button className="button button-secondary" onClick={() => void loadReports()}>
           Refresh
         </button>
       </header>
@@ -129,9 +105,9 @@ export function ReportsPage() {
                     <td>{report.company_name}</td>
                     <td>{report.user_email}</td>
                     <td>{reportTypeLabel(report.report_type)}</td>
-                    <td>{formatPaidAmount(report)}</td>
+                    <td>{report.amount_cents == null ? "-" : formatMoney(report.amount_cents, report.currency || "NZD")}</td>
                     <td>
-                      <span className={`status-pill status-${report.status}`}>{reportStatusLabel(report.status)}</span>
+                      <StatusPill status={report.status} />
                     </td>
                     <td>{new Date(report.created_at).toLocaleString()}</td>
                     <td>

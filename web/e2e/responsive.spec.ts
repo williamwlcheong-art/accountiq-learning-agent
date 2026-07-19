@@ -32,9 +32,10 @@ test("wizard intake and account purchase history are usable on a narrow screen",
   await submitValuationCheckout(page);
 
   await page.getByRole("link", { name: "Account", exact: true }).click();
-  await expect(page.locator(".purchase-record").filter({ hasText: "Mobile History E2E Ltd" })).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator(".purchase-record")).toBeVisible();
-  await expect(page.locator(".purchase-table-wrap")).toBeHidden();
+  const purchaseRow = page.locator(".purchase-table tr").filter({ hasText: "Mobile History E2E Ltd" });
+  await expect(purchaseRow).toBeVisible({ timeout: 15_000 });
+  await expect(purchaseRow.locator('td[data-label="Company"]')).toContainText("Mobile History E2E Ltd");
+  await expect(page.locator(".purchase-table")).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
 

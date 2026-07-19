@@ -3,8 +3,8 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { StatusPill } from "@/components/status-pill";
 import { ApiError, apiFetch, postForm } from "@/lib/api-client";
-import { reportStatusLabel } from "@/lib/presentation";
 import { FINANCIAL_FILE_ACCEPT, validateFinancialFile } from "@/lib/upload-files";
 import type { DocumentRecord } from "@/types/domain";
 
@@ -182,9 +182,7 @@ export function UploadPage() {
         <section className="panel">
           <h2>Active Ingestion Job</h2>
           <p>Document #{activeDocId}</p>
-          <p className={`status-pill status-${status?.extraction_status ?? "processing"}`}>
-            {reportStatusLabel(status?.extraction_status ?? "processing")}
-          </p>
+          <StatusPill status={status?.extraction_status ?? "processing"} />
           {status?.logs?.length ? (
             <ul className="simple-list">
               {status.logs.slice(0, 5).map((log) => (

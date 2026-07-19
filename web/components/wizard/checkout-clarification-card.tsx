@@ -1,17 +1,5 @@
-import { clarificationDetailValue, clarificationFieldLabel, clarificationReasonLabel } from "@/lib/presentation";
+import { clarificationDetail, clarificationReasonLabel } from "@/lib/presentation";
 import type { CheckoutClarification } from "@/types/domain";
-
-const CUSTOMER_SAFE_DETAIL_KEYS = new Set([
-  "statement",
-  "period",
-  "periods",
-  "base_period",
-  "balance_sheet_periods",
-  "currency",
-  "currencies",
-  "unit",
-  "field",
-]);
 
 type CheckoutClarificationCardProps = {
   clarification: CheckoutClarification;
@@ -20,19 +8,7 @@ type CheckoutClarificationCardProps = {
 
 export function CheckoutClarificationCard({ clarification, onReset }: CheckoutClarificationCardProps) {
   const affectedDetails = Object.entries(clarification.details)
-    .filter(([key]) => CUSTOMER_SAFE_DETAIL_KEYS.has(key))
-    .map(([key, value]) => {
-      if (typeof value === "string" || typeof value === "number") {
-        return [key, clarificationDetailValue(key, value)] as const;
-      }
-      if (Array.isArray(value)) {
-        const items = value.filter((item): item is string | number => typeof item === "string" || typeof item === "number");
-        if (items.length === value.length) {
-          return [key, items.map((item) => clarificationDetailValue(key, item)).join(", ")] as const;
-        }
-      }
-      return null;
-    })
+    .map(([key, value]) => clarificationDetail(key, value))
     .filter((entry): entry is readonly [string, string] => entry !== null);
   return (
     <section className="wizard-card clarification-card" role="alert">
@@ -41,9 +17,9 @@ export function CheckoutClarificationCard({ clarification, onReset }: CheckoutCl
       <p>{clarification.message}</p>
       {affectedDetails.length ? (
         <dl className="confirmation-grid clarification-details">
-          {affectedDetails.map(([key, value]) => (
-            <div key={key}>
-              <dt>{clarificationFieldLabel(key)}</dt>
+          {affectedDetails.map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
               <dd>{String(value)}</dd>
             </div>
           ))}

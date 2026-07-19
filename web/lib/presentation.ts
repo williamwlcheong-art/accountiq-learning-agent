@@ -33,22 +33,36 @@ const PURCHASE_STATUS_LABELS: Record<string, string> = {
   failed: "Payment needs attention",
 };
 
-const CLARIFICATION_FIELD_LABELS: Record<string, string> = {
-  document_id: "Financial statement",
-  document_ids: "Financial statements",
-  filename: "File name",
-  filenames: "Files",
-  missing_statements: "Missing statements",
-  required_statements: "Required statements",
-  statement: "Financial statement",
-  period: "Reporting period",
-  periods: "Reporting periods",
-  base_period: "Selected reporting period",
-  balance_sheet_periods: "Balance sheet periods",
-  currency: "Currency",
-  currencies: "Currencies",
-  unit: "Unit",
-  field: "Required detail",
+export type StatusTone = "success" | "info" | "warning" | "danger" | "neutral";
+
+const REPORT_STATUS_TONES: Record<string, StatusTone> = {
+  pending_payment: "warning",
+  queued: "info",
+  researching: "info",
+  generating: "info",
+  processing: "info",
+  extracting: "info",
+  awaiting_review: "warning",
+  done: "success",
+  failed: "danger",
+};
+
+const CLARIFICATION_DETAILS: Record<string, {
+  label: string;
+  format?: (value: string | number) => string;
+}> = {
+  statement: { label: "Financial statement", format: (value) => financialStatementLabel(String(value)) },
+  period: { label: "Reporting period" },
+  periods: { label: "Reporting periods" },
+  base_period: { label: "Selected reporting period" },
+  balance_sheet_periods: { label: "Balance sheet periods" },
+  currency: { label: "Currency" },
+  currencies: { label: "Currencies" },
+  unit: { label: "Unit" },
+  field: {
+    label: "Required detail",
+    format: (value) => CLARIFICATION_DETAIL_VALUE_LABELS[String(value)] ?? "This detail",
+  },
 };
 
 const CLARIFICATION_DETAIL_VALUE_LABELS: Record<string, string> = {
@@ -69,6 +83,13 @@ function readableFallback(value: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+export function formatMoney(amountCents: number, currency: string) {
+  return new Intl.NumberFormat("en-NZ", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(amountCents / 100);
+}
+
 export function reportTypeLabel(value: string) {
   return REPORT_TYPE_LABELS[value] ?? readableFallback(value);
 }
@@ -77,22 +98,31 @@ export function financialStatementLabel(value: string) {
   return FINANCIAL_STATEMENT_LABELS[value] ?? readableFallback(value);
 }
 
-export function clarificationDetailValue(key: string, value: string | number) {
-  if (key === "statement") return financialStatementLabel(String(value));
-  if (key === "field") return CLARIFICATION_DETAIL_VALUE_LABELS[String(value)] ?? "This detail";
-  return String(value);
+export function clarificationDetail(key: string, value: unknown): readonly [string, string] | null {
+  const detail = CLARIFICATION_DETAILS[key];
+  if (!detail) return null;
+
+  const format = detail.format ?? ((item: string | number) => String(item));
+  if (typeof value === "string" || typeof value === "number") {
+    return [detail.label, format(value)];
+  }
+  if (Array.isArray(value)) {
+    const items = value.filter((item): item is string | number => typeof item === "string" || typeof item === "number");
+    if (items.length === value.length) return [detail.label, items.map(format).join(", ")];
+  }
+  return null;
 }
 
 export function reportStatusLabel(value: string) {
   return REPORT_STATUS_LABELS[value] ?? readableFallback(value);
 }
 
-export function purchaseStatusLabel(value: string) {
-  return PURCHASE_STATUS_LABELS[value] ?? readableFallback(value);
+export function reportStatusTone(value: string): StatusTone {
+  return REPORT_STATUS_TONES[value] ?? "neutral";
 }
 
-export function clarificationFieldLabel(value: string) {
-  return CLARIFICATION_FIELD_LABELS[value] ?? readableFallback(value);
+export function purchaseStatusLabel(value: string) {
+  return PURCHASE_STATUS_LABELS[value] ?? readableFallback(value);
 }
 
 export function clarificationReasonLabel(value: string) {

@@ -38,7 +38,6 @@ export function Wizard({ user }: WizardProps) {
   const [step, setStep] = useState<WizardStep>("upload");
   const [businessName, setBusinessName] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [draggingFile, setDraggingFile] = useState(false);
   const [upload, setUpload] = useState<UploadResult | null>(null);
   const [readiness, setReadiness] = useState<WizardReadiness | null>(null);
   const [reportType, setReportType] = useState<WizardReportType | null>(null);
@@ -119,7 +118,6 @@ export function Wizard({ user }: WizardProps) {
 
   function dropFile(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();
-    setDraggingFile(false);
     handleFile(event.dataTransfer.files?.[0] ?? null);
   }
 
@@ -260,13 +258,9 @@ export function Wizard({ user }: WizardProps) {
                 Financial statements <span className="required" aria-hidden="true">*</span>
               </span>
               <label
-                className={draggingFile ? "drop-zone drag-over" : "drop-zone"}
+                className="drop-zone"
                 htmlFor="financial-file"
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setDraggingFile(true);
-                }}
-                onDragLeave={() => setDraggingFile(false)}
+                onDragOver={(event) => event.preventDefault()}
                 onDrop={dropFile}
               >
                 <span className="drop-zone-icon" aria-hidden="true">

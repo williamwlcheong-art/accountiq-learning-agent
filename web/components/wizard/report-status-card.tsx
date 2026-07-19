@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { reportStatusLabel } from "@/lib/presentation";
+import { StatusPill } from "@/components/status-pill";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { ReportStatus } from "@/types/domain";
 
@@ -99,7 +99,7 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
         </p>
       ) : null}
 
-      <p className={`status-pill status-${currentStatus}`}>{reportStatusLabel(currentStatus)}</p>
+      <StatusPill status={currentStatus} />
 
       {currentStatus === "pending_payment" ? (
         <p className="wizard-note">
