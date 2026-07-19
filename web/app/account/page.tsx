@@ -1,56 +1,23 @@
 import Link from "next/link";
 
-import { LogoutButton } from "@/components/auth/logout-button";
+import { CustomerHeader } from "@/components/customer-header";
+import { StatusPill } from "@/components/status-pill";
+import { formatMoney, purchaseStatusLabel, reportTypeLabel } from "@/lib/presentation";
 import { requireUser } from "@/lib/auth";
 import { serverApiFetch } from "@/lib/server-api";
 import type { PurchaseHistoryItem } from "@/types/domain";
 
-function reportLabel(reportType: string) {
-  return reportType
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function formatAmount(purchase: PurchaseHistoryItem) {
-  return new Intl.NumberFormat("en-NZ", {
-    style: "currency",
-    currency: purchase.currency || "NZD",
-  }).format(purchase.amount_cents / 100);
-}
-
-function deliveryLabel(status: string) {
-  const labels: Record<string, string> = {
-    pending_payment: "Payment pending",
-    queued: "Preparing",
-    researching: "Preparing",
-    generating: "Preparing",
-    awaiting_review: "Awaiting review",
-    done: "Ready",
-    failed: "Needs attention",
-  };
-  return labels[status] ?? status.replaceAll("_", " ");
-}
-
 export default async function AccountPage() {
   const user = await requireUser();
   const purchases = await serverApiFetch<PurchaseHistoryItem[]>("/account/purchases");
-  const created = user.created_at ? new Date(user.created_at).toLocaleDateString() : "-";
+  const created = user.created_at ? new Date(user.created_at).toLocaleDateString("en-NZ") : "-";
 
   return (
     <>
-      <nav className="top-nav">
-        <Link className="nav-brand nav-brand-link" href={user.is_admin ? "/admin" : "/wizard"}>
-          <strong>AccountIQ</strong>
-          <span>{user.is_admin ? "Admin" : "Wizard"}</span>
-        </Link>
-        <div className="nav-user">
-          <span>{user.email}</span>
-          <LogoutButton />
-        </div>
-      </nav>
-      <main className="shell">
+      <CustomerHeader email={user.email} activePage="account" />
+      <main className="shell customer-account">
         <section className="panel">
+          <p className="eyebrow">Your AccountIQ account</p>
           <h1>Account</h1>
           <dl className="detail-list">
             <div>
@@ -64,10 +31,16 @@ export default async function AccountPage() {
           </dl>
         </section>
         <section className="panel">
-          <h2>Report Purchase History</h2>
+          <div className="page-header">
+            <div>
+              <h2>Report purchase history</h2>
+              <p className="muted">Your paid reports and their delivery status appear here.</p>
+            </div>
+            <Link className="button button-primary" href="/wizard">New valuation</Link>
+          </div>
           {purchases.length ? (
-            <div className="table-wrap">
-              <table>
+            <div className="table-wrap purchase-table-wrap" tabIndex={0}>
+              <table className="purchase-table">
                 <thead>
                   <tr>
                     <th>Company</th>
@@ -82,17 +55,13 @@ export default async function AccountPage() {
                 <tbody>
                   {purchases.map((purchase) => (
                     <tr key={purchase.purchase_id}>
-                      <td>{purchase.company_name}</td>
-                      <td>{reportLabel(purchase.report_type)}</td>
-                      <td>{formatAmount(purchase)}</td>
-                      <td>{purchase.purchase_status === "paid" ? "Paid" : "Pending"}</td>
-                      <td>
-                        <span className={`status-pill status-${purchase.report_status}`}>
-                          {deliveryLabel(purchase.report_status)}
-                        </span>
-                      </td>
-                      <td>{new Date(purchase.paid_at || purchase.created_at).toLocaleDateString("en-NZ")}</td>
-                      <td>
+                      <td data-label="Company">{purchase.company_name}</td>
+                      <td data-label="Report">{reportTypeLabel(purchase.report_type)}</td>
+                      <td data-label="Amount">{formatMoney(purchase.amount_cents, purchase.currency || "NZD")}</td>
+                      <td data-label="Payment">{purchaseStatusLabel(purchase.purchase_status)}</td>
+                      <td data-label="Delivery"><StatusPill status={purchase.report_status} /></td>
+                      <td data-label="Purchased">{new Date(purchase.paid_at || purchase.created_at).toLocaleDateString("en-NZ")}</td>
+                      <td data-label="Actions">
                         {purchase.report_status === "done" ? (
                           <div className="action-cell">
                             <a
@@ -120,7 +89,10 @@ export default async function AccountPage() {
               </table>
             </div>
           ) : (
-            <p className="muted">No purchases yet. Your paid reports and delivery status will appear here.</p>
+            <div className="account-empty-state">
+              <p>No purchases yet.</p>
+              <Link href="/wizard" className="button button-primary">Start a valuation</Link>
+            </div>
           )}
         </section>
       </main>

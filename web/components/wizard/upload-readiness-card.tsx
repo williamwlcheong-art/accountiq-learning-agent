@@ -1,5 +1,6 @@
 import type { WizardReadiness } from "@/types/domain";
-import { FinancialSourceList, formatMoney } from "./financial-source-list";
+import { FinancialSourceList } from "./financial-source-list";
+import { formatMoney } from "@/lib/presentation";
 
 type UploadReadinessCardProps = {
   readiness: WizardReadiness | null;

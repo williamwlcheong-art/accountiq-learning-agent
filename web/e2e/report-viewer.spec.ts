@@ -28,4 +28,23 @@ test("completed report viewer escapes script payloads", async ({ page, context, 
   await viewer.goto((await link.getAttribute("href")) ?? "");
   await expect(viewer.locator("script")).toHaveCount(0);
   await expect(viewer.locator("body")).toContainText("<script>escaped text</script>");
+  const table = viewer.getByRole("table").first();
+  await expect(table).toBeVisible();
+  await viewer.setViewportSize({ width: 320, height: 720 });
+  const tableScrollRegion = viewer.locator(".table-scroll").first();
+  await expect(tableScrollRegion).toHaveAttribute("role", "region");
+  await expect(tableScrollRegion).toHaveAttribute("aria-label", /table$/i);
+  await expect(tableScrollRegion).toBeVisible();
+  await tableScrollRegion.focus();
+  await expect(tableScrollRegion).toBeFocused();
+  const scrollMetrics = await tableScrollRegion.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollLeft: element.scrollLeft,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(scrollMetrics.scrollWidth).toBeGreaterThan(scrollMetrics.clientWidth);
+  await tableScrollRegion.press("End");
+  await expect.poll(() => tableScrollRegion.evaluate((element) => element.scrollLeft)).toBeGreaterThan(scrollMetrics.scrollLeft);
+  const reportFitsViewport = await viewer.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+  expect(reportFitsViewport).toBe(true);
 });

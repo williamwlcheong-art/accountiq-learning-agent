@@ -1913,10 +1913,11 @@ def _render_report_sections_html(sections: dict, section_order: list) -> str:
                 )
                 if th_cells or tr_rows:
                     table_html = (
-                        f"<table class='report-table'>"
+                        f"<div class='table-scroll' tabindex='0' role='region' "
+                        f"aria-label='{_html_lib.escape(heading)} table'><table class='report-table'>"
                         f"<thead><tr>{th_cells}</tr></thead>"
                         f"<tbody>{tr_rows}</tbody>"
-                        f"</table>"
+                        f"</table></div>"
                     )
 
         section_class = " class='disclaimer'" if key == "disclaimer" else ""
@@ -1943,42 +1944,55 @@ def _render_report_html(row, sections: dict, back_url: str) -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{_html_lib.escape(label)} — {_html_lib.escape(row['name'])}</title>
+<title>{_html_lib.escape(label)} | {_html_lib.escape(row['name'])} | AccountIQ</title>
 <style>
-  body {{ font-family: Georgia, serif; max-width: 820px; margin: 40px auto; padding: 0 24px;
-          color: #1a1a2e; line-height: 1.7; }}
-  header {{ border-bottom: 2px solid #1a1a2e; padding-bottom: 16px; margin-bottom: 32px; }}
-  header h1 {{ font-size: 1.6rem; margin: 0 0 4px; }}
-  header p {{ margin: 0; color: #555; font-size: .9rem; }}
+  :root {{ color-scheme: light; }}
+  * {{ box-sizing: border-box; }}
+  body {{ margin: 0; background: #f5f7fa; color: #172033; font-family: "Segoe UI", system-ui, sans-serif; line-height: 1.65; }}
+  .report-shell {{ width: min(980px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56px; }}
+  .report-topbar {{ display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; }}
+  .wordmark {{ color: #0d1b2a; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; text-decoration: none; }}
+  .back {{ display: inline-flex; min-height: 40px; align-items: center; color: #1565c0; font-size: .875rem; font-weight: 700; text-decoration: none; }}
+  .back:focus-visible {{ outline: 3px solid #2196f3; outline-offset: 3px; }}
+  .report-card {{ padding: clamp(24px, 5vw, 48px); border: 1px solid #e0e4ea; border-radius: 12px; background: #fff; box-shadow: 0 12px 32px rgba(13, 27, 42, .08); }}
+  header {{ border-bottom: 2px solid #0d1b2a; padding-bottom: 22px; margin-bottom: 32px; }}
+  header h1 {{ margin: 0 0 6px; color: #0d1b2a; font-size: clamp(1.6rem, 4vw, 2.25rem); line-height: 1.15; letter-spacing: -.03em; }}
+  header p {{ margin: 0; color: #607080; font-size: .95rem; }}
+  .meta {{ margin-top: 10px; font-size: .82rem; }}
   section {{ margin-bottom: 2.5rem; }}
-  h2 {{ font-size: 1.1rem; font-weight: 700; border-left: 4px solid #2563eb;
-        padding-left: 12px; margin-bottom: 12px; color: #1a1a2e; }}
-  h3 {{ font-size: 1rem; font-weight: 600; margin: 1.2rem 0 .4rem; color: #1a1a2e; }}
-  p {{ margin: 0 0 .9rem; font-size: .95rem; }}
-  ul {{ margin: .2rem 0 .9rem 1.4rem; padding: 0; }}
-  li {{ font-size: .95rem; margin-bottom: .3rem; line-height: 1.6; }}
-  .disclaimer {{ background: #fff8e1; border: 1px solid #f59e0b; border-radius: 6px;
-                 padding: 12px 16px; }}
-  .disclaimer p {{ font-size: .85rem; line-height: 1.6; color: #92400e; }}
-  .disclaimer li {{ font-size: .85rem; color: #92400e; }}
-  .back {{ display:inline-block; margin-bottom:24px; font-size:.875rem;
-           color:#2563eb; text-decoration:none; font-family:sans-serif; }}
-  .meta {{ font-family:sans-serif; font-size:.8rem; color:#777; margin-top:4px; }}
-  table.report-table {{ width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: .9rem; overflow-x: auto; display: block; }}
-  table.report-table th, table.report-table td {{ padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; white-space: nowrap; }}
-  table.report-table thead th {{ background: #f0f4f8; font-weight: 600; }}
+  h2 {{ margin: 0 0 14px; border-left: 4px solid #1565c0; padding-left: 12px; color: #0d1b2a; font-size: 1.15rem; line-height: 1.3; }}
+  h3 {{ margin: 1.4rem 0 .5rem; color: #0d1b2a; font-size: 1rem; }}
+  p {{ margin: 0 0 1rem; font-size: .95rem; }}
+  ul {{ margin: .2rem 0 1rem 1.4rem; padding: 0; }}
+  li {{ margin-bottom: .35rem; font-size: .95rem; }}
+  .disclaimer {{ padding: 14px 16px; border: 1px solid #f0c36d; border-radius: 8px; background: #fffbeb; }}
+  .disclaimer p, .disclaimer li {{ color: #92400e; font-size: .86rem; }}
+  .table-scroll {{ width: 100%; margin: 12px 0 24px; overflow-x: auto; border: 1px solid #e0e4ea; border-radius: 8px; }}
+  .table-scroll:focus-visible {{ outline: 3px solid #2196f3; outline-offset: 3px; }}
+  table.report-table {{ width: 100%; min-width: 620px; border-collapse: collapse; font-size: .88rem; }}
+  table.report-table th, table.report-table td {{ padding: 10px 12px; border-bottom: 1px solid #e0e4ea; text-align: left; white-space: nowrap; }}
+  table.report-table thead th {{ background: #f0f4f8; color: #607080; font-size: .75rem; font-weight: 700; }}
   table.report-table tbody tr:nth-child(even) {{ background: #fafbfc; }}
   table.report-table td:not(:first-child) {{ text-align: right; }}
+  @media (max-width: 560px) {{ .report-shell {{ width: min(100% - 24px, 980px); padding-top: 20px; }} .report-topbar {{ align-items: flex-start; flex-direction: column-reverse; gap: 8px; }} .report-card {{ padding: 22px 18px; }} }}
+  @media print {{ body {{ background: #fff; }} .report-shell {{ width: 100%; padding: 0; }} .report-topbar {{ display: none; }} .report-card {{ border: 0; border-radius: 0; box-shadow: none; padding: 0; }} .table-scroll {{ overflow: visible; }} table.report-table {{ min-width: 0; }} }}
 </style>
 </head>
 <body>
-<a class="back" href="{_html_lib.escape(back_url, quote=True)}">&#x2190; Back</a>
-<header>
-  <h1>{_html_lib.escape(label)}</h1>
-  <p>{_html_lib.escape(row['name'])}</p>
-  <p class="meta">Report #{row['id']} &nbsp;·&nbsp; Generated {_html_lib.escape(str(generated_label))}</p>
-</header>
-{section_html}
+<div class="report-shell">
+  <div class="report-topbar">
+    <a class="wordmark" href="{_html_lib.escape(back_url, quote=True)}">AccountIQ</a>
+    <a class="back" href="{_html_lib.escape(back_url, quote=True)}">Back to valuations</a>
+  </div>
+  <main class="report-card">
+    <header>
+      <h1>{_html_lib.escape(label)}</h1>
+      <p>{_html_lib.escape(row['name'])}</p>
+      <p class="meta">Report #{row['id']} &middot; Generated {_html_lib.escape(str(generated_label))}</p>
+    </header>
+    {section_html}
+  </main>
+</div>
 </body>
 </html>"""
 

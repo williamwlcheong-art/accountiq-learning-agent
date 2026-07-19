@@ -62,7 +62,7 @@ export function PatternsPage() {
       <section className="panel">
         <p className="muted">{patterns.length} learned labels</p>
         {patterns.length ? (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0}>
             <table>
               <thead>
                 <tr>

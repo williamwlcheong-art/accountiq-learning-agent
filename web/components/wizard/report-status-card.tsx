@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { StatusPill } from "@/components/status-pill";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { ReportStatus } from "@/types/domain";
 
@@ -74,9 +75,13 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
   const isAwaitingReview = currentStatus === "awaiting_review";
   const heading = currentStatus === "pending_payment"
     ? "Complete payment to start your report"
-    : isAwaitingReview
-      ? "Your report is under review"
-      : "Your report is being prepared";
+    : isDone
+      ? "Your report is ready"
+      : isFailed
+        ? "Your report needs attention"
+        : isAwaitingReview
+          ? "Your report is under review"
+          : "Your report is being prepared";
 
   return (
     <section className="wizard-card">
@@ -94,7 +99,7 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
         </p>
       ) : null}
 
-      <p className={`status-pill status-${currentStatus}`}>Status: {currentStatus}</p>
+      <StatusPill status={currentStatus} />
 
       {currentStatus === "pending_payment" ? (
         <p className="wizard-note">
@@ -104,7 +109,7 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
 
       {currentStatus === "researching" ? (
         <p className="wizard-note">
-          The agent is gathering market data and WACC inputs. This can take a little longer than standard reports.
+          We are gathering market data and WACC inputs. This can take a little longer than standard reports.
         </p>
       ) : null}
 

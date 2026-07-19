@@ -104,7 +104,7 @@ export function FinancialsPage() {
 
       <section className="panel">
         {groupedRows.length ? (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0}>
             <table>
               <thead>
                 <tr>
