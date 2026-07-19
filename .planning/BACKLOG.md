@@ -1,6 +1,6 @@
 # AccountIQ Backlog
 
-Last updated: 2026-07-17
+Last updated: 2026-07-18
 
 This is the lightweight working backlog for the paid Valuation Advisory MVP. Keep the detailed implementation instructions in `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`; keep this file as the current source of truth for what is done, in progress, next, and waiting on domain review.
 
@@ -30,12 +30,12 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-05 | Add professional PDF export | Done | #10 | Technical + William | Branded A4 export, safe narrative/table rendering, approved owner-only download, caching, and resumable customer status are implemented and verified. William still owns final disclaimer wording. |
 | PVM-06 | Add account purchase history | Done | #11 | Technical | Owner-filtered purchase API and account table show payment/delivery status; released reports expose viewer and PDF actions. Backend, build, and full browser regression gates pass. |
 | PVM-07 | Add public valuation offer page | Done | #12 | Product + Technical | Static public offer uses early-access fixed-fee language without a numeric amount and routes conversion links through `/login`; all frontend gates pass. |
-| PVM-08 | Live report UAT with William | In progress | - | William + Technical | Document authority is implemented. PR 1B immutable report-input snapshots are implemented locally: checkout freezes authoritative documents, financial rows, profile/intake data, and generation/retry verifies the canonical digest. Deterministic valuation corrections and the explicit live run/domain disposition remain. |
+| PVM-08 | Live report UAT with William | In progress | - | William + Technical | Document authority and immutable report-input snapshots are complete in PRs #15 and #16. Typed valuation inputs and the EV-to-equity bridge are active as PR 2A. FCFF corrections remain a separate PR 2B before the guarded live run and domain disposition. |
 
 ## Next Three PRs
 
-1. PVM-08A / PR 1B: review and land immutable paid report snapshots and snapshot-bound generation/retry.
-2. PVM-08A / PR 2: correct typed valuation inputs, EV-to-equity, and FCFF calculations.
+1. PVM-08A / PR 2A: add typed valuation inputs and correct the EV-to-equity bridge.
+2. PVM-08A / PR 2B: correct FCFF calculations as a separate reviewable slice.
 3. PVM-08B: run one guarded live report UAT and record William's disposition.
 
 ## William Review Queue

@@ -101,6 +101,14 @@ export type PurchaseHistoryItem = {
   created_at: string;
 };
 
+export type CheckoutClarification = {
+  state: "needs_clarification";
+  code: string;
+  reason_code: string;
+  message: string;
+  details: Record<string, unknown>;
+};
+
 export type ApiErrorBody = {
-  detail?: string;
+  detail?: string | CheckoutClarification;
 };

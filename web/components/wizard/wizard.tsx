@@ -4,6 +4,7 @@ import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import { CheckoutClarificationCard } from "@/components/wizard/checkout-clarification-card";
 import { CheckoutConfirmation } from "@/components/wizard/checkout-confirmation";
 import { IntakeForm } from "@/components/wizard/intake-form";
 import { ReportStatusCard } from "@/components/wizard/report-status-card";
@@ -11,9 +12,9 @@ import { ReportTypePicker, type WizardReportType } from "@/components/wizard/rep
 import { UploadReadinessCard } from "@/components/wizard/upload-readiness-card";
 import { ApiError, apiFetch, postForm, postJson } from "@/lib/api-client";
 import { FINANCIAL_FILE_ACCEPT, validateFinancialFile } from "@/lib/upload-files";
-import type { CurrentUser, WizardReadiness } from "@/types/domain";
+import type { CheckoutClarification, CurrentUser, WizardReadiness } from "@/types/domain";
 
-type WizardStep = "upload" | "readiness" | "report-type" | "intake" | "confirm" | "status";
+type WizardStep = "upload" | "readiness" | "report-type" | "intake" | "confirm" | "clarification" | "status";
 
 type UploadResult = {
   company_id: number;
@@ -44,6 +45,7 @@ export function Wizard({ user }: WizardProps) {
   const [intakeAnswers, setIntakeAnswers] = useState<Record<string, unknown> | null>(null);
   const [checkoutIdempotencyKey, setCheckoutIdempotencyKey] = useState("");
   const [reportId, setReportId] = useState<number | null>(null);
+  const [clarification, setClarification] = useState<CheckoutClarification | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const activeReportKey = `accountiq.activeReport.${user.id}`;
@@ -183,7 +185,18 @@ export function Wizard({ user }: WizardProps) {
       setStep("status");
     } catch (err) {
       if (!handleAuthError(err)) {
-        setError(err instanceof Error ? err.message : "Failed to start checkout.");
+        if (
+          err instanceof ApiError
+          && err.status === 409
+          && err.detail
+          && typeof err.detail === "object"
+          && err.detail.state === "needs_clarification"
+        ) {
+          setClarification(err.detail);
+          setStep("clarification");
+        } else {
+          setError(err instanceof Error ? err.message : "Failed to start checkout.");
+        }
       }
     } finally {
       setLoading(false);
@@ -202,6 +215,7 @@ export function Wizard({ user }: WizardProps) {
     setIntakeAnswers(null);
     setCheckoutIdempotencyKey("");
     setReportId(null);
+    setClarification(null);
     setError("");
   }
 
@@ -212,6 +226,7 @@ export function Wizard({ user }: WizardProps) {
     "report-type": 2,
     intake: 2,
     confirm: 3,
+    clarification: 3,
     status: 4,
   };
 
@@ -328,6 +343,10 @@ export function Wizard({ user }: WizardProps) {
             onBack={() => setStep("intake")}
             onConfirm={generateReport}
           />
+        ) : null}
+
+        {step === "clarification" && clarification ? (
+          <CheckoutClarificationCard clarification={clarification} onReset={reset} />
         ) : null}
 
         {step === "status" && reportId ? (

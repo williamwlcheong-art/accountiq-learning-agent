@@ -29,6 +29,9 @@ def _sample_valuation_result():
         },
         "illiquidity_discount": {"rate": 0.12, "ev_adjusted": {"high": 3520000, "mid": 4400000, "low": 5720000}},
         "normalised_ebitda": 850000,
+        "normalisations": [
+            {"label": "Owner salary", "amount": 50000, "rationale": "above market"},
+        ],
         "revenues": 5200000,
         "net_debt": 200000,
         "cash": 150000,
@@ -84,6 +87,7 @@ def test_build_prompt_other_report_types_unchanged_format():
     assert "financial_performance" not in sys_p
 
 
-def test_table_sections_constant_is_five_keys():
-    assert len(TABLE_SECTIONS_VALUATION) == 5
+def test_valuation_table_sections_match_structured_prompt_contract():
+    assert len(TABLE_SECTIONS_VALUATION) == 6
+    assert "multiples_crosscheck" in TABLE_SECTIONS_VALUATION
     assert set(TABLE_SECTIONS_VALUATION).issubset(set(SECTION_SCHEMAS["valuation_advisory"]))

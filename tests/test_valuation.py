@@ -143,6 +143,34 @@ def test_normalised_ebitda_addback_sum():
     assert 0.0 + sum(float(a["amount"]) for a in [{"amount": -10000}]) == -10000.0
 
 
+def test_equity_bridge_handles_debt_and_net_cash():
+    from valuation import compute_equity_bridge
+
+    debt_heavy = compute_equity_bridge(5_000_000, 1_500_000, 200_000)
+    assert debt_heavy["net_debt"] == 1_300_000
+    assert debt_heavy["equity_value"] == 3_700_000
+
+    net_cash = compute_equity_bridge(5_000_000, 100_000, 400_000, 50_000)
+    assert net_cash["net_debt"] == -300_000
+    assert net_cash["equity_value"] == 5_350_000
+
+
+def test_multiples_crosscheck_has_no_scored_conclusion():
+    from valuation import compute_multiples_crosscheck
+
+    result = compute_multiples_crosscheck(800_000, 3.5, 5.0)
+    assert result == {
+        "multiple_low": 3.5,
+        "multiple_high": 5.0,
+        "enterprise_value_low": 2_800_000,
+        "enterprise_value_high": 4_000_000,
+        "normalised_ebitda": 800_000,
+        "purpose": "cross_check_only",
+    }
+    assert "multiple_applied" not in result
+    assert "risk_score" not in result
+
+
 def test_disclaimer_compliance_fmca():
     """_assert_disclaimer_compliant passes for compliant text and raises for non-compliant."""
     # Compliant disclaimer (all 4 required phrases present)

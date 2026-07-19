@@ -7,9 +7,12 @@ import pytest
 
 from db import DB_PATH, init_db
 from report_snapshots import (
+    VALUATION_ENGINE_VERSION,
     SnapshotIntegrityError,
+    build_report_input_snapshot_candidate,
     create_report_input_snapshot,
     load_report_input_snapshot,
+    persist_report_input_snapshot,
 )
 
 
@@ -84,6 +87,61 @@ async def _seed_snapshot_source(db):
     )
     await db.commit()
     return user_id, company_id, report_id
+
+
+@pytest.mark.asyncio
+async def test_candidate_can_be_validated_before_snapshot_persistence(fresh_all_db):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        user_id, company_id, report_id = await _seed_snapshot_source(db)
+
+        candidate = await build_report_input_snapshot_candidate(
+            db,
+            company_id=company_id,
+            user_id=user_id,
+            report_type="valuation_advisory",
+            intake_answers={"forecast_horizon": 7},
+        )
+        async with db.execute(
+            "SELECT COUNT(*) FROM report_input_snapshots WHERE report_id=?",
+            (report_id,),
+        ) as cur:
+            stored_count = (await cur.fetchone())[0]
+
+    assert stored_count == 0
+    assert candidate["company"]["name"] == "Snapshot Co"
+    assert candidate["report_type"] == "valuation_advisory"
+    assert candidate["intake_answers"] == {"forecast_horizon": 7}
+    assert candidate["financial_rows"][0]["row_key"] == "ebitda"
+    assert candidate["valuation_engine_version"] == "typed-inputs-v2"
+    assert candidate["valuation_engine_version"] == VALUATION_ENGINE_VERSION
+    assert len(candidate["canonical_digest"]) == 64
+
+
+@pytest.mark.asyncio
+async def test_persistence_reuses_exact_candidate_payload(fresh_all_db):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        user_id, company_id, report_id = await _seed_snapshot_source(db)
+        candidate = await build_report_input_snapshot_candidate(
+            db, report_id, company_id, user_id
+        )
+
+        await db.execute(
+            "UPDATE companies SET description='Changed later' WHERE id=?",
+            (company_id,),
+        )
+        await db.execute(
+            "UPDATE financial_rows SET value=1 WHERE company_id=?", (company_id,)
+        )
+        snapshot_id = await persist_report_input_snapshot(db, report_id, candidate)
+        await db.commit()
+        loaded = await load_report_input_snapshot(db, report_id)
+
+    assert snapshot_id > 0
+    assert loaded == candidate
+    assert loaded["company"]["description"] == "Original profile"
+    assert [row["value"] for row in loaded["financial_rows"]] == [180.0, 900.0]
 
 
 @pytest.mark.asyncio
