@@ -1,6 +1,6 @@
-# AccountIQ — Roadmap
+# AccountIQ Roadmap
 
-**8 phases** | **33 requirements + admin gate + report intake** | All v1 requirements covered ✓
+**9 phases** | **35 requirements** | All requirements mapped
 
 ---
 
@@ -50,7 +50,7 @@ Plans:
 
 ---
 
-## Phase 3: Business Profile Intake
+## Phase 3: Business Profile Intake ✅ Complete (2026-05-12)
 
 **Goal:** Users can build a complete company profile capturing industry, business description, management team, and EBITDA add-backs — the inputs required for accurate report generation.
 
@@ -111,7 +111,7 @@ Plans:
 
 ---
 
-## Phase 4: Extraction Quality
+## Phase 4: Extraction Quality ✅ Complete
 
 **Goal:** Financial statements are extracted accurately across all statement types, sign conventions, fiscal periods, non-standard labels, multi-page layouts, Word documents, and scanned PDFs.
 
@@ -180,7 +180,7 @@ Plans:
 
 ## Phase 05.1: Valuation Advisory Redesign
 
-**Goal:** Replace the Phase 5 Valuation Advisory report with a Propellerhead-quality implementation: new hybrid intake questionnaire (narrative risk + financial assumptions + normalisation table), agentic web research (Claude with web_search tool researches company, sector, comparable transactions, and WACC inputs from RBNZ + Damodaran), DCF-only primary method with High/Mid/Low WACC scenarios, and a 12-section report structure matching the Bayleys Propellerhead Indicative Valuation Report standard.
+**Goal:** Replace the Phase 5 Valuation Advisory report with a Propellerhead-quality implementation. The current paid-valuation path selects one active, adviser-approved, versioned WACC assumption set and freezes it with the valuation inputs before checkout. Research can inform a future approved assumption-set version only. DCF is the primary method, with structured report tables owned by Python before any live UAT.
 
 **Requirements:** REPT-01 (Valuation Advisory redesign)
 
@@ -188,27 +188,31 @@ Plans:
 
 **Success Criteria:**
 1. The valuation intake questionnaire shows: (a) narrative risk section with 4 qualitative areas, (b) normalisation table pre-filled from Phase 3 EBITDA add-backs with ability to add/edit/remove items, (c) financial assumptions section with forecast horizon, CAGR, and terminal growth rate
-2. Report generation runs a Claude agentic loop with web_search tool that researches the company, sector, and comparable transactions before generating the report
-3. Agent retrieves WACC inputs from RBNZ (risk-free rate, ERP, inflation) and Damodaran (industry Beta) — no user-entered WACC fields
-4. Python computes three DCF scenarios (High/Mid/Low WACC) and applies Damodaran illiquidity discount; Claude writes narrative only
-5. Generated report contains all 12 sections: introduction, business_overview, market_position, financial_performance, normalisations_schedule, balance_sheet_summary, valuation_methodology, wacc_assumptions, dcf_analysis, valuation_summary, multiples_crosscheck, disclaimer
-6. Table sections (financial_performance, normalisations_schedule, balance_sheet_summary, wacc_assumptions, valuation_summary) contain structured JSON `{narrative, table: {headers, rows}}` format
-7. The 23-question EV/EBITDA scoring questionnaire no longer appears in the wizard
+2. Authoritative WACC inputs come from exactly one active, adviser-approved, versioned set selected and frozen before checkout; generation-time research cannot change that selection
+3. Python computes DCF scenarios from the frozen FCFF inputs and selected WACC set, and Claude writes narrative only
+4. Generated report contains all 12 sections: introduction, business_overview, market_position, financial_performance, normalisations_schedule, balance_sheet_summary, valuation_methodology, wacc_assumptions, dcf_analysis, valuation_summary, multiples_crosscheck, disclaimer
+5. Table sections (financial_performance, normalisations_schedule, balance_sheet_summary, wacc_assumptions, valuation_summary) contain structured JSON `{narrative, table: {headers, rows}}` format
+6. The 23-question EV/EBITDA scoring questionnaire no longer appears in the current Next.js wizard
+7. Decimal FCFF, Python-owned deterministic tables, a synthetic service rehearsal, and a separately approved live UAT are complete before public payment enablement
 
 **UI hint:** yes
 
-**Plans:** 2/4 plans executed
+**Current delivery status:** PRs #15 to #18 are merged. The 3A branch, covering frozen FCFF assumptions and adviser-approved WACC sets, is pushed without a PR. Open and review that PR next. The next unimplemented work is PR 3B, the Decimal FCFF engine, then PR 3C, Python-owned deterministic valuation tables. These are followed by a synthetic service rehearsal and a separately approved live UAT.
+
+**Historical plan status:** Summaries record Plans 05.1-01 and 05.1-02 as completed. There is no 05.1-03 summary. The 05.1-04 summary records its first task in the legacy `frontend/index.html` as complete and its human-verification task as awaiting verification. The product UI now lives in `web/`; the legacy file is rollback/reference only. These records do not establish completion of the current paid-valuation delivery sequence.
+
+**Plans:** Historical plans: 2 completed summaries, 1 plan without a summary, and 1 legacy frontend task summary awaiting human verification
 
 Plans:
 **Wave 1**
-- [x] 05.1-01-PLAN.md — Refactor valuation.py (remove scoring, add compute_wacc_scenarios), lock 12-section schema, Wave 0 RED tests
-- [x] 05.1-02-PLAN.md — Build research_loop.py (Anthropic web_search agentic loop + ResearchBrief Pydantic + 4 guardrails) with offline guardrail tests
+- [x] 05.1-01-PLAN.md - Refactor valuation.py (remove scoring, add compute_wacc_scenarios), lock 12-section schema, Wave 0 RED tests
+- [x] 05.1-02-PLAN.md - Build research_loop.py (Anthropic web_search agentic loop + ResearchBrief Pydantic + 4 guardrails) with offline guardrail tests. Its generation-time WACC role is superseded for authoritative paid inputs.
 
-**Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 05.1-03-PLAN.md — Wire orchestration: build_prompt table instructions, _generate_report research→DCF flow, wizard_report_view dict-section renderer, FMCA disclaimer gate
+**Wave 2** *(historical plan record)*
+- [ ] 05.1-03-PLAN.md - Historical research-to-DCF orchestration plan. No completion summary is present; its WACC-research authority is superseded by the selected frozen adviser-approved set.
 
-**Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 05.1-04-PLAN.md — Replace intake form (narrative risk + normalisation table + financial assumptions), buildDynamicTable helper, researching status, human-verify checkpoint
+**Wave 3** *(historical plan record)*
+- [ ] 05.1-04-PLAN.md - Historical legacy frontend intake plan. Its summary records Task 1 only, with human verification outstanding. Current implementation work belongs in the Next.js `web/` application.
 
 ## Phase 6: Payment Integration
 
@@ -285,4 +289,4 @@ The original seven-phase roadmap remains useful historical context. Current comm
 - Public funnel context: `.planning/phases/999.1-public-facing-commercial-funnel-advisor-review/999.1-CONTEXT.md`
 - Marketing offer plan: `docs/superpowers/plans/2026-07-01-marketing-site-offer.md`
 
-Do not accept public users or enable live Stripe payments until the launch gates are passed or explicitly waived for a private pilot.
+Do not accept public users or enable live Stripe payments until the launch gates are passed or explicitly waived for a private pilot. Public payments remain blocked.

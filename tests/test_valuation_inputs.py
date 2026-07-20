@@ -1,4 +1,5 @@
 from dataclasses import FrozenInstanceError
+from decimal import Decimal, ROUND_DOWN, localcontext
 
 import pytest
 
@@ -33,6 +34,66 @@ def base_rows(period="2025", bs_period=None):
     ]
 
 
+def complete_fcff_rows():
+    return base_rows() + [
+        row("pnl", "depreciation", "Depreciation and amortisation", "2025", -30_000),
+        row("bs", "trade_debtors", "Trade debtors", "2025", 120_000),
+        row("bs", "inventory", "Inventory", "2025", 80_000),
+        row("bs", "trade_creditors", "Trade creditors", "2025", 70_000),
+    ]
+
+
+def complete_fcff_frozen(**overrides):
+    frozen = {
+        "intake_answers": {
+            "fcff_assumptions": {
+                "forecast": {
+                    "horizon_years": 5,
+                    "revenue_growth_rate": "0.06",
+                    "terminal_growth_rate": "0.025",
+                    "confirmed": True,
+                },
+                "depreciation": {
+                    "rate": "0.03", "confirmed": True, "rationale": "Matches FY2025 accounts.",
+                    "confirmation_method": "calculated", "confirmation_source": "financial_statements",
+                    "source_period": "2025",
+                },
+                "capex": {
+                    "rate": "0.04", "confirmed": True, "rationale": "Confirmed replacement programme.",
+                    "confirmation_method": "manual", "confirmation_source": "customer",
+                },
+                "operating_nwc": {
+                    "rate": "0.13", "confirmed": True, "rationale": "Matches normal operating cycle.",
+                    "confirmation_method": "calculated", "confirmation_source": "financial_statements",
+                    "source_period": "2025",
+                },
+            }
+        },
+        "approved_wacc_assumption_set": {
+            "id": 4,
+            "name": "NZ SME services",
+            "version": 2,
+            "risk_free_rate": "0.0425",
+            "equity_risk_premium": "0.055",
+            "beta": "1.1",
+            "beta_type": "industry_unlevered_relevered",
+            "cost_of_debt": "0.0675",
+            "target_debt_weight": "0.30",
+            "target_equity_weight": "0.70",
+            "additional_premium": "0.02",
+            "scenario_spread": "0.01",
+            "source_references": "Approved research file",
+            "publisher": "AccountIQ valuation team",
+            "as_of_date": "2026-07-01",
+            "rationale": "Pilot assumptions",
+            "approved_at": "2026-07-02 10:00:00",
+            "approved_by": "reviewer@example.com",
+        },
+    }
+    frozen.update(overrides)
+    return frozen
+
+
 def assert_error(code, rows, frozen_inputs=None):
     with pytest.raises(ValuationInputError) as exc:
         build_valuation_inputs(rows, frozen_inputs)
@@ -40,6 +101,169 @@ def assert_error(code, rows, frozen_inputs=None):
     assert exc.value.message
     assert isinstance(exc.value.details, dict)
     return exc.value
+
+
+def test_fcff_inputs_freeze_same_period_amounts_ratios_tax_forecast_and_wacc():
+    inputs = build_valuation_inputs(complete_fcff_rows(), complete_fcff_frozen())
+
+    assert inputs.depreciation_and_amortisation.value == 30_000
+    assert inputs.depreciation_and_amortisation.provenance[0].original_value == -30_000
+    assert inputs.base_operating_nwc.value == 130_000
+    assert [item.row_key for item in inputs.operating_nwc_components] == [
+        "trade_debtors", "inventory", "trade_creditors"
+    ]
+    assert inputs.depreciation_policy.revenue_ratio == Decimal("0.03")
+    assert inputs.capex_policy.revenue_ratio == Decimal("0.04")
+    assert inputs.operating_nwc_policy.revenue_ratio == Decimal("0.13")
+    assert inputs.forecast.horizon_years == 5
+    assert inputs.forecast.normalised_ebitda_margin == Decimal("0.2")
+    assert inputs.tax.rate == Decimal("0.28")
+    assert inputs.tax.policy_version == "nz-company-tax-2026-v1"
+    assert inputs.wacc_assumption_set.assumption_set_id == 4
+    assert inputs.wacc_assumption_set.risk_free_rate == Decimal("0.0425")
+    assert inputs.wacc_assumption_set.target_debt_weight == Decimal("0.30")
+
+
+def test_fcff_zero_revenue_raises_structured_input_error_before_ratio_division():
+    rows = complete_fcff_rows()
+    next(item for item in rows if item["row_key"] == "revenue")["value"] = 0
+
+    error = assert_error("missing_forecast_assumptions", rows, complete_fcff_frozen())
+
+    assert error.message == "Revenue must be non-zero to establish FCFF assumptions."
+
+
+def test_fcff_missing_differs_from_confirmed_zero_with_rationale():
+    assert_error("missing_depreciation", base_rows(), complete_fcff_frozen())
+
+    for section in ("depreciation", "capex", "operating_nwc"):
+        frozen = complete_fcff_frozen()
+        frozen["intake_answers"]["fcff_assumptions"][section] = {
+            "rate": 0, "confirmed": True, "rationale": ""
+        }
+        assert_error(f"missing_{section}_rationale", complete_fcff_rows(), frozen)
+
+    frozen = complete_fcff_frozen()
+    frozen["intake_answers"]["fcff_assumptions"]["capex"] = {
+        "rate": 0, "confirmed": True, "rationale": "No capital investment in the forecast period."
+    }
+    assert build_valuation_inputs(complete_fcff_rows(), frozen).capex_policy.revenue_ratio == 0
+
+
+def test_fcff_annual_schedules_must_match_forecast_horizon():
+    for section in ("depreciation", "capex", "operating_nwc"):
+        frozen = complete_fcff_frozen()
+        frozen["intake_answers"]["fcff_assumptions"][section] = {
+            "annual_schedule": [10_000, 11_000, 12_000, 13_000],
+            "confirmed": True,
+            "rationale": "Annual adviser schedule.",
+        }
+        error = assert_error(f"missing_{section}", complete_fcff_rows(), frozen)
+        assert error.details == {"expected_years": 5, "actual_years": 4}
+
+
+def test_fcff_override_confirmation_method_and_source_are_retained():
+    frozen = complete_fcff_frozen()
+    frozen["intake_answers"]["fcff_assumptions"]["depreciation"] = {
+        "rate": "0.04",
+        "confirmed": True,
+        "confirmation_method": "override",
+        "confirmation_source": "customer",
+        "rationale": "Updated asset register supports the override.",
+    }
+
+    policy = build_valuation_inputs(complete_fcff_rows(), frozen).depreciation_policy
+
+    assert policy.confirmed is True
+    assert policy.confirmation_method == "override"
+    assert policy.confirmation_source == "customer"
+    assert policy.rationale == "Updated asset register supports the override."
+
+
+def test_fcff_non_terminating_derived_ratios_use_shared_ten_place_precision():
+    rows = complete_fcff_rows()
+    next(item for item in rows if item["row_key"] == "revenue")["value"] = 30
+    next(item for item in rows if item["row_key"] == "ebitda")["value"] = 1
+    next(item for item in rows if item["row_key"] == "depreciation")["value"] = -1
+    next(item for item in rows if item["row_key"] == "trade_debtors")["value"] = 2
+    next(item for item in rows if item["row_key"] == "inventory")["value"] = 0
+    next(item for item in rows if item["row_key"] == "trade_creditors")["value"] = 0
+    frozen = complete_fcff_frozen()
+    frozen["intake_answers"]["fcff_assumptions"]["depreciation"]["rate"] = "0.0333333333"
+    frozen["intake_answers"]["fcff_assumptions"]["operating_nwc"]["rate"] = "0.0666666667"
+
+    from valuation_inputs import derive_fcff_assumption_readiness
+    with localcontext() as context:
+        context.rounding = ROUND_DOWN
+        readiness = derive_fcff_assumption_readiness(rows)
+        inputs = build_valuation_inputs(rows, frozen)
+
+    assert readiness["depreciation"]["rate"] == Decimal("0.0333333333")
+    assert readiness["operating_nwc"]["rate"] == Decimal("0.0666666667")
+    assert inputs.depreciation_policy.revenue_ratio == Decimal("0.0333333333")
+    assert inputs.operating_nwc_policy.revenue_ratio == Decimal("0.0666666667")
+    assert inputs.forecast.normalised_ebitda_margin == Decimal("0.0333333333")
+
+
+    for section, changed_rate in (("depreciation", "0.031"), ("operating_nwc", "0.131")):
+        frozen = complete_fcff_frozen()
+        frozen["intake_answers"]["fcff_assumptions"][section]["rate"] = changed_rate
+        assert_error(f"invalid_calculated_{section}", complete_fcff_rows(), frozen)
+
+        frozen = complete_fcff_frozen()
+        frozen["intake_answers"]["fcff_assumptions"][section]["source_period"] = "2024"
+        assert_error(f"invalid_calculated_{section}", complete_fcff_rows(), frozen)
+
+
+def test_fcff_changed_derived_policy_requires_override_and_rationale():
+    frozen = complete_fcff_frozen()
+    frozen["intake_answers"]["fcff_assumptions"]["depreciation"].update({
+        "rate": "0.04",
+        "confirmation_method": "override",
+        "confirmation_source": "customer",
+        "rationale": "",
+    })
+    assert_error("missing_depreciation_rationale", complete_fcff_rows(), frozen)
+
+    frozen["intake_answers"]["fcff_assumptions"]["depreciation"]["rationale"] = "Updated asset register."
+    policy = build_valuation_inputs(complete_fcff_rows(), frozen).depreciation_policy
+    assert policy.revenue_ratio == Decimal("0.04")
+    assert policy.confirmation_method == "override"
+
+
+def test_fcff_readiness_uses_selected_complete_valuation_base_period():
+    rows = complete_fcff_rows() + [
+        row("pnl", "revenue", "Revenue", "2026", 2_000_000),
+        row("pnl", "depreciation", "Depreciation", "2026", -80_000),
+        row("bs", "trade_debtors", "Trade debtors", "2026", 220_000),
+        row("bs", "inventory", "Inventory", "2026", 160_000),
+        row("bs", "trade_creditors", "Trade creditors", "2026", 100_000),
+    ]
+
+    from valuation_inputs import derive_fcff_assumption_readiness
+    readiness = derive_fcff_assumption_readiness(rows)
+
+    assert readiness["depreciation"]["source_period"] == "2025"
+    assert readiness["depreciation"]["rate"] == Decimal("0.03")
+    assert readiness["operating_nwc"]["source_period"] == "2025"
+    assert readiness["operating_nwc"]["rate"] == Decimal("0.13")
+
+
+def test_fcff_requires_approved_nwc_components_forecast_wacc_and_terminal_spread():
+    rows = [item for item in complete_fcff_rows() if item["row_key"] != "inventory"]
+    assert_error("missing_operating_nwc", rows, complete_fcff_frozen())
+
+    frozen = complete_fcff_frozen()
+    del frozen["intake_answers"]["fcff_assumptions"]["forecast"]
+    assert_error("missing_forecast_assumptions", complete_fcff_rows(), frozen)
+
+    frozen = complete_fcff_frozen()
+    del frozen["approved_wacc_assumption_set"]
+    assert_error("missing_wacc_approval", complete_fcff_rows(), frozen)
+
+    frozen = complete_fcff_frozen()
+    frozen["intake_answers"]["fcff_assumptions"]["forecast"]["terminal_growth_rate"] = "0.09"
+    assert_error("invalid_terminal_spread", complete_fcff_rows(), frozen)
 
 
 @pytest.mark.parametrize(

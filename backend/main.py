@@ -9,6 +9,8 @@ import asyncio
 import hashlib
 import uuid
 from contextlib import asynccontextmanager
+from datetime import date
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Optional
 
@@ -42,6 +44,9 @@ from payments import (
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
 from report_rendering import render_report_html, report_pdf_path, write_pdf
 from report_snapshots import (
+    LEGACY_SNAPSHOT_SCHEMA_VERSION,
+    LEGACY_VALUATION_ENGINE_VERSION,
+    LegacySnapshotRestartRequired,
     SnapshotIntegrityError,
     build_report_input_snapshot_candidate,
     create_report_input_snapshot,
@@ -60,7 +65,11 @@ from valuation import (
     compute_wacc_scenarios, compute_dcf, compute_illiquidity_discount,
     compute_equity_bridge, compute_multiples_crosscheck,
 )
-from valuation_inputs import ValuationInputError, build_valuation_inputs
+from valuation_inputs import (
+    ValuationInputError,
+    build_valuation_inputs,
+    derive_fcff_assumption_readiness,
+)
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -104,8 +113,12 @@ def _e2e_financial_rows() -> list[tuple[str, str, str, str, float, float]]:
     return [
         ("pnl", "revenue", "Revenue", "2025", 1_250_000.0, 0.99),
         ("pnl", "ebitda", "EBITDA", "2025", 240_000.0, 0.98),
+        ("pnl", "depreciation", "Depreciation and amortisation", "2025", -35_000.0, 0.98),
         ("pnl", "net_profit", "Net Profit", "2025", 150_000.0, 0.97),
         ("bs", "cash_and_bank", "Cash & bank", "2025", 95_000.0, 0.98),
+        ("bs", "trade_debtors", "Trade debtors", "2025", 180_000.0, 0.98),
+        ("bs", "inventory", "Inventory", "2025", 85_000.0, 0.98),
+        ("bs", "trade_creditors", "Trade creditors", "2025", 110_000.0, 0.98),
         ("bs", "short_term_debt", "Bank overdraft", "2025", 0.0, 0.98),
         ("bs", "long_term_debt", "Bank loan", "2025", 120_000.0, 0.98),
         ("bs", "total_assets", "Total Assets", "2025", 850_000.0, 0.98),
@@ -848,6 +861,298 @@ async def document_rows(
     return [dict(r) for r in rows]
 
 
+@app.get("/wizard/company/{company_id}/fcff-assumptions")
+async def wizard_fcff_assumption_readiness(
+    company_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    await _ensure_user_company(db, company_id, current_user["id"])
+    rows = await authoritative_financial_rows(db, company_id)
+    if not rows:
+        return {
+            "state": "needs_adviser_assistance",
+            "message": "We need an adviser to confirm the investment assumptions from your statements.",
+            "depreciation": {"rate": None, "status": "missing", "source_period": None, "provenance": None},
+            "operating_nwc": {"rate": None, "status": "missing", "source_period": None, "provenance": None},
+        }
+    try:
+        derived = derive_fcff_assumption_readiness(rows)
+    except ValuationInputError:
+        derived = {"depreciation": None, "operating_nwc": None}
+
+    def result(name: str) -> dict:
+        item = derived[name]
+        if item is None:
+            return {
+                "rate": None,
+                "status": "missing",
+                "source_period": None,
+                "provenance": None,
+            }
+        return {
+            "rate": float(item["rate"]),
+            "status": "available",
+            "source_period": item["source_period"],
+            "provenance": item["provenance"],
+        }
+
+    depreciation_result = result("depreciation")
+    nwc_result = result("operating_nwc")
+    state = "ready" if depreciation_result["status"] == "available" and nwc_result["status"] == "available" else "needs_adviser_assistance"
+    message = (
+        "Safe same-period ratios are available for confirmation."
+        if state == "ready"
+        else "We need an adviser to confirm the investment assumptions from your statements."
+    )
+    return {
+        "state": state,
+        "message": message,
+        "depreciation": depreciation_result,
+        "operating_nwc": nwc_result,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Approved WACC assumption sets
+# ---------------------------------------------------------------------------
+
+_WACC_DECIMAL_FIELDS = (
+    "risk_free_rate",
+    "equity_risk_premium",
+    "beta",
+    "cost_of_debt",
+    "target_debt_weight",
+    "target_equity_weight",
+)
+_WACC_OPTIONAL_DECIMAL_FIELDS = ("additional_premium", "scenario_spread")
+
+
+def _wacc_decimal(body: dict, field: str, *, optional: bool = False) -> Decimal | None:
+    value = body.get(field)
+    if optional and value is None:
+        return None
+    if value is None or isinstance(value, bool):
+        raise HTTPException(400, f"{field} must be a valid number.")
+    try:
+        result = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        raise HTTPException(400, f"{field} must be a valid number.")
+    if not result.is_finite() or result < 0:
+        raise HTTPException(400, f"{field} must be a non-negative finite number.")
+    return result
+
+
+def _validate_wacc_payload(body: dict) -> dict:
+    required_text = {
+        "name": "WACC assumption-set name is required.",
+        "beta_type": "WACC beta type is required.",
+        "source_references": "WACC source references are required.",
+        "publisher": "WACC publisher is required.",
+        "rationale": "WACC rationale is required.",
+    }
+    cleaned = {}
+    for field, message in required_text.items():
+        value = str(body.get(field) or "").strip()
+        if not value:
+            raise HTTPException(400, message)
+        cleaned[field] = value
+    as_of_date = str(body.get("as_of_date") or "").strip()
+    try:
+        date.fromisoformat(as_of_date)
+    except ValueError:
+        raise HTTPException(400, "WACC as-of date must be a valid ISO date.")
+    cleaned["as_of_date"] = as_of_date
+    for field in _WACC_DECIMAL_FIELDS:
+        cleaned[field] = _wacc_decimal(body, field)
+    for field in _WACC_OPTIONAL_DECIMAL_FIELDS:
+        cleaned[field] = _wacc_decimal(body, field, optional=True)
+    if cleaned["target_debt_weight"] + cleaned["target_equity_weight"] != Decimal("100"):
+        raise HTTPException(400, "Target debt and equity weights must total 100%.")
+    return cleaned
+
+
+def _serialise_wacc_set(row) -> dict:
+    item = dict(row)
+    for field in _WACC_DECIMAL_FIELDS + _WACC_OPTIONAL_DECIMAL_FIELDS:
+        item[field] = float(item[field]) if item[field] is not None else None
+    item["active"] = bool(item["active"])
+    item["approved_by"] = item.pop("approved_by") if "approved_by" in item else None
+    item.pop("approved_by_user_id", None)
+    return item
+
+
+async def _get_wacc_set(db, assumption_set_id: int):
+    async with db.execute(
+        """
+        SELECT ws.*, u.email AS approved_by
+        FROM wacc_assumption_sets ws
+        LEFT JOIN users u ON u.id=ws.approved_by_user_id
+        WHERE ws.id=?
+        """,
+        (assumption_set_id,),
+    ) as cur:
+        row = await cur.fetchone()
+    if not row:
+        raise HTTPException(404, "WACC assumption set not found")
+    return row
+
+
+@app.get("/admin/wacc-assumption-sets")
+async def list_wacc_assumption_sets(
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    async with db.execute(
+        """
+        SELECT ws.*, u.email AS approved_by
+        FROM wacc_assumption_sets ws
+        LEFT JOIN users u ON u.id=ws.approved_by_user_id
+        ORDER BY ws.name, ws.version DESC
+        """
+    ) as cur:
+        rows = await cur.fetchall()
+    return [_serialise_wacc_set(row) for row in rows]
+
+
+@app.post("/admin/wacc-assumption-sets", status_code=201)
+async def create_wacc_assumption_set(
+    request: Request,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    values = _validate_wacc_payload(await request.json())
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        async with db.execute(
+            "SELECT COALESCE(MAX(version), 0) + 1 FROM wacc_assumption_sets WHERE name=?",
+            (values["name"],),
+        ) as cur:
+            version = (await cur.fetchone())[0]
+        fields = [
+            "name", "version", *_WACC_DECIMAL_FIELDS[:3], "beta_type",
+            *_WACC_DECIMAL_FIELDS[3:], *_WACC_OPTIONAL_DECIMAL_FIELDS,
+            "source_references", "publisher", "as_of_date", "rationale",
+        ]
+        params = [values["name"], version] + [values.get(field) for field in fields[2:]]
+        async with db.execute(
+            f"INSERT INTO wacc_assumption_sets ({', '.join(fields)}) VALUES ({', '.join('?' for _ in fields)})",
+            [str(value) if isinstance(value, Decimal) else value for value in params],
+        ) as cur:
+            assumption_set_id = cur.lastrowid
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+    return _serialise_wacc_set(await _get_wacc_set(db, assumption_set_id))
+
+
+@app.put("/admin/wacc-assumption-sets/{assumption_set_id}")
+async def update_wacc_assumption_set(
+    assumption_set_id: int,
+    request: Request,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    values = _validate_wacc_payload(await request.json())
+    fields = [
+        "name", *_WACC_DECIMAL_FIELDS[:3], "beta_type",
+        *_WACC_DECIMAL_FIELDS[3:], *_WACC_OPTIONAL_DECIMAL_FIELDS,
+        "source_references", "publisher", "as_of_date", "rationale",
+    ]
+    params = [
+        str(values.get(field)) if isinstance(values.get(field), Decimal) else values.get(field)
+        for field in fields
+    ]
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        async with db.execute(
+            f"UPDATE wacc_assumption_sets SET {', '.join(f'{field}=?' for field in fields)} WHERE id=? AND status='draft'",
+            [*params, assumption_set_id],
+        ) as cur:
+            updated = cur.rowcount
+        if updated != 1:
+            async with db.execute(
+                "SELECT status FROM wacc_assumption_sets WHERE id=?",
+                (assumption_set_id,),
+            ) as cur:
+                row = await cur.fetchone()
+            await db.rollback()
+            if not row:
+                raise HTTPException(404, "WACC assumption set not found")
+            raise HTTPException(
+                409,
+                "Approved WACC assumption sets are immutable. Create a new version instead.",
+            )
+        await db.commit()
+    except Exception:
+        if db.in_transaction:
+            await db.rollback()
+        raise
+    return _serialise_wacc_set(await _get_wacc_set(db, assumption_set_id))
+
+
+@app.post("/admin/wacc-assumption-sets/{assumption_set_id}/approve")
+async def approve_wacc_assumption_set(
+    assumption_set_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        async with db.execute(
+            """
+            UPDATE wacc_assumption_sets
+            SET status='approved', approved_at=datetime('now'),
+                approved_by_user_id=?
+            WHERE id=? AND status='draft'
+            """,
+            (current_user["id"], assumption_set_id),
+        ) as cur:
+            approved = cur.rowcount
+        if approved != 1:
+            async with db.execute(
+                "SELECT status FROM wacc_assumption_sets WHERE id=?",
+                (assumption_set_id,),
+            ) as cur:
+                row = await cur.fetchone()
+            await db.rollback()
+            if not row:
+                raise HTTPException(404, "WACC assumption set not found")
+            raise HTTPException(409, "Only a draft WACC assumption set can be approved.")
+        await db.commit()
+    except Exception:
+        if db.in_transaction:
+            await db.rollback()
+        raise
+    return _serialise_wacc_set(await _get_wacc_set(db, assumption_set_id))
+
+
+@app.post("/admin/wacc-assumption-sets/{assumption_set_id}/activate")
+async def activate_wacc_assumption_set(
+    assumption_set_id: int,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        await db.execute("UPDATE wacc_assumption_sets SET active=0 WHERE active=1")
+        async with db.execute(
+            "UPDATE wacc_assumption_sets SET active=1 WHERE id=? AND status='approved'",
+            (assumption_set_id,),
+        ) as cur:
+            activated = cur.rowcount
+        if activated != 1:
+            await db.rollback()
+            raise HTTPException(409, "Only an approved WACC assumption set can be activated.")
+        await db.commit()
+    except Exception:
+        if db.in_transaction:
+            await db.rollback()
+        raise
+    return _serialise_wacc_set(await _get_wacc_set(db, assumption_set_id))
+
+
 # ---------------------------------------------------------------------------
 # Financial data queries
 # ---------------------------------------------------------------------------
@@ -1432,6 +1737,18 @@ async def wizard_report_checkout(
         raise HTTPException(400, "document_id must be a positive integer")
 
     await _ensure_user_company(db, company_id, current_user["id"])
+    request_digest = hashlib.sha256(json.dumps(
+        {
+            "user_id": current_user["id"],
+            "company_id": company_id,
+            "document_id": document_id,
+            "report_type": report_type,
+            "intake_answers": intake_answers,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")).hexdigest()
 
     config = checkout_config()
     if not E2E_MODE and not stripe_enabled():
@@ -1456,14 +1773,50 @@ async def wizard_report_checkout(
         async with db.execute(
             """
             SELECT p.id AS purchase_id, p.report_id, p.status, p.stripe_checkout_session_id,
-                   p.stripe_checkout_url, r.status AS report_status
+                   p.stripe_checkout_url, p.checkout_request_digest,
+                   ris.canonical_digest AS snapshot_digest, ris.schema_version,
+                   ris.valuation_engine_version, r.status AS report_status
             FROM purchases p JOIN reports r ON r.id=p.report_id
+            LEFT JOIN report_input_snapshots ris ON ris.report_id=r.id
             WHERE p.user_id=? AND p.checkout_idempotency_key=?
             """,
             (current_user["id"], idempotency_key),
         ) as cur:
             existing_order = await cur.fetchone()
         if existing_order:
+            stored_digest = existing_order["checkout_request_digest"]
+            if stored_digest is None:
+                # Older pending purchases predate the request digest. Their frozen
+                # snapshot cannot prove document selector equivalence, so fail closed.
+                raise HTTPException(
+                    409,
+                    {
+                        "state": "conflict",
+                        "code": "idempotency_key_reused",
+                        "message": "This checkout key is already bound to another request.",
+                    },
+                )
+            if stored_digest != request_digest:
+                raise HTTPException(
+                    409,
+                    {
+                        "state": "conflict",
+                        "code": "idempotency_key_reused",
+                        "message": "This checkout key is already bound to another request.",
+                    },
+                )
+            if (
+                existing_order["schema_version"] == LEGACY_SNAPSHOT_SCHEMA_VERSION
+                and existing_order["valuation_engine_version"] == LEGACY_VALUATION_ENGINE_VERSION
+                and existing_order["report_status"] != "done"
+            ):
+                raise HTTPException(
+                    409,
+                    {
+                        "code": "legacy_snapshot_restart_required",
+                        "message": _LEGACY_SNAPSHOT_RESTART_MESSAGE,
+                    },
+                )
             await db.commit()
             report_id = existing_order["report_id"]
             purchase_id = existing_order["purchase_id"]
@@ -1476,7 +1829,8 @@ async def wizard_report_checkout(
                 intake_answers=intake_answers,
             )
             build_valuation_inputs(
-                snapshot_candidate["financial_rows"], snapshot_candidate
+                snapshot_candidate["financial_rows"], snapshot_candidate,
+                require_fcff=True,
             )
             report_id = await _insert_report_job(
                 db,
@@ -1489,11 +1843,12 @@ async def wizard_report_checkout(
             await persist_report_input_snapshot(db, report_id, snapshot_candidate)
             async with db.execute("""
                 INSERT INTO purchases
-                    (report_id, user_id, amount_cents, currency, status, checkout_idempotency_key)
-                VALUES (?, ?, ?, ?, 'pending', ?)
+                    (report_id, user_id, amount_cents, currency, status,
+                     checkout_idempotency_key, checkout_request_digest)
+                VALUES (?, ?, ?, ?, 'pending', ?, ?)
             """, (
                 report_id, current_user["id"], config.price_cents, config.currency,
-                idempotency_key,
+                idempotency_key, request_digest,
             )) as cur:
                 purchase_id = cur.lastrowid
             await db.commit()
@@ -1703,6 +2058,11 @@ async def wizard_report_status(
     return dict(row)
 
 
+_LEGACY_SNAPSHOT_RESTART_MESSAGE = (
+    "This paid valuation needs updated FCFF inputs before it can be generated."
+)
+
+
 @app.post("/wizard/report/{report_id}/retry")
 async def wizard_report_retry(
     report_id: int,
@@ -1727,6 +2087,14 @@ async def wizard_report_retry(
     # Verify the original immutable snapshot before requeueing.
     try:
         await load_report_input_snapshot(db, report_id)
+    except LegacySnapshotRestartRequired:
+        raise HTTPException(
+            409,
+            {
+                "code": "legacy_snapshot_restart_required",
+                "message": _LEGACY_SNAPSHOT_RESTART_MESSAGE,
+            },
+        )
     except SnapshotIntegrityError:
         raise HTTPException(409, "Report input snapshot failed integrity verification")
 
@@ -2273,13 +2641,13 @@ async def _generate_report(report_id: int) -> None:
                 return
             print(f"[REPORT] Generating report_id={report_id}")
 
-            snapshot = await load_report_input_snapshot(db, report_id)
             async with db.execute(
                 "SELECT user_id FROM reports WHERE id=?", (report_id,)
             ) as cur:
                 report_owner = await cur.fetchone()
             if not report_owner:
                 raise SnapshotIntegrityError("Report is missing")
+            snapshot = await load_report_input_snapshot(db, report_id)
             user_id = report_owner["user_id"]
             company = snapshot["company"]
             company_name = company["name"]
@@ -2499,12 +2867,17 @@ async def _generate_report(report_id: int) -> None:
         except Exception as exc:
             err_msg = str(exc)[:1000]
             print(f"[REPORT ERROR] report_id={report_id}: {err_msg}")
+            customer_error = (
+                _LEGACY_SNAPSHOT_RESTART_MESSAGE
+                if isinstance(exc, LegacySnapshotRestartRequired)
+                else _SAFE_REPORT_GENERATION_ERROR
+            )
             try:
                 await db.execute("""
                     UPDATE reports
                     SET status='failed', content=NULL, error_message=?
                     WHERE id=?
-                """, (_SAFE_REPORT_GENERATION_ERROR, report_id))
+                """, (customer_error, report_id))
                 await db.commit()
             except Exception as db_exc:
                 print(f"[REPORT ERROR] Failed to mark report failed: {db_exc}")

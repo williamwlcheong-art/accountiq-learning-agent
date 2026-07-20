@@ -2,11 +2,11 @@
 
 ## What This Is
 
-AccountIQ is a SaaS financial intelligence platform for SME business owners. Users upload their financial statements (PDFs, Excel files, and other formats), the system extracts and normalises the financial data, and then generates first-draft quality professional reports — valuations, bank credit papers, financial forecasts, capital raising documents, and information memorandums — that users select and purchase on a pay-per-report basis.
+AccountIQ is a SaaS financial intelligence platform for SME business owners. Users upload their financial statements (PDFs, Excel files, and other formats), the system extracts and normalises the financial data, and then generates first-draft quality professional reports: valuations, bank credit papers, financial forecasts, capital raising documents, and information memorandums, that users select and purchase on a pay-per-report basis.
 
 ## Core Value
 
-A business owner uploads their financials, answers a few questions about their business, and receives a first-draft professional financial report in minutes — the kind that would otherwise cost thousands and take days through an advisor.
+A business owner uploads their financials, answers a few questions about their business, and receives a first-draft professional financial report in minutes, the kind that would otherwise cost thousands and take days through an advisor.
 
 ## Requirements
 
@@ -14,94 +14,103 @@ A business owner uploads their financials, answers a few questions about their b
 
 <!-- Capabilities that already exist in the codebase. -->
 
-- ✓ PDF text extraction with pdfplumber + OCR fallback for scanned pages — existing
-- ✓ Excel ingestion (.xlsx/.xls/.xlsm via pandas) — existing
-- ✓ Claude tool-use extraction with GAAP/IFRS system prompt — existing
-- ✓ Rule-based extraction fallback (works when no API key or Claude fails) — existing
-- ✓ Pattern learning (label → canonical key mapping improves over time) — existing
-- ✓ Company and document management (CRUD + upload flow) — existing
-- ✓ Next.js frontend UI for auth, wizard, admin dashboard, companies, uploads, documents, financials, patterns, settings — Next.js refactor
-- ✓ CORS restricted to localhost:8765 (no wildcard) — Phase 1
-- ✓ Filename sanitisation via Path(file.filename).name — Phase 1
-- ✓ XSS eliminated: all server/AI data uses textContent/createTextNode — Phase 1
-- ✓ User registration + login with Argon2-hashed passwords and HttpOnly/SameSite=Lax cookies — Phase 1
-- ✓ JWT session cookies (7-day expiry, 15 protected routes) — Phase 1
-- ✓ Frontend auth wall gates the app via `/auth/me` and role-based Next.js redirects — Phase 1 + Next.js refactor
+- ✓ PDF text extraction with pdfplumber + OCR fallback for scanned pages, existing
+- ✓ Excel ingestion (.xlsx/.xls/.xlsm via pandas), existing
+- ✓ Claude tool-use extraction with GAAP/IFRS system prompt, existing
+- ✓ Rule-based extraction fallback (works when no API key or Claude fails), existing
+- ✓ Pattern learning (label → canonical key mapping improves over time), existing
+- ✓ Company and document management (CRUD + upload flow), existing
+- ✓ Next.js frontend UI for auth, wizard, admin dashboard, companies, uploads, documents, financials, patterns, settings, Next.js refactor
+- ✓ CORS restricted to localhost:8765 (no wildcard), Phase 1
+- ✓ Filename sanitisation via Path(file.filename).name, Phase 1
+- ✓ XSS eliminated: all server/AI data uses textContent/createTextNode, Phase 1
+- ✓ User registration + login with Argon2-hashed passwords and HttpOnly/SameSite=Lax cookies, Phase 1
+- ✓ JWT session cookies (7-day expiry, 15 protected routes), Phase 1
+- ✓ Frontend auth wall gates the app via `/auth/me` and role-based Next.js redirects, Phase 1 + Next.js refactor
 
 ### Active
 
-<!-- Hypotheses — all in scope for v1. -->
+<!-- Hypotheses, all in scope for v1. -->
 
 **Extraction quality:**
-- ✓ Correctly extract all major statement types: income statement, balance sheet, cash flow, changes in equity — Validated in Phase 4: Extraction Quality
-- ✓ Handle sign conventions correctly (_normalize_signs pure function, cost keys flipped) — Validated in Phase 4: Extraction Quality
-- ✓ Assign financial data to the correct fiscal period (no period mismatch) — Validated in Phase 4: Extraction Quality
-- ✓ Map non-standard line item labels to canonical keys (CF_SYNS, EQ_SYNS, AU/NZ SME synonyms) — Validated in Phase 4: Extraction Quality
-- ✓ Extract multi-page statements without dropping rows (filter-then-sort, lowest-score eviction) — Validated in Phase 4: Extraction Quality
+- ✓ Correctly extract all major statement types: income statement, balance sheet, cash flow, changes in equity, Validated in Phase 4: Extraction Quality
+- ✓ Handle sign conventions correctly (_normalize_signs pure function, cost keys flipped), Validated in Phase 4: Extraction Quality
+- ✓ Assign financial data to the correct fiscal period (no period mismatch), Validated in Phase 4: Extraction Quality
+- ✓ Map non-standard line item labels to canonical keys (CF_SYNS, EQ_SYNS, AU/NZ SME synonyms), Validated in Phase 4: Extraction Quality
+- ✓ Extract multi-page statements without dropping rows (filter-then-sort, lowest-score eviction), Validated in Phase 4: Extraction Quality
 
 **File format coverage:**
-- ✓ Support Word documents (.docx) as an upload format (extract_docx_text via python-docx) — Validated in Phase 4: Extraction Quality
-- ✓ Support scanned image-only PDFs (OCR at 300 DPI, 100% row recovery verified) — Validated in Phase 4: Extraction Quality
+- ✓ Support Word documents (.docx) as an upload format (extract_docx_text via python-docx), Validated in Phase 4: Extraction Quality
+- ✓ Support scanned image-only PDFs (OCR at 300 DPI, 100% row recovery verified), Validated in Phase 4: Extraction Quality
 - [ ] Support structured HTML financial filings
 
 **Business profile intake:**
-- ✓ User can describe their business (industry, products/services, market position) — Phase 3 + valuation intake
-- ✓ User can select industry/sector for comparable multiples and benchmarking — Phase 3
-- ✓ User can provide management team details (founders, key staff) — Phase 3
-- ✓ User can enter EBITDA add-backs / owner adjustments — Phase 3
+- ✓ User can describe their business (industry, products/services, market position), Phase 3 + valuation intake
+- ✓ User can select industry/sector for comparable multiples and benchmarking, Phase 3
+- ✓ User can provide management team details (founders, key staff), Phase 3
+- ✓ User can enter EBITDA add-backs / owner adjustments, Phase 3
 
 **Authentication & accounts:**
-- ✓ User can create an account and log in — Validated in Phase 1: Security & Auth Foundation
-- ✓ Each user's companies and documents are isolated (no cross-user data leakage) — Validated in Phase 2: Multi-User Data Isolation
-- ✓ User can view account and report purchase history — PVM-06
+- ✓ User can create an account and log in, Validated in Phase 1: Security & Auth Foundation
+- ✓ Each user's companies and documents are isolated (no cross-user data leakage), Validated in Phase 2: Multi-User Data Isolation
+- ✓ User can view account and report purchase history, PVM-06
 
 **Report generation:**
 - ✓ Valuation report authority and paid-input snapshotting: immutable document authority and frozen report inputs merged in PRs #15 and #16
-- [ ] Typed valuation inputs and EV-to-equity bridge: active PR 2A; FCFF corrections remain separate PR 2B
-- [ ] Live Valuation Advisory UAT: run after PR 2A and PR 2B, then record William's disposition
-- [ ] Bank credit paper — advisor pilot; not validated for self-serve
-- [ ] Financial forecast — advisor pilot; not validated for self-serve
-- [ ] Capital raising document — advisor pilot; not validated for self-serve
-- [ ] Information memorandum (IM) — advisor pilot; not validated for self-serve
+- ✓ Typed valuation inputs and EV-to-equity bridge merged in PR #17
+- [ ] Frozen FCFF and adviser-approved WACC assumptions: the 3A slice is implemented on pushed `feature/fcff-assumptions`; no PR has been opened
+- [ ] Decimal FCFF engine: planned as PR 3B
+- [ ] Python-owned deterministic valuation tables: planned as PR 3C
+- [ ] Synthetic service rehearsal: run after PR 3C
+- [ ] Live Valuation Advisory UAT: requires separate explicit approval after the synthetic rehearsal, then William's disposition
+- [ ] Bank credit paper, adviser pilot; not validated for self-serve
+- [ ] Financial forecast, adviser pilot; not validated for self-serve
+- [ ] Capital raising document, adviser pilot; not validated for self-serve
+- [ ] Information memorandum (IM), adviser pilot; not validated for self-serve
 
 **Report delivery:**
-- ✓ Web viewer — owner-only access after reviewer approval
-- ✓ PDF export — branded owner-only PDF after reviewer approval
-- ✓ Pay-per-report purchasing — Stripe Checkout happy path implemented; failure/refund lifecycle remains a launch gate
+- ✓ Web viewer, owner-only access after reviewer approval
+- ✓ PDF export, branded owner-only PDF after reviewer approval
+- ✓ Pay-per-report purchasing, Stripe Checkout happy path implemented; failure/refund lifecycle remains a launch gate
 
 ### Out of Scope
 
-- Full advisor-replacement quality — first-draft quality is the bar; a professional can edit and finalise
-- Team / multi-user accounts — individual business owners only for v1
-- API access or third-party integrations — web UI only for v1
-- Automated financial ratio dashboards — focus is on narrative reports, not analytics screens
+- Full advisor-replacement quality, first-draft quality is the bar; a professional can edit and finalise
+- Team / multi-user accounts, individual business owners only for v1
+- API access or third-party integrations, web UI only for v1
+- Automated financial ratio dashboards, focus is on narrative reports, not analytics screens
 
 ## Context
 
 - The backend is Python FastAPI with SQLite (aiosqlite). The primary frontend is a Next.js App Router app in `web/`; the old `frontend/index.html` app is now an opt-in legacy fallback.
 - Extraction already uses Claude (claude-sonnet-4-6) with forced tool-use and a GAAP/IFRS system prompt. The same Claude API will power report generation.
-- Security gaps from pre-Phase 1 (wildcard CORS, unsanitised filenames, innerHTML XSS, no auth) are now fixed. 4 code review criticals remain (empty SECRET_KEY, exception message leakage, env path disclosure, unvalidated claude_model write) — flagged for Phase 1 gap closure before external launch.
-- Phase 2 isolation: all company/document routes enforce `WHERE user_id=?` filters; IDOR returns 404 not 403 (D-01); analytics scoped per-user; `label_patterns` intentionally global (D-03). 3 code review criticals remain (retry_document write scope, analytics/overview label_patterns leakage, executescript transaction split) — flagged for gap closure.
-- The codebase map is at `.planning/codebase/` — read it before planning any backend phase.
+- Security gaps from pre-Phase 1 (wildcard CORS, unsanitised filenames, innerHTML XSS, no auth) are now fixed. 4 code review criticals remain (empty SECRET_KEY, exception message leakage, env path disclosure, unvalidated claude_model write), flagged for Phase 1 gap closure before external launch.
+- Phase 2 isolation: all company/document routes enforce `WHERE user_id=?` filters; IDOR returns 404 not 403 (D-01); analytics scoped per-user; `label_patterns` intentionally global (D-03). 3 code review criticals remain (retry_document write scope, analytics/overview label_patterns leakage, executescript transaction split), flagged for gap closure.
+- PRs #15 to #18 are merged. They add authoritative document revisions, immutable snapshots and payment hardening, typed valuation inputs with the equity bridge, and UI polish.
+- `feature/fcff-assumptions` is pushed without a PR. It implements PR 3A frozen FCFF and adviser-approved WACC assumptions, schema 2, admin WACC UI, and intake changes.
+- Public payments remain blocked while all eight launch gates are open. Valuation is the only self-serve launch product; all other report types remain adviser pilots.
+- The codebase map is at `.planning/codebase/`, read it before planning any backend phase.
 
 ## Constraints
 
-- **Tech stack**: Python FastAPI + SQLite + Next.js — keep FastAPI as the backend of record for uploads, extraction, reports, and DB writes
-- **AI**: Anthropic Claude API — already integrated, continue using it for both extraction and report generation
-- **Quality bar**: Report output must be first-draft quality — accurate enough that a professional would use it as a starting point, not start over
+- **Tech stack**: Python FastAPI + SQLite + Next.js, keep FastAPI as the backend of record for uploads, extraction, reports, and DB writes
+- **AI**: Anthropic Claude API, already integrated, continue using it for both extraction and report generation
+- **Quality bar**: Report output must be first-draft quality, accurate enough that a professional would use it as a starting point, not start over
 - **Security**: Auth, input sanitisation, and CORS lockdown must ship before any external user access
-- **No lockfile**: `requirements.txt` uses `>=` constraints — pin versions when adding dependencies to avoid reproducibility issues
+- **No lockfile**: `requirements.txt` uses `>=` constraints, pin versions when adding dependencies to avoid reproducibility issues
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Pay-per-report (not subscription) | Matches infrequent, high-value use case for SME owners | — Pending |
-| First-draft quality bar | Makes accuracy achievable; professionals still add value | — Pending |
-| All 5 report types in v1 | User wants full offering from launch | — Pending |
+| Pay-per-report (not subscription) | Matches infrequent, high-value use case for SME owners | Implemented for valuation; public payment remains launch-gated |
+| First-draft quality bar | Makes accuracy achievable; professionals still add value | Accepted |
+| Valuation Advisory is the only self-serve launch product | Prove quality, reviewer operations, and willingness to pay before broadening the product | Accepted; the other four reports remain adviser pilots |
 | Keep FastAPI as backend of record and migrate UI to Next.js | Preserves working ingestion/report engine while fixing frontend maintainability | Accepted |
-| Use typed valuation inputs and an explicit EV-to-equity bridge before live UAT | Financial arithmetic must use one currency, supported units and compatible periods, explicit balance-sheet classifications, and a defined EBITDA hierarchy | Active in PR 2A |
-| Keep FCFF corrections separate from typed inputs and EV-to-equity | A separate PR 2B keeps the cash-flow methodology change reviewable | Planned |
+| Use typed valuation inputs and an explicit EV-to-equity bridge before live UAT | Financial arithmetic must use one currency, supported units and compatible periods, explicit balance-sheet classifications, and a defined EBITDA hierarchy | Merged in PR #17 |
+| Keep FCFF corrections separate from typed inputs and EV-to-equity | The unmerged 3A branch captures frozen FCFF and adviser-approved WACC assumptions before the Decimal engine change in PR 3B | Branch pushed; no PR opened |
+| Keep FCFF calculations and valuation tables deterministic | PR 3B uses a Decimal FCFF engine and PR 3C makes deterministic tables Python-owned before service rehearsal | Planned |
+| Require explicit approval before live Anthropic UAT | Synthetic service rehearsal must precede any live Anthropic request | Active |
 
 ## Evolution
 
@@ -116,9 +125,9 @@ This document evolves at phase transitions and milestone boundaries.
 
 **After each milestone** (via `/gsd-complete-milestone`):
 1. Full review of all sections
-2. Core Value check — still the right priority?
-3. Audit Out of Scope — reasons still valid?
+2. Core Value check, still the right priority?
+3. Audit Out of Scope, reasons still valid?
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-18 - PRs #15 and #16 merged; typed valuation inputs and EV-to-equity PR 2A active; FCFF PR 2B remains separate*
+*Last updated: 2026-07-20, PRs #15 to #18 merged; the 3A branch is pushed without a PR; PRs 3B and 3C, synthetic rehearsal, explicitly approved live Anthropic UAT, then launch-gate closure/private pilot follow*

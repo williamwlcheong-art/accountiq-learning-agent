@@ -30,11 +30,38 @@ test("regular user uploads, selects report type, generates report, and reaches r
   await page.getByRole("button", { name: /continue/i }).click();
   await expect(page.getByText(/some profile data is incomplete/i)).toBeVisible();
   await completeValuationIntake(page);
+  const depreciationRatio = page.getByLabel(/depreciation and amortisation \(% of revenue\)/i);
+  const operatingNwcRatio = page.getByLabel(/operating working capital \(% of revenue\)/i);
+  await expect(depreciationRatio).toHaveAttribute("readonly", "");
+  await expect(operatingNwcRatio).toHaveAttribute("readonly", "");
+  await page.locator('input[name="depreciation_confirmation"][value="override"]').check();
+  await expect(depreciationRatio).not.toHaveAttribute("readonly", "");
+  await depreciationRatio.fill("4.2");
+  await page.getByLabel(/why are you using this figure/i).first().fill("Updated asset register.");
+  await page.locator('input[name="depreciation_confirmation"][value="confirm"]').check();
+  await expect(depreciationRatio).toHaveAttribute("readonly", "");
+  await expect(depreciationRatio).toHaveValue("2.8000000000000003");
+  await page.locator('input[name="operating_nwc_confirmation"][value="override"]').check();
+  await operatingNwcRatio.fill("14.7");
+  await page.locator('input[name="operating_nwc_confirmation"][value="confirm"]').check();
+  await expect(operatingNwcRatio).toHaveAttribute("readonly", "");
+  await expect(operatingNwcRatio).toHaveValue("12.4");
   await page.getByRole("button", { name: /review and continue/i }).click();
   await expect(page.locator(".wizard-phase")).toHaveText("Review and payment");
   await expect(page.getByRole("heading", { name: /confirm your valuation order/i })).toBeVisible();
   await expect(page.getByText(/inputs are frozen/i)).toBeVisible();
   await expect(page.getByText(/human review/i)).toBeVisible();
+  await expect(page.getByText("3 years", { exact: true })).toBeVisible();
+  await expect(page.getByText("8.0% each year", { exact: true })).toBeVisible();
+  await expect(page.getByText("3.0%", { exact: true })).toBeVisible();
+  await expect(page.getByText(/2\.8% of revenue/i)).toBeVisible();
+  await expect(page.getByText(/calculated from the financial statements for 2025/i).first()).toBeVisible();
+  await expect(page.getByText(/updated by you/i)).toHaveCount(0);
+  await expect(page.getByText(/reason: updated asset register/i)).toHaveCount(0);
+  await expect(page.getByText(/4\.0% of revenue/i)).toBeVisible();
+  await expect(page.getByText(/provided by you/i)).toBeVisible();
+  await expect(page.getByText(/12\.4% of revenue/i)).toBeVisible();
+  await expect(page.getByText(/calculated from the financial statements for 2025/i)).toHaveCount(2);
   const checkoutResponse = page.waitForResponse((response) =>
     response.url().includes("/wizard/report/checkout") && response.request().method() === "POST",
   );
@@ -116,6 +143,9 @@ test("regular user can complete valuation-specific intake", async ({ page }) => 
   await page.getByLabel(/forecast horizon/i).selectOption("3");
   await page.getByLabel(/revenue growth rate/i).fill("8");
   await page.getByLabel(/terminal growth rate/i).fill("3");
+  await page.locator('input[name="depreciation_confirmation"][value="confirm"]').check();
+  await page.locator('input[name="operating_nwc_confirmation"][value="confirm"]').check();
+  await page.getByLabel(/capital investment \(% of revenue\)/i).fill("4");
   for (const name of [
     "rq_revenue_quality",
     "rq_owner_dependency",

@@ -112,3 +112,81 @@ export type CheckoutClarification = {
 export type ApiErrorBody = {
   detail?: string | CheckoutClarification;
 };
+
+export type DerivedRevenueRatio = {
+  rate: number | null;
+  status: "available" | "missing" | "unusual";
+  source_period?: string | null;
+  provenance?: string | {
+    formula: string;
+    components: Array<{
+      document_id: number | null;
+      row_key: string;
+      row_label: string;
+      period: string;
+      currency: string;
+      original_unit: string;
+      original_value: number;
+      normalised_value: number;
+      source_text: string | null;
+    }>;
+  } | null;
+  message?: string | null;
+};
+
+export type FcffAssumptionReadiness = {
+  state: "ready" | "needs_adviser_assistance";
+  message: string;
+  depreciation: DerivedRevenueRatio;
+  operating_nwc: DerivedRevenueRatio;
+};
+
+export type FcffAssumptionInput = {
+  rate: number;
+  confirmed: boolean;
+  rationale: string;
+  confirmation_method?: "calculated" | "override" | "manual";
+  confirmation_source?: "financial_statements" | "customer";
+  source_period?: string;
+};
+
+export type FcffAssumptionsInput = {
+  forecast: {
+    horizon_years: number;
+    revenue_growth_rate: number;
+    terminal_growth_rate: number;
+    confirmed: boolean;
+  };
+  depreciation: FcffAssumptionInput;
+  capex: FcffAssumptionInput;
+  operating_nwc: FcffAssumptionInput;
+};
+
+export type WaccAssumptionSet = {
+  id: number;
+  name: string;
+  version: number;
+  status: "draft" | "approved";
+  active: boolean;
+  risk_free_rate: number;
+  equity_risk_premium: number;
+  beta: number;
+  beta_type: string;
+  cost_of_debt: number;
+  target_debt_weight: number;
+  target_equity_weight: number;
+  additional_premium: number | null;
+  scenario_spread: number | null;
+  source_references: string;
+  publisher: string;
+  as_of_date: string;
+  rationale: string;
+  approved_at: string | null;
+  approved_by: string | null;
+  created_at: string;
+};
+
+export type WaccAssumptionSetPayload = Omit<
+  WaccAssumptionSet,
+  "id" | "version" | "status" | "active" | "approved_at" | "approved_by" | "created_at"
+>;

@@ -76,10 +76,12 @@ BS_ROWS = [
 ]
 
 CF_ROWS = [
-    ("operating_cashflow",  "Cash flows from operating activities"),
-    ("investing_cashflow",  "Cash flows from investing activities"),
-    ("financing_cashflow",  "Cash flows from financing activities"),
-    ("net_change_in_cash",  "Net change in cash and cash equivalents"),
+    ("operating_cashflow",                  "Cash flows from operating activities"),
+    ("investing_cashflow",                  "Cash flows from investing activities"),
+    ("purchases_property_plant_equipment",  "Purchases of property, plant and equipment"),
+    ("purchases_intangible_assets",         "Purchases of intangible assets"),
+    ("financing_cashflow",                  "Cash flows from financing activities"),
+    ("net_change_in_cash",                  "Net change in cash and cash equivalents"),
 ]
 
 EQ_ROWS = [
@@ -138,7 +140,12 @@ other_current_liab, total_current_liab, long_term_debt, other_noncurrent_liab,
 total_liabilities, shareholders_equity
 
 ## Canonical Cash Flow Keys (statement: "cf")
-operating_cashflow, investing_cashflow, financing_cashflow, net_change_in_cash
+operating_cashflow, investing_cashflow, purchases_property_plant_equipment,
+purchases_intangible_assets, financing_cashflow, net_change_in_cash
+
+`purchases_property_plant_equipment` and `purchases_intangible_assets` apply only to
+explicitly labelled purchases. Preserve the source sign for these rows. Never map
+aggregate investing cash flow to either purchase key.
 
 ## Canonical Equity Changes Keys (statement: "eq")
 opening_equity, net_profit, dividends_paid, other_equity_movements, closing_equity

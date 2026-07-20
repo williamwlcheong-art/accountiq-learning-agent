@@ -2,9 +2,16 @@
 
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN
 import re
 from typing import Any
+
+
+_RATIO_QUANTUM = Decimal("0.0000000001")
+
+
+def _ratio(numerator: Decimal, denominator: Decimal) -> Decimal:
+    return (numerator / denominator).quantize(_RATIO_QUANTUM, rounding=ROUND_HALF_EVEN)
 
 
 _UNIT_FACTORS = {
@@ -109,6 +116,54 @@ class Normalisation:
 
 
 @dataclass(frozen=True)
+class ConfirmedForecastPolicy:
+    revenue_ratio: Decimal | None
+    annual_schedule: tuple[Decimal, ...]
+    rationale: str
+    confirmed: bool
+    confirmation_method: str | None = None
+    confirmation_source: str | None = None
+
+
+@dataclass(frozen=True)
+class ForecastAssumptions:
+    horizon_years: int
+    revenue_growth_rate: Decimal
+    terminal_growth_rate: Decimal
+    normalised_ebitda_margin: Decimal
+
+
+@dataclass(frozen=True)
+class TaxPolicy:
+    rate: Decimal
+    policy_version: str
+    positive_ebit_only: bool
+    loss_tax_shield: bool
+
+
+@dataclass(frozen=True)
+class FrozenWaccAssumptionSet:
+    assumption_set_id: int
+    name: str
+    version: int
+    risk_free_rate: Decimal
+    equity_risk_premium: Decimal
+    beta: Decimal
+    beta_type: str
+    cost_of_debt: Decimal
+    target_debt_weight: Decimal
+    target_equity_weight: Decimal
+    additional_premium: Decimal
+    scenario_spread: Decimal
+    source_references: str
+    publisher: str
+    as_of_date: date
+    rationale: str
+    approved_at: str
+    approved_by: str
+
+
+@dataclass(frozen=True)
 class ValuationInputs:
     currency: str
     base_period: FiscalPeriod
@@ -120,6 +175,15 @@ class ValuationInputs:
     unrestricted_cash: ValuationAmount
     approved_surplus_assets: ValuationAmount
     net_debt: ValuationAmount
+    depreciation_and_amortisation: ValuationAmount | None = None
+    operating_nwc_components: tuple[ValueProvenance, ...] = ()
+    base_operating_nwc: ValuationAmount | None = None
+    depreciation_policy: ConfirmedForecastPolicy | None = None
+    capex_policy: ConfirmedForecastPolicy | None = None
+    operating_nwc_policy: ConfirmedForecastPolicy | None = None
+    forecast: ForecastAssumptions | None = None
+    tax: TaxPolicy | None = None
+    wacc_assumption_set: FrozenWaccAssumptionSet | None = None
 
     @property
     def surplus_assets(self) -> ValuationAmount:
@@ -442,9 +506,247 @@ def _surplus_assets(frozen_inputs: dict[str, Any], currency: str) -> ValuationAm
     return ValuationAmount(amount, (provenance,))
 
 
+def derive_fcff_assumption_readiness(
+    financial_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Derive safe FCFF ratios from the valuation-selected base period."""
+    rows = _prepare_rows(financial_rows)
+    base_period, revenue_row, _ = _select_base_period(rows)
+    if revenue_row.value == 0:
+        _fail("missing_revenue", "Revenue must be non-zero to derive FCFF assumptions.")
+
+    pnl_rows = _period_rows(rows, "pnl", base_period.end_date)
+    depreciation_row = next(
+        (_find(pnl_rows, key) for key in _DEPRECIATION_KEYS if _find(pnl_rows, key)),
+        None,
+    )
+    bs_rows = _period_rows(rows, "bs", base_period.end_date)
+    component_keys = ("trade_debtors", "inventory", "trade_creditors")
+    components = [_find(bs_rows, key) for key in component_keys]
+
+    depreciation = None
+    if depreciation_row is not None:
+        depreciation = {
+            "rate": _ratio(abs(depreciation_row.value), revenue_row.value),
+            "source_period": revenue_row.period.original,
+            "provenance": depreciation_row.raw.get("source_text") or depreciation_row.raw.get("row_label"),
+        }
+
+    operating_nwc = None
+    if all(component is not None for component in components):
+        nwc_value = components[0].value + components[1].value - components[2].value
+        operating_nwc = {
+            "rate": _ratio(nwc_value, revenue_row.value),
+            "source_period": revenue_row.period.original,
+            "provenance": {
+                "formula": "Trade debtors + Inventory - Trade creditors",
+                "components": [
+                    {
+                        "document_id": component.raw.get("document_id"),
+                        "row_key": component.raw.get("row_key"),
+                        "row_label": component.raw.get("row_label"),
+                        "period": component.period.original,
+                        "currency": component.currency,
+                        "original_unit": component.unit,
+                        "original_value": component.raw.get("value"),
+                        "normalised_value": component.value,
+                        "source_text": component.raw.get("source_text"),
+                    }
+                    for component in components
+                ],
+            },
+        }
+
+    return {"depreciation": depreciation, "operating_nwc": operating_nwc}
+
+
+def _fcff_policy(
+    assumptions: dict,
+    key: str,
+    forecast_horizon: int,
+    *,
+    calculated_rate: Decimal | None = None,
+    source_period: str | None = None,
+) -> ConfirmedForecastPolicy:
+    item = assumptions.get(key)
+    if not isinstance(item, dict):
+        _fail(f"missing_{key}", f"A confirmed {key.replace('_', ' ')} assumption is required.")
+    rationale = str(item.get("rationale") or "").strip()
+    confirmed = item.get("confirmed") is True
+    confirmation_method = str(item.get("confirmation_method") or "").strip() or None
+    confirmation_source = str(item.get("confirmation_source") or "").strip() or None
+    schedule = item.get("annual_schedule")
+    rate = item.get("rate")
+    if not confirmed:
+        _fail(f"missing_{key}", f"The {key.replace('_', ' ')} assumption must be confirmed.")
+    if schedule is not None:
+        if not isinstance(schedule, list) or not schedule:
+            _fail(f"missing_{key}", f"The {key.replace('_', ' ')} schedule is invalid.")
+        if len(schedule) != forecast_horizon:
+            _fail(
+                f"missing_{key}",
+                f"The {key.replace('_', ' ')} schedule must match the forecast horizon.",
+                expected_years=forecast_horizon,
+                actual_years=len(schedule),
+            )
+        values = tuple(_decimal(value, f"missing_{key}", f"The {key.replace('_', ' ')} schedule is invalid.") for value in schedule)
+        if any(value < 0 for value in values):
+            _fail(f"missing_{key}", f"The {key.replace('_', ' ')} schedule cannot be negative.")
+        if any(value == 0 for value in values) and not rationale:
+            _fail(f"missing_{key}_rationale", f"A zero {key.replace('_', ' ')} assumption needs a rationale.")
+        return ConfirmedForecastPolicy(
+            None, values, rationale, confirmed, confirmation_method, confirmation_source
+        )
+    value = _decimal(rate, f"missing_{key}", f"A valid {key.replace('_', ' ')} revenue ratio is required.")
+    if value < 0 or value > 1:
+        _fail(f"missing_{key}", f"The {key.replace('_', ' ')} revenue ratio must be between zero and one.")
+    if value == 0 and not rationale:
+        _fail(f"missing_{key}_rationale", f"A zero {key.replace('_', ' ')} assumption needs a rationale.")
+    if confirmation_method == "calculated" and calculated_rate is not None:
+        submitted_period = str(item.get("source_period") or "").strip()
+        if value != calculated_rate or submitted_period != source_period:
+            _fail(
+                f"invalid_calculated_{key}",
+                f"The calculated {key.replace('_', ' ')} assumption must match its source period and derived value.",
+                expected_rate=str(calculated_rate),
+                actual_rate=str(value),
+                expected_source_period=source_period,
+                actual_source_period=submitted_period,
+            )
+        if confirmation_source != "financial_statements":
+            _fail(
+                f"invalid_calculated_{key}",
+                f"The calculated {key.replace('_', ' ')} assumption must retain its financial statement source.",
+            )
+    elif calculated_rate is not None and confirmation_method != "override":
+        _fail(
+            f"invalid_calculated_{key}",
+            f"Changes to the calculated {key.replace('_', ' ')} assumption require an override.",
+        )
+    if confirmation_method == "override" and not rationale:
+        _fail(f"missing_{key}_rationale", f"An overridden {key.replace('_', ' ')} assumption needs a rationale.")
+    return ConfirmedForecastPolicy(
+        value, (), rationale, confirmed, confirmation_method, confirmation_source
+    )
+
+
+def _fcff_inputs(
+    rows: list[_Row],
+    base_period: FiscalPeriod,
+    revenue: ValuationAmount,
+    normalised_ebitda: ValuationAmount,
+    frozen_inputs: dict[str, Any],
+) -> tuple:
+    intake = frozen_inputs.get("intake_answers")
+    assumptions = intake.get("fcff_assumptions") if isinstance(intake, dict) else None
+    if not isinstance(assumptions, dict):
+        return (None, (), None, None, None, None, None, None, None)
+
+    pnl_rows = _period_rows(rows, "pnl", base_period.end_date)
+    depreciation_row = next((_find(pnl_rows, key) for key in _DEPRECIATION_KEYS if _find(pnl_rows, key)), None)
+    if not depreciation_row:
+        _fail("missing_depreciation", "Same-period depreciation and amortisation is required.")
+    depreciation_value = abs(depreciation_row.value)
+    depreciation_provenance = _provenance(depreciation_row, "absolute_depreciation_and_amortisation")
+    depreciation_provenance = ValueProvenance(
+        depreciation_provenance.document_id, depreciation_provenance.statement,
+        depreciation_provenance.row_key, depreciation_provenance.row_label,
+        depreciation_provenance.original_period, depreciation_provenance.currency,
+        depreciation_provenance.original_unit, depreciation_provenance.original_value,
+        depreciation_value, depreciation_provenance.source_text,
+        depreciation_provenance.confidence, depreciation_provenance.transformation,
+    )
+    depreciation = ValuationAmount(depreciation_value, (depreciation_provenance,))
+
+    bs_rows = _period_rows(rows, "bs", base_period.end_date)
+    component_keys = ("trade_debtors", "inventory", "trade_creditors")
+    components = [_find(bs_rows, key) for key in component_keys]
+    if any(component is None for component in components):
+        missing = [key for key, component in zip(component_keys, components) if component is None]
+        _fail("missing_operating_nwc", "All approved same-period operating working-capital components are required.", missing=missing)
+    component_provenance = tuple(
+        _provenance(component, "operating_nwc_asset" if component.raw["row_key"] != "trade_creditors" else "operating_nwc_liability")
+        for component in components
+    )
+    base_nwc_value = components[0].value + components[1].value - components[2].value
+    base_nwc = ValuationAmount(base_nwc_value, component_provenance)
+
+    forecast_item = assumptions.get("forecast")
+    if not isinstance(forecast_item, dict) or forecast_item.get("confirmed") is not True:
+        _fail("missing_forecast_assumptions", "Confirmed forecast assumptions are required.")
+    horizon = forecast_item.get("horizon_years")
+    if not isinstance(horizon, int) or isinstance(horizon, bool) or horizon < 1 or horizon > 10:
+        _fail("missing_forecast_assumptions", "Forecast horizon must be between one and ten years.")
+
+    if revenue.value == 0:
+        _fail("missing_forecast_assumptions", "Revenue must be non-zero to establish FCFF assumptions.")
+
+    depreciation_policy = _fcff_policy(
+        assumptions, "depreciation", horizon,
+        calculated_rate=_ratio(depreciation_value, revenue.value),
+        source_period=base_period.original,
+    )
+    capex_policy = _fcff_policy(assumptions, "capex", horizon)
+    operating_nwc_policy = _fcff_policy(
+        assumptions, "operating_nwc", horizon,
+        calculated_rate=_ratio(base_nwc_value, revenue.value),
+        source_period=base_period.original,
+    )
+    growth = _decimal(forecast_item.get("revenue_growth_rate"), "missing_forecast_assumptions", "A valid revenue growth rate is required.")
+    terminal_growth = _decimal(forecast_item.get("terminal_growth_rate"), "missing_forecast_assumptions", "A valid terminal growth rate is required.")
+    forecast = ForecastAssumptions(
+        horizon, growth, terminal_growth, _ratio(normalised_ebitda.value, revenue.value)
+    )
+    tax = TaxPolicy(Decimal("0.28"), "nz-company-tax-2026-v1", True, False)
+
+    raw_wacc = frozen_inputs.get("approved_wacc_assumption_set")
+    if not isinstance(raw_wacc, dict):
+        _fail("missing_wacc_approval", "An active adviser-approved WACC assumption set is required.")
+    required_text = ("name", "beta_type", "source_references", "publisher", "as_of_date", "rationale", "approved_at", "approved_by")
+    if any(not str(raw_wacc.get(field) or "").strip() for field in required_text):
+        _fail("missing_wacc_approval", "The approved WACC assumption set is incomplete.")
+    try:
+        wacc_date = date.fromisoformat(str(raw_wacc["as_of_date"]))
+        assumption_set_id = int(raw_wacc["id"])
+        version = int(raw_wacc["version"])
+    except (ValueError, TypeError):
+        _fail("missing_wacc_approval", "The approved WACC assumption set is incomplete.")
+    decimal_fields = {
+        field: _decimal(raw_wacc.get(field), "missing_wacc_approval", "The approved WACC assumption set is incomplete.")
+        for field in ("risk_free_rate", "equity_risk_premium", "beta", "cost_of_debt", "target_debt_weight", "target_equity_weight")
+    }
+    if decimal_fields["target_debt_weight"] + decimal_fields["target_equity_weight"] != 1:
+        _fail("missing_wacc_approval", "Approved WACC debt and equity weights must total one.")
+    additional = _decimal(raw_wacc.get("additional_premium", 0), "missing_wacc_approval", "The approved WACC assumption set is incomplete.")
+    spread = _decimal(raw_wacc.get("scenario_spread", 0), "missing_wacc_approval", "The approved WACC assumption set is incomplete.")
+    mid_wacc = (
+        decimal_fields["risk_free_rate"]
+        + decimal_fields["beta"] * decimal_fields["equity_risk_premium"]
+        + additional
+    ) * decimal_fields["target_equity_weight"] + (
+        decimal_fields["cost_of_debt"] * (Decimal("1") - tax.rate)
+    ) * decimal_fields["target_debt_weight"]
+    if mid_wacc - spread - terminal_growth < Decimal("0.01"):
+        _fail("invalid_terminal_spread", "WACC must exceed terminal growth by at least one percentage point in every scenario.")
+    wacc = FrozenWaccAssumptionSet(
+        assumption_set_id, str(raw_wacc["name"]), version,
+        decimal_fields["risk_free_rate"], decimal_fields["equity_risk_premium"],
+        decimal_fields["beta"], str(raw_wacc["beta_type"]), decimal_fields["cost_of_debt"],
+        decimal_fields["target_debt_weight"], decimal_fields["target_equity_weight"],
+        additional, spread, str(raw_wacc["source_references"]), str(raw_wacc["publisher"]),
+        wacc_date, str(raw_wacc["rationale"]), str(raw_wacc["approved_at"]), str(raw_wacc["approved_by"]),
+    )
+    return (
+        depreciation, component_provenance, base_nwc, depreciation_policy,
+        capex_policy, operating_nwc_policy, forecast, tax, wacc,
+    )
+
+
 def build_valuation_inputs(
     financial_rows: list[dict[str, Any]],
     frozen_inputs: dict[str, Any] | None = None,
+    *,
+    require_fcff: bool = False,
 ) -> ValuationInputs:
     """Build immutable valuation inputs from snapshot-shaped rows and inputs."""
     rows = _prepare_rows(financial_rows)
@@ -527,6 +829,11 @@ def build_valuation_inputs(
             for p in debt.provenance + cash.provenance
         ),
     )
+    fcff_values = _fcff_inputs(
+        rows, base_period, revenue, normalised_ebitda, frozen_inputs
+    )
+    if require_fcff and fcff_values[0] is None:
+        _fail("missing_forecast_assumptions", "Complete FCFF assumptions are required before checkout.")
     return ValuationInputs(
         currency=currency,
         base_period=base_period,
@@ -538,4 +845,13 @@ def build_valuation_inputs(
         unrestricted_cash=cash,
         approved_surplus_assets=surplus_assets,
         net_debt=net_debt,
+        depreciation_and_amortisation=fcff_values[0],
+        operating_nwc_components=fcff_values[1],
+        base_operating_nwc=fcff_values[2],
+        depreciation_policy=fcff_values[3],
+        capex_policy=fcff_values[4],
+        operating_nwc_policy=fcff_values[5],
+        forecast=fcff_values[6],
+        tax=fcff_values[7],
+        wacc_assumption_set=fcff_values[8],
     )

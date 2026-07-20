@@ -1,16 +1,45 @@
 """Create and verify immutable report-generation inputs."""
 import hashlib
 import json
+import os
+from decimal import Decimal
 from pathlib import Path
 
 from financial_authority import authoritative_financial_rows
 
-SNAPSHOT_SCHEMA_VERSION = "1"
-VALUATION_ENGINE_VERSION = "typed-inputs-v2"
+SNAPSHOT_SCHEMA_VERSION = "2"
+VALUATION_ENGINE_VERSION = "fcff-assumptions-v1"
+LEGACY_SNAPSHOT_SCHEMA_VERSION = "1"
+LEGACY_VALUATION_ENGINE_VERSION = "typed-inputs-v2"
+
+E2E_WACC_ASSUMPTION_SET = {
+    "id": 0,
+    "name": "Synthetic E2E WACC",
+    "version": 1,
+    "risk_free_rate": "0.04",
+    "equity_risk_premium": "0.055",
+    "beta": "1.0",
+    "beta_type": "synthetic_e2e",
+    "cost_of_debt": "0.06",
+    "target_debt_weight": "0.30",
+    "target_equity_weight": "0.70",
+    "additional_premium": "0.02",
+    "scenario_spread": "0.01",
+    "source_references": "Deterministic synthetic E2E fixture",
+    "publisher": "AccountIQ test fixture",
+    "as_of_date": "2026-07-01",
+    "rationale": "Synthetic values for automated service checks only.",
+    "approved_at": "2026-07-01 00:00:00",
+    "approved_by": "e2e-fixture",
+}
 
 
 class SnapshotIntegrityError(RuntimeError):
     """Raised when a stored report snapshot no longer matches its digest."""
+
+
+class LegacySnapshotRestartRequired(SnapshotIntegrityError):
+    """Raised when an unfinished schema-1 report needs new FCFF intake."""
 
 
 def _canonical_json(value) -> str:
@@ -32,6 +61,47 @@ def _digest_payload(
         "valuation_engine_version": valuation_engine_version,
     }
     return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
+
+
+async def _approved_wacc_assumption_set(db) -> dict:
+    async with db.execute(
+        """
+        SELECT ws.*, u.email AS approved_by
+        FROM wacc_assumption_sets ws
+        LEFT JOIN users u ON u.id=ws.approved_by_user_id
+        WHERE ws.active=1 AND ws.status='approved'
+        ORDER BY ws.id
+        """
+    ) as cur:
+        rows = await cur.fetchall()
+    if len(rows) != 1:
+        raise ValueError("Exactly one active approved WACC assumption set is required")
+    row = dict(rows[0])
+
+    def percentage(field: str, default: str | None = None) -> str:
+        value = row[field] if row[field] is not None else default
+        return str(Decimal(str(value)) / Decimal("100"))
+
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "version": row["version"],
+        "risk_free_rate": percentage("risk_free_rate"),
+        "equity_risk_premium": percentage("equity_risk_premium"),
+        "beta": str(row["beta"]),
+        "beta_type": row["beta_type"],
+        "cost_of_debt": percentage("cost_of_debt"),
+        "target_debt_weight": percentage("target_debt_weight"),
+        "target_equity_weight": percentage("target_equity_weight"),
+        "additional_premium": percentage("additional_premium", "0"),
+        "scenario_spread": percentage("scenario_spread", "0"),
+        "source_references": row["source_references"],
+        "publisher": row["publisher"],
+        "as_of_date": row["as_of_date"],
+        "rationale": row["rationale"],
+        "approved_at": row["approved_at"],
+        "approved_by": row["approved_by"],
+    }
 
 
 async def build_report_input_snapshot_candidate(
@@ -142,6 +212,14 @@ async def build_report_input_snapshot_candidate(
     ) as cur:
         adjustments = [dict(row) for row in await cur.fetchall()]
 
+    if report_type == "valuation_advisory" and isinstance(intake_answers, dict) and "fcff_assumptions" in intake_answers:
+        if os.environ.get("ACCOUNTIQ_E2E_MODE", "false").lower() == "true":
+            approved_wacc = E2E_WACC_ASSUMPTION_SET
+        else:
+            approved_wacc = await _approved_wacc_assumption_set(db)
+    else:
+        approved_wacc = None
+
     frozen_inputs = {
         "company": {
             "name": source["name"],
@@ -154,6 +232,7 @@ async def build_report_input_snapshot_candidate(
         "management_team": management_team,
         "ebitda_adjustments": adjustments,
         "intake_answers": intake_answers,
+        **({"approved_wacc_assumption_set": approved_wacc} if approved_wacc else {}),
     }
     rows = [
         {
@@ -292,15 +371,28 @@ async def create_report_input_snapshot(
 async def load_report_input_snapshot(db, report_id: int) -> dict:
     """Load a report snapshot and fail closed if its canonical digest changed."""
     async with db.execute(
-        "SELECT * FROM report_input_snapshots WHERE report_id=?",
+        """
+        SELECT ris.*, r.status AS report_status
+        FROM report_input_snapshots ris
+        JOIN reports r ON r.id=ris.report_id
+        WHERE ris.report_id=?
+        """,
         (report_id,),
     ) as cur:
         snapshot = await cur.fetchone()
     if not snapshot:
         raise SnapshotIntegrityError("Report input snapshot is missing")
-    if snapshot["schema_version"] != SNAPSHOT_SCHEMA_VERSION:
+    is_legacy = (
+        snapshot["schema_version"] == LEGACY_SNAPSHOT_SCHEMA_VERSION
+        and snapshot["valuation_engine_version"] == LEGACY_VALUATION_ENGINE_VERSION
+    )
+    if is_legacy and snapshot["report_status"] != "done":
+        raise LegacySnapshotRestartRequired(
+            "Legacy report inputs must restart with new FCFF intake"
+        )
+    if not is_legacy and snapshot["schema_version"] != SNAPSHOT_SCHEMA_VERSION:
         raise SnapshotIntegrityError("Unsupported report snapshot schema version")
-    if snapshot["valuation_engine_version"] != VALUATION_ENGINE_VERSION:
+    if not is_legacy and snapshot["valuation_engine_version"] != VALUATION_ENGINE_VERSION:
         raise SnapshotIntegrityError("Unsupported valuation engine version")
 
     manifest = json.loads(snapshot["document_manifest"])

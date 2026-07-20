@@ -1,4 +1,5 @@
 import asyncio
+import copy
 
 import aiosqlite
 import pytest
@@ -66,9 +67,28 @@ def test_stripe_enabled_requires_secret_key(monkeypatch):
 
 def _valuation_answers():
     return {
-        "forecast_horizon": 3,
-        "revenue_growth_cagr": 8,
-        "terminal_growth_rate": 3,
+        "fcff_assumptions": {
+            "forecast": {
+                "horizon_years": 3,
+                "revenue_growth_rate": 0.08,
+                "terminal_growth_rate": 0.03,
+                "confirmed": True,
+            },
+            "depreciation": {
+                "rate": 0.028, "confirmed": True, "rationale": "Matches accounts.",
+                "confirmation_method": "calculated", "confirmation_source": "financial_statements",
+                "source_period": "2025",
+            },
+            "capex": {
+                "rate": 0.04, "confirmed": True, "rationale": "Confirmed plan.",
+                "confirmation_method": "manual", "confirmation_source": "customer",
+            },
+            "operating_nwc": {
+                "rate": 0.124, "confirmed": True, "rationale": "Matches accounts.",
+                "confirmation_method": "calculated", "confirmation_source": "financial_statements",
+                "source_period": "2025",
+            },
+        },
         "rq_revenue_quality": 3,
         "rq_owner_dependency": 3,
         "rq_ebitda_growth": 3,
@@ -82,6 +102,24 @@ def _valuation_answers():
 
 async def _register_and_upload(client, email="buyer@example.com"):
     await client.post("/auth/register", data={"email": email, "password": "password123"})
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO wacc_assumption_sets
+                (name, version, status, active, risk_free_rate, equity_risk_premium,
+                 beta, beta_type, cost_of_debt, target_debt_weight,
+                 target_equity_weight, additional_premium, scenario_spread,
+                 source_references, publisher, as_of_date, rationale, approved_at,
+                 approved_by_user_id)
+            VALUES ('Synthetic payment test', 1, 'approved', 1, '4', '5.5',
+                    '1', 'synthetic_test', '6', '30', '70', '2', '1',
+                    'Deterministic payment fixture', 'Test suite', '2026-07-01',
+                    'Automated checkout tests only', '2026-07-01 00:00:00',
+                    (SELECT id FROM users WHERE email=?))
+            """,
+            (email,),
+        )
+        await db.commit()
     upload = await client.post(
         "/wizard/upload",
         data={"business_name": "Paid Valuation Ltd"},
@@ -182,6 +220,59 @@ async def test_e2e_checkout_creates_queued_report(client, fresh_all_db, monkeypa
 
 
 @pytest.mark.asyncio
+async def test_checkout_accepts_frontend_precision_for_non_terminating_calculated_ratios(
+    client, fresh_all_db, monkeypatch
+):
+    monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+    company_id = await _register_and_upload(client, email="ratio-checkout@example.com")
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE financial_rows SET value=30 WHERE company_id=? AND row_key='revenue'",
+            (company_id,),
+        )
+        await db.execute(
+            "UPDATE financial_rows SET value=-1 WHERE company_id=? AND row_key='depreciation'",
+            (company_id,),
+        )
+        await db.execute(
+            "UPDATE financial_rows SET value=2 WHERE company_id=? AND row_key='trade_debtors'",
+            (company_id,),
+        )
+        await db.execute(
+            "UPDATE financial_rows SET value=0 WHERE company_id=? AND row_key IN ('inventory', 'trade_creditors')",
+            (company_id,),
+        )
+        await db.commit()
+    answers = _valuation_answers()
+    answers["fcff_assumptions"]["depreciation"]["rate"] = 0.0333333333
+    answers["fcff_assumptions"]["operating_nwc"]["rate"] = 0.0666666667
+
+    response = await client.post(
+        "/wizard/report/checkout",
+        json={
+            "company_id": company_id,
+            "report_type": "valuation_advisory",
+            "intake_answers": answers,
+            "idempotency_key": "non-terminating-ratio-checkout",
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    async with aiosqlite.connect(DB_PATH) as db:
+        frozen_json = (
+            await (
+                await db.execute(
+                    "SELECT frozen_inputs FROM report_input_snapshots WHERE report_id=?",
+                    (response.json()["report_id"],),
+                )
+            ).fetchone()
+        )[0]
+    assert '"rate":0.0333333333' in frozen_json
+    assert '"rate":0.0666666667' in frozen_json
+
+
+@pytest.mark.asyncio
 async def test_checkout_idempotency_key_reuses_order(client, fresh_all_db, monkeypatch):
     monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
     monkeypatch.setattr(main_module, "E2E_MODE", True)
@@ -202,6 +293,115 @@ async def test_checkout_idempotency_key_reuses_order(client, fresh_all_db, monke
     async with aiosqlite.connect(DB_PATH) as db:
         assert (await (await db.execute("SELECT COUNT(*) FROM purchases")).fetchone())[0] == 1
         assert (await (await db.execute("SELECT COUNT(*) FROM report_input_snapshots")).fetchone())[0] == 1
+
+
+@pytest.mark.asyncio
+async def test_checkout_legacy_pending_snapshot_requires_restart_without_stripe_or_mutation(
+    client, fresh_all_db, monkeypatch
+):
+    monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+    company_id = await _register_and_upload(client, email="legacy-checkout@example.com")
+    payload = {
+        "company_id": company_id,
+        "report_type": "valuation_advisory",
+        "intake_answers": _valuation_answers(),
+        "idempotency_key": "legacy-snapshot-checkout-key",
+    }
+    created = await client.post("/wizard/report/checkout", json=payload)
+    assert created.status_code == 201, created.text
+    report_id = created.json()["report_id"]
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE reports SET status='pending_payment' WHERE id=?", (report_id,)
+        )
+        await db.execute(
+            "UPDATE purchases SET status='pending', paid_at=NULL WHERE report_id=?", (report_id,)
+        )
+        await db.execute(
+            """
+            UPDATE report_input_snapshots
+            SET schema_version='1', valuation_engine_version='typed-inputs-v2'
+            WHERE report_id=?
+            """,
+            (report_id,),
+        )
+        await db.commit()
+        before = await (
+            await db.execute(
+                """
+                SELECT r.status, p.status, p.stripe_checkout_session_id, p.stripe_checkout_url,
+                       ris.schema_version, ris.valuation_engine_version, ris.canonical_digest
+                FROM reports r
+                JOIN purchases p ON p.report_id=r.id
+                JOIN report_input_snapshots ris ON ris.report_id=r.id
+                WHERE r.id=?
+                """,
+                (report_id,),
+            )
+        ).fetchone()
+
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.setattr(main_module, "stripe_enabled", lambda: True)
+    stripe_calls = []
+    monkeypatch.setattr(
+        main_module, "create_checkout_session", lambda **kwargs: stripe_calls.append(kwargs)
+    )
+
+    response = await client.post("/wizard/report/checkout", json=payload)
+
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"]["code"] == "legacy_snapshot_restart_required"
+    assert stripe_calls == []
+    async with aiosqlite.connect(DB_PATH) as db:
+        after = await (
+            await db.execute(
+                """
+                SELECT r.status, p.status, p.stripe_checkout_session_id, p.stripe_checkout_url,
+                       ris.schema_version, ris.valuation_engine_version, ris.canonical_digest
+                FROM reports r
+                JOIN purchases p ON p.report_id=r.id
+                JOIN report_input_snapshots ris ON ris.report_id=r.id
+                WHERE r.id=?
+                """,
+                (report_id,),
+            )
+        ).fetchone()
+    assert after == before
+
+
+@pytest.mark.asyncio
+async def test_checkout_idempotency_key_rejects_changed_nested_capex_before_external_call(
+    client, fresh_all_db, monkeypatch
+):
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+    company_id = await _register_and_upload(client, email="changed-idempotency@example.com")
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.setattr(main_module, "stripe_enabled", lambda: True)
+    external_calls = 0
+
+    def create_session(**_kwargs):
+        nonlocal external_calls
+        external_calls += 1
+        return CheckoutSession("cs_original", "https://checkout.stripe.test/original")
+
+    monkeypatch.setattr(main_module, "create_checkout_session", create_session)
+    payload = {
+        "company_id": company_id,
+        "report_type": "valuation_advisory",
+        "intake_answers": _valuation_answers(),
+        "idempotency_key": "changed-capex-checkout-key",
+    }
+    first = await client.post("/wizard/report/checkout", json=payload)
+    changed = copy.deepcopy(payload)
+    changed["intake_answers"]["fcff_assumptions"]["capex"]["rate"] = 0.09
+    second = await client.post("/wizard/report/checkout", json=changed)
+
+    assert first.status_code == 201, first.text
+    assert second.status_code == 409, second.text
+    assert second.json()["detail"]["code"] == "idempotency_key_reused"
+    assert external_calls == 1
 
 
 @pytest.mark.asyncio

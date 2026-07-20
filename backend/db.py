@@ -157,6 +157,7 @@ def _migrate_db(conn: sqlite3.Connection):
         "ALTER TABLE documents ADD COLUMN supersedes_document_id INTEGER REFERENCES documents(id)",
         "ALTER TABLE purchases ADD COLUMN checkout_idempotency_key TEXT",
         "ALTER TABLE purchases ADD COLUMN stripe_checkout_url TEXT",
+        "ALTER TABLE purchases ADD COLUMN checkout_request_digest TEXT",
     ]:
         try:
             conn.execute(sql)
@@ -287,6 +288,42 @@ def _migrate_db(conn: sqlite3.Connection):
         except sqlite3.OperationalError:
             pass
 
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS wacc_assumption_sets (
+            id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+            name                     TEXT NOT NULL,
+            version                  INTEGER NOT NULL,
+            status                   TEXT NOT NULL DEFAULT 'draft',
+            active                   INTEGER NOT NULL DEFAULT 0,
+            risk_free_rate           TEXT NOT NULL,
+            equity_risk_premium      TEXT NOT NULL,
+            beta                     TEXT NOT NULL,
+            beta_type                TEXT NOT NULL,
+            cost_of_debt             TEXT NOT NULL,
+            target_debt_weight       TEXT NOT NULL,
+            target_equity_weight     TEXT NOT NULL,
+            additional_premium       TEXT,
+            scenario_spread          TEXT,
+            source_references        TEXT NOT NULL,
+            publisher                TEXT NOT NULL,
+            as_of_date               TEXT NOT NULL,
+            rationale                TEXT NOT NULL,
+            approved_at              TEXT,
+            approved_by_user_id      INTEGER REFERENCES users(id),
+            created_at               TEXT DEFAULT (datetime('now')),
+            UNIQUE(name, version)
+        )
+    """)
+    conn.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_wacc_one_active_approved
+        ON wacc_assumption_sets(active)
+        WHERE active=1 AND status='approved'
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_wacc_assumption_sets_name_version
+        ON wacc_assumption_sets(name, version DESC)
+    """)
+
     # Phase 5: report job state machine + intake answers
     conn.execute("""
         CREATE TABLE IF NOT EXISTS reports (
@@ -321,6 +358,7 @@ def _migrate_db(conn: sqlite3.Connection):
             currency                    TEXT NOT NULL DEFAULT 'nzd',
             status                      TEXT NOT NULL DEFAULT 'pending',
             checkout_idempotency_key    TEXT,
+            checkout_request_digest     TEXT,
             paid_at                     TEXT,
             created_at                  TEXT DEFAULT (datetime('now'))
         )
