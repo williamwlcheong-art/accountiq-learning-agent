@@ -38,6 +38,10 @@ class SnapshotIntegrityError(RuntimeError):
     """Raised when a stored report snapshot no longer matches its digest."""
 
 
+class LegacySnapshotRestartRequired(SnapshotIntegrityError):
+    """Raised when an unfinished schema-1 report needs new FCFF intake."""
+
+
 def _canonical_json(value) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
@@ -383,7 +387,9 @@ async def load_report_input_snapshot(db, report_id: int) -> dict:
         and snapshot["valuation_engine_version"] == LEGACY_VALUATION_ENGINE_VERSION
     )
     if is_legacy and snapshot["report_status"] != "done":
-        raise SnapshotIntegrityError("Legacy report inputs must restart with a new snapshot")
+        raise LegacySnapshotRestartRequired(
+            "Legacy report inputs must restart with new FCFF intake"
+        )
     if not is_legacy and snapshot["schema_version"] != SNAPSHOT_SCHEMA_VERSION:
         raise SnapshotIntegrityError("Unsupported report snapshot schema version")
     if not is_legacy and snapshot["valuation_engine_version"] != VALUATION_ENGINE_VERSION:

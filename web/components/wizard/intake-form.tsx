@@ -138,6 +138,7 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
   const [profileStatus, setProfileStatus] = useState<ProfileStatus | null>(null);
   const [fcffReadiness, setFcffReadiness] = useState<FcffAssumptionReadiness | null>(null);
   const [assumptionOverrides, setAssumptionOverrides] = useState<Record<string, boolean>>({});
+  const [assumptionRatios, setAssumptionRatios] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -220,6 +221,11 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
     setNormalisations((rows) => rows.filter((row) => row.id !== id));
   }
 
+  function setCalculatedAssumption(key: string, rate: number) {
+    setAssumptionOverrides((current) => ({ ...current, [key]: false }));
+    setAssumptionRatios((current) => ({ ...current, [key]: String(rate * 100) }));
+  }
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -291,7 +297,9 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
         depreciation: {
           rate: percentageToRatio(answers.depreciation_ratio),
           confirmed: true,
-          rationale: String(answers.depreciation_override_rationale ?? answers.depreciation_zero_rationale ?? ""),
+          rationale: answers.depreciation_confirmation === "override"
+            ? String(answers.depreciation_override_rationale ?? "")
+            : String(answers.depreciation_zero_rationale ?? ""),
           confirmation_method: answers.depreciation_confirmation === "override" ? "override" : "calculated",
           confirmation_source: answers.depreciation_confirmation === "override" ? "customer" : "financial_statements",
           source_period: answers.depreciation_confirmation === "override" ? undefined : fcffReadiness?.depreciation.source_period ?? undefined,
@@ -306,7 +314,9 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
         operating_nwc: {
           rate: percentageToRatio(answers.operating_nwc_ratio),
           confirmed: true,
-          rationale: String(answers.operating_nwc_override_rationale ?? answers.operating_nwc_zero_rationale ?? ""),
+          rationale: answers.operating_nwc_confirmation === "override"
+            ? String(answers.operating_nwc_override_rationale ?? "")
+            : String(answers.operating_nwc_zero_rationale ?? ""),
           confirmation_method: answers.operating_nwc_confirmation === "override" ? "override" : "calculated",
           confirmation_source: answers.operating_nwc_confirmation === "override" ? "customer" : "financial_statements",
           source_period: answers.operating_nwc_confirmation === "override" ? undefined : fcffReadiness?.operating_nwc.source_period ?? undefined,
@@ -466,7 +476,7 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
                         value="confirm"
                         required
                         disabled={!isAvailable}
-                        onChange={() => setAssumptionOverrides((current) => ({ ...current, [key]: false }))}
+                        onChange={() => setCalculatedAssumption(key, derived?.rate ?? 0)}
                       />
                       Yes, use the calculated figure
                     </label>
@@ -476,7 +486,13 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
                         name={`${key}_confirmation`}
                         value="override"
                         required
-                        onChange={() => setAssumptionOverrides((current) => ({ ...current, [key]: true }))}
+                        onChange={() => {
+                          setAssumptionOverrides((current) => ({ ...current, [key]: true }));
+                          setAssumptionRatios((current) => ({
+                            ...current,
+                            [key]: current[key] ?? (isAvailable ? String((derived.rate ?? 0) * 100) : ""),
+                          }));
+                        }}
                       />
                       Use an updated figure
                     </label>
@@ -490,7 +506,8 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
                       min="0"
                       max="100"
                       step="0.1"
-                      defaultValue={isAvailable ? (derived.rate ?? 0) * 100 : undefined}
+                      value={assumptionRatios[key] ?? (isAvailable ? String((derived.rate ?? 0) * 100) : "")}
+                      onChange={(event) => setAssumptionRatios((current) => ({ ...current, [key]: event.target.value }))}
                       readOnly={isAvailable && !assumptionOverrides[key]}
                       aria-readonly={isAvailable && !assumptionOverrides[key]}
                       required

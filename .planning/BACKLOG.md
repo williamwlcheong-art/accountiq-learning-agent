@@ -40,9 +40,10 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 
 ## Follow-on Sequence
 
-1. Run a synthetic service rehearsal after PR 3C.
-2. Run live Anthropic UAT only after explicit approval, then record William's disposition.
-3. Close or explicitly waive launch gates for a private pilot.
+1. Add the paid-report restart flow before UAT: collect fresh FCFF intake for the existing paid report and purchase, validate schema 2, then atomically replace the legacy snapshot and requeue without Stripe or a second payment.
+2. Run a synthetic service rehearsal after PR 3C.
+3. Run live Anthropic UAT only after the restart flow and explicit approval, then record William's disposition.
+4. Close or explicitly waive launch gates for a private pilot.
 
 Public payments remain blocked while all eight launch gates are open. Valuation is the only self-serve launch product. Bank credit papers, forecasts, capital raising documents, and information memorandums remain adviser pilots.
 

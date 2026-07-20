@@ -7,10 +7,13 @@ import pytest
 
 from db import DB_PATH, init_db
 from report_snapshots import (
+    LEGACY_SNAPSHOT_SCHEMA_VERSION,
+    LEGACY_VALUATION_ENGINE_VERSION,
     SNAPSHOT_SCHEMA_VERSION,
     VALUATION_ENGINE_VERSION,
     SnapshotIntegrityError,
     _approved_wacc_assumption_set,
+    _digest_payload,
     build_report_input_snapshot_candidate,
     create_report_input_snapshot,
     load_report_input_snapshot,
@@ -89,6 +92,35 @@ async def _seed_snapshot_source(db):
     )
     await db.commit()
     return user_id, company_id, report_id
+
+
+async def _persist_genuine_legacy_snapshot(db, report_id, company_id, user_id):
+    current = await build_report_input_snapshot_candidate(
+        db, report_id, company_id, user_id
+    )
+    legacy_frozen = {
+        "company": current["company"],
+        "report_type": current["report_type"],
+        "management_team": current["management_team"],
+        "ebitda_adjustments": current["ebitda_adjustments"],
+        "intake_answers": current["intake_answers"],
+    }
+    legacy = {
+        **legacy_frozen,
+        "document_manifest": current["document_manifest"],
+        "financial_rows": current["financial_rows"],
+        "schema_version": LEGACY_SNAPSHOT_SCHEMA_VERSION,
+        "valuation_engine_version": LEGACY_VALUATION_ENGINE_VERSION,
+        "canonical_digest": _digest_payload(
+            current["document_manifest"],
+            legacy_frozen,
+            current["financial_rows"],
+            LEGACY_SNAPSHOT_SCHEMA_VERSION,
+            LEGACY_VALUATION_ENGINE_VERSION,
+        ),
+    }
+    snapshot_id = await persist_report_input_snapshot(db, report_id, legacy)
+    return snapshot_id, legacy
 
 
 @pytest.mark.asyncio
@@ -259,27 +291,150 @@ async def test_snapshot_digest_binds_stored_versions(fresh_all_db):
 
 
 @pytest.mark.asyncio
+async def test_failed_legacy_retry_requires_restart_without_mutating_paid_order(fresh_all_db, monkeypatch):
+    from fastapi import BackgroundTasks, HTTPException
+    import main as main_module
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        user_id, company_id, report_id = await _seed_snapshot_source(db)
+        snapshot_id, legacy = await _persist_genuine_legacy_snapshot(
+            db, report_id, company_id, user_id
+        )
+        purchase = await db.execute(
+            """
+            INSERT INTO purchases
+                (report_id, user_id, amount_cents, currency, status,
+                 stripe_checkout_session_id)
+            VALUES (?, ?, 49900, 'nzd', 'paid', 'cs_legacy_paid')
+            """,
+            (report_id, user_id),
+        )
+        purchase_id = purchase.lastrowid
+        await db.execute(
+            "UPDATE reports SET status='failed', error_message='Previous failure' WHERE id=?",
+            (report_id,),
+        )
+        await db.execute(
+            "UPDATE companies SET description='Current profile' WHERE id=?", (company_id,)
+        )
+        await db.commit()
+
+        monkeypatch.setattr(
+            main_module,
+            "create_checkout_session",
+            lambda *args, **kwargs: pytest.fail("Stripe must not be invoked by retry"),
+        )
+        background_tasks = BackgroundTasks()
+        with pytest.raises(HTTPException) as exc_info:
+            await main_module.wizard_report_retry(
+                report_id, background_tasks, db, {"id": user_id}
+            )
+
+        async with db.execute(
+            "SELECT status, error_message FROM reports WHERE id=?", (report_id,)
+        ) as cur:
+            report = dict(await cur.fetchone())
+        async with db.execute(
+            "SELECT id, status, stripe_checkout_session_id FROM purchases WHERE id=?",
+            (purchase_id,),
+        ) as cur:
+            stored_purchase = dict(await cur.fetchone())
+        async with db.execute(
+            "SELECT id, schema_version, valuation_engine_version, canonical_digest "
+            "FROM report_input_snapshots WHERE report_id=?",
+            (report_id,),
+        ) as cur:
+            stored_snapshot = dict(await cur.fetchone())
+
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.detail == {
+        "code": "legacy_snapshot_restart_required",
+        "message": "This paid valuation needs updated FCFF inputs before it can be generated.",
+    }
+    assert report == {"status": "failed", "error_message": "Previous failure"}
+    assert stored_purchase == {
+        "id": purchase_id,
+        "status": "paid",
+        "stripe_checkout_session_id": "cs_legacy_paid",
+    }
+    assert stored_snapshot == {
+        "id": snapshot_id,
+        "schema_version": LEGACY_SNAPSHOT_SCHEMA_VERSION,
+        "valuation_engine_version": LEGACY_VALUATION_ENGINE_VERSION,
+        "canonical_digest": legacy["canonical_digest"],
+    }
+    assert background_tasks.tasks == []
+
+
+@pytest.mark.asyncio
+async def test_queued_legacy_generation_records_restart_failure_before_generation(fresh_all_db, monkeypatch):
+    import main as main_module
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        user_id, company_id, report_id = await _seed_snapshot_source(db)
+        snapshot_id, legacy = await _persist_genuine_legacy_snapshot(
+            db, report_id, company_id, user_id
+        )
+        purchase = await db.execute(
+            """
+            INSERT INTO purchases (report_id, user_id, amount_cents, currency, status)
+            VALUES (?, ?, 49900, 'nzd', 'paid')
+            """,
+            (report_id, user_id),
+        )
+        purchase_id = purchase.lastrowid
+        await db.execute("UPDATE reports SET status='queued' WHERE id=?", (report_id,))
+        await db.commit()
+
+    async def forbidden(*args, **kwargs):
+        pytest.fail("Legacy generation must stop before research or report generation")
+
+    monkeypatch.setattr(main_module, "run_valuation_research", forbidden)
+    monkeypatch.setattr(main_module, "_call_claude_for_report", forbidden)
+    await main_module._generate_report(report_id)
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT status, error_message FROM reports WHERE id=?", (report_id,)
+        ) as cur:
+            report = dict(await cur.fetchone())
+        async with db.execute(
+            "SELECT status FROM purchases WHERE id=?", (purchase_id,)
+        ) as cur:
+            purchase_status = (await cur.fetchone())["status"]
+        async with db.execute(
+            "SELECT id, canonical_digest FROM report_input_snapshots WHERE report_id=?",
+            (report_id,),
+        ) as cur:
+            stored_snapshot = dict(await cur.fetchone())
+
+    assert report == {
+        "status": "failed",
+        "error_message": "This paid valuation needs updated FCFF inputs before it can be generated.",
+    }
+    assert purchase_status == "paid"
+    assert stored_snapshot == {
+        "id": snapshot_id,
+        "canonical_digest": legacy["canonical_digest"],
+    }
+
+
+@pytest.mark.asyncio
 async def test_completed_schema_one_snapshot_remains_readable_but_pending_does_not(fresh_all_db):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         user_id, company_id, report_id = await _seed_snapshot_source(db)
-        candidate = await build_report_input_snapshot_candidate(db, report_id, company_id, user_id)
-        candidate["schema_version"] = "1"
-        candidate["valuation_engine_version"] = "typed-inputs-v2"
-        from report_snapshots import _digest_payload
-        frozen = {
-            key: value for key, value in candidate.items()
-            if key not in {"document_manifest", "financial_rows", "schema_version", "valuation_engine_version", "canonical_digest"}
-        }
-        candidate["canonical_digest"] = _digest_payload(
-            candidate["document_manifest"], frozen, candidate["financial_rows"], "1", "typed-inputs-v2"
+        _, legacy = await _persist_genuine_legacy_snapshot(
+            db, report_id, company_id, user_id
         )
-        await persist_report_input_snapshot(db, report_id, candidate)
         await db.execute("UPDATE reports SET status='done' WHERE id=?", (report_id,))
         await db.commit()
 
         completed = await load_report_input_snapshot(db, report_id)
-        assert completed["schema_version"] == "1"
+        assert completed == legacy
 
         await db.execute("UPDATE reports SET status='failed' WHERE id=?", (report_id,))
         await db.commit()

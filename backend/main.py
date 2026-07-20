@@ -44,6 +44,9 @@ from payments import (
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
 from report_rendering import render_report_html, report_pdf_path, write_pdf
 from report_snapshots import (
+    LEGACY_SNAPSHOT_SCHEMA_VERSION,
+    LEGACY_VALUATION_ENGINE_VERSION,
+    LegacySnapshotRestartRequired,
     SnapshotIntegrityError,
     build_report_input_snapshot_candidate,
     create_report_input_snapshot,
@@ -1771,7 +1774,8 @@ async def wizard_report_checkout(
             """
             SELECT p.id AS purchase_id, p.report_id, p.status, p.stripe_checkout_session_id,
                    p.stripe_checkout_url, p.checkout_request_digest,
-                   ris.canonical_digest AS snapshot_digest, r.status AS report_status
+                   ris.canonical_digest AS snapshot_digest, ris.schema_version,
+                   ris.valuation_engine_version, r.status AS report_status
             FROM purchases p JOIN reports r ON r.id=p.report_id
             LEFT JOIN report_input_snapshots ris ON ris.report_id=r.id
             WHERE p.user_id=? AND p.checkout_idempotency_key=?
@@ -1799,6 +1803,18 @@ async def wizard_report_checkout(
                         "state": "conflict",
                         "code": "idempotency_key_reused",
                         "message": "This checkout key is already bound to another request.",
+                    },
+                )
+            if (
+                existing_order["schema_version"] == LEGACY_SNAPSHOT_SCHEMA_VERSION
+                and existing_order["valuation_engine_version"] == LEGACY_VALUATION_ENGINE_VERSION
+                and existing_order["report_status"] != "done"
+            ):
+                raise HTTPException(
+                    409,
+                    {
+                        "code": "legacy_snapshot_restart_required",
+                        "message": _LEGACY_SNAPSHOT_RESTART_MESSAGE,
                     },
                 )
             await db.commit()
@@ -2042,6 +2058,11 @@ async def wizard_report_status(
     return dict(row)
 
 
+_LEGACY_SNAPSHOT_RESTART_MESSAGE = (
+    "This paid valuation needs updated FCFF inputs before it can be generated."
+)
+
+
 @app.post("/wizard/report/{report_id}/retry")
 async def wizard_report_retry(
     report_id: int,
@@ -2066,6 +2087,14 @@ async def wizard_report_retry(
     # Verify the original immutable snapshot before requeueing.
     try:
         await load_report_input_snapshot(db, report_id)
+    except LegacySnapshotRestartRequired:
+        raise HTTPException(
+            409,
+            {
+                "code": "legacy_snapshot_restart_required",
+                "message": _LEGACY_SNAPSHOT_RESTART_MESSAGE,
+            },
+        )
     except SnapshotIntegrityError:
         raise HTTPException(409, "Report input snapshot failed integrity verification")
 
@@ -2612,13 +2641,13 @@ async def _generate_report(report_id: int) -> None:
                 return
             print(f"[REPORT] Generating report_id={report_id}")
 
-            snapshot = await load_report_input_snapshot(db, report_id)
             async with db.execute(
                 "SELECT user_id FROM reports WHERE id=?", (report_id,)
             ) as cur:
                 report_owner = await cur.fetchone()
             if not report_owner:
                 raise SnapshotIntegrityError("Report is missing")
+            snapshot = await load_report_input_snapshot(db, report_id)
             user_id = report_owner["user_id"]
             company = snapshot["company"]
             company_name = company["name"]
@@ -2838,12 +2867,17 @@ async def _generate_report(report_id: int) -> None:
         except Exception as exc:
             err_msg = str(exc)[:1000]
             print(f"[REPORT ERROR] report_id={report_id}: {err_msg}")
+            customer_error = (
+                _LEGACY_SNAPSHOT_RESTART_MESSAGE
+                if isinstance(exc, LegacySnapshotRestartRequired)
+                else _SAFE_REPORT_GENERATION_ERROR
+            )
             try:
                 await db.execute("""
                     UPDATE reports
                     SET status='failed', content=NULL, error_message=?
                     WHERE id=?
-                """, (_SAFE_REPORT_GENERATION_ERROR, report_id))
+                """, (customer_error, report_id))
                 await db.commit()
             except Exception as db_exc:
                 print(f"[REPORT ERROR] Failed to mark report failed: {db_exc}")

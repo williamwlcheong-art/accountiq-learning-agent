@@ -1,5 +1,5 @@
 from dataclasses import FrozenInstanceError
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN, localcontext
 
 import pytest
 
@@ -124,6 +124,15 @@ def test_fcff_inputs_freeze_same_period_amounts_ratios_tax_forecast_and_wacc():
     assert inputs.wacc_assumption_set.target_debt_weight == Decimal("0.30")
 
 
+def test_fcff_zero_revenue_raises_structured_input_error_before_ratio_division():
+    rows = complete_fcff_rows()
+    next(item for item in rows if item["row_key"] == "revenue")["value"] = 0
+
+    error = assert_error("missing_forecast_assumptions", rows, complete_fcff_frozen())
+
+    assert error.message == "Revenue must be non-zero to establish FCFF assumptions."
+
+
 def test_fcff_missing_differs_from_confirmed_zero_with_rationale():
     assert_error("missing_depreciation", base_rows(), complete_fcff_frozen())
 
@@ -171,7 +180,31 @@ def test_fcff_override_confirmation_method_and_source_are_retained():
     assert policy.rationale == "Updated asset register supports the override."
 
 
-def test_fcff_calculated_policies_must_equal_derived_ratio_and_source_period():
+def test_fcff_non_terminating_derived_ratios_use_shared_ten_place_precision():
+    rows = complete_fcff_rows()
+    next(item for item in rows if item["row_key"] == "revenue")["value"] = 30
+    next(item for item in rows if item["row_key"] == "ebitda")["value"] = 1
+    next(item for item in rows if item["row_key"] == "depreciation")["value"] = -1
+    next(item for item in rows if item["row_key"] == "trade_debtors")["value"] = 2
+    next(item for item in rows if item["row_key"] == "inventory")["value"] = 0
+    next(item for item in rows if item["row_key"] == "trade_creditors")["value"] = 0
+    frozen = complete_fcff_frozen()
+    frozen["intake_answers"]["fcff_assumptions"]["depreciation"]["rate"] = "0.0333333333"
+    frozen["intake_answers"]["fcff_assumptions"]["operating_nwc"]["rate"] = "0.0666666667"
+
+    from valuation_inputs import derive_fcff_assumption_readiness
+    with localcontext() as context:
+        context.rounding = ROUND_DOWN
+        readiness = derive_fcff_assumption_readiness(rows)
+        inputs = build_valuation_inputs(rows, frozen)
+
+    assert readiness["depreciation"]["rate"] == Decimal("0.0333333333")
+    assert readiness["operating_nwc"]["rate"] == Decimal("0.0666666667")
+    assert inputs.depreciation_policy.revenue_ratio == Decimal("0.0333333333")
+    assert inputs.operating_nwc_policy.revenue_ratio == Decimal("0.0666666667")
+    assert inputs.forecast.normalised_ebitda_margin == Decimal("0.0333333333")
+
+
     for section, changed_rate in (("depreciation", "0.031"), ("operating_nwc", "0.131")):
         frozen = complete_fcff_frozen()
         frozen["intake_answers"]["fcff_assumptions"][section]["rate"] = changed_rate

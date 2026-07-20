@@ -2,9 +2,16 @@
 
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN
 import re
 from typing import Any
+
+
+_RATIO_QUANTUM = Decimal("0.0000000001")
+
+
+def _ratio(numerator: Decimal, denominator: Decimal) -> Decimal:
+    return (numerator / denominator).quantize(_RATIO_QUANTUM, rounding=ROUND_HALF_EVEN)
 
 
 _UNIT_FACTORS = {
@@ -520,7 +527,7 @@ def derive_fcff_assumption_readiness(
     depreciation = None
     if depreciation_row is not None:
         depreciation = {
-            "rate": abs(depreciation_row.value) / revenue_row.value,
+            "rate": _ratio(abs(depreciation_row.value), revenue_row.value),
             "source_period": revenue_row.period.original,
             "provenance": depreciation_row.raw.get("source_text") or depreciation_row.raw.get("row_label"),
         }
@@ -529,7 +536,7 @@ def derive_fcff_assumption_readiness(
     if all(component is not None for component in components):
         nwc_value = components[0].value + components[1].value - components[2].value
         operating_nwc = {
-            "rate": nwc_value / revenue_row.value,
+            "rate": _ratio(nwc_value, revenue_row.value),
             "source_period": revenue_row.period.original,
             "provenance": {
                 "formula": "Trade debtors + Inventory - Trade creditors",
@@ -671,22 +678,25 @@ def _fcff_inputs(
     if not isinstance(horizon, int) or isinstance(horizon, bool) or horizon < 1 or horizon > 10:
         _fail("missing_forecast_assumptions", "Forecast horizon must be between one and ten years.")
 
+    if revenue.value == 0:
+        _fail("missing_forecast_assumptions", "Revenue must be non-zero to establish FCFF assumptions.")
+
     depreciation_policy = _fcff_policy(
         assumptions, "depreciation", horizon,
-        calculated_rate=depreciation_value / revenue.value,
+        calculated_rate=_ratio(depreciation_value, revenue.value),
         source_period=base_period.original,
     )
     capex_policy = _fcff_policy(assumptions, "capex", horizon)
     operating_nwc_policy = _fcff_policy(
         assumptions, "operating_nwc", horizon,
-        calculated_rate=base_nwc_value / revenue.value,
+        calculated_rate=_ratio(base_nwc_value, revenue.value),
         source_period=base_period.original,
     )
     growth = _decimal(forecast_item.get("revenue_growth_rate"), "missing_forecast_assumptions", "A valid revenue growth rate is required.")
     terminal_growth = _decimal(forecast_item.get("terminal_growth_rate"), "missing_forecast_assumptions", "A valid terminal growth rate is required.")
-    if revenue.value == 0:
-        _fail("missing_forecast_assumptions", "Revenue must be non-zero to establish the EBITDA margin.")
-    forecast = ForecastAssumptions(horizon, growth, terminal_growth, normalised_ebitda.value / revenue.value)
+    forecast = ForecastAssumptions(
+        horizon, growth, terminal_growth, _ratio(normalised_ebitda.value, revenue.value)
+    )
     tax = TaxPolicy(Decimal("0.28"), "nz-company-tax-2026-v1", True, False)
 
     raw_wacc = frozen_inputs.get("approved_wacc_assumption_set")
