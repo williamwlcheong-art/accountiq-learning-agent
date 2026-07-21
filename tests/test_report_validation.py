@@ -1,4 +1,6 @@
 from decimal import Decimal
+import hashlib
+import json
 
 import aiosqlite
 import pytest
@@ -7,6 +9,7 @@ from db import DB_PATH
 import main as main_module
 from report_prompts import SECTION_SCHEMAS, TABLE_SECTIONS_VALUATION
 from report_validation import validate_generated_report
+from valuation_tables import TABLES_ROUNDING_POLICY, TABLES_VERSION
 
 
 SAFE_GENERATION_ERROR = (
@@ -67,6 +70,18 @@ def _decimal_fcff_result():
             "dlom_amount": Decimal(dlom_amount),
             "equity_value": Decimal(equity),
         }
+    report = _valid_report()
+    _set_decimal_fcff_tables(report)
+    sections = {
+        section: report[section]["table"]
+        for section in TABLE_SECTIONS_VALUATION
+    }
+    authority = {
+        "version": TABLES_VERSION,
+        "rounding_policy": TABLES_ROUNDING_POLICY,
+        "sections": sections,
+    }
+    encoded = json.dumps(authority, sort_keys=True, separators=(",", ":"))
     return {
         "deterministic_fcff": {
             "engine_version": "fcff-decimal-v1",
@@ -90,6 +105,10 @@ def _decimal_fcff_result():
                 "low": "0.09",
             },
             "scenarios": scenarios,
+        },
+        "deterministic_tables": {
+            **authority,
+            "digest": hashlib.sha256(encoded.encode()).hexdigest(),
         },
         "scenario_bridges": bridges,
         "multiples_result": {
@@ -362,17 +381,17 @@ def test_schema_two_validation_rejects_altered_temporary_table_value(
     _set_decimal_fcff_tables(report)
     report[section]["table"]["rows"][row][column] = "999"
 
-    with pytest.raises(ValueError, match="deterministic"):
+    with pytest.raises(ValueError, match="Python-owned"):
         validate_generated_report(report, "valuation_advisory", _decimal_fcff_result())
 
 
-def test_schema_two_validation_rejects_changed_scenario_order():
+def test_schema_two_validation_rejects_tampered_table_authority():
     report = _valid_report()
     _set_decimal_fcff_tables(report)
     result = _decimal_fcff_result()
-    result["deterministic_fcff"]["scenarios"].reverse()
+    result["deterministic_tables"]["sections"]["valuation_summary"]["rows"][0][-1] = "999"
 
-    with pytest.raises(ValueError, match="scenario order"):
+    with pytest.raises(ValueError, match="digest verification"):
         validate_generated_report(report, "valuation_advisory", result)
 
 
@@ -380,6 +399,56 @@ def test_generated_valuation_validation_accepts_complete_report_without_result()
     report = _valid_report()
 
     validate_generated_report(report, "valuation_advisory")
+
+
+@pytest.mark.asyncio
+async def test_store_replaces_model_tables_with_python_authority(fresh_all_db):
+    generated = _valid_report()
+    generated["valuation_summary"] = {
+        "narrative": "Model-authored valuation narrative.",
+        "table": {"headers": ["Unsafe"], "rows": [["999"]]},
+    }
+    valuation_result = _decimal_fcff_result()
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "INSERT INTO users (email, hashed_pw) VALUES ('tables@example.com', 'hash')"
+        ) as cur:
+            user_id = cur.lastrowid
+        async with db.execute(
+            "INSERT INTO companies (name, exchange, user_id) VALUES ('Tables Ltd', 'Private', ?)",
+            (user_id,),
+        ) as cur:
+            company_id = cur.lastrowid
+        async with db.execute(
+            """
+            INSERT INTO reports (company_id, user_id, report_type, status)
+            VALUES (?, ?, 'valuation_advisory', 'generating')
+            """,
+            (company_id, user_id),
+        ) as cur:
+            report_id = cur.lastrowid
+        await db.commit()
+
+        status = await main_module._store_generated_report(
+            db,
+            report_id=report_id,
+            report_type="valuation_advisory",
+            content_json=generated,
+            valuation_result=valuation_result,
+        )
+        await db.commit()
+        async with db.execute(
+            "SELECT content FROM reports WHERE id=?",
+            (report_id,),
+        ) as cur:
+            stored = json.loads((await cur.fetchone())[0])
+
+    assert status == "awaiting_review"
+    assert stored["valuation_summary"]["narrative"] == "Model-authored valuation narrative."
+    assert stored["valuation_summary"]["table"] == (
+        valuation_result["deterministic_tables"]["sections"]["valuation_summary"]
+    )
 
 
 @pytest.mark.asyncio

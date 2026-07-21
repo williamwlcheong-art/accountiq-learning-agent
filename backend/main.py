@@ -67,6 +67,7 @@ from valuation_inputs import (
     build_valuation_inputs,
     derive_fcff_assumption_readiness,
 )
+from valuation_tables import attach_valuation_tables, build_valuation_tables
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -1566,6 +1567,11 @@ async def _store_generated_report(
     content_json: dict,
     valuation_result: dict | None = None,
 ) -> str:
+    if report_type == "valuation_advisory" and valuation_result is not None:
+        content_json = attach_valuation_tables(
+            content_json,
+            valuation_result.get("deterministic_tables"),
+        )
     validate_generated_report(content_json, report_type, valuation_result)
     next_status = "awaiting_review" if _requires_admin_review(report_type) else "done"
     if next_status == "done":
@@ -2754,6 +2760,12 @@ async def _generate_report(report_id: int) -> None:
                     "scenario_bridges": scenario_bridges,
                     "multiples_result": multiples_result,
                 }
+                valuation_result["deterministic_tables"] = build_valuation_tables(
+                    raw_fin_rows,
+                    typed_inputs,
+                    fcff_result,
+                    multiples_result,
+                )
             elif report_type == "bank_credit_paper":
                 bank_credit_figs = compute_bank_credit_figures(
                     financial_rows_for_prompt, intake_answers

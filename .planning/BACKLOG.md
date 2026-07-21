@@ -30,13 +30,13 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-05 | Add professional PDF export | Done | #10 | Technical + William | Branded A4 export, safe narrative/table rendering, approved owner-only download, caching, and resumable customer status are implemented and verified. William still owns final disclaimer wording. |
 | PVM-06 | Add account purchase history | Done | #11 | Technical | Owner-filtered purchase API and account table show payment/delivery status; released reports expose viewer and PDF actions. Backend, build, and full browser regression gates pass. |
 | PVM-07 | Add public valuation offer page | Done | #12 | Product + Technical | Static public offer uses early-access fixed-fee language without a numeric amount and routes conversion links through `/login`; all frontend gates pass. |
-| PVM-08 | Live report UAT and valuation launch readiness | In progress | #15 to #19 merged; #20 open | William + Technical | PR #19 froze complete FCFF inputs and the adviser-approved WACC set before checkout. PR #20 adds the deterministic Decimal FCFF engine, exact WACC scenarios, terminal value, EV-to-equity reconciliation, equity-level DLOM, and fail-closed report validation. |
+| PVM-08 | Live report UAT and valuation launch readiness | In progress | #15 to #20 merged; #21 open | William + Technical | PR #20 added the deterministic Decimal FCFF engine. PR #21 makes all six structured valuation tables Python-owned, digested, and authoritative at persistence while Claude supplies narrative only. |
 
 ## Next Three PRs
 
-1. PVM-08A / PR 3B: review and merge PR #20, the Decimal FCFF engine.
-2. PVM-08A / PR 3C: make deterministic valuation tables Python-owned.
-3. Add the paid-report restart flow for pre-Decimal snapshots without another payment.
+1. PVM-08A / PR 3C: review and merge PR #21, the Python-owned deterministic valuation tables.
+2. Add the paid-report restart flow for pre-Decimal snapshots without another payment.
+3. Update the synthetic fixture and UAT runner, then run the synthetic service rehearsal.
 
 ## Follow-on Sequence
 

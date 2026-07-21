@@ -59,8 +59,8 @@ A business owner uploads their financials, answers a few questions about their b
 - ✓ Valuation report authority and paid-input snapshotting: immutable document authority and frozen report inputs merged in PRs #15 and #16
 - ✓ Typed valuation inputs and EV-to-equity bridge merged in PR #17
 - ✓ Frozen FCFF and adviser-approved WACC assumptions merged in PR #19
-- [ ] Decimal FCFF engine: implemented in PR #20 and awaiting review
-- [ ] Python-owned deterministic valuation tables: planned as PR 3C
+- ✓ Decimal FCFF engine merged in PR #20
+- [ ] Python-owned deterministic valuation tables: implemented in PR #21 and awaiting review
 - [ ] Synthetic service rehearsal: run after PR 3C
 - [ ] Live Valuation Advisory UAT: requires separate explicit approval after the synthetic rehearsal, then William's disposition
 - [ ] Bank credit paper, adviser pilot; not validated for self-serve
@@ -86,8 +86,8 @@ A business owner uploads their financials, answers a few questions about their b
 - Extraction already uses Claude (claude-sonnet-4-6) with forced tool-use and a GAAP/IFRS system prompt. The same Claude API will power report generation.
 - Security gaps from pre-Phase 1 (wildcard CORS, unsanitised filenames, innerHTML XSS, no auth) are now fixed. 4 code review criticals remain (empty SECRET_KEY, exception message leakage, env path disclosure, unvalidated claude_model write), flagged for Phase 1 gap closure before external launch.
 - Phase 2 isolation: all company/document routes enforce `WHERE user_id=?` filters; IDOR returns 404 not 403 (D-01); analytics scoped per-user; `label_patterns` intentionally global (D-03). 3 code review criticals remain (retry_document write scope, analytics/overview label_patterns leakage, executescript transaction split), flagged for gap closure.
-- PRs #15 to #19 are merged. They add authoritative document revisions, immutable snapshots and payment hardening, typed valuation inputs with the equity bridge, UI polish, frozen FCFF assumptions, and adviser-approved WACC sets.
-- PR #20 is open with the deterministic Decimal FCFF engine and fail-closed output validation.
+- PRs #15 to #20 are merged. They add authoritative document revisions, immutable snapshots and payment hardening, typed valuation inputs with the equity bridge, UI polish, frozen FCFF assumptions, adviser-approved WACC sets, and deterministic Decimal FCFF.
+- PR #21 is open with Python-owned, digested valuation tables and narrative-only model output for structured sections.
 - Public payments remain blocked while all eight launch gates are open. Valuation is the only self-serve launch product; all other report types remain adviser pilots.
 - The codebase map is at `.planning/codebase/`, read it before planning any backend phase.
 
@@ -109,7 +109,7 @@ A business owner uploads their financials, answers a few questions about their b
 | Keep FastAPI as backend of record and migrate UI to Next.js | Preserves working ingestion/report engine while fixing frontend maintainability | Accepted |
 | Use typed valuation inputs and an explicit EV-to-equity bridge before live UAT | Financial arithmetic must use one currency, supported units and compatible periods, explicit balance-sheet classifications, and a defined EBITDA hierarchy | Merged in PR #17 |
 | Keep FCFF corrections separate from typed inputs and EV-to-equity | Frozen FCFF and adviser-approved WACC assumptions precede the Decimal engine | Assumptions merged in PR #19; engine open in PR #20 |
-| Keep FCFF calculations and valuation tables deterministic | PR 3B uses a Decimal FCFF engine and PR 3C makes deterministic tables Python-owned before service rehearsal | Decimal engine implemented in PR #20; tables remain next |
+| Keep FCFF calculations and valuation tables deterministic | PR 3B uses a Decimal FCFF engine and PR 3C makes deterministic tables Python-owned before service rehearsal | Decimal engine merged in PR #20; tables open in PR #21 |
 | Require explicit approval before live Anthropic UAT | Synthetic service rehearsal must precede any live Anthropic request | Active |
 
 ## Evolution
@@ -130,4 +130,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-22, PRs #15 to #19 merged; PR #20 Decimal FCFF open; PR 3C, paid-report restart, synthetic rehearsal, explicitly approved live Anthropic UAT, then launch-gate closure/private pilot follow*
+*Last updated: 2026-07-22, PRs #15 to #20 merged; PR #21 Python-owned tables open; paid-report restart, synthetic runner/rehearsal, explicitly approved live Anthropic UAT, then launch-gate closure/private pilot follow*

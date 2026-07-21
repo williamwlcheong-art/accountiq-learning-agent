@@ -197,7 +197,7 @@ Plans:
 
 **UI hint:** yes
 
-**Current delivery status:** PRs #15 to #19 are merged. PR #20, the Decimal FCFF engine, is open for review. PR 3C Python-owned deterministic valuation tables and the paid-report restart flow follow, then a synthetic service rehearsal and separately approved live UAT.
+**Current delivery status:** PRs #15 to #20 are merged. PR #21, Python-owned deterministic valuation tables, is open for review. The paid-report restart flow and synthetic runner updates follow, then a synthetic service rehearsal and separately approved live UAT.
 
 **Historical plan status:** Summaries record Plans 05.1-01 and 05.1-02 as completed. There is no 05.1-03 summary. The 05.1-04 summary records its first task in the legacy `frontend/index.html` as complete and its human-verification task as awaiting verification. The product UI now lives in `web/`; the legacy file is rollback/reference only. These records do not establish completion of the current paid-valuation delivery sequence.
 
