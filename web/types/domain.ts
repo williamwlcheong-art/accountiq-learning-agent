@@ -67,11 +67,13 @@ export type WizardReadiness = {
 
 export type ReportStatus = {
   id: number;
+  company_id: number;
   report_type: string;
   status: string;
   error_message: string | null;
   created_at: string;
   completed_at: string | null;
+  restart_required: boolean;
 };
 
 export type AdminPendingReport = {
@@ -109,8 +111,13 @@ export type CheckoutClarification = {
   details: Record<string, unknown>;
 };
 
+export type ApiConflict = {
+  code: string;
+  message: string;
+};
+
 export type ApiErrorBody = {
-  detail?: string | CheckoutClarification;
+  detail?: string | CheckoutClarification | ApiConflict;
 };
 
 export type DerivedRevenueRatio = {

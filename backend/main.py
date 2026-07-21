@@ -50,6 +50,7 @@ from report_snapshots import (
     create_report_input_snapshot,
     load_report_input_snapshot,
     persist_report_input_snapshot,
+    replace_report_input_snapshot,
     snapshot_requires_restart,
 )
 from report_validation import validate_generated_report
@@ -2043,6 +2044,11 @@ def _object_get(obj, key: str):
     return getattr(obj, key, None)
 
 
+_LEGACY_SNAPSHOT_RESTART_MESSAGE = (
+    "This paid valuation needs updated FCFF inputs before it can be generated."
+)
+
+
 @app.get("/wizard/report/{report_id}/status")
 async def wizard_report_status(
     report_id: int,
@@ -2051,19 +2057,33 @@ async def wizard_report_status(
 ):
     """Return current status of a report generation job."""
     async with db.execute("""
-        SELECT id, report_type, status, error_message, created_at, completed_at
-        FROM reports
-        WHERE id=? AND user_id=?
+        SELECT r.id, r.company_id, r.report_type, r.status, r.error_message,
+               r.created_at, r.completed_at,
+               ris.schema_version, ris.valuation_engine_version,
+               EXISTS (
+                   SELECT 1 FROM purchases p
+                   WHERE p.report_id=r.id AND p.user_id=r.user_id AND p.status='paid'
+               ) AS has_paid_purchase
+        FROM reports r
+        LEFT JOIN report_input_snapshots ris ON ris.report_id=r.id
+        WHERE r.id=? AND r.user_id=?
     """, (report_id, current_user["id"])) as cur:
         row = await cur.fetchone()
     if not row:
         raise HTTPException(404, "Report not found")
-    return dict(row)
-
-
-_LEGACY_SNAPSHOT_RESTART_MESSAGE = (
-    "This paid valuation needs updated FCFF inputs before it can be generated."
-)
+    result = dict(row)
+    schema_version = result.pop("schema_version")
+    valuation_engine_version = result.pop("valuation_engine_version")
+    has_paid_purchase = bool(result.pop("has_paid_purchase"))
+    result["restart_required"] = bool(
+        has_paid_purchase
+        and schema_version
+        and valuation_engine_version
+        and snapshot_requires_restart(
+            schema_version, valuation_engine_version, result["status"]
+        )
+    )
+    return result
 
 
 @app.post("/wizard/report/{report_id}/retry")
@@ -2113,6 +2133,129 @@ async def wizard_report_retry(
 
     background_tasks.add_task(_generate_report, report_id)
     return {"report_id": report_id, "status": "queued"}
+
+
+@app.post("/wizard/report/{report_id}/restart")
+async def wizard_report_restart(
+    report_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: aiosqlite.Connection = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Replace pre-Decimal inputs for an existing paid report and requeue it."""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "Request body must be valid JSON")
+    if not isinstance(body, dict):
+        raise HTTPException(400, "Request body must be a JSON object")
+    intake_answers = body.get("intake_answers")
+    if not isinstance(intake_answers, dict):
+        raise HTTPException(400, "intake_answers must be a JSON object")
+
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        async with db.execute(
+            """
+            SELECT r.id, r.company_id, r.report_type, r.status,
+                   p.id AS purchase_id, p.status AS purchase_status,
+                   ris.schema_version, ris.valuation_engine_version
+            FROM reports r
+            LEFT JOIN purchases p
+              ON p.report_id=r.id AND p.user_id=r.user_id AND p.status='paid'
+            LEFT JOIN report_input_snapshots ris ON ris.report_id=r.id
+            WHERE r.id=? AND r.user_id=?
+            ORDER BY p.id DESC
+            LIMIT 1
+            """,
+            (report_id, current_user["id"]),
+        ) as cur:
+            report = await cur.fetchone()
+        if not report:
+            raise HTTPException(404, "Report not found")
+        if report["report_type"] != "valuation_advisory":
+            raise HTTPException(409, "Only paid valuation reports can restart inputs")
+        if report["status"] != "failed":
+            raise HTTPException(
+                409,
+                f"Report is not in failed state (current: {report['status']})",
+            )
+        if report["purchase_id"] is None:
+            raise HTTPException(409, "A paid purchase is required to restart this report")
+        if not report["schema_version"] or not report["valuation_engine_version"]:
+            raise HTTPException(409, "Report input snapshot is missing")
+        if not snapshot_requires_restart(
+            report["schema_version"],
+            report["valuation_engine_version"],
+            report["status"],
+        ):
+            raise HTTPException(409, "This report does not require an input restart")
+
+        snapshot_candidate = await build_report_input_snapshot_candidate(
+            db,
+            company_id=report["company_id"],
+            user_id=current_user["id"],
+            report_type=report["report_type"],
+            intake_answers=intake_answers,
+        )
+        build_valuation_inputs(
+            snapshot_candidate["financial_rows"],
+            snapshot_candidate,
+            require_fcff=True,
+        )
+        await replace_report_input_snapshot(db, report_id, snapshot_candidate)
+        await db.execute("DELETE FROM report_intake WHERE report_id=?", (report_id,))
+        await db.execute(
+            "INSERT INTO report_intake (report_id, answers) VALUES (?, ?)",
+            (report_id, json.dumps(intake_answers)),
+        )
+        await db.execute("DELETE FROM reviews WHERE report_id=?", (report_id,))
+        cursor = await db.execute(
+            """
+            UPDATE reports
+            SET status='queued', content=NULL, error_message=NULL, completed_at=NULL
+            WHERE id=? AND user_id=? AND status='failed'
+            """,
+            (report_id, current_user["id"]),
+        )
+        if cursor.rowcount != 1:
+            raise HTTPException(409, "Report restart was already claimed")
+        await db.commit()
+    except ValuationInputError as exc:
+        await db.rollback()
+        raise HTTPException(
+            409,
+            {
+                "state": "needs_clarification",
+                "code": "needs_clarification",
+                "reason_code": exc.code,
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+    except HTTPException:
+        await db.rollback()
+        raise
+    except (AuthorityConflictError, SnapshotIntegrityError, ValueError) as exc:
+        await db.rollback()
+        raise HTTPException(409, str(exc))
+    except Exception:
+        await db.rollback()
+        raise
+
+    try:
+        report_pdf_path(EXPORT_DIR, report_id).unlink(missing_ok=True)
+    except OSError as exc:
+        print(f"[WARN] Could not remove stale PDF for restarted report {report_id}: {exc}")
+    background_tasks.add_task(_generate_report, report_id)
+    return {
+        "report_id": report_id,
+        "status": "queued",
+        "purchase_id": report["purchase_id"],
+        "purchase_status": report["purchase_status"],
+        "payment_required": False,
+    }
 
 
 @app.get("/wizard/company/{company_id}/profile-status")

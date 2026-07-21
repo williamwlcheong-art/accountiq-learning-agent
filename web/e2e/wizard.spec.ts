@@ -130,6 +130,88 @@ test("checkout clarification confirms no payment and allows restart", async ({ p
   await expect(page.getByRole("heading", { name: /upload your financial statements/i })).toBeVisible();
 });
 
+test("paid pre-Decimal report collects current inputs and restarts without checkout", async ({ page }) => {
+  await register(page, regularEmail());
+  const currentUser = await page.evaluate(async () => {
+    const response = await fetch("/api/backend/auth/me");
+    return response.json() as Promise<{ id: number }>;
+  });
+  const reportId = 987654;
+  let restarted = false;
+  let restartBody: Record<string, unknown> | null = null;
+
+  await page.route(`**/wizard/report/${reportId}/status`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: reportId,
+        company_id: 123456,
+        report_type: "valuation_advisory",
+        status: restarted ? "queued" : "failed",
+        error_message: restarted ? null : "Old inputs cannot use the current engine.",
+        created_at: "2026-07-01 00:00:00",
+        completed_at: null,
+        restart_required: !restarted,
+      }),
+    });
+  });
+  await page.route("**/wizard/company/123456/profile-status", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ sections_complete: 3, total: 3 }),
+  }));
+  await page.route("**/wizard/company/123456/ebitda-adjustments", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: "[]",
+  }));
+  await page.route("**/wizard/company/123456/fcff-assumptions", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      state: "ready",
+      message: "Current assumptions are available.",
+      depreciation: { rate: 0.028, status: "available", source_period: "2025" },
+      operating_nwc: { rate: 0.124, status: "available", source_period: "2025" },
+    }),
+  }));
+  await page.route(`**/wizard/report/${reportId}/restart`, async (route) => {
+    restartBody = route.request().postDataJSON() as Record<string, unknown>;
+    restarted = true;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        report_id: reportId,
+        status: "queued",
+        purchase_id: 456789,
+        purchase_status: "paid",
+        payment_required: false,
+      }),
+    });
+  });
+
+  await page.evaluate(({ key, value }) => window.localStorage.setItem(key, value), {
+    key: `accountiq.activeReport.${currentUser.id}`,
+    value: String(reportId),
+  });
+  await page.reload();
+
+  await expect(page.getByRole("heading", { name: /your report needs attention/i })).toBeVisible();
+  await expect(page.getByText(/existing payment will be reused/i)).toBeVisible();
+  await page.getByRole("button", { name: /update valuation inputs/i }).click();
+  await expect(page.locator(".wizard-phase")).toHaveText("Update valuation inputs");
+  await expect(page.getByText(/no new payment is required/i)).toBeVisible();
+  await completeValuationIntake(page);
+  await page.getByRole("button", { name: /update and restart report/i }).click();
+
+  await expect(page.getByRole("heading", { name: /your report is being prepared/i })).toBeVisible();
+  expect(restartBody).toHaveProperty("intake_answers");
+  expect(restartBody).not.toHaveProperty("idempotency_key");
+  await expect(page.getByRole("button", { name: /proceed to secure checkout/i })).toHaveCount(0);
+});
+
 
 test("regular user can complete valuation-specific intake", async ({ page }) => {
   await register(page, regularEmail());

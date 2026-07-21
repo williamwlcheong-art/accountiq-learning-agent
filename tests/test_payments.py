@@ -1,11 +1,17 @@
 import asyncio
 import copy
+import json
 
 import aiosqlite
 import pytest
 
 from db import DB_PATH, init_db
 from payments import CheckoutSession, checkout_config, stripe_enabled
+from report_snapshots import (
+    SNAPSHOT_SCHEMA_VERSION,
+    VALUATION_ENGINE_VERSION,
+    load_report_input_snapshot,
+)
 import main as main_module
 
 
@@ -127,6 +133,72 @@ async def _register_and_upload(client, email="buyer@example.com"):
     )
     assert upload.status_code == 201, upload.text
     return upload.json()["company_id"]
+
+
+async def _create_failed_pre_decimal_paid_report(client, monkeypatch, email):
+    monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+    generation_calls = []
+
+    async def record_generation(report_id):
+        generation_calls.append(report_id)
+
+    monkeypatch.setattr(main_module, "_generate_report", record_generation)
+    company_id = await _register_and_upload(client, email=email)
+    created = await client.post("/wizard/report/checkout", json={
+        "company_id": company_id,
+        "report_type": "valuation_advisory",
+        "intake_answers": _valuation_answers(),
+        "idempotency_key": f"restart-{email}",
+    })
+    assert created.status_code == 201, created.text
+    report_id = created.json()["report_id"]
+    generation_calls.clear()
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute(
+            """
+            UPDATE report_input_snapshots
+            SET schema_version='2', valuation_engine_version='fcff-assumptions-v1'
+            WHERE report_id=?
+            """,
+            (report_id,),
+        )
+        await db.execute(
+            """
+            UPDATE reports
+            SET status='failed', content='stale content',
+                error_message='This report uses old inputs.', completed_at=datetime('now')
+            WHERE id=?
+            """,
+            (report_id,),
+        )
+        await db.execute(
+            "UPDATE purchases SET stripe_checkout_session_id='cs_original_paid' WHERE report_id=?",
+            (report_id,),
+        )
+        await db.execute(
+            "INSERT INTO reviews (report_id, status, internal_notes) VALUES (?, 'changes_requested', 'stale')",
+            (report_id,),
+        )
+        await db.commit()
+        before = dict(await (
+            await db.execute(
+                """
+                SELECT r.status AS report_status, r.content, r.error_message,
+                       p.id AS purchase_id, p.status AS purchase_status,
+                       p.stripe_checkout_session_id, ris.id AS snapshot_id,
+                       ris.canonical_digest
+                FROM reports r
+                JOIN purchases p ON p.report_id=r.id
+                JOIN report_input_snapshots ris ON ris.report_id=r.id
+                WHERE r.id=?
+                """,
+                (report_id,),
+            )
+        ).fetchone())
+    return company_id, report_id, before, generation_calls
 
 
 @pytest.mark.asyncio
@@ -439,6 +511,160 @@ async def test_checkout_legacy_pending_snapshot_requires_restart_without_stripe_
             )
         ).fetchone()
     assert after == before
+
+
+@pytest.mark.asyncio
+async def test_paid_pre_decimal_report_restarts_with_current_inputs_without_second_payment(
+    client, fresh_all_db, monkeypatch, tmp_path
+):
+    company_id, report_id, before, generation_calls = (
+        await _create_failed_pre_decimal_paid_report(
+            client, monkeypatch, "paid-restart@example.com"
+        )
+    )
+    old_pdf = tmp_path / "old-report.pdf"
+    old_pdf.write_bytes(b"stale")
+    monkeypatch.setattr(main_module, "report_pdf_path", lambda *_args: old_pdf)
+    monkeypatch.setattr(
+        main_module,
+        "create_checkout_session",
+        lambda **_kwargs: pytest.fail("Restart must not create another checkout"),
+    )
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+
+    status_before = await client.get(f"/wizard/report/{report_id}/status")
+    assert status_before.status_code == 200
+    assert status_before.json()["company_id"] == company_id
+    assert status_before.json()["restart_required"] is True
+
+    current_answers = copy.deepcopy(_valuation_answers())
+    current_answers["fcff_assumptions"]["forecast"]["revenue_growth_rate"] = 0.09
+    current_answers["owner_key_person_dependency"] = "Updated current assessment"
+    response = await client.post(
+        f"/wizard/report/{report_id}/restart",
+        json={"intake_answers": current_answers},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "report_id": report_id,
+        "status": "queued",
+        "purchase_id": before["purchase_id"],
+        "purchase_status": "paid",
+        "payment_required": False,
+    }
+    assert generation_calls == [report_id]
+    assert not old_pdf.exists()
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        report = dict(await (
+            await db.execute(
+                "SELECT status, content, error_message, completed_at FROM reports WHERE id=?",
+                (report_id,),
+            )
+        ).fetchone())
+        purchase = dict(await (
+            await db.execute(
+                """
+                SELECT id, status, stripe_checkout_session_id
+                FROM purchases WHERE report_id=?
+                """,
+                (report_id,),
+            )
+        ).fetchone())
+        snapshot = dict(await (
+            await db.execute(
+                """
+                SELECT id, schema_version, valuation_engine_version, canonical_digest
+                FROM report_input_snapshots WHERE report_id=?
+                """,
+                (report_id,),
+            )
+        ).fetchone())
+        intake_rows = [row[0] for row in await (
+            await db.execute(
+                "SELECT answers FROM report_intake WHERE report_id=?",
+                (report_id,),
+            )
+        ).fetchall()]
+        review_count = (await (
+            await db.execute("SELECT COUNT(*) FROM reviews WHERE report_id=?", (report_id,))
+        ).fetchone())[0]
+        loaded = await load_report_input_snapshot(db, report_id)
+
+    assert report == {
+        "status": "queued",
+        "content": None,
+        "error_message": None,
+        "completed_at": None,
+    }
+    assert purchase == {
+        "id": before["purchase_id"],
+        "status": "paid",
+        "stripe_checkout_session_id": "cs_original_paid",
+    }
+    assert snapshot["id"] == before["snapshot_id"]
+    assert snapshot["schema_version"] == SNAPSHOT_SCHEMA_VERSION
+    assert snapshot["valuation_engine_version"] == VALUATION_ENGINE_VERSION
+    assert snapshot["canonical_digest"] != before["canonical_digest"]
+    assert loaded["intake_answers"] == current_answers
+    assert [json.loads(value) for value in intake_rows] == [current_answers]
+    assert review_count == 0
+
+    status_after = await client.get(f"/wizard/report/{report_id}/status")
+    assert status_after.status_code == 200
+    assert status_after.json()["restart_required"] is False
+
+
+@pytest.mark.asyncio
+async def test_paid_report_restart_validation_failure_rolls_back_everything(
+    client, fresh_all_db, monkeypatch
+):
+    _, report_id, before, generation_calls = await _create_failed_pre_decimal_paid_report(
+        client, monkeypatch, "invalid-restart@example.com"
+    )
+    monkeypatch.setattr(
+        main_module,
+        "create_checkout_session",
+        lambda **_kwargs: pytest.fail("Restart must not create another checkout"),
+    )
+
+    response = await client.post(
+        f"/wizard/report/{report_id}/restart",
+        json={"intake_answers": {"rq_revenue_quality": 5}},
+    )
+
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"]["state"] == "needs_clarification"
+    assert generation_calls == []
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        after = dict(await (
+            await db.execute(
+                """
+                SELECT r.status AS report_status, r.content, r.error_message,
+                       p.id AS purchase_id, p.status AS purchase_status,
+                       p.stripe_checkout_session_id, ris.id AS snapshot_id,
+                       ris.canonical_digest
+                FROM reports r
+                JOIN purchases p ON p.report_id=r.id
+                JOIN report_input_snapshots ris ON ris.report_id=r.id
+                WHERE r.id=?
+                """,
+                (report_id,),
+            )
+        ).fetchone())
+        intake_count = (await (
+            await db.execute("SELECT COUNT(*) FROM report_intake WHERE report_id=?", (report_id,))
+        ).fetchone())[0]
+        review_count = (await (
+            await db.execute("SELECT COUNT(*) FROM reviews WHERE report_id=?", (report_id,))
+        ).fetchone())[0]
+
+    assert after == before
+    assert intake_count == 1
+    assert review_count == 1
 
 
 @pytest.mark.asyncio
