@@ -2,7 +2,7 @@
 
 ## Status
 
-UAT has not run. The live command below is not runnable for the target FCFF workflow yet. PR 3A merged as #19 and PR 3B Decimal FCFF is open as #20. Review and merge #20, implement PR 3C deterministic Python-owned valuation tables and the paid-report restart flow, then update the synthetic fixture and UAT runner as specified in Valuation preflight. Run a synthetic service rehearsal only after those changes are verified and before requesting live UAT approval. A rehearsal is implementation evidence only. It does not authorise live UAT or complete a launch gate.
+UAT has not run. The live command below is not runnable for the target FCFF workflow yet. PR 3A merged as #19 and PR 3B Decimal FCFF merged as #20. PR 3C Python-owned deterministic valuation tables is open as #21. Review and merge #21, implement the paid-report restart flow, then update the synthetic fixture and UAT runner as specified in Valuation preflight. Run a synthetic service rehearsal only after those changes are verified and before requesting live UAT approval. A rehearsal is implementation evidence only. It does not authorise live UAT or complete a launch gate.
 
 ## Purpose
 

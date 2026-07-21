@@ -216,7 +216,7 @@ A restricted private pilot may proceed only under a written, time-bounded waiver
 
 ## First-sale blockers
 
-Public first sale remains blocked because all eight gates are open. In particular, public Stripe must remain disabled until serviceability validation, cancellation/refund paths, GST/tax treatment, production durability, privacy/consent, security evidence, qualified reviewer capacity, and professional boundary decisions are complete and signed off. Valuation readiness also requires reviewing and merging PR #20 Decimal FCFF; implementing PR 3C deterministic tables and the paid-report restart flow; completing a synthetic service rehearsal; and separately approving live UAT.
+Public first sale remains blocked because all eight gates are open. In particular, public Stripe must remain disabled until serviceability validation, cancellation/refund paths, GST/tax treatment, production durability, privacy/consent, security evidence, qualified reviewer capacity, and professional boundary decisions are complete and signed off. Valuation readiness also requires reviewing and merging PR #21 Python-owned deterministic tables; implementing the paid-report restart flow and synthetic runner updates; completing a synthetic service rehearsal; and separately approving live UAT.
 
 ## Reference notes
 
