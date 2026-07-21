@@ -1,6 +1,6 @@
 """Shared fail-closed validation for generated report content."""
 from __future__ import annotations
-import math
+from decimal import Decimal, InvalidOperation
 
 from report_prompts import SECTION_SCHEMAS, TABLE_SECTIONS_VALUATION
 
@@ -80,22 +80,23 @@ def validate_report_table(section_name: str, table) -> None:
             raise ValueError(f"invalid table cell in section '{section_name}'")
 
 
-def _table_number(value) -> float:
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return float(value)
-    if not isinstance(value, str):
+def _table_decimal(value) -> Decimal:
+    if isinstance(value, bool) or isinstance(value, (dict, list)):
         raise ValueError("valuation summary contains a non-numeric value")
-    cleaned = value.strip().replace(",", "")
-    cleaned = cleaned.replace("$", "")
+    cleaned = str(value).strip().replace(",", "").replace("$", "")
     if cleaned.startswith("(") and cleaned.endswith(")"):
         cleaned = f"-{cleaned[1:-1]}"
     try:
-        result = float(cleaned)
-    except ValueError as exc:
+        result = Decimal(cleaned)
+    except (InvalidOperation, ValueError) as exc:
         raise ValueError("valuation summary contains a non-numeric value") from exc
-    if not math.isfinite(result):
+    if not result.is_finite():
         raise ValueError("valuation summary contains a non-finite value")
     return result
+
+
+def _table_number(value) -> float:
+    return float(_table_decimal(value))
 
 
 def validate_valuation_summary(content_json: dict, valuation_result: dict) -> None:
@@ -130,14 +131,63 @@ def validate_valuation_summary(content_json: dict, valuation_result: dict) -> No
     for row, (key, bridge) in zip(rows, expected_rows):
         if row[0] != "DCF" or row[1] != _SCENARIO_LABELS[key]:
             raise ValueError("valuation summary scenario labels are invalid")
-        actual = [_table_number(value) for value in row[2:]]
-        expected = [float(bridge[field]) for field in fields]
-        if any(abs(left - right) > 0.01 for left, right in zip(actual, expected)):
+        actual = [_table_decimal(value) for value in row[2:]]
+        expected = [Decimal(str(bridge[field])) for field in fields]
+        if any(left != right for left, right in zip(actual, expected)):
             raise ValueError("valuation summary differs from deterministic valuation figures")
-        if abs(actual[3] - (actual[1] - actual[2])) > 0.01:
+        if actual[3] != actual[1] - actual[2]:
             raise ValueError("valuation summary net debt does not reconcile")
-        if abs(actual[5] - (actual[0] - actual[3] + actual[4])) > 0.01:
+        pre_dlom = bridge.get("pre_dlom_equity_value")
+        dlom_amount = bridge.get("dlom_amount")
+        if pre_dlom is None or dlom_amount is None:
+            if actual[5] != actual[0] - actual[3] + actual[4]:
+                raise ValueError("valuation summary equity value does not reconcile")
+        elif actual[5] != Decimal(str(pre_dlom)) - Decimal(str(dlom_amount)):
             raise ValueError("valuation summary equity value does not reconcile")
+
+
+def validate_wacc_assumptions(content_json: dict, valuation_result: dict) -> None:
+    """Require model output to reproduce frozen Decimal WACC inputs and rates."""
+    deterministic = valuation_result.get("deterministic_fcff") or {}
+    scenarios = deterministic.get("scenarios") or []
+    expected_names = list(_SCENARIO_LABELS)
+    if [scenario.get("name") for scenario in scenarios] != expected_names:
+        raise ValueError("deterministic WACC scenario order is invalid")
+
+    wacc = deterministic.get("wacc") or {}
+    table = content_json["wacc_assumptions"]["table"]
+    expected_headers = ["Component", *(_SCENARIO_LABELS[name] for name in expected_names)]
+    if table.get("headers") != expected_headers:
+        raise ValueError("WACC assumptions headers do not match the deterministic contract")
+
+    shared = (
+        ("Risk-free rate", "risk_free_rate"),
+        ("Equity risk premium", "equity_risk_premium"),
+        ("Beta", "beta"),
+        ("Additional premium", "additional_premium"),
+        ("Pre-tax cost of debt", "pre_tax_cost_of_debt"),
+        ("Target debt weight", "target_debt_weight"),
+        ("Target equity weight", "target_equity_weight"),
+        ("Cost of equity", "cost_of_equity"),
+        ("After-tax cost of debt", "after_tax_cost_of_debt"),
+    )
+    expected_rows = [
+        [label, *(wacc.get(field) for _ in expected_names)]
+        for label, field in shared
+    ]
+    expected_rows.append(["WACC", *(scenario.get("wacc") for scenario in scenarios)])
+    rows = table.get("rows", [])
+    if len(rows) != len(expected_rows):
+        raise ValueError("deterministic WACC assumptions rows are incomplete")
+    for row, expected in zip(rows, expected_rows):
+        if row[0] != expected[0]:
+            raise ValueError("deterministic WACC assumptions labels are invalid")
+        if any(value is None for value in expected[1:]):
+            raise ValueError("deterministic WACC assumptions are incomplete")
+        actual = [_table_decimal(value) for value in row[1:]]
+        wanted = [Decimal(str(value)) for value in expected[1:]]
+        if actual != wanted:
+            raise ValueError("WACC assumptions differ from deterministic valuation figures")
 
 
 def validate_multiples_crosscheck(content_json: dict, valuation_result: dict) -> None:
@@ -203,6 +253,8 @@ def validate_generated_report(
 
     if report_type == "valuation_advisory":
         if valuation_result is not None:
+            if valuation_result.get("deterministic_fcff") is not None:
+                validate_wacc_assumptions(content_json, valuation_result)
             validate_valuation_summary(content_json, valuation_result)
             validate_multiples_crosscheck(content_json, valuation_result)
         disclaimer = section_narrative(content_json["disclaimer"]).lower()
