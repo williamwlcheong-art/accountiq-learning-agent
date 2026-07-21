@@ -296,27 +296,9 @@ async def persist_report_input_snapshot(db, report_id: int, candidate: dict) -> 
     if existing:
         return existing["id"]
 
-    manifest = candidate["document_manifest"]
-    rows = candidate["financial_rows"]
-    frozen_inputs = {
-        key: value
-        for key, value in candidate.items()
-        if key not in {
-            "document_manifest",
-            "financial_rows",
-            "schema_version",
-            "valuation_engine_version",
-            "canonical_digest",
-        }
-    }
-    schema_version = candidate["schema_version"]
-    valuation_engine_version = candidate["valuation_engine_version"]
-    digest = candidate["canonical_digest"]
-    expected_digest = _digest_payload(
-        manifest, frozen_inputs, rows, schema_version, valuation_engine_version
+    manifest, rows, frozen_inputs, schema_version, valuation_engine_version, digest = (
+        _validated_candidate_parts(candidate)
     )
-    if digest != expected_digest:
-        raise SnapshotIntegrityError("Candidate report snapshot digest verification failed")
 
     try:
         async with db.execute(
@@ -346,6 +328,44 @@ async def persist_report_input_snapshot(db, report_id: int, candidate: dict) -> 
             return existing["id"]
         raise
 
+    await _insert_snapshot_rows(db, snapshot_id, rows)
+    return snapshot_id
+
+
+def _validated_candidate_parts(candidate: dict) -> tuple:
+    """Return canonical snapshot parts after verifying the supplied digest."""
+    manifest = candidate["document_manifest"]
+    rows = candidate["financial_rows"]
+    frozen_inputs = {
+        key: value
+        for key, value in candidate.items()
+        if key not in {
+            "document_manifest",
+            "financial_rows",
+            "schema_version",
+            "valuation_engine_version",
+            "canonical_digest",
+        }
+    }
+    schema_version = candidate["schema_version"]
+    valuation_engine_version = candidate["valuation_engine_version"]
+    digest = candidate["canonical_digest"]
+    expected_digest = _digest_payload(
+        manifest, frozen_inputs, rows, schema_version, valuation_engine_version
+    )
+    if digest != expected_digest:
+        raise SnapshotIntegrityError("Candidate report snapshot digest verification failed")
+    return (
+        manifest,
+        rows,
+        frozen_inputs,
+        schema_version,
+        valuation_engine_version,
+        digest,
+    )
+
+
+async def _insert_snapshot_rows(db, snapshot_id: int, rows: list[dict]) -> None:
     await db.executemany(
         """
         INSERT INTO report_snapshot_rows
@@ -362,6 +382,51 @@ async def persist_report_input_snapshot(db, report_id: int, candidate: dict) -> 
             for row in rows
         ],
     )
+
+
+async def replace_report_input_snapshot(db, report_id: int, candidate: dict) -> int:
+    """Atomically replace an existing snapshot using a prevalidated candidate.
+
+    The caller owns the surrounding transaction. The existing snapshot ID is
+    preserved so the report and its paid purchase remain the same order.
+    """
+    manifest, rows, frozen_inputs, schema_version, valuation_engine_version, digest = (
+        _validated_candidate_parts(candidate)
+    )
+    async with db.execute(
+        "SELECT id FROM report_input_snapshots WHERE report_id=?",
+        (report_id,),
+    ) as cur:
+        existing = await cur.fetchone()
+    if not existing:
+        raise SnapshotIntegrityError("Report input snapshot is missing")
+
+    snapshot_id = existing["id"]
+    await db.execute(
+        "DELETE FROM report_snapshot_rows WHERE snapshot_id=?",
+        (snapshot_id,),
+    )
+    cursor = await db.execute(
+        """
+        UPDATE report_input_snapshots
+        SET document_manifest=?, frozen_inputs=?, schema_version=?,
+            valuation_engine_version=?, canonical_digest=?,
+            created_at=datetime('now')
+        WHERE id=? AND report_id=?
+        """,
+        (
+            _canonical_json(manifest),
+            _canonical_json(frozen_inputs),
+            schema_version,
+            valuation_engine_version,
+            digest,
+            snapshot_id,
+            report_id,
+        ),
+    )
+    if cursor.rowcount != 1:
+        raise SnapshotIntegrityError("Report input snapshot replacement was not claimed")
+    await _insert_snapshot_rows(db, snapshot_id, rows)
     return snapshot_id
 
 

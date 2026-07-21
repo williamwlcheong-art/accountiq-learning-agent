@@ -31,6 +31,7 @@ type IntakeFormProps = {
   onBack: () => void;
   onSubmit: (answers: Record<string, unknown>) => void;
   loading: boolean;
+  submitLabel?: string;
 };
 
 const simpleFields: Record<Exclude<WizardReportType, "valuation_advisory">, Array<{
@@ -133,7 +134,14 @@ function renderField(field: (typeof simpleFields)["bank_credit_paper"][number]) 
   );
 }
 
-export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }: IntakeFormProps) {
+export function IntakeForm({
+  reportType,
+  companyId,
+  onBack,
+  onSubmit,
+  loading,
+  submitLabel = "Review and continue",
+}: IntakeFormProps) {
   const [normalisations, setNormalisations] = useState<NormalisationRow[]>([]);
   const [profileStatus, setProfileStatus] = useState<ProfileStatus | null>(null);
   const [fcffReadiness, setFcffReadiness] = useState<FcffAssumptionReadiness | null>(null);
@@ -575,7 +583,7 @@ export function IntakeForm({ reportType, companyId, onBack, onSubmit, loading }:
           Back
         </button>
         <button type="submit" className="button button-primary" disabled={loading}>
-          {loading ? "Preparing..." : "Review and continue"}
+          {loading ? "Preparing..." : submitLabel}
         </button>
       </div>
     </form>

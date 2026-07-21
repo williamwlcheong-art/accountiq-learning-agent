@@ -12,9 +12,9 @@ import { ReportTypePicker, type WizardReportType } from "@/components/wizard/rep
 import { UploadReadinessCard } from "@/components/wizard/upload-readiness-card";
 import { ApiError, apiFetch, postForm, postJson } from "@/lib/api-client";
 import { FINANCIAL_FILE_ACCEPT, validateFinancialFile } from "@/lib/upload-files";
-import type { CheckoutClarification, CurrentUser, WizardReadiness } from "@/types/domain";
+import type { CheckoutClarification, CurrentUser, ReportStatus, WizardReadiness } from "@/types/domain";
 
-type WizardStep = "upload" | "readiness" | "report-type" | "intake" | "confirm" | "clarification" | "status";
+type WizardStep = "upload" | "readiness" | "report-type" | "intake" | "confirm" | "clarification" | "status" | "restart-intake";
 
 type UploadResult = {
   company_id: number;
@@ -26,6 +26,14 @@ type GenerateResult = {
   report_id: number;
   status: string;
   checkout_url?: string | null;
+};
+
+type RestartResult = {
+  report_id: number;
+  status: string;
+  purchase_id: number;
+  purchase_status: "paid";
+  payment_required: false;
 };
 
 type WizardProps = {
@@ -44,6 +52,7 @@ export function Wizard({ user }: WizardProps) {
   const [intakeAnswers, setIntakeAnswers] = useState<Record<string, unknown> | null>(null);
   const [checkoutIdempotencyKey, setCheckoutIdempotencyKey] = useState("");
   const [reportId, setReportId] = useState<number | null>(null);
+  const [restartStatus, setRestartStatus] = useState<ReportStatus | null>(null);
   const [clarification, setClarification] = useState<CheckoutClarification | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -188,6 +197,7 @@ export function Wizard({ user }: WizardProps) {
           && err.status === 409
           && err.detail
           && typeof err.detail === "object"
+          && "state" in err.detail
           && err.detail.state === "needs_clarification"
         ) {
           setClarification(err.detail);
@@ -195,6 +205,35 @@ export function Wizard({ user }: WizardProps) {
         } else {
           setError(err instanceof Error ? err.message : "Failed to start checkout.");
         }
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function beginRestart(status: ReportStatus) {
+    setError("");
+    setRestartStatus(status);
+    setStep("restart-intake");
+  }
+
+  async function restartReport(answers: Record<string, unknown>) {
+    if (!reportId || !restartStatus) {
+      setError("Missing paid report details.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      await postJson<RestartResult>(`/wizard/report/${reportId}/restart`, {
+        intake_answers: answers,
+      });
+      setRestartStatus(null);
+      setStep("status");
+    } catch (err) {
+      if (!handleAuthError(err)) {
+        setError(err instanceof Error ? err.message : "Failed to restart this report.");
       }
     } finally {
       setLoading(false);
@@ -213,6 +252,7 @@ export function Wizard({ user }: WizardProps) {
     setIntakeAnswers(null);
     setCheckoutIdempotencyKey("");
     setReportId(null);
+    setRestartStatus(null);
     setClarification(null);
     setError("");
   }
@@ -226,6 +266,7 @@ export function Wizard({ user }: WizardProps) {
     confirm: "Review and payment",
     clarification: "Review and payment",
     status: "Report delivery",
+    "restart-intake": "Update valuation inputs",
   };
 
   return (
@@ -335,9 +376,30 @@ export function Wizard({ user }: WizardProps) {
           <CheckoutClarificationCard clarification={clarification} onReset={reset} />
         ) : null}
 
+        {step === "restart-intake" && restartStatus ? (
+          <section className="wizard-card">
+            <h1>Update valuation inputs</h1>
+            <p className="wizard-note">
+              Submit current FCFF assumptions for this report. We will reuse your existing paid order; no new payment is required.
+            </p>
+            <IntakeForm
+              reportType="valuation_advisory"
+              companyId={restartStatus.company_id}
+              onBack={() => setStep("status")}
+              onSubmit={restartReport}
+              loading={loading}
+              submitLabel="Update and restart report"
+            />
+          </section>
+        ) : null}
+
         {step === "status" && reportId ? (
           <>
-            <ReportStatusCard reportId={reportId} userEmail={user.email} />
+            <ReportStatusCard
+              reportId={reportId}
+              userEmail={user.email}
+              onRestartRequired={beginRestart}
+            />
             <button className="button button-secondary wizard-reset" onClick={reset}>
               Start another valuation
             </button>

@@ -10,9 +10,10 @@ import type { ReportStatus } from "@/types/domain";
 type ReportStatusCardProps = {
   reportId: number;
   userEmail: string;
+  onRestartRequired: (status: ReportStatus) => void;
 };
 
-export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps) {
+export function ReportStatusCard({ reportId, userEmail, onRestartRequired }: ReportStatusCardProps) {
   const router = useRouter();
   const [status, setStatus] = useState<ReportStatus | null>(null);
   const [error, setError] = useState("");
@@ -135,10 +136,20 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
 
       {isFailed ? (
         <div className="wizard-failed">
-          <p>{status?.error_message || "Report generation failed."}</p>
-          <button className="button button-primary" onClick={retry} disabled={retrying}>
-            {retrying ? "Retrying..." : "Retry"}
-          </button>
+          <p>
+            {status?.restart_required
+              ? "We need updated valuation inputs to use the current calculation engine. Your existing payment will be reused."
+              : status?.error_message || "Report generation failed."}
+          </p>
+          {status?.restart_required ? (
+            <button className="button button-primary" onClick={() => onRestartRequired(status)}>
+              Update valuation inputs
+            </button>
+          ) : (
+            <button className="button button-primary" onClick={retry} disabled={retrying}>
+              {retrying ? "Retrying..." : "Retry"}
+            </button>
+          )}
         </div>
       ) : null}
     </section>
