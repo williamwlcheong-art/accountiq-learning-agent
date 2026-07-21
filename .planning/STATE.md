@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PRs #15 to #22 merged; PR #23 browser regression fix open
-stopped_at: Review and merge PR #23, then update the synthetic runner and rehearse
-last_updated: "2026-07-22T12:00:00+12:00"
+status: PRs #15 to #23 merged; synthetic Decimal FCFF rehearsal passed
+stopped_at: Open and merge the synthetic rehearsal runner PR; live UAT requires explicit approval
+last_updated: "2026-07-22T10:45:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -55,15 +55,15 @@ Completed PVM-08A input-authority slices:
 
 PR #22 is merged. It lets a customer submit current FCFF inputs for a failed paid pre-Decimal valuation, atomically replaces the old snapshot and intake, preserves the existing report and paid purchase, clears stale review/PDF state, and requeues without Stripe or a second payment.
 
-PR #23 is open. It removes a higher-specificity mobile purchase-table minimum width, allows long account details to wrap, and uses the supported horizontal Arrow key for the report-table keyboard check. The complete development and production Playwright suites now pass.
+PR #23 is merged. It removes a higher-specificity mobile purchase-table minimum width, allows long account details to wrap, and uses the supported horizontal Arrow key for the report-table keyboard check. The complete development and production Playwright suites pass.
+
+The synthetic UAT fixture and guarded runner now cover complete confirmed FCFF assumptions, one active approved synthetic WACC set, schema 2 snapshots, `fcff-decimal-v1`, exact three-scenario equity reconciliation, and all six Python-owned valuation tables. The 2026-07-22 no-network rehearsal passed through real generation, persistence, admin-review gating, private HTML/PDF rendering, and immutable evidence with both external AI boundaries replaced by fixed synthetic outputs.
 
 Current valuation sequence:
 
-1. Review and merge PR #23, the browser-regression fix.
-2. Update the synthetic fixture and UAT runner.
-3. Run a synthetic service rehearsal.
-4. Run live Anthropic UAT only with separate explicit approval, then record William's domain disposition.
-5. Close or explicitly waive launch gates for a private pilot.
+1. Open, review, and merge the synthetic rehearsal runner PR.
+2. Run live Anthropic UAT only with separate explicit approval, then record William's domain disposition.
+3. Close or explicitly waive launch gates for a private pilot.
 
 Public payments remain blocked while all eight launch gates are open. Valuation is the only self-serve launch product. Bank credit papers, forecasts, capital raising documents, and information memorandums remain adviser pilots.
 
@@ -73,6 +73,16 @@ Latest verification for PR #23:
 - Development Playwright: 17 passed.
 - Standalone production Playwright: 17 passed.
 - `git diff --check` passed.
+
+Latest synthetic rehearsal verification:
+
+- Focused UAT safety/runner suite: 19 passed.
+- Full backend suite: 304 passed, 1 skipped.
+- Standalone no-network rehearsal: passed with 10/10 checks, `awaiting_review`, private HTML/PDF, and immutable evidence outside the repository.
+- Snapshot schema: `2`; valuation engine: `fcff-decimal-v1`.
+- Decimal FCFF equity reconciliation: exact in all three scenarios.
+- Python-owned deterministic tables: 6/6 matched their digested authority.
+- External AI calls: none.
 
 No live UAT has run.
 
@@ -132,7 +142,7 @@ Commercialization review (2026-07-01):
 ## Session Continuity
 
 Last session: 2026-07-22
-Stopped at: PRs #15 to #22 are merged and PR #23 is open. Review and merge PR #23 next, followed by synthetic runner updates and rehearsal, explicitly approved live Anthropic UAT, and launch-gate closure/private pilot.
+Stopped at: PRs #15 to #23 are merged and the no-network synthetic rehearsal passes. Open and merge the rehearsal runner PR next; live Anthropic UAT remains blocked on separate explicit approval, followed by William's disposition and launch-gate closure/private pilot.
 Resume file: .planning/phases/05.1-valuation-advisory-redesign/PVM-08-UAT.md
 
 ---

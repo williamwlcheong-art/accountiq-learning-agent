@@ -4,7 +4,6 @@ import json
 import os
 from pathlib import Path
 
-import aiosqlite
 import pytest
 
 import db as db_module
@@ -94,6 +93,25 @@ def test_preflight_requires_synthetic_or_authorised_fixture_and_invalid_email(tm
     assert ".invalid" in message
 
 
+def test_preflight_allows_no_api_key_only_for_synthetic_rehearsal(tmp_path):
+    env = _safe_env(tmp_path / "valuation-uat.db")
+    env.pop("ANTHROPIC_API_KEY")
+
+    with pytest.raises(UATSafetyError, match="ANTHROPIC_API_KEY"):
+        require_safe_uat_environment(
+            FIXTURE_PATH, _fixture(), environ=env, default_database_path=DEFAULT_DB
+        )
+
+    preflight = require_safe_uat_environment(
+        FIXTURE_PATH,
+        _fixture(),
+        environ=env,
+        default_database_path=DEFAULT_DB,
+        require_anthropic_key=False,
+    )
+    assert preflight.database_path == Path(env["ACCOUNTIQ_DB_PATH"])
+
+
 def _valid_sections() -> dict:
     sections = {key: f"Complete {key} narrative." for key in SECTION_SCHEMAS["valuation_advisory"]}
     for key in TABLE_SECTIONS_VALUATION:
@@ -173,6 +191,17 @@ def test_runner_requires_explicit_evidence_root():
         runner._parser().parse_args(["--confirm-live-uat"])
 
 
+def test_runner_requires_exactly_one_generation_mode():
+    runner = _load_runner_module()
+    with pytest.raises(SystemExit):
+        runner._parser().parse_args(["--evidence-root", "/tmp/evidence"])
+    with pytest.raises(SystemExit):
+        runner._parser().parse_args([
+            "--confirm-live-uat", "--synthetic-rehearsal",
+            "--evidence-root", "/tmp/evidence",
+        ])
+
+
 @pytest.mark.asyncio
 async def test_runner_refuses_evidence_inside_repository(tmp_path, monkeypatch):
     runner = _load_runner_module()
@@ -195,7 +224,7 @@ async def test_runner_refuses_evidence_inside_repository(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_runner_uses_existing_generation_and_private_render_boundaries(tmp_path, monkeypatch):
+async def test_runner_runs_no_network_pipeline_and_private_render_boundaries(tmp_path, monkeypatch):
     runner = _load_runner_module()
     database_path = tmp_path / "disposable-valuation-uat.db"
     evidence_root = tmp_path / "evidence"
@@ -212,20 +241,7 @@ async def test_runner_uses_existing_generation_and_private_render_boundaries(tmp
     monkeypatch.setattr(main_module, "DB_PATH", database_path)
     monkeypatch.setattr(main_module, "E2E_MODE", False)
 
-    calls = {"generation": 0, "pdf": 0}
-
-    async def fake_generate(report_id):
-        calls["generation"] += 1
-        async with aiosqlite.connect(database_path) as db:
-            await db.execute(
-                "UPDATE reports SET status='awaiting_review', content=? WHERE id=? AND status='queued'",
-                (json.dumps(_valid_sections()), report_id),
-            )
-            await db.execute(
-                "INSERT INTO reviews (report_id, status) VALUES (?, 'awaiting_review')",
-                (report_id,),
-            )
-            await db.commit()
+    calls = {"pdf": 0}
 
     def fake_write_pdf(html_text, output_path):
         calls["pdf"] += 1
@@ -233,23 +249,39 @@ async def test_runner_uses_existing_generation_and_private_render_boundaries(tmp
         output_path.write_bytes(b"%PDF-1.4 mocked UAT output")
 
     import report_rendering
-    monkeypatch.setattr(main_module, "_generate_report", fake_generate)
     monkeypatch.setattr(report_rendering, "write_pdf", fake_write_pdf)
 
     evidence_path = await runner.run(argparse.Namespace(
-        confirm_live_uat=True,
+        confirm_live_uat=False,
+        synthetic_rehearsal=True,
         fixture=FIXTURE_PATH,
         evidence_root=evidence_root,
     ))
 
     evidence = json.loads(evidence_path.read_text())
-    assert calls == {"generation": 1, "pdf": 1}
+    assert calls == {"pdf": 1}
     assert evidence["result"] == "passed"
+    assert evidence["evidence_schema_version"] == 2
+    assert evidence["generation_mode"] == "synthetic_rehearsal"
+    assert evidence["external_ai_calls_performed"] is False
+    assert evidence["generation_boundary_calls"] == {
+        "report_generation": 1,
+        "research": 1,
+    }
     assert evidence["report_status"] == "awaiting_review"
     assert evidence["approval_performed"] is False
     assert evidence["email_performed"] is False
     assert evidence["stripe_performed"] is False
     assert evidence["configured_model"]
-    assert "returned model metadata" in evidence["model_metadata_note"]
+    assert "was not called" in evidence["model_metadata_note"]
+    snapshot = evidence["deterministic_authority"]["snapshot"]
+    assert snapshot["schema_version"] == "2"
+    assert snapshot["valuation_engine_version"] == "fcff-decimal-v1"
+    assert len(snapshot["canonical_digest"]) == 64
+    approved_wacc = evidence["deterministic_authority"]["approved_wacc"]
+    assert approved_wacc["active_approved_count"] == 1
+    assert approved_wacc["name"] == "Synthetic NZ SME services"
+    assert approved_wacc["approved_by"].endswith(".invalid")
+    assert all(check["passed"] for check in evidence["checks"])
     assert (evidence_path.parent / "private-report.html").exists()
     assert (evidence_path.parent / evidence["pdf"]["filename"]).exists()

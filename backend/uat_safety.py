@@ -1,4 +1,4 @@
-"""Fail-closed safety and evidence helpers for live valuation UAT."""
+"""Fail-closed safety and evidence helpers for valuation UAT and rehearsal."""
 from __future__ import annotations
 
 import hashlib
@@ -55,8 +55,9 @@ def require_safe_uat_environment(
     environ: dict[str, str] | os._Environ[str] | None = None,
     default_database_path: Path,
     repository_root: Path | None = None,
+    require_anthropic_key: bool = True,
 ) -> UATPreflight:
-    """Validate every live-UAT guard before backend modules are imported."""
+    """Validate every UAT guard before backend modules are imported."""
     env = os.environ if environ is None else environ
     errors: list[str] = []
 
@@ -123,7 +124,7 @@ def require_safe_uat_environment(
     if refused:
         errors.append("payment/email configuration must be absent: " + ", ".join(refused))
 
-    if not env.get("ANTHROPIC_API_KEY", "").strip():
+    if require_anthropic_key and not env.get("ANTHROPIC_API_KEY", "").strip():
         errors.append("ANTHROPIC_API_KEY must be configured for an explicitly run live UAT")
 
     if errors:
