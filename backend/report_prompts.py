@@ -290,16 +290,8 @@ def build_prompt(
             raise ValueError("valuation_result is required for valuation_advisory report type")
 
         research_brief_text = json.dumps(valuation_result.get("research_brief", {}), indent=2)
-        dcf_block = {
-            "wacc_scenarios_pct": valuation_result.get("wacc_scenarios_pct", {}),
-            "dcf_scenarios": valuation_result.get("dcf_scenarios", {}),
-            "illiquidity_discount": valuation_result.get("illiquidity_discount", {}),
-            "normalised_ebitda": valuation_result.get("normalised_ebitda"),
-            "revenues": valuation_result.get("revenues"),
-            "valuation_inputs": valuation_result.get("valuation_inputs", {}),
-            "scenario_bridges": valuation_result.get("scenario_bridges", {}),
-        }
-        dcf_block_text = json.dumps(dcf_block, indent=2)
+        deterministic_fcff = valuation_result.get("deterministic_fcff") or {}
+        deterministic_fcff_text = json.dumps(deterministic_fcff, indent=2)
         multiples_result = valuation_result.get("multiples_result") or {}
         multiples_block_text = json.dumps(multiples_result, indent=2)
 
@@ -337,14 +329,16 @@ def build_prompt(
 ## User Intake — Normalisation Schedule (use these to populate the normalisations_schedule table)
 {norm_lines}
 
-## Research Brief (Claude-researched via web_search — do NOT modify any figure here)
+## Research Brief (narrative and comparable-market context only)
+Research WACC inputs are narrative context only. Do not use risk-free rate, beta, ERP, debt cost, capital weights, or premiums from this block for valuation arithmetic.
 ```json
 {research_brief_text}
 ```
 
-## Python-Computed DCF Scenarios and Illiquidity Discount (do NOT change any number)
+## Deterministic Decimal FCFF Calculation (authoritative, do not alter any numeric string)
+The frozen adviser-approved WACC values in this payload are authoritative. Tax applies only to positive EBIT, with no assumed loss tax shield. Terminal value uses the supplied unrounded N+1 FCFF. The equity bridge is enterprise value minus net debt plus approved surplus assets. DLOM applies to equity after that bridge. Copy the supplied numeric strings, scenario names, engine version, and calculation digest without rounding or recalculation.
 ```json
-{dcf_block_text}
+{deterministic_fcff_text}
 ```
 
 ## Python-Computed Comparable Multiples Method (do NOT change any number)
@@ -357,16 +351,16 @@ def build_prompt(
 - business_overview: Use research_brief.company_summary; do not invent facts.
 - market_position: Use research_brief.sector_summary; reference at least one NZ-specific competitor or regulator.
 - financial_performance: Provide narrative + table {{headers: [Year, Revenue, EBITDA, Net Profit, ...], rows: [...]}} sourced from Extracted Financials.
-- normalisations_schedule: narrative + table {{headers: [Label, Amount, Rationale], rows: [...]}} sourced from the Normalisation Schedule intake, using valuation_inputs.currency.
-- balance_sheet_summary: narrative + table {{headers: [Item, Value], rows: [...]}} including interest-bearing debt, unrestricted cash, net debt and approved surplus assets from valuation_inputs; conclude with the EV to Equity bridge.
-- valuation_methodology: Explain that DCF is the primary method and comparable market multiples provide a range cross-check. Do not mention or apply a business risk score.
-- wacc_assumptions: narrative + table {{headers: [Component, High WACC / Low Value, Mid WACC / Mid Value, Low WACC / High Value], rows: includes Risk-free rate, ERP, Industry Beta, Total Beta, WACC %}} from wacc_scenarios_pct.
-- dcf_analysis: Narrative on base period, growth assumptions, terminal value and scenarios; use scenario_bridges and dcf_scenarios verbatim.
-- valuation_summary: narrative + table {{headers: [Method, Scenario, Enterprise Value, Interest-bearing Debt, Unrestricted Cash, Net Debt, Surplus Assets, Equity Value], rows: [High WACC / Low Value, Mid WACC / Mid Value, Low WACC / High Value]}}. Copy every value from scenario_bridges without recalculation. The DCF scenarios form the conclusion.
+- normalisations_schedule: narrative + table {{headers: [Label, Amount, Rationale], rows: [...]}} sourced from the Normalisation Schedule intake, using deterministic_fcff.currency.
+- balance_sheet_summary: narrative + table {{headers: [Item, Value], rows: [...]}} including interest-bearing debt, unrestricted cash, net debt and approved surplus assets from deterministic_fcff; conclude with the EV to Equity bridge.
+- valuation_methodology: Explain that deterministic FCFF DCF is the primary method and comparable market multiples provide a range cross-check. Do not mention or apply a business risk score.
+- wacc_assumptions: narrative + table {{headers: [Component, High WACC / Low Value, Mid WACC / Mid Value, Low WACC / High Value], rows: includes Risk-free rate, ERP, Industry Beta, Cost of equity, After-tax debt cost, WACC %}} using deterministic_fcff.wacc only.
+- dcf_analysis: Narrative on the base period, common forecast, positive-EBIT tax, supplied N+1 FCFF, terminal value and scenarios; copy deterministic_fcff forecast and scenarios verbatim.
+- valuation_summary: narrative + table {{headers: [Method, Scenario, Enterprise Value, Interest-bearing Debt, Unrestricted Cash, Net Debt, Surplus Assets, Equity Value], rows: [High WACC / Low Value, Mid WACC / Mid Value, Low WACC / High Value]}}. Copy every value from deterministic_fcff.scenarios without recalculation. The DCF scenarios form the conclusion, and equity value is after DLOM.
 - multiples_crosscheck: narrative + table {{headers: [Input, Low, High], rows: [Market multiple, Normalised EBITDA, Indicated enterprise value]}} using multiples_result verbatim. Label it as a cross-check only, with no selected multiple or concluded value.
 - disclaimer: Full FMCA-compliant disclaimer paragraph containing: 'indicative', 'does not constitute financial advice', 'FMCA' or 'Financial Markets Conduct', and 'not relied' or 'should not be relied'.
 
-All figures in JSON blocks above are Python-computed — copy them verbatim into the report. Do not estimate, round, or recalculate. This report is indicative only and does not constitute financial advice."""
+All numeric strings in the deterministic FCFF and comparable-multiples blocks are Python-computed. Copy them verbatim into the report. Do not estimate, round, or recalculate. This report is indicative only and does not constitute financial advice."""
 
     elif report_type == "bank_credit_paper":
         if bank_credit_figures is None:

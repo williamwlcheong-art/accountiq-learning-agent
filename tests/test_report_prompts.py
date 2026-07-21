@@ -21,13 +21,27 @@ def _sample_valuation_result():
             "inflation_rate": 2.5,
             "sources": ["https://rbnz.govt.nz/...", "https://pages.stern.nyu.edu/~adamodar/.../totalbeta.html"],
         },
-        "wacc_scenarios_pct": {"high": 13.5, "mid": 11.07, "low": 8.7},
-        "dcf_scenarios": {
-            "high": {"enterprise_value_dcf": 4000000},
-            "mid": {"enterprise_value_dcf": 5000000},
-            "low": {"enterprise_value_dcf": 6500000},
+        "deterministic_fcff": {
+            "engine_version": "fcff-decimal-v1",
+            "calculation_digest": "abc123",
+            "instruction": "Copy these deterministic numeric strings without recalculation.",
+            "currency": "NZD",
+            "forecast": [{"year": 1, "fcff": "111344"}],
+            "terminal_forecast": {"year": 6, "fcff": "149827.735668096"},
+            "wacc": {
+                "risk_free_rate": "0.04", "equity_risk_premium": "0.055",
+                "beta": "1.1", "cost_of_equity": "0.1205", "mid": "0.1",
+                "high": "0.11", "low": "0.09",
+            },
+            "scenarios": [
+                {
+                    "name": "high_wacc_low_value", "enterprise_value": "4000000",
+                    "net_debt": "200000", "approved_surplus_assets": "0",
+                    "pre_dlom_equity_value": "3800000", "dlom_rate": "0.1",
+                    "dlom_amount": "380000", "equity_value": "3420000",
+                }
+            ],
         },
-        "illiquidity_discount": {"rate": 0.12, "ev_adjusted": {"high": 3520000, "mid": 4400000, "low": 5720000}},
         "normalised_ebitda": 850000,
         "normalisations": [
             {"label": "Owner salary", "amount": 50000, "rationale": "above market"},
@@ -57,7 +71,11 @@ def test_build_prompt_valuation_includes_table_instruction():
     assert "table" in sys_p and "narrative" in sys_p
     assert "Acme Ltd" in usr
     assert "Research Brief" in usr
-    assert "DCF Scenarios" in usr or "dcf_scenarios" in usr
+    assert "Deterministic Decimal FCFF" in usr
+    assert "fcff-decimal-v1" in usr
+    assert "abc123" in usr
+    assert "149827.735668096" in usr
+    assert "Research WACC inputs are narrative context only" in usr
     assert "Owner salary" in usr
 
 

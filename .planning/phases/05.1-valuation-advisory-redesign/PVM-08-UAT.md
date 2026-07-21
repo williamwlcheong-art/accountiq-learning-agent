@@ -2,7 +2,7 @@
 
 ## Status
 
-UAT has not run. The live command below is not runnable for the target FCFF workflow yet. First open, review, and merge the 3A branch; implement and merge PR 3B Decimal FCFF and PR 3C deterministic Python-owned valuation tables; then update the synthetic fixture and UAT runner as specified in Valuation preflight. Run a synthetic service rehearsal only after those changes are verified and before requesting live UAT approval. A rehearsal is implementation evidence only. It does not authorise live UAT or complete a launch gate.
+UAT has not run. The live command below is not runnable for the target FCFF workflow yet. PR 3A merged as #19 and PR 3B Decimal FCFF is open as #20. Review and merge #20, implement PR 3C deterministic Python-owned valuation tables and the paid-report restart flow, then update the synthetic fixture and UAT runner as specified in Valuation preflight. Run a synthetic service rehearsal only after those changes are verified and before requesting live UAT approval. A rehearsal is implementation evidence only. It does not authorise live UAT or complete a launch gate.
 
 ## Purpose
 
@@ -35,14 +35,14 @@ Before the target synthetic rehearsal is valid, implement and verify all of the 
 
 - Extend `tests/fixtures/valuation_uat/synthetic_nz_sme.json` with complete confirmed FCFF assumptions, including D&A, capex, operating NWC, forecast horizon, growth, EBITDA margin, tax treatment, and any zero-value rationale.
 - Extend `scripts/run_live_valuation_uat.py` to seed and activate exactly one approved synthetic WACC assumption set before creating the snapshot.
-- Extend the runner's assertions and immutable evidence to record and verify snapshot schema `2`, engine `fcff-assumptions-v1`, Decimal FCFF reconciliation, and Python-owned deterministic valuation tables.
+- Extend the runner's assertions and immutable evidence to record and verify snapshot schema `2`, engine `fcff-decimal-v1`, Decimal FCFF reconciliation, and Python-owned deterministic valuation tables.
 - Keep the UAT evidence-document schema version distinct from the report-input snapshot schema and document both explicitly.
 
 After those runner and fixture changes pass deterministic tests, verify the following in the synthetic rehearsal and record the results outside the repository:
 
 - Exactly one active, approved WACC assumption set is selected, with its source references, publisher, as-of date, rationale, approver, and approval time frozen in the snapshot.
 - Complete FCFF assumptions are present before checkout or any external call.
-- The report input snapshot uses schema `2` and engine `fcff-assumptions-v1`.
+- The report input snapshot uses schema `2` and engine `fcff-decimal-v1`.
 - Python produces deterministic valuation tables from frozen inputs, and the tables reconcile to the Decimal FCFF calculation.
 
 Do not substitute a missing preflight result with a live Anthropic call, web search, manual database edit, or reviewer approval.

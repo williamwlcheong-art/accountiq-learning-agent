@@ -44,14 +44,13 @@ from payments import (
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
 from report_rendering import render_report_html, report_pdf_path, write_pdf
 from report_snapshots import (
-    LEGACY_SNAPSHOT_SCHEMA_VERSION,
-    LEGACY_VALUATION_ENGINE_VERSION,
     LegacySnapshotRestartRequired,
     SnapshotIntegrityError,
     build_report_input_snapshot_candidate,
     create_report_input_snapshot,
     load_report_input_snapshot,
     persist_report_input_snapshot,
+    snapshot_requires_restart,
 )
 from report_validation import validate_generated_report
 from report_prompts import (
@@ -61,10 +60,8 @@ from report_prompts import (
     compute_bank_credit_figures,
 )
 from research_loop import run_valuation_research
-from valuation import (
-    compute_wacc_scenarios, compute_dcf, compute_illiquidity_discount,
-    compute_equity_bridge, compute_multiples_crosscheck,
-)
+from fcff_engine import calculate_fcff, report_prompt_payload
+from valuation import compute_multiples_crosscheck
 from valuation_inputs import (
     ValuationInputError,
     build_valuation_inputs,
@@ -1805,10 +1802,10 @@ async def wizard_report_checkout(
                         "message": "This checkout key is already bound to another request.",
                     },
                 )
-            if (
-                existing_order["schema_version"] == LEGACY_SNAPSHOT_SCHEMA_VERSION
-                and existing_order["valuation_engine_version"] == LEGACY_VALUATION_ENGINE_VERSION
-                and existing_order["report_status"] != "done"
+            if snapshot_requires_restart(
+                existing_order["schema_version"],
+                existing_order["valuation_engine_version"],
+                existing_order["report_status"],
             ):
                 raise HTTPException(
                     409,
@@ -2704,7 +2701,15 @@ async def _generate_report(report_id: int) -> None:
                 )
                 await db.commit()
 
-                # 5b. Run agentic web research loop (Plan 02)
+                # Frozen inputs and deterministic arithmetic are validated before
+                # research or report writing begins.
+                typed_inputs = build_valuation_inputs(
+                    raw_fin_rows, snapshot, require_fcff=True
+                )
+                fcff_result = calculate_fcff(typed_inputs)
+                deterministic_fcff = report_prompt_payload(fcff_result)
+
+                # Research supplies narrative and market-multiple context only.
                 company_location = (intake_answers.get("company_location") or "New Zealand") if isinstance(intake_answers, dict) else "New Zealand"
                 industry_sector_for_research = company_sector or "General SME"
                 brief = await run_valuation_research(
@@ -2713,108 +2718,39 @@ async def _generate_report(report_id: int) -> None:
                     industry_sector=industry_sector_for_research,
                 )
 
-                # 5c. Compute WACC scenarios (percent), then 3x DCF (decimal), then illiquidity discount
-                wacc_pct = compute_wacc_scenarios(
-                    risk_free_rate=brief.risk_free_rate,
-                    industry_beta=brief.industry_beta,
-                    erp=brief.erp,
-                )
-
-                typed_inputs = build_valuation_inputs(raw_fin_rows, snapshot)
                 normalised_ebitda = float(typed_inputs.normalised_ebitda.value)
-                revenues_val = float(typed_inputs.revenue.value)
-                cash_val = float(typed_inputs.unrestricted_cash.value)
-                net_debt = float(typed_inputs.net_debt.value)
-                interest_bearing_debt = float(typed_inputs.interest_bearing_debt.value)
-                approved_surplus_assets = float(typed_inputs.approved_surplus_assets.value)
-
-                forecast_years = int(intake_answers.get("forecast_horizon", 5)) if isinstance(intake_answers, dict) else 5
-                revenue_growth_pct = float(intake_answers.get("revenue_growth_cagr", 5.0) or 5.0) if isinstance(intake_answers, dict) else 5.0
-                terminal_growth_pct = float(intake_answers.get("terminal_growth_rate", 2.5) or 2.5) if isinstance(intake_answers, dict) else 2.5
-                tax_rate = 0.28  # NZ corporate tax rate
-
-                loop = asyncio.get_running_loop()
-
-                def _run_dcf_for_scenario(wacc_percent: float) -> dict:
-                    return compute_dcf(
-                        ebitda=normalised_ebitda,
-                        wacc=wacc_percent / 100.0,
-                        growth_rate=revenue_growth_pct / 100.0,
-                        tax_rate=tax_rate,
-                        years=forecast_years,
-                        terminal_growth=terminal_growth_pct / 100.0,
-                    )
-
-                dcf_high = await loop.run_in_executor(None, _run_dcf_for_scenario, wacc_pct["high"])
-                dcf_mid  = await loop.run_in_executor(None, _run_dcf_for_scenario, wacc_pct["mid"])
-                dcf_low  = await loop.run_in_executor(None, _run_dcf_for_scenario, wacc_pct["low"])
-
-                def _ev_from_dcf(d: dict) -> float:
-                    return float(d.get("enterprise_value_dcf") or d.get("enterprise_value") or d.get("ev") or 0.0)
-
-                ev_mid = _ev_from_dcf(dcf_mid)
-                illiq_rate = await loop.run_in_executor(
-                    None,
-                    compute_illiquidity_discount,
-                    revenues_val,
-                    (normalised_ebitda > 0),
-                    cash_val,
-                    ev_mid,
-                )
-                ev_adjusted = {
-                    "high": _ev_from_dcf(dcf_high) * (1.0 - illiq_rate),
-                    "mid":  ev_mid * (1.0 - illiq_rate),
-                    "low":  _ev_from_dcf(dcf_low) * (1.0 - illiq_rate),
-                }
-
-                scenario_bridges = {
-                    "high_wacc_low_value": compute_equity_bridge(
-                        ev_adjusted["high"], interest_bearing_debt, cash_val,
-                        approved_surplus_assets,
-                    ),
-                    "mid_wacc_mid_value": compute_equity_bridge(
-                        ev_adjusted["mid"], interest_bearing_debt, cash_val,
-                        approved_surplus_assets,
-                    ),
-                    "low_wacc_high_value": compute_equity_bridge(
-                        ev_adjusted["low"], interest_bearing_debt, cash_val,
-                        approved_surplus_assets,
-                    ),
-                }
-
                 multiples_result = compute_multiples_crosscheck(
                     normalised_ebitda=normalised_ebitda,
                     ev_ebitda_low=brief.ev_ebitda_low,
                     ev_ebitda_high=brief.ev_ebitda_high,
                 )
+                scenario_bridges = {
+                    scenario.name: {
+                        "enterprise_value": scenario.enterprise_value,
+                        "interest_bearing_debt": fcff_result.interest_bearing_debt,
+                        "unrestricted_cash": fcff_result.unrestricted_cash,
+                        "net_debt": scenario.net_debt,
+                        "approved_surplus_assets": scenario.approved_surplus_assets,
+                        "pre_dlom_equity_value": scenario.pre_dlom_equity_value,
+                        "dlom_rate": scenario.dlom_rate,
+                        "dlom_amount": scenario.dlom_amount,
+                        "equity_value": scenario.equity_value,
+                    }
+                    for scenario in fcff_result.scenarios
+                }
 
                 valuation_result = {
                     "research_brief": brief.model_dump(),
-                    "wacc_scenarios_pct": wacc_pct,
-                    "dcf_scenarios": {
-                        "high_wacc_low_value": dcf_high,
-                        "mid_wacc_mid_value": dcf_mid,
-                        "low_wacc_high_value": dcf_low,
-                    },
-                    "illiquidity_discount": {"rate": illiq_rate, "ev_adjusted": ev_adjusted},
+                    "deterministic_fcff": deterministic_fcff,
                     "normalised_ebitda": normalised_ebitda,
                     "normalisations": [
                         {
                             "label": item.label,
-                            "amount": float(item.amount),
+                            "amount": str(item.amount),
                             "rationale": item.rationale,
                         }
                         for item in typed_inputs.normalisations
                     ],
-                    "revenues": revenues_val,
-                    "valuation_inputs": {
-                        "currency": typed_inputs.currency,
-                        "base_period": typed_inputs.base_period.original,
-                        "interest_bearing_debt": interest_bearing_debt,
-                        "unrestricted_cash": cash_val,
-                        "net_debt": net_debt,
-                        "approved_surplus_assets": approved_surplus_assets,
-                    },
                     "scenario_bridges": scenario_bridges,
                     "multiples_result": multiples_result,
                 }

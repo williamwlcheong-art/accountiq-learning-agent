@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN, localcontext
 import re
 from typing import Any
 
@@ -11,7 +11,10 @@ _RATIO_QUANTUM = Decimal("0.0000000001")
 
 
 def _ratio(numerator: Decimal, denominator: Decimal) -> Decimal:
-    return (numerator / denominator).quantize(_RATIO_QUANTUM, rounding=ROUND_HALF_EVEN)
+    with localcontext() as context:
+        context.prec = 50
+        context.rounding = ROUND_HALF_EVEN
+        return (numerator / denominator).quantize(_RATIO_QUANTUM)
 
 
 _UNIT_FACTORS = {
@@ -117,12 +120,19 @@ class Normalisation:
 
 @dataclass(frozen=True)
 class ConfirmedForecastPolicy:
+    """A confirmed ratio or schedule with explicit engine semantics.
+
+    D&A and capex schedules are annual whole-currency flows. Operating-NWC
+    schedules are annual closing whole-currency balances, not annual changes.
+    """
+
     revenue_ratio: Decimal | None
     annual_schedule: tuple[Decimal, ...]
     rationale: str
     confirmed: bool
     confirmation_method: str | None = None
     confirmation_source: str | None = None
+    schedule_semantics: str | None = None
 
 
 @dataclass(frozen=True)
@@ -161,6 +171,42 @@ class FrozenWaccAssumptionSet:
     rationale: str
     approved_at: str
     approved_by: str
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovedWaccRates:
+    cost_of_equity: Decimal
+    after_tax_cost_of_debt: Decimal
+    mid: Decimal
+    high: Decimal
+    low: Decimal
+
+
+def approved_wacc_rates(
+    assumptions: FrozenWaccAssumptionSet,
+    tax: TaxPolicy,
+) -> ApprovedWaccRates:
+    """Calculate adviser-approved true WACC scenario rates without rounding."""
+    with localcontext() as context:
+        context.prec = 50
+        context.rounding = ROUND_HALF_EVEN
+        cost_of_equity = (
+            assumptions.risk_free_rate
+            + assumptions.beta * assumptions.equity_risk_premium
+            + assumptions.additional_premium
+        )
+        after_tax_cost_of_debt = assumptions.cost_of_debt * (Decimal("1") - tax.rate)
+        mid = (
+            cost_of_equity * assumptions.target_equity_weight
+            + after_tax_cost_of_debt * assumptions.target_debt_weight
+        )
+        return ApprovedWaccRates(
+            cost_of_equity=cost_of_equity,
+            after_tax_cost_of_debt=after_tax_cost_of_debt,
+            mid=mid,
+            high=mid + assumptions.scenario_spread,
+            low=mid - assumptions.scenario_spread,
+        )
 
 
 @dataclass(frozen=True)
@@ -592,10 +638,21 @@ def _fcff_policy(
         values = tuple(_decimal(value, f"missing_{key}", f"The {key.replace('_', ' ')} schedule is invalid.") for value in schedule)
         if any(value < 0 for value in values):
             _fail(f"missing_{key}", f"The {key.replace('_', ' ')} schedule cannot be negative.")
+        if any(value != value.to_integral_value() for value in values):
+            _fail(
+                f"missing_{key}",
+                f"The {key.replace('_', ' ')} schedule must use non-negative whole-currency amounts.",
+            )
         if any(value == 0 for value in values) and not rationale:
             _fail(f"missing_{key}_rationale", f"A zero {key.replace('_', ' ')} assumption needs a rationale.")
+        semantics = (
+            "closing_whole_currency_balance"
+            if key == "operating_nwc"
+            else "annual_whole_currency_flow"
+        )
         return ConfirmedForecastPolicy(
-            None, values, rationale, confirmed, confirmation_method, confirmation_source
+            None, values, rationale, confirmed, confirmation_method, confirmation_source,
+            semantics,
         )
     value = _decimal(rate, f"missing_{key}", f"A valid {key.replace('_', ' ')} revenue ratio is required.")
     if value < 0 or value > 1:
@@ -715,20 +772,20 @@ def _fcff_inputs(
         field: _decimal(raw_wacc.get(field), "missing_wacc_approval", "The approved WACC assumption set is incomplete.")
         for field in ("risk_free_rate", "equity_risk_premium", "beta", "cost_of_debt", "target_debt_weight", "target_equity_weight")
     }
+    if any(value < 0 for value in decimal_fields.values()):
+        _fail("missing_wacc_approval", "Approved WACC rates and weights cannot be negative.")
+    if any(decimal_fields[field] > 1 for field in (
+        "risk_free_rate", "equity_risk_premium", "cost_of_debt",
+        "target_debt_weight", "target_equity_weight",
+    )):
+        _fail("missing_wacc_approval", "Approved WACC rates and weights must not exceed one.")
     if decimal_fields["target_debt_weight"] + decimal_fields["target_equity_weight"] != 1:
         _fail("missing_wacc_approval", "Approved WACC debt and equity weights must total one.")
     additional = _decimal(raw_wacc.get("additional_premium", 0), "missing_wacc_approval", "The approved WACC assumption set is incomplete.")
     spread = _decimal(raw_wacc.get("scenario_spread", 0), "missing_wacc_approval", "The approved WACC assumption set is incomplete.")
-    mid_wacc = (
-        decimal_fields["risk_free_rate"]
-        + decimal_fields["beta"] * decimal_fields["equity_risk_premium"]
-        + additional
-    ) * decimal_fields["target_equity_weight"] + (
-        decimal_fields["cost_of_debt"] * (Decimal("1") - tax.rate)
-    ) * decimal_fields["target_debt_weight"]
-    if mid_wacc - spread - terminal_growth < Decimal("0.01"):
-        _fail("invalid_terminal_spread", "WACC must exceed terminal growth by at least one percentage point in every scenario.")
-    wacc = FrozenWaccAssumptionSet(
+    if additional < 0 or additional > 1 or spread < 0 or spread > 1:
+        _fail("missing_wacc_approval", "Approved WACC premiums and scenario spread must be between zero and one.")
+    candidate_wacc = FrozenWaccAssumptionSet(
         assumption_set_id, str(raw_wacc["name"]), version,
         decimal_fields["risk_free_rate"], decimal_fields["equity_risk_premium"],
         decimal_fields["beta"], str(raw_wacc["beta_type"]), decimal_fields["cost_of_debt"],
@@ -736,6 +793,12 @@ def _fcff_inputs(
         additional, spread, str(raw_wacc["source_references"]), str(raw_wacc["publisher"]),
         wacc_date, str(raw_wacc["rationale"]), str(raw_wacc["approved_at"]), str(raw_wacc["approved_by"]),
     )
+    rates = approved_wacc_rates(candidate_wacc, tax)
+    if rates.low < 0 or rates.high > 1:
+        _fail("missing_wacc_approval", "Approved WACC scenario rates must be between zero and one.")
+    if rates.low - terminal_growth < Decimal("0.01"):
+        _fail("invalid_terminal_spread", "WACC must exceed terminal growth by at least one percentage point in every scenario.")
+    wacc = candidate_wacc
     return (
         depreciation, component_provenance, base_nwc, depreciation_policy,
         capex_policy, operating_nwc_policy, forecast, tax, wacc,

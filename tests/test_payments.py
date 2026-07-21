@@ -296,8 +296,78 @@ async def test_checkout_idempotency_key_reuses_order(client, fresh_all_db, monke
 
 
 @pytest.mark.asyncio
-async def test_checkout_legacy_pending_snapshot_requires_restart_without_stripe_or_mutation(
+async def test_generation_calculates_complete_fcff_before_research_or_claude(
     client, fresh_all_db, monkeypatch
+):
+    monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+    company_id = await _register_and_upload(client, email="fcff-generation@example.com")
+    created = await client.post("/wizard/report/checkout", json={
+        "company_id": company_id,
+        "report_type": "valuation_advisory",
+        "intake_answers": _valuation_answers(),
+        "idempotency_key": "fcff-generation-order",
+    })
+    assert created.status_code == 201, created.text
+    report_id = created.json()["report_id"]
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE reports SET status='queued', content='partial' WHERE id=?",
+            (report_id,),
+        )
+        await db.commit()
+
+    original_builder = main_module.build_valuation_inputs
+    build_calls = []
+
+    def require_complete_fcff(*args, **kwargs):
+        build_calls.append(kwargs)
+        return original_builder(*args, **kwargs)
+
+    def fail_calculation(_inputs):
+        raise ValueError("deterministic calculation failed")
+
+    async def forbidden(*_args, **_kwargs):
+        pytest.fail("Deterministic failure must stop before research or Claude")
+
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.setattr(main_module, "build_valuation_inputs", require_complete_fcff)
+    monkeypatch.setattr(main_module, "calculate_fcff", fail_calculation)
+    monkeypatch.setattr(main_module, "run_valuation_research", forbidden)
+    monkeypatch.setattr(main_module, "_call_claude_for_report", forbidden)
+
+    await main_module._generate_report(report_id)
+
+    assert build_calls == [{"require_fcff": True}]
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT status, content, error_message FROM reports WHERE id=?",
+            (report_id,),
+        ) as cur:
+            report = dict(await cur.fetchone())
+    assert report == {
+        "status": "failed",
+        "content": None,
+        "error_message": (
+            "We couldn't generate a complete report. Please retry, or contact support "
+            "if the problem continues."
+        ),
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("schema_version", "engine_version"),
+    [
+        ("1", "typed-inputs-v2"),
+        ("1", "fcff-assumptions-v1"),
+        ("2", "fcff-assumptions-v1"),
+    ],
+)
+async def test_checkout_legacy_pending_snapshot_requires_restart_without_stripe_or_mutation(
+    client, fresh_all_db, monkeypatch, schema_version, engine_version
 ):
     monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
     monkeypatch.setattr(main_module, "E2E_MODE", True)
@@ -322,10 +392,10 @@ async def test_checkout_legacy_pending_snapshot_requires_restart_without_stripe_
         await db.execute(
             """
             UPDATE report_input_snapshots
-            SET schema_version='1', valuation_engine_version='typed-inputs-v2'
+            SET schema_version=?, valuation_engine_version=?
             WHERE report_id=?
             """,
-            (report_id,),
+            (schema_version, engine_version, report_id),
         )
         await db.commit()
         before = await (

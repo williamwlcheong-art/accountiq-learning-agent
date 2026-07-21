@@ -3,7 +3,11 @@ from decimal import Decimal, ROUND_DOWN, localcontext
 
 import pytest
 
-from valuation_inputs import ValuationInputError, build_valuation_inputs
+from valuation_inputs import (
+    ValuationInputError,
+    approved_wacc_rates,
+    build_valuation_inputs,
+)
 
 
 def row(statement, key, label, period, value, **overrides):
@@ -122,6 +126,62 @@ def test_fcff_inputs_freeze_same_period_amounts_ratios_tax_forecast_and_wacc():
     assert inputs.wacc_assumption_set.assumption_set_id == 4
     assert inputs.wacc_assumption_set.risk_free_rate == Decimal("0.0425")
     assert inputs.wacc_assumption_set.target_debt_weight == Decimal("0.30")
+
+
+def test_approved_wacc_helper_calculates_true_weighted_rates():
+    inputs = build_valuation_inputs(complete_fcff_rows(), complete_fcff_frozen())
+
+    rates = approved_wacc_rates(inputs.wacc_assumption_set, inputs.tax)
+
+    assert rates.cost_of_equity == Decimal("0.123")
+    assert rates.after_tax_cost_of_debt == Decimal("0.0486")
+    assert rates.mid == Decimal("0.10068")
+    assert rates.high == Decimal("0.11068")
+    assert rates.low == Decimal("0.09068")
+
+
+def test_wacc_components_reject_negative_rates_weights_and_spread():
+    for field in (
+        "risk_free_rate",
+        "equity_risk_premium",
+        "beta",
+        "cost_of_debt",
+        "target_debt_weight",
+        "target_equity_weight",
+        "additional_premium",
+        "scenario_spread",
+    ):
+        frozen = complete_fcff_frozen()
+        frozen["approved_wacc_assumption_set"][field] = "-0.01"
+        assert_error("missing_wacc_approval", complete_fcff_rows(), frozen)
+
+
+def test_fcff_amount_schedules_require_whole_currency_values():
+    for section in ("depreciation", "capex", "operating_nwc"):
+        frozen = complete_fcff_frozen()
+        frozen["intake_answers"]["fcff_assumptions"][section] = {
+            "annual_schedule": [10_000, 11_000, "12000.50", 13_000, 14_000],
+            "confirmed": True,
+            "rationale": "Annual adviser schedule.",
+        }
+        error = assert_error(f"missing_{section}", complete_fcff_rows(), frozen)
+        assert "whole-currency" in error.message
+
+
+def test_fcff_schedule_semantics_are_named_on_confirmed_policies():
+    frozen = complete_fcff_frozen()
+    for section in ("depreciation", "capex", "operating_nwc"):
+        frozen["intake_answers"]["fcff_assumptions"][section] = {
+            "annual_schedule": [10_000, 11_000, 12_000, 13_000, 14_000],
+            "confirmed": True,
+            "rationale": "Annual adviser schedule.",
+        }
+
+    inputs = build_valuation_inputs(complete_fcff_rows(), frozen)
+
+    assert inputs.depreciation_policy.schedule_semantics == "annual_whole_currency_flow"
+    assert inputs.capex_policy.schedule_semantics == "annual_whole_currency_flow"
+    assert inputs.operating_nwc_policy.schedule_semantics == "closing_whole_currency_balance"
 
 
 def test_fcff_zero_revenue_raises_structured_input_error_before_ratio_division():

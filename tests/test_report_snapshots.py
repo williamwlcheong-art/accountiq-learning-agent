@@ -185,7 +185,7 @@ async def test_candidate_can_be_validated_before_snapshot_persistence(fresh_all_
     assert candidate["financial_rows"][0]["row_key"] == "ebitda"
     assert candidate["schema_version"] == "2"
     assert candidate["schema_version"] == SNAPSHOT_SCHEMA_VERSION
-    assert candidate["valuation_engine_version"] == "fcff-assumptions-v1"
+    assert candidate["valuation_engine_version"] == "fcff-decimal-v1"
     assert candidate["valuation_engine_version"] == VALUATION_ENGINE_VERSION
     assert len(candidate["canonical_digest"]) == 64
 
@@ -440,6 +440,64 @@ async def test_completed_schema_one_snapshot_remains_readable_but_pending_does_n
         await db.commit()
         with pytest.raises(SnapshotIntegrityError, match="restart"):
             await load_report_input_snapshot(db, report_id)
+
+
+async def _persist_pre_decimal_snapshot(
+    db, report_id, company_id, user_id, *, schema_version="2"
+):
+    current = await build_report_input_snapshot_candidate(
+        db, report_id, company_id, user_id
+    )
+    frozen = {
+        key: value
+        for key, value in current.items()
+        if key not in {
+            "document_manifest", "financial_rows", "schema_version",
+            "valuation_engine_version", "canonical_digest",
+        }
+    }
+    candidate = {
+        **frozen,
+        "document_manifest": current["document_manifest"],
+        "financial_rows": current["financial_rows"],
+        "schema_version": schema_version,
+        "valuation_engine_version": "fcff-assumptions-v1",
+        "canonical_digest": _digest_payload(
+            current["document_manifest"], frozen, current["financial_rows"],
+            schema_version, "fcff-assumptions-v1",
+        ),
+    }
+    snapshot_id = await persist_report_input_snapshot(db, report_id, candidate)
+    return snapshot_id, candidate
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("schema_version", ["1", "2"])
+async def test_unfinished_pre_decimal_snapshots_require_restart(
+    fresh_all_db, schema_version
+):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        user_id, company_id, report_id = await _seed_snapshot_source(db)
+        await _persist_pre_decimal_snapshot(
+            db, report_id, company_id, user_id, schema_version=schema_version
+        )
+        with pytest.raises(SnapshotIntegrityError, match="restart"):
+            await load_report_input_snapshot(db, report_id)
+
+
+@pytest.mark.asyncio
+async def test_completed_pre_decimal_schema_two_snapshot_remains_readable(fresh_all_db):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        user_id, company_id, report_id = await _seed_snapshot_source(db)
+        _, candidate = await _persist_pre_decimal_snapshot(
+            db, report_id, company_id, user_id
+        )
+        await db.execute("UPDATE reports SET status='done' WHERE id=?", (report_id,))
+        await db.commit()
+
+        assert await load_report_input_snapshot(db, report_id) == candidate
 
 
 @pytest.mark.asyncio

@@ -5,10 +5,11 @@ import os
 from decimal import Decimal
 from pathlib import Path
 
+from fcff_engine import ENGINE_VERSION as VALUATION_ENGINE_VERSION
 from financial_authority import authoritative_financial_rows
 
 SNAPSHOT_SCHEMA_VERSION = "2"
-VALUATION_ENGINE_VERSION = "fcff-assumptions-v1"
+PRE_DECIMAL_VALUATION_ENGINE_VERSION = "fcff-assumptions-v1"
 LEGACY_SNAPSHOT_SCHEMA_VERSION = "1"
 LEGACY_VALUATION_ENGINE_VERSION = "typed-inputs-v2"
 
@@ -39,7 +40,24 @@ class SnapshotIntegrityError(RuntimeError):
 
 
 class LegacySnapshotRestartRequired(SnapshotIntegrityError):
-    """Raised when an unfinished schema-1 report needs new FCFF intake."""
+    """Raised when an unfinished pre-Decimal report needs new FCFF intake."""
+
+
+def snapshot_requires_restart(
+    schema_version: str,
+    valuation_engine_version: str,
+    report_status: str,
+) -> bool:
+    """Return whether unfinished frozen inputs cannot use the current engine."""
+    if report_status == "done":
+        return False
+    return (
+        schema_version == LEGACY_SNAPSHOT_SCHEMA_VERSION
+        and valuation_engine_version == LEGACY_VALUATION_ENGINE_VERSION
+    ) or (
+        schema_version in {LEGACY_SNAPSHOT_SCHEMA_VERSION, SNAPSHOT_SCHEMA_VERSION}
+        and valuation_engine_version == PRE_DECIMAL_VALUATION_ENGINE_VERSION
+    )
 
 
 def _canonical_json(value) -> str:
@@ -386,14 +404,25 @@ async def load_report_input_snapshot(db, report_id: int) -> dict:
         snapshot["schema_version"] == LEGACY_SNAPSHOT_SCHEMA_VERSION
         and snapshot["valuation_engine_version"] == LEGACY_VALUATION_ENGINE_VERSION
     )
-    if is_legacy and snapshot["report_status"] != "done":
+    is_pre_decimal = (
+        snapshot["schema_version"] in {
+            LEGACY_SNAPSHOT_SCHEMA_VERSION, SNAPSHOT_SCHEMA_VERSION
+        }
+        and snapshot["valuation_engine_version"] == PRE_DECIMAL_VALUATION_ENGINE_VERSION
+    )
+    if snapshot_requires_restart(
+        snapshot["schema_version"],
+        snapshot["valuation_engine_version"],
+        snapshot["report_status"],
+    ):
         raise LegacySnapshotRestartRequired(
-            "Legacy report inputs must restart with new FCFF intake"
+            "Legacy report inputs must restart with the Decimal FCFF engine"
         )
-    if not is_legacy and snapshot["schema_version"] != SNAPSHOT_SCHEMA_VERSION:
-        raise SnapshotIntegrityError("Unsupported report snapshot schema version")
-    if not is_legacy and snapshot["valuation_engine_version"] != VALUATION_ENGINE_VERSION:
-        raise SnapshotIntegrityError("Unsupported valuation engine version")
+    if not (is_legacy or is_pre_decimal):
+        if snapshot["schema_version"] != SNAPSHOT_SCHEMA_VERSION:
+            raise SnapshotIntegrityError("Unsupported report snapshot schema version")
+        if snapshot["valuation_engine_version"] != VALUATION_ENGINE_VERSION:
+            raise SnapshotIntegrityError("Unsupported valuation engine version")
 
     manifest = json.loads(snapshot["document_manifest"])
     frozen_inputs = json.loads(snapshot["frozen_inputs"])

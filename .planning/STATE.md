@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PRs #15 to #18 merged; 3A branch pushed with no PR
-stopped_at: Open a PR for feature/fcff-assumptions , then review it before implementing PR 3B Decimal FCFF engine and PR 3C Python-owned deterministic tables
-last_updated: "2026-07-20T12:00:00+12:00"
+status: PRs #15 to #19 merged; PR #20 Decimal FCFF open
+stopped_at: Review and merge PR #20, then implement PR 3C Python-owned deterministic tables
+last_updated: "2026-07-22T12:00:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -49,26 +49,28 @@ Completed PVM-08A input-authority slices:
 - PR #16 / PR 1B: checkout freezes authoritative documents, financial rows, profile data, adjustments, and intake in a versioned snapshot. Generation and retry verify and consume only that snapshot.
 - PR #17 / PR 2A: typed valuation inputs and the explicit EV-to-equity bridge.
 - PR #18: UI polish.
+- PR #19 / PR 3A: frozen FCFF assumptions, one active adviser-approved WACC set, schema 2 snapshots, admin WACC UI, and intake changes.
 
-PR 3A is implemented on pushed `feature/fcff-assumptions`, but has no PR yet. It adds frozen FCFF and adviser-approved WACC assumptions, schema 2, admin WACC UI, and intake changes.
+PR #20 / PR 3B is open. It adds the deterministic Decimal FCFF engine, exact WACC scenarios, terminal-value calculation, EV-to-equity reconciliation, equity-level DLOM, and fail-closed generated-report validation.
 
 Current valuation sequence:
 
-1. Open a PR for the 3A branch and review it.
-2. Implement PR 3B, the Decimal FCFF engine.
-3. Implement PR 3C, Python-owned deterministic tables.
+1. Review and merge PR #20, the Decimal FCFF engine.
+2. Implement PR 3C, Python-owned deterministic tables.
+3. Add the paid-report restart flow for pre-Decimal snapshots without a second payment.
 4. Run a synthetic service rehearsal.
 5. Run live Anthropic UAT only with separate explicit approval, then record William's domain disposition.
 6. Close or explicitly waive launch gates for a private pilot.
 
 Public payments remain blocked while all eight launch gates are open. Valuation is the only self-serve launch product. Bank credit papers, forecasts, capital raising documents, and information memorandums remain adviser pilots.
 
-Latest prior verification:
+Latest verification for PR #20:
 
-- Backend: 263 passed, 1 skipped.
+- Backend: 293 passed, 1 skipped.
 - Frontend: `pnpm typecheck`, `pnpm lint`, and `pnpm build` passed.
+- `git diff --check` passed.
 
-No fresh verification or live UAT is recorded here.
+No live UAT has run.
 
 Earlier per-PR verification:
 
@@ -125,8 +127,8 @@ Commercialization review (2026-07-01):
 ---
 ## Session Continuity
 
-Last session: 2026-07-20
-Stopped at: PRs #15 to #18 merged; the 3A branch is pushed without a PR. Open and review its PR next. PR 3B, PR 3C, synthetic service rehearsal, explicitly approved live Anthropic UAT, and launch-gate closure/private pilot follow.
+Last session: 2026-07-22
+Stopped at: PRs #15 to #19 are merged and PR #20 is open. Review and merge PR #20 next, followed by PR 3C, the paid-report restart flow, synthetic service rehearsal, explicitly approved live Anthropic UAT, and launch-gate closure/private pilot.
 Resume file: .planning/phases/05.1-valuation-advisory-redesign/PVM-08-UAT.md
 
 ---
