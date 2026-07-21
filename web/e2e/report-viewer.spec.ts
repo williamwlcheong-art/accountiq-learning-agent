@@ -43,7 +43,7 @@ test("completed report viewer escapes script payloads", async ({ page, context, 
     scrollWidth: element.scrollWidth,
   }));
   expect(scrollMetrics.scrollWidth).toBeGreaterThan(scrollMetrics.clientWidth);
-  await tableScrollRegion.press("End");
+  await tableScrollRegion.press("ArrowRight");
   await expect.poll(() => tableScrollRegion.evaluate((element) => element.scrollLeft)).toBeGreaterThan(scrollMetrics.scrollLeft);
   const reportFitsViewport = await viewer.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
   expect(reportFitsViewport).toBe(true);
