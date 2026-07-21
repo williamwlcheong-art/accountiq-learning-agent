@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PRs #15 to #20 merged; PR #21 Python-owned valuation tables open
-stopped_at: Review and merge PR #21, then implement the paid-report restart flow
+status: PRs #15 to #21 merged; PR #22 paid-report restart open
+stopped_at: Review and merge PR #22, then update the synthetic runner and rehearse
 last_updated: "2026-07-22T12:00:00+12:00"
 progress:
   total_phases: 9
@@ -51,24 +51,26 @@ Completed PVM-08A input-authority slices:
 - PR #18: UI polish.
 - PR #19 / PR 3A: frozen FCFF assumptions, one active adviser-approved WACC set, schema 2 snapshots, admin WACC UI, and intake changes.
 - PR #20 / PR 3B: deterministic Decimal FCFF, approved WACC scenarios, terminal value, EV-to-equity reconciliation, equity-level DLOM, and fail-closed numeric validation.
+- PR #21 / PR 3C: all six structured valuation tables are Python-owned, display-rounded, digested, and authoritative at persistence while Claude supplies narrative only.
 
-PR #21 / PR 3C is open. It makes all six structured valuation tables Python-owned, applies an explicit display-rounding policy, digests the table authority, and replaces any model-supplied table before validation and persistence.
+PR #22 is open. It lets a customer submit current FCFF inputs for a failed paid pre-Decimal valuation, atomically replaces the old snapshot and intake, preserves the existing report and paid purchase, clears stale review/PDF state, and requeues without Stripe or a second payment.
 
 Current valuation sequence:
 
-1. Review and merge PR #21, the Python-owned deterministic valuation tables.
-2. Add the paid-report restart flow for pre-Decimal snapshots without a second payment.
-3. Update the synthetic fixture and UAT runner.
-4. Run a synthetic service rehearsal.
-5. Run live Anthropic UAT only with separate explicit approval, then record William's domain disposition.
-6. Close or explicitly waive launch gates for a private pilot.
+1. Review and merge PR #22, the paid pre-Decimal report restart flow.
+2. Update the synthetic fixture and UAT runner.
+3. Run a synthetic service rehearsal.
+4. Run live Anthropic UAT only with separate explicit approval, then record William's domain disposition.
+5. Close or explicitly waive launch gates for a private pilot.
 
 Public payments remain blocked while all eight launch gates are open. Valuation is the only self-serve launch product. Bank credit papers, forecasts, capital raising documents, and information memorandums remain adviser pilots.
 
-Latest verification for PR #21:
+Latest verification for PR #22:
 
-- Backend: 300 passed, 1 skipped.
+- Backend: 302 passed, 1 skipped.
 - Frontend: `pnpm typecheck`, `pnpm lint`, and `pnpm build` passed.
+- Focused paid-report restart Playwright passed in development and production modes.
+- The full development Playwright run passed the new restart flow and 13 of 17 tests overall; four unrelated existing checks failed in admin upload readiness, report-viewer keyboard scrolling, and responsive account overflow.
 - `git diff --check` passed.
 
 No live UAT has run.
@@ -129,7 +131,7 @@ Commercialization review (2026-07-01):
 ## Session Continuity
 
 Last session: 2026-07-22
-Stopped at: PRs #15 to #20 are merged and PR #21 is open. Review and merge PR #21 next, followed by the paid-report restart flow, synthetic runner updates and rehearsal, explicitly approved live Anthropic UAT, and launch-gate closure/private pilot.
+Stopped at: PRs #15 to #21 are merged and PR #22 is open. Review and merge PR #22 next, followed by synthetic runner updates and rehearsal, explicitly approved live Anthropic UAT, and launch-gate closure/private pilot.
 Resume file: .planning/phases/05.1-valuation-advisory-redesign/PVM-08-UAT.md
 
 ---
