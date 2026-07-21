@@ -30,19 +30,18 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-05 | Add professional PDF export | Done | #10 | Technical + William | Branded A4 export, safe narrative/table rendering, approved owner-only download, caching, and resumable customer status are implemented and verified. William still owns final disclaimer wording. |
 | PVM-06 | Add account purchase history | Done | #11 | Technical | Owner-filtered purchase API and account table show payment/delivery status; released reports expose viewer and PDF actions. Backend, build, and full browser regression gates pass. |
 | PVM-07 | Add public valuation offer page | Done | #12 | Product + Technical | Static public offer uses early-access fixed-fee language without a numeric amount and routes conversion links through `/login`; all frontend gates pass. |
-| PVM-08 | Live report UAT and valuation launch readiness | In progress | #15 to #23 merged; rehearsal runner PR pending | William + Technical | Browser regressions are fixed. The no-network synthetic rehearsal passed with schema 2, Decimal FCFF reconciliation, six Python-owned tables, private rendering, and immutable evidence. Live Anthropic UAT still requires explicit approval. |
+| PVM-08 | Live report UAT and valuation launch readiness | In progress | #15 to #24 merged | William + Technical | PR #24 added the no-network rehearsal runner. The synthetic rehearsal passed with schema 2, Decimal FCFF reconciliation, six Python-owned tables, private rendering, and immutable evidence. Live Anthropic UAT still requires explicit approval. |
 
 ## Next Three PRs
 
-1. Review and merge the synthetic fixture/UAT runner PR.
-2. Run one live Anthropic UAT only after separate explicit approval and record William's domain disposition.
+1. Obtain separate explicit approval for one live Anthropic UAT.
+2. Run the approved live UAT and record William's domain disposition.
 3. Close or explicitly waive the remaining launch gates for a private pilot.
 
 ## Follow-on Sequence
 
-1. Merge the synthetic rehearsal runner and fixture update.
-2. Run live Anthropic UAT only after explicit approval, then record William's disposition.
-3. Close or explicitly waive launch gates for a private pilot.
+1. Run live Anthropic UAT only after explicit approval, then record William's disposition.
+2. Close or explicitly waive launch gates for a private pilot.
 
 Public payments remain blocked while all eight launch gates are open. Valuation is the only self-serve launch product. Bank credit papers, forecasts, capital raising documents, and information memorandums remain adviser pilots.
 

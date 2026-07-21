@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PRs #15 to #23 merged; synthetic Decimal FCFF rehearsal passed
-stopped_at: Open and merge the synthetic rehearsal runner PR; live UAT requires explicit approval
+status: PRs #15 to #24 merged; synthetic Decimal FCFF rehearsal passed
+stopped_at: Live Anthropic UAT requires separate explicit approval
 last_updated: "2026-07-22T10:45:00+12:00"
 progress:
   total_phases: 9
@@ -61,8 +61,8 @@ The synthetic UAT fixture and guarded runner now cover complete confirmed FCFF a
 
 Current valuation sequence:
 
-1. Open, review, and merge the synthetic rehearsal runner PR.
-2. Run live Anthropic UAT only with separate explicit approval, then record William's domain disposition.
+1. Obtain separate explicit approval for one live Anthropic UAT.
+2. Run the approved live UAT, then record William's domain disposition.
 3. Close or explicitly waive launch gates for a private pilot.
 
 Public payments remain blocked while all eight launch gates are open. Valuation is the only self-serve launch product. Bank credit papers, forecasts, capital raising documents, and information memorandums remain adviser pilots.
@@ -142,7 +142,7 @@ Commercialization review (2026-07-01):
 ## Session Continuity
 
 Last session: 2026-07-22
-Stopped at: PRs #15 to #23 are merged and the no-network synthetic rehearsal passes. Open and merge the rehearsal runner PR next; live Anthropic UAT remains blocked on separate explicit approval, followed by William's disposition and launch-gate closure/private pilot.
+Stopped at: PRs #15 to #24 are merged and the no-network synthetic rehearsal passes. Live Anthropic UAT remains blocked on separate explicit approval, followed by William's disposition and launch-gate closure/private pilot.
 Resume file: .planning/phases/05.1-valuation-advisory-redesign/PVM-08-UAT.md
 
 ---
