@@ -1,5 +1,5 @@
 {
-  "fixture_id": "accountiq-synthetic-nz-sme-v1",
+  "fixture_id": "accountiq-synthetic-nz-sme-v2",
   "fixture_classification": "synthetic",
   "authorised_for_uat": false,
   "uat_user": {
@@ -48,15 +48,20 @@
     {"statement": "pnl", "row_key": "ebitda", "row_label": "EBITDA", "period": "2023", "value": 655000},
     {"statement": "pnl", "row_key": "ebitda", "row_label": "EBITDA", "period": "2024", "value": 748000},
     {"statement": "pnl", "row_key": "ebitda", "row_label": "EBITDA", "period": "2025", "value": 812000},
-    {"statement": "pnl", "row_key": "depreciation_amortisation", "row_label": "Depreciation and amortisation", "period": "2023", "value": 118000},
-    {"statement": "pnl", "row_key": "depreciation_amortisation", "row_label": "Depreciation and amortisation", "period": "2024", "value": 126000},
-    {"statement": "pnl", "row_key": "depreciation_amortisation", "row_label": "Depreciation and amortisation", "period": "2025", "value": 139000},
+    {"statement": "pnl", "row_key": "depreciation", "row_label": "Depreciation and amortisation", "period": "2023", "value": -144600},
+    {"statement": "pnl", "row_key": "depreciation", "row_label": "Depreciation and amortisation", "period": "2024", "value": -159300},
+    {"statement": "pnl", "row_key": "depreciation", "row_label": "Depreciation and amortisation", "period": "2025", "value": -176700},
     {"statement": "pnl", "row_key": "net_profit", "row_label": "Net profit after tax", "period": "2023", "value": 337000},
     {"statement": "pnl", "row_key": "net_profit", "row_label": "Net profit after tax", "period": "2024", "value": 401000},
     {"statement": "pnl", "row_key": "net_profit", "row_label": "Net profit after tax", "period": "2025", "value": 421000},
     {"statement": "bs", "row_key": "cash_and_bank", "row_label": "Cash and bank", "period": "2023", "value": 310000},
     {"statement": "bs", "row_key": "cash_and_bank", "row_label": "Cash and bank", "period": "2024", "value": 385000},
     {"statement": "bs", "row_key": "cash_and_bank", "row_label": "Cash and bank", "period": "2025", "value": 462000},
+    {"statement": "bs", "row_key": "trade_debtors", "row_label": "Trade debtors", "period": "2025", "value": 690000},
+    {"statement": "bs", "row_key": "inventory", "row_label": "Inventory", "period": "2025", "value": 210000},
+    {"statement": "bs", "row_key": "trade_creditors", "row_label": "Trade creditors", "period": "2025", "value": 134300},
+    {"statement": "bs", "row_key": "short_term_debt", "row_label": "Current interest-bearing debt", "period": "2025", "value": 125000},
+    {"statement": "bs", "row_key": "long_term_debt", "row_label": "Term debt", "period": "2025", "value": 340000},
     {"statement": "bs", "row_key": "total_assets", "row_label": "Total assets", "period": "2023", "value": 2450000},
     {"statement": "bs", "row_key": "total_assets", "row_label": "Total assets", "period": "2024", "value": 2690000},
     {"statement": "bs", "row_key": "total_assets", "row_label": "Total assets", "period": "2025", "value": 2940000},
@@ -69,9 +74,40 @@
     "forecast_horizon": 5,
     "revenue_growth_cagr": 6.0,
     "terminal_growth_rate": 2.5,
+    "fcff_assumptions": {
+      "forecast": {
+        "horizon_years": 5,
+        "revenue_growth_rate": "0.06",
+        "terminal_growth_rate": "0.025",
+        "confirmed": true
+      },
+      "depreciation": {
+        "rate": "0.03",
+        "confirmed": true,
+        "rationale": "Matches the synthetic FY2025 depreciation charge.",
+        "confirmation_method": "calculated",
+        "confirmation_source": "financial_statements",
+        "source_period": "2025"
+      },
+      "capex": {
+        "rate": "0.04",
+        "confirmed": true,
+        "rationale": "Synthetic replacement and growth capital programme confirmed for rehearsal.",
+        "confirmation_method": "manual",
+        "confirmation_source": "customer"
+      },
+      "operating_nwc": {
+        "rate": "0.13",
+        "confirmed": true,
+        "rationale": "Matches the synthetic FY2025 operating working-capital balance.",
+        "confirmation_method": "calculated",
+        "confirmation_source": "financial_statements",
+        "source_period": "2025"
+      }
+    },
     "normalisations": [
-      {"label": "One-off warehouse relocation", "amount": 85000, "reason": "Non-recurring FY2025 cost"},
-      {"label": "Above-market owner remuneration", "amount": 60000, "reason": "Normalise to market salary"}
+      {"label": "One-off warehouse relocation", "amount": 85000, "rationale": "Non-recurring FY2025 cost"},
+      {"label": "Above-market owner remuneration", "amount": 60000, "rationale": "Normalise to market salary"}
     ],
     "rq_revenue_quality": 4,
     "rq_owner_dependency": 3,
@@ -81,5 +117,36 @@
     "rq_competitive_barriers": 3,
     "rq_growth_outlook": 4,
     "rq_management_depth": 3
+  },
+  "wacc_assumption_set": {
+    "name": "Synthetic NZ SME services",
+    "version": 1,
+    "risk_free_rate": "4.25",
+    "equity_risk_premium": "5.50",
+    "beta": "1.10",
+    "beta_type": "synthetic_industry_unlevered_relevered",
+    "cost_of_debt": "6.75",
+    "target_debt_weight": "30.00",
+    "target_equity_weight": "70.00",
+    "additional_premium": "2.00",
+    "scenario_spread": "1.00",
+    "source_references": "Synthetic rehearsal assumption pack; no external source relied upon",
+    "publisher": "AccountIQ synthetic test fixture",
+    "as_of_date": "2026-07-01",
+    "rationale": "Approved synthetic assumptions for deterministic service rehearsal only.",
+    "approved_at": "2026-07-01 00:00:00"
+  },
+  "synthetic_research_brief": {
+    "company_summary": "Synthetic research summary for Kauri Field Services Limited, prepared solely to exercise the valuation service pipeline without external calls.",
+    "sector_summary": "Synthetic New Zealand industrial field-services context with recurring maintenance revenue and project-based activity, used only for deterministic rehearsal.",
+    "comparable_transactions": "Synthetic comparable range for service businesses; no real transaction is represented.",
+    "ev_ebitda_low": 4.0,
+    "ev_ebitda_high": 6.0,
+    "risk_free_rate": 4.25,
+    "erp": 5.5,
+    "industry_beta": 1.1,
+    "industry_category": "Synthetic industrial services",
+    "inflation_rate": 2.5,
+    "sources": ["https://example.invalid/accountiq-synthetic-rehearsal"]
   }
 }

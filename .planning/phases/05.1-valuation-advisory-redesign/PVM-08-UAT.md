@@ -2,13 +2,13 @@
 
 ## Status
 
-UAT has not run. The live command below is not runnable for the target FCFF workflow yet. PR 3A merged as #19 and PR 3B Decimal FCFF merged as #20. PR 3C Python-owned deterministic valuation tables is open as #21. Review and merge #21, implement the paid-report restart flow, then update the synthetic fixture and UAT runner as specified in Valuation preflight. Run a synthetic service rehearsal only after those changes are verified and before requesting live UAT approval. A rehearsal is implementation evidence only. It does not authorise live UAT or complete a launch gate.
+The no-network synthetic service rehearsal passed on 2026-07-22 against snapshot schema `2`, engine `fcff-decimal-v1`, and all six Python-owned valuation tables. It left the paid fixture report in `awaiting_review`, rendered private HTML/PDF, and recorded immutable evidence outside the repository. Live Anthropic UAT has not run and still requires separate explicit approval. A rehearsal is implementation evidence only; it does not authorise live UAT or complete a launch gate.
 
 ## Purpose
 
 This procedure is for one paid Valuation Advisory draft through the existing research, calculation, Claude generation and report-rendering boundaries. It uses a synthetic fixture and leaves the report in `awaiting_review`. It must not approve, release, email, refund, or otherwise deliver a report.
 
-The automated test suite mocks generation and PDF conversion. Running tests never calls Anthropic.
+The focused automated suite runs the real deterministic generation pipeline with fixed synthetic substitutes at both external AI boundaries and mocks PDF conversion. Running tests never calls Anthropic.
 
 ## Safety requirements
 
@@ -24,21 +24,21 @@ The runner enforces the following technical conditions before importing the back
 - the fixture is synthetic, unless its use has been expressly authorised
 - the fixture email ends in `.invalid`
 - Stripe and SMTP variables are absent
-- `ANTHROPIC_API_KEY` is present only after live UAT has been explicitly confirmed
-- the command includes `--confirm-live-uat`
+- `ANTHROPIC_API_KEY` is required only for an explicitly confirmed live UAT
+- the command selects exactly one mode: `--synthetic-rehearsal` or `--confirm-live-uat`
 
 The database path must not exist before the run. This prevents reuse of an earlier database and makes each run auditable. Keep all evidence, the disposable database, HTML, PDF, and review notes outside the repository.
 
 ## Valuation preflight
 
-Before the target synthetic rehearsal is valid, implement and verify all of the following:
+The synthetic fixture and runner now implement and verify all of the following:
 
 - Extend `tests/fixtures/valuation_uat/synthetic_nz_sme.json` with complete confirmed FCFF assumptions, including D&A, capex, operating NWC, forecast horizon, growth, EBITDA margin, tax treatment, and any zero-value rationale.
 - Extend `scripts/run_live_valuation_uat.py` to seed and activate exactly one approved synthetic WACC assumption set before creating the snapshot.
 - Extend the runner's assertions and immutable evidence to record and verify snapshot schema `2`, engine `fcff-decimal-v1`, Decimal FCFF reconciliation, and Python-owned deterministic valuation tables.
 - Keep the UAT evidence-document schema version distinct from the report-input snapshot schema and document both explicitly.
 
-After those runner and fixture changes pass deterministic tests, verify the following in the synthetic rehearsal and record the results outside the repository:
+The 2026-07-22 synthetic rehearsal verified the following and recorded the results outside the repository:
 
 - Exactly one active, approved WACC assumption set is selected, with its source references, publisher, as-of date, rationale, approver, and approval time frozen in the snapshot.
 - Complete FCFF assumptions are present before checkout or any external call.
@@ -47,7 +47,7 @@ After those runner and fixture changes pass deterministic tests, verify the foll
 
 Do not substitute a missing preflight result with a live Anthropic call, web search, manual database edit, or reviewer approval.
 
-## Run the mocked checks first
+## Run the deterministic checks first
 
 From the repository root:
 
@@ -55,11 +55,32 @@ From the repository root:
 venv/bin/python -m pytest tests/test_valuation_uat.py -q
 ```
 
-These tests mock the existing generation and PDF boundaries. They cover unsafe configuration refusals, fixture restrictions, report invariants, import safety, private rendering, and immutable evidence.
+These tests substitute fixed outputs only at the external research and report-generation boundaries and mock PDF conversion. They cover unsafe configuration refusals, fixture restrictions, the real snapshot/Decimal/table pipeline, report invariants, import safety, private rendering, and immutable evidence.
+
+## Run the no-network synthetic rehearsal
+
+Prepare a new disposable database and evidence root outside the repository, keep payment and delivery settings absent, and leave `ANTHROPIC_API_KEY` unset or empty. Then run:
+
+```bash
+unset STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET
+unset SMTP_HOST SMTP_USER SMTP_PASSWORD FROM_EMAIL ANTHROPIC_API_KEY
+export ACCOUNTIQ_UAT_MODE=true
+export ACCOUNTIQ_E2E_MODE=false
+export ACCOUNTIQ_REQUIRE_ADMIN_REVIEW=true
+UAT_PRIVATE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/accountiq-valuation-uat-XXXXXX")"
+chmod 700 "$UAT_PRIVATE_ROOT"
+export ACCOUNTIQ_DB_PATH="$UAT_PRIVATE_ROOT/disposable-valuation-uat.db"
+export APP_BASE_URL="http://127.0.0.1:9876"
+venv/bin/python scripts/run_live_valuation_uat.py \
+  --synthetic-rehearsal \
+  --evidence-root "$UAT_PRIVATE_ROOT/evidence"
+```
+
+This mode exercises the real snapshot, Decimal FCFF, deterministic table, persistence, review-state, HTML, PDF, and immutable-evidence boundaries. Fixed synthetic research and narrative outputs replace the two external AI calls. The evidence must record `external_ai_calls_performed: false`.
 
 ## Prepare an authorised live run
 
-This section is blocked until the fixture and runner work in Valuation preflight is implemented, tested, and used in a successful synthetic rehearsal. Only then, and after explicit approval for the specific live UAT, clear all payment and delivery settings from the shell. Do not replace them with dummy values because the preflight rejects configured values.
+The technical preconditions and synthetic rehearsal are complete. A live run remains blocked until explicit approval for the specific live UAT. After that approval, clear all payment and delivery settings from the shell. Do not replace them with dummy values because the preflight rejects configured values.
 
 ```bash
 unset STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET
@@ -98,7 +119,7 @@ If an authorised run succeeds:
 
 1. It initialises only the configured disposable database.
 2. It seeds the synthetic SME, financial history, management, adjustments, paid fixture purchase and queued report.
-3. It verifies and records the frozen WACC and FCFF assumptions, report-input snapshot schema and engine, and deterministic valuation tables using the extended runner described in Valuation preflight.
+3. It verifies and records the frozen WACC and FCFF assumptions, report-input snapshot schema and engine, Decimal reconciliation, and deterministic valuation-table authority.
 4. It invokes the existing valuation generator.
 5. It requires the final report and review record to remain `awaiting_review`.
 6. It rejects missing sections, empty narratives, generation placeholders, missing required tables and an incomplete disclaimer.

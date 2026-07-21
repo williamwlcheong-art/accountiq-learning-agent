@@ -30,20 +30,19 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-05 | Add professional PDF export | Done | #10 | Technical + William | Branded A4 export, safe narrative/table rendering, approved owner-only download, caching, and resumable customer status are implemented and verified. William still owns final disclaimer wording. |
 | PVM-06 | Add account purchase history | Done | #11 | Technical | Owner-filtered purchase API and account table show payment/delivery status; released reports expose viewer and PDF actions. Backend, build, and full browser regression gates pass. |
 | PVM-07 | Add public valuation offer page | Done | #12 | Product + Technical | Static public offer uses early-access fixed-fee language without a numeric amount and routes conversion links through `/login`; all frontend gates pass. |
-| PVM-08 | Live report UAT and valuation launch readiness | In progress | #15 to #22 merged; #23 open | William + Technical | PR #22 added the paid pre-Decimal restart flow. PR #23 restores a fully green development and production browser matrix before the synthetic rehearsal. |
+| PVM-08 | Live report UAT and valuation launch readiness | In progress | #15 to #23 merged; rehearsal runner PR pending | William + Technical | Browser regressions are fixed. The no-network synthetic rehearsal passed with schema 2, Decimal FCFF reconciliation, six Python-owned tables, private rendering, and immutable evidence. Live Anthropic UAT still requires explicit approval. |
 
 ## Next Three PRs
 
-1. Review and merge PR #23, the narrow account layout and browser-regression fix.
-2. Update the synthetic fixture and UAT runner for the current Decimal FCFF and Python-owned table contract.
-3. Run the synthetic service rehearsal and record the result.
+1. Review and merge the synthetic fixture/UAT runner PR.
+2. Run one live Anthropic UAT only after separate explicit approval and record William's domain disposition.
+3. Close or explicitly waive the remaining launch gates for a private pilot.
 
 ## Follow-on Sequence
 
-1. Merge the browser-regression fix in PR #23.
-2. Run a synthetic service rehearsal against the current Decimal FCFF and Python-owned table pipeline.
-3. Run live Anthropic UAT only after the restart flow and explicit approval, then record William's disposition.
-4. Close or explicitly waive launch gates for a private pilot.
+1. Merge the synthetic rehearsal runner and fixture update.
+2. Run live Anthropic UAT only after explicit approval, then record William's disposition.
+3. Close or explicitly waive launch gates for a private pilot.
 
 Public payments remain blocked while all eight launch gates are open. Valuation is the only self-serve launch product. Bank credit papers, forecasts, capital raising documents, and information memorandums remain adviser pilots.
 
