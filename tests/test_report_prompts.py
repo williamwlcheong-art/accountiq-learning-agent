@@ -42,6 +42,12 @@ def _sample_valuation_result():
                 }
             ],
         },
+        "deterministic_tables": {
+            "version": "valuation-tables-v1",
+            "rounding_policy": "half-even-money-percent-2dp-beta-4dp-v1",
+            "digest": "table123",
+            "sections": {},
+        },
         "normalised_ebitda": 850000,
         "normalisations": [
             {"label": "Owner salary", "amount": 50000, "rationale": "above market"},
@@ -68,7 +74,8 @@ def test_build_prompt_valuation_includes_table_instruction():
     )
     for s in TABLE_SECTIONS_VALUATION:
         assert s in sys_p, f"system prompt missing table section name: {s}"
-    assert "table" in sys_p and "narrative" in sys_p
+    assert "narrative only" in sys_p
+    assert "Do not return a table" in sys_p
     assert "Acme Ltd" in usr
     assert "Research Brief" in usr
     assert "Deterministic Decimal FCFF" in usr
@@ -76,6 +83,8 @@ def test_build_prompt_valuation_includes_table_instruction():
     assert "abc123" in usr
     assert "149827.735668096" in usr
     assert "Research WACC inputs are narrative context only" in usr
+    assert "Python-Owned Report Tables" in usr
+    assert "table123" in usr
     assert "Owner salary" in usr
 
 

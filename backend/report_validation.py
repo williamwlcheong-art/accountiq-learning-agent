@@ -3,6 +3,7 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 
 from report_prompts import SECTION_SCHEMAS, TABLE_SECTIONS_VALUATION
+from valuation_tables import valuation_table_sections
 
 
 _VALUATION_SUMMARY_HEADERS = [
@@ -217,6 +218,17 @@ def validate_multiples_crosscheck(content_json: dict, valuation_result: dict) ->
             raise ValueError("multiples cross-check differs from deterministic valuation figures")
 
 
+def validate_python_owned_tables(content_json: dict, valuation_result: dict) -> None:
+    """Require every persisted table to equal the digested Python authority."""
+    expected = valuation_table_sections(valuation_result.get("deterministic_tables"))
+    for section_name in TABLE_SECTIONS_VALUATION:
+        section = content_json.get(section_name)
+        if not isinstance(section, dict) or section.get("table") != expected[section_name]:
+            raise ValueError(
+                f"section '{section_name}' differs from the Python-owned table"
+            )
+
+
 def validate_generated_report(
     content_json: dict,
     report_type: str,
@@ -254,9 +266,10 @@ def validate_generated_report(
     if report_type == "valuation_advisory":
         if valuation_result is not None:
             if valuation_result.get("deterministic_fcff") is not None:
-                validate_wacc_assumptions(content_json, valuation_result)
-            validate_valuation_summary(content_json, valuation_result)
-            validate_multiples_crosscheck(content_json, valuation_result)
+                validate_python_owned_tables(content_json, valuation_result)
+            else:
+                validate_valuation_summary(content_json, valuation_result)
+                validate_multiples_crosscheck(content_json, valuation_result)
         disclaimer = section_narrative(content_json["disclaimer"]).lower()
         required_phrases = (
             ("indicative",),

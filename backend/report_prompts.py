@@ -248,11 +248,10 @@ def build_prompt(
         table_sections_spec = json.dumps(TABLE_SECTIONS_VALUATION)
         sections_instruction = (
             f"Return a JSON object with exactly these keys (in this order): {sections_spec}. "
-            f"For the keys in this list: {table_sections_spec}, the value MUST be a JSON object "
-            f"with two keys: 'narrative' (a non-empty string) and 'table' (an object with 'headers' "
-            f"(array of strings) and 'rows' (array of arrays of strings)). "
-            f"For all other keys, the value MUST be a non-empty plain string. "
-            f"Do not include any keys not in this list."
+            "Every value MUST be a non-empty plain string containing narrative only. "
+            f"For the keys in this list: {table_sections_spec}, Python attaches the authoritative "
+            "table after generation. Do not return a table, nested object, headers, or rows. "
+            "Do not include any keys not in the section list."
         )
     else:
         sections_instruction = (
@@ -294,6 +293,8 @@ def build_prompt(
         deterministic_fcff_text = json.dumps(deterministic_fcff, indent=2)
         multiples_result = valuation_result.get("multiples_result") or {}
         multiples_block_text = json.dumps(multiples_result, indent=2)
+        deterministic_tables = valuation_result.get("deterministic_tables") or {}
+        deterministic_tables_text = json.dumps(deterministic_tables, indent=2)
 
         normalisations = valuation_result.get("normalisations") or []
         narrative_intake = {k: v for k, v in (intake_answers or {}).items() if k != "normalisations"}
@@ -346,21 +347,27 @@ The frozen adviser-approved WACC values in this payload are authoritative. Tax a
 {multiples_block_text}
 ```
 
+## Python-Owned Report Tables (authoritative presentation values)
+These tables are attached to your narratives after generation. Use them as narrative context, but do not reproduce, alter, round, or return any table structure.
+```json
+{deterministic_tables_text}
+```
+
 ## Section-specific instructions
 - introduction: Engagement scope, basis of valuation, indicative nature, FMCA compliance. State that DCF is the primary method and comparable market multiples are a cross-check.
 - business_overview: Use research_brief.company_summary; do not invent facts.
 - market_position: Use research_brief.sector_summary; reference at least one NZ-specific competitor or regulator.
-- financial_performance: Provide narrative + table {{headers: [Year, Revenue, EBITDA, Net Profit, ...], rows: [...]}} sourced from Extracted Financials.
-- normalisations_schedule: narrative + table {{headers: [Label, Amount, Rationale], rows: [...]}} sourced from the Normalisation Schedule intake, using deterministic_fcff.currency.
-- balance_sheet_summary: narrative + table {{headers: [Item, Value], rows: [...]}} including interest-bearing debt, unrestricted cash, net debt and approved surplus assets from deterministic_fcff; conclude with the EV to Equity bridge.
+- financial_performance: Provide narrative interpreting the Python-owned historical financial table.
+- normalisations_schedule: Provide narrative explaining the Python-owned approved normalisation schedule.
+- balance_sheet_summary: Provide narrative on interest-bearing debt, unrestricted cash, net debt and approved surplus assets; explain the EV-to-equity bridge shown in the Python-owned tables.
 - valuation_methodology: Explain that deterministic FCFF DCF is the primary method and comparable market multiples provide a range cross-check. Do not mention or apply a business risk score.
-- wacc_assumptions: narrative + table {{headers: [Component, High WACC / Low Value, Mid WACC / Mid Value, Low WACC / High Value], rows: includes Risk-free rate, ERP, Industry Beta, Cost of equity, After-tax debt cost, WACC %}} using deterministic_fcff.wacc only.
+- wacc_assumptions: Explain the frozen adviser-approved WACC components and three scenarios shown in the Python-owned table.
 - dcf_analysis: Narrative on the base period, common forecast, positive-EBIT tax, supplied N+1 FCFF, terminal value and scenarios; copy deterministic_fcff forecast and scenarios verbatim.
-- valuation_summary: narrative + table {{headers: [Method, Scenario, Enterprise Value, Interest-bearing Debt, Unrestricted Cash, Net Debt, Surplus Assets, Equity Value], rows: [High WACC / Low Value, Mid WACC / Mid Value, Low WACC / High Value]}}. Copy every value from deterministic_fcff.scenarios without recalculation. The DCF scenarios form the conclusion, and equity value is after DLOM.
-- multiples_crosscheck: narrative + table {{headers: [Input, Low, High], rows: [Market multiple, Normalised EBITDA, Indicated enterprise value]}} using multiples_result verbatim. Label it as a cross-check only, with no selected multiple or concluded value.
+- valuation_summary: Explain the three Python-owned DCF scenario rows. The DCF scenarios form the conclusion, and equity value is after the displayed equity-level DLOM.
+- multiples_crosscheck: Explain the Python-owned comparable range as a cross-check only, with no selected multiple or concluded value.
 - disclaimer: Full FMCA-compliant disclaimer paragraph containing: 'indicative', 'does not constitute financial advice', 'FMCA' or 'Financial Markets Conduct', and 'not relied' or 'should not be relied'.
 
-All numeric strings in the deterministic FCFF and comparable-multiples blocks are Python-computed. Copy them verbatim into the report. Do not estimate, round, or recalculate. This report is indicative only and does not constitute financial advice."""
+All presentation values are Python-owned. Refer to them accurately in narrative, but return narrative strings only. Do not estimate, round, recalculate, or reproduce tables. This report is indicative only and does not constitute financial advice."""
 
     elif report_type == "bank_credit_paper":
         if bank_credit_figures is None:
