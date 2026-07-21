@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PRs #15 to #21 merged; PR #22 paid-report restart open
-stopped_at: Review and merge PR #22, then update the synthetic runner and rehearse
+status: PRs #15 to #22 merged; PR #23 browser regression fix open
+stopped_at: Review and merge PR #23, then update the synthetic runner and rehearse
 last_updated: "2026-07-22T12:00:00+12:00"
 progress:
   total_phases: 9
@@ -53,11 +53,13 @@ Completed PVM-08A input-authority slices:
 - PR #20 / PR 3B: deterministic Decimal FCFF, approved WACC scenarios, terminal value, EV-to-equity reconciliation, equity-level DLOM, and fail-closed numeric validation.
 - PR #21 / PR 3C: all six structured valuation tables are Python-owned, display-rounded, digested, and authoritative at persistence while Claude supplies narrative only.
 
-PR #22 is open. It lets a customer submit current FCFF inputs for a failed paid pre-Decimal valuation, atomically replaces the old snapshot and intake, preserves the existing report and paid purchase, clears stale review/PDF state, and requeues without Stripe or a second payment.
+PR #22 is merged. It lets a customer submit current FCFF inputs for a failed paid pre-Decimal valuation, atomically replaces the old snapshot and intake, preserves the existing report and paid purchase, clears stale review/PDF state, and requeues without Stripe or a second payment.
+
+PR #23 is open. It removes a higher-specificity mobile purchase-table minimum width, allows long account details to wrap, and uses the supported horizontal Arrow key for the report-table keyboard check. The complete development and production Playwright suites now pass.
 
 Current valuation sequence:
 
-1. Review and merge PR #22, the paid pre-Decimal report restart flow.
+1. Review and merge PR #23, the browser-regression fix.
 2. Update the synthetic fixture and UAT runner.
 3. Run a synthetic service rehearsal.
 4. Run live Anthropic UAT only with separate explicit approval, then record William's domain disposition.
@@ -65,12 +67,11 @@ Current valuation sequence:
 
 Public payments remain blocked while all eight launch gates are open. Valuation is the only self-serve launch product. Bank credit papers, forecasts, capital raising documents, and information memorandums remain adviser pilots.
 
-Latest verification for PR #22:
+Latest verification for PR #23:
 
-- Backend: 302 passed, 1 skipped.
 - Frontend: `pnpm typecheck`, `pnpm lint`, and `pnpm build` passed.
-- Focused paid-report restart Playwright passed in development and production modes.
-- The full development Playwright run passed the new restart flow and 13 of 17 tests overall; four unrelated existing checks failed in admin upload readiness, report-viewer keyboard scrolling, and responsive account overflow.
+- Development Playwright: 17 passed.
+- Standalone production Playwright: 17 passed.
 - `git diff --check` passed.
 
 No live UAT has run.
@@ -131,7 +132,7 @@ Commercialization review (2026-07-01):
 ## Session Continuity
 
 Last session: 2026-07-22
-Stopped at: PRs #15 to #21 are merged and PR #22 is open. Review and merge PR #22 next, followed by synthetic runner updates and rehearsal, explicitly approved live Anthropic UAT, and launch-gate closure/private pilot.
+Stopped at: PRs #15 to #22 are merged and PR #23 is open. Review and merge PR #23 next, followed by synthetic runner updates and rehearsal, explicitly approved live Anthropic UAT, and launch-gate closure/private pilot.
 Resume file: .planning/phases/05.1-valuation-advisory-redesign/PVM-08-UAT.md
 
 ---
