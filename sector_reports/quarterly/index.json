@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "current_snapshot": "2026-q3-2026-07-27.json",
+  "snapshots": [
+    {
+      "snapshot_id": "nz-market-intelligence-2026-q3",
+      "file": "2026-q3.json",
+      "as_of_date": "2026-07-27",
+      "next_review_date": "2026-10-26"
+    },
+    {
+      "snapshot_id": "nz-market-intelligence-2026-q3-2026-07-27",
+      "file": "2026-q3-2026-07-27.json",
+      "as_of_date": "2026-07-27",
+      "next_review_date": "2026-10-26"
+    }
+  ]
+}

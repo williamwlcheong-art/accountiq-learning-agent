@@ -1,0 +1,210 @@
+{
+  "schema_version": "1.0",
+  "sector_id": "hospitality",
+  "sector_name": "Hospitality",
+  "geography": "New Zealand",
+  "as_of_date": "2026-07-26",
+  "next_review_date": "2027-01-26",
+  "aliases": ["accommodation and food services", "restaurant and cafe", "hotel and motel", "catering"],
+  "overview": {
+    "summary": "Hospitality comprises food service, bars, catering, hotels, motels and other short-stay accommodation. Demand combines local household spending, business activity, events and domestic or international tourism. Capacity expires each day: an unsold room or empty restaurant seat cannot be stored, making revenue management, labour scheduling, service quality and fixed-cost absorption central to profitability.",
+    "business_models": [
+      "Restaurants, cafés and bars earning food and beverage gross margin from covers and transactions",
+      "Hotels and motels earning room revenue plus food, beverage, events or ancillary services",
+      "Catering and events delivered under contracts or one-off bookings",
+      "Franchise, managed or owner-operated venues with differing brand fees and property exposure",
+      "Tourism accommodation distributed directly and through online travel agents"
+    ],
+    "industry_structure": [
+      "The sector is fragmented, with independent operators alongside national and international brands.",
+      "Location, reputation, online discovery, distribution channels and labour capability materially affect performance.",
+      "Property may be owned, leased or separately held, changing both fixed costs and collateral."
+    ],
+    "demand_drivers": [
+      "Local population, employment, disposable income and business confidence",
+      "Domestic and international visitor arrivals, guest nights, events and air capacity",
+      "Location, online ratings, brand, menu or room proposition and repeat custom",
+      "Seasonality, weather, school holidays and regional attractions"
+    ],
+    "margin_and_cost_drivers": [
+      "Occupancy, room rate, covers, average spend and channel or delivery commissions",
+      "Food and beverage input costs, waste, menu pricing and portion control",
+      "Labour scheduling, skills, wage rates and staff turnover",
+      "Rent, rates, utilities, maintenance, franchise and booking-platform fees"
+    ],
+    "cyclicality_and_seasonality": [
+      "Tourism-exposed venues can have concentrated peak seasons and event dependence.",
+      "Discretionary dining responds to household confidence and price sensitivity.",
+      "Accommodation and food service are vulnerable to weather, travel disruption and reputational events."
+    ],
+    "working_capital_profile": "Customer payment is often immediate and suppliers extend short terms, which can create favourable working capital. However, deposits, gift vouchers, payroll, tax, event cancellations and supplier arrears require care. A cash-positive working-capital profile can reverse quickly when occupancy or covers fall because labour, rent and other fixed costs remain.",
+    "asset_intensity": "Restaurants and leased accommodation require fit-out, kitchen, furniture and maintenance expenditure that may have low recovery outside the venue. Property-owning accommodation is asset-heavy and should separate operating-business returns from real-estate value. Furniture, fixtures and equipment need ongoing refurbishment even where depreciation is low.",
+    "regulatory_and_compliance": [
+      "Food Act registration, food-control plans, verification, recalls and allergen or labelling obligations",
+      "Alcohol licensing where relevant",
+      "Employment, immigration, health and safety, fire, building and accommodation requirements",
+      "Privacy, booking and consumer representations"
+    ]
+  },
+  "subsectors": [
+    {
+      "id": "restaurants_cafes",
+      "name": "Restaurants and cafés",
+      "aliases": ["restaurant", "cafe", "coffee shop", "food service"],
+      "business_model": "Food and beverage are prepared and sold for on-premise, takeaway or delivery consumption.",
+      "revenue_drivers": ["Covers", "Average spend", "Table turns", "Delivery and takeaway mix"],
+      "cost_base": ["Food and beverage", "Kitchen and front-of-house labour", "Rent", "Delivery commissions"],
+      "working_capital": "Immediate receipts are helpful, but payroll, tax and suppliers require disciplined cash management.",
+      "asset_intensity": "Leasehold fit-out and kitchen equipment with recurring refurbishment.",
+      "credit_watchpoints": ["Weekly sales", "Food and labour percentages", "Rent-to-sales", "Licensing and lease"],
+      "valuation_watchpoints": ["Owner-chef replacement", "Site and concept transferability", "Normalised wage compliance", "Sustainable refurbishment"]
+    },
+    {
+      "id": "hotels_motels",
+      "name": "Hotels and motels",
+      "aliases": ["hotel", "motel", "serviced accommodation", "short stay accommodation"],
+      "business_model": "Rooms are sold nightly, often with food, events and ancillary revenue.",
+      "revenue_drivers": ["Occupancy", "Average daily rate", "Available rooms", "Channel mix"],
+      "cost_base": ["Labour", "Property cost", "Utilities", "Commissions and maintenance"],
+      "working_capital": "Advance bookings and deposits may aid cash flow but create refund or delivery obligations.",
+      "asset_intensity": "High if property-owned; otherwise lease and refurbishment intensive.",
+      "credit_watchpoints": ["Occupancy and rate by month", "Property versus operating debt", "Deferred maintenance", "OTA dependence"],
+      "valuation_watchpoints": ["Separate real estate and operations", "Revenue per available room", "Management or franchise terms", "Refurbishment cycle"]
+    },
+    {
+      "id": "bars_venues",
+      "name": "Bars and licensed venues",
+      "aliases": ["bar", "pub", "licensed venue", "nightclub"],
+      "business_model": "Beverage-led sales, often supplemented by food, gaming or events, depend on licensing and location.",
+      "revenue_drivers": ["Patron counts", "Beverage mix", "Events", "Trading hours"],
+      "cost_base": ["Beverage", "Security and staff", "Rent", "Entertainment and compliance"],
+      "working_capital": "Cash collection is rapid, but tax, wages and licensing obligations must be kept current.",
+      "asset_intensity": "Fit-out intensive with limited alternative-use recovery.",
+      "credit_watchpoints": ["Licence status", "Late-night concentration", "Incidents", "Lease and weekly cash controls"],
+      "valuation_watchpoints": ["Licence and lease transfer", "Reputation", "Owner involvement", "Sustainable security and staffing"]
+    },
+    {
+      "id": "catering_events",
+      "name": "Catering and events",
+      "aliases": ["catering", "event catering", "contract catering", "venue catering"],
+      "business_model": "Food and service are supplied under contracts, venue concessions or individual event bookings.",
+      "revenue_drivers": ["Events", "Guests", "Contract volumes", "Average price per person"],
+      "cost_base": ["Casual labour", "Food", "Transport and equipment", "Venue fees"],
+      "working_capital": "Deposits can fund mobilisation, while cancellations, final settlement and seasonal peaks require reserves.",
+      "asset_intensity": "Commercial kitchens, vehicles and event equipment; variable if venues supply assets.",
+      "credit_watchpoints": ["Forward bookings", "Cancellation terms", "Contract concentration", "Event deposits"],
+      "valuation_watchpoints": ["Recurring contracts", "Venue relationships", "Chef and sales dependence", "Booking pipeline quality"]
+    }
+  ],
+  "credit_analysis": {
+    "primary_risks": [
+      {
+        "risk": "Demand, seasonality and operating leverage",
+        "mechanism": "A fall in occupancy or covers reduces contribution while rent, core labour, finance and property costs persist.",
+        "financial_signals": ["Monthly sales", "Occupancy or covers", "Average rate or spend", "Break-even volume"],
+        "mitigants": ["Diverse local and visitor demand", "Flexible rostering", "Conservative fixed costs", "Liquidity buffer"]
+      },
+      {
+        "risk": "Food, labour and channel margin",
+        "mechanism": "Input inflation, wage pressure, waste or platform commissions can compress margin if prices cannot reset.",
+        "financial_signals": ["Food cost percentage", "Labour percentage", "Contribution by channel", "Waste"],
+        "mitigants": ["Menu engineering", "Purchasing controls", "Direct bookings", "Roster and yield management"]
+      },
+      {
+        "risk": "Licence, food safety and reputation",
+        "mechanism": "Compliance failure or poor reviews can interrupt trading and damage demand.",
+        "financial_signals": ["Verification results", "Complaints", "Online ratings", "Licence conditions"],
+        "mitigants": ["Current registrations and licences", "Training", "Incident controls", "Reputation monitoring"]
+      },
+      {
+        "risk": "Property, lease and refurbishment",
+        "mechanism": "A weak lease position or deferred maintenance can require cash and undermine continuity.",
+        "financial_signals": ["Lease maturity", "Rent-to-sales", "Maintenance capex", "Property condition"],
+        "mitigants": ["Long transferable tenure", "Funded maintenance plan", "Landlord support", "Separate property appraisal"]
+      }
+    ],
+    "cash_conversion_and_working_capital": [
+      "Analyse weekly or monthly sales and cash through the seasonal low point, not annual averages alone.",
+      "Reconcile deposits, gift cards and event bookings to delivery or refund obligations.",
+      "Confirm payroll, GST, PAYE and supplier accounts are current.",
+      "Include maintenance and refurbishment in sustainable debt service."
+    ],
+    "collateral_considerations": [
+      "Leasehold fit-out and used hospitality equipment can have low forced-sale value.",
+      "Freehold property requires an independent valuation and separation from the operating business.",
+      "Inventory is generally perishable or modest and should be conservatively valued.",
+      "Liquor licences, franchise rights and bookings may not transfer automatically."
+    ],
+    "downside_stresses": ["Off-season occupancy or covers below break-even", "Food and wage inflation without full pricing", "Temporary closure or reputational shock", "Deferred-maintenance and refurbishment catch-up"],
+    "monitoring_kpis": ["Weekly and monthly sales", "Occupancy, average daily rate or covers", "Food and labour cost percentages", "Rent-to-sales", "Direct versus platform mix", "Liquidity, DSCR and tax/supplier status"],
+    "covenant_considerations": ["Minimum DSCR and liquidity through the low season", "Maximum leverage or fixed-charge cover including rent", "Distribution restrictions until tax and suppliers are current", "Prompt notice of licence, food-safety, franchise or lease events"],
+    "diligence_questions": [
+      "What are monthly sales, occupancy or covers and break-even volume through the full seasonal cycle?",
+      "Are food, labour, rent and platform costs measured by venue and channel?",
+      "Are all food, alcohol, employment, building and franchise requirements current?",
+      "What refurbishment is required over the proposed debt term?",
+      "Which lease, management, franchise, booking and property rights are transferable?"
+    ]
+  },
+  "valuation_analysis": {
+    "value_drivers": ["Durable location, reputation and repeat demand", "Strong revenue management and direct booking or customer relationships", "Controlled food, labour and occupancy costs", "Transferable lease, licence and brand rights", "Management depth and documented operating systems"],
+    "multiple_influences": ["Stable local demand and diversified channels reduce volatility relative to a highly seasonal or event-dependent venue.", "Freehold property value should not be embedded in an operating multiple without a clear rent and EV-to-equity bridge.", "Deferred refurbishment, owner-chef dependence and short leases reduce value."],
+    "normalisation_focus": ["Owner-chef or manager replacement pay", "Market rent where property is related-party owned", "Wage and holiday-pay compliance", "Normal refurbishment and maintenance", "One-off closure support or unusual event periods only with a defensible normal base"],
+    "peer_selection": ["Separate food service, accommodation, bars and catering.", "Match property ownership, location, seasonality, room or seat scale, brand and channel mix.", "Compare food, labour, occupancy and refurbishment intensity before using peer evidence."],
+    "preferred_metrics": ["EV/EBITDA after market rent and owner remuneration", "EV per room only as a secondary accommodation cross-check with property and quality alignment", "DCF for seasonal or investment-changing operations", "Free cash flow after refurbishment and lease costs"],
+    "discount_and_premium_factors": ["Premium indicators include durable location, direct demand, strong reputation, transferable tenure and systems.", "Discount indicators include seasonal concentration, short lease, licence uncertainty, deferred capex and owner dependence."],
+    "diligence_questions": ["What is venue-level maintainable EBITDA after market labour, rent and refurbishment?", "How representative are recent trading periods of a full cycle?", "Will key licences, leases, booking relationships and staff transfer?", "Is real estate valued and financed separately from operations?"]
+  },
+  "market_research_sections": {
+    "credit_paper": "Hospitality demand draws on local spending, business activity, events and tourism. MBIE's tourism research, accommodation data and hospitality datasets can frame visitor flows, occupancy and spending, but a national or regional recovery does not guarantee an individual venue's cash flow. The borrower should be analysed by venue, location, season and channel using occupancy or covers, average rate or spend, food and labour percentages, rent-to-sales and break-even volume.\n\nThe sector has high operating leverage because room or seating capacity expires daily while rent, core labour, property and finance costs continue. Immediate customer payment can make working capital appear favourable, but deposits, gift cards, payroll, tax, supplier arrears and cancellation obligations must be reconciled. Sustainable debt service should include maintenance and refurbishment, not only EBITDA. Leasehold fit-out and used equipment may offer limited collateral, while freehold property requires a separate current valuation.\n\nFood registration and verification, alcohol licensing where relevant, employment compliance, health and safety, building requirements and reputation can all affect continuity. The credit paper should connect these risks to the subject's licences, reviews, lease, monthly trading, staff model and capex plan. Seasonal liquidity, not an annual average, should set the prudent funding structure and covenant headroom.",
+    "valuation_report": "Hospitality valuation depends on maintainable venue economics, not tourism headlines alone. MBIE and Stats NZ sources can describe visitor, accommodation and consumer-spending conditions, while the subject's value rests on location, reputation, occupancy or covers, average rate or spend, direct customer access, cost control and transferable tenure. Restaurants, bars, catering and accommodation require distinct peer groups, and freehold property must be separated from the operating business through market rent and a clear value bridge.\n\nNormalised earnings should reflect replacement pay for an owner-chef or manager, compliant wages and holiday pay, market rent, ordinary food waste, platform commissions and sustainable refurbishment. Recent exceptional closures, events or rebound periods should not be adopted without a full-cycle bridge. Monthly trading is necessary to identify seasonality and break-even, and deposits or customer advances should not be mistaken for free cash.\n\nTransferable value is stronger where the venue has a durable local and visitor catchment, direct bookings or repeat customers, strong reviews, documented systems, management depth and licences and leases that can transfer. Short tenure, deferred maintenance, heavy online-platform dependence, seasonality, food-safety or licence issues and owner-held reputation reduce confidence in forecasts and terminal value. Current comparable evidence remains a separate requirement."
+  },
+  "sources": [
+    {
+      "id": "mbie-tourism-data",
+      "title": "Tourism research and data",
+      "publisher": "Ministry of Business, Innovation and Employment",
+      "url": "https://www.mbie.govt.nz/immigration-and-tourism/tourism-research-and-data",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "government_data_portal",
+      "supports": ["Tourism demand", "Accommodation and workforce research", "Regional visitor context"]
+    },
+    {
+      "id": "teic-tourism",
+      "title": "Tourism Evidence and Insights Centre",
+      "publisher": "Ministry of Business, Innovation and Employment",
+      "url": "https://teic.mbie.govt.nz/",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "government_data_portal",
+      "supports": ["Accommodation occupancy and guest nights", "Hospitality and tourism market monitoring"]
+    },
+    {
+      "id": "mpi-food-business",
+      "title": "Food business",
+      "publisher": "New Zealand Food Safety, Ministry for Primary Industries",
+      "url": "https://www.mpi.govt.nz/food-business",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Food registration and verification", "Food control, recall and safety obligations"]
+    },
+    {
+      "id": "stats-retail-hospitality",
+      "title": "Retail and wholesale trade",
+      "publisher": "Stats NZ",
+      "url": "https://www.stats.govt.nz/topics/retail-and-wholesale-trade",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "official_statistics",
+      "supports": ["Café, restaurant and accommodation sales context", "Consumer-spending monitoring"]
+    }
+  ],
+  "limitations": [
+    "Hospitality performance is highly venue-, location- and season-specific; tourism or retail aggregates are context only.",
+    "Licences, lease rights, property condition, wage compliance, reviews and monthly trading require subject-specific evidence.",
+    "Visitor conditions, costs and regulation should be refreshed at the report date.",
+    "The pack does not provide a property valuation, equipment recovery value or current hospitality transaction multiple."
+  ]
+}

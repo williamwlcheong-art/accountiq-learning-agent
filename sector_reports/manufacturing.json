@@ -1,0 +1,210 @@
+{
+  "schema_version": "1.0",
+  "sector_id": "manufacturing",
+  "sector_name": "Manufacturing",
+  "geography": "New Zealand",
+  "as_of_date": "2026-07-26",
+  "next_review_date": "2027-07-26",
+  "aliases": ["advanced manufacturing", "industrial manufacturing", "food manufacturing", "fabrication", "factory production"],
+  "overview": {
+    "summary": "New Zealand manufacturing covers food and beverage, wood products, machinery, metal fabrication, chemicals, plastics, electronics and other specialised production. Many firms compete through niche design, quality, responsiveness and export relationships rather than global scale. Earnings depend on throughput, yield, labour productivity, input and energy costs, pricing, product quality, plant reliability and the working capital tied up from raw material through finished goods and receivables.",
+    "business_models": [
+      "Make-to-stock production serving distributors, retailers or export markets",
+      "Make-to-order or engineer-to-order production for defined customers and projects",
+      "Contract manufacturing earning conversion margin using customer specifications or materials",
+      "Branded food, beverage or consumer-product manufacturing",
+      "Component, fabrication and industrial-service manufacturing with after-sales or maintenance income"
+    ],
+    "industry_structure": [
+      "The sector is diverse and often composed of SMEs serving specialist domestic or export niches.",
+      "Scale, automation and procurement can improve unit cost, but flexible short runs and technical capability can support niche operators.",
+      "Customer qualification, product certification and tooling can create stickiness, while concentration and offshore competition remain risks."
+    ],
+    "demand_drivers": [
+      "Domestic construction, agriculture, consumer demand and industrial investment",
+      "Export demand, exchange rates, trade access and overseas distributor performance",
+      "Customer product cycles, specifications, replacement and maintenance",
+      "Innovation, sustainability requirements and local supply-chain resilience"
+    ],
+    "margin_and_cost_drivers": [
+      "Capacity utilisation, batch size, labour efficiency, machine uptime and yield",
+      "Raw materials, freight, energy, packaging, waste and foreign exchange",
+      "Pricing lag, product mix, quality failures and warranty or recall cost",
+      "Maintenance, tooling, certification and sustainable replacement capex"
+    ],
+    "cyclicality_and_seasonality": [
+      "Exposure varies by end market: construction materials and capital equipment may be cyclical, while food can be more defensive.",
+      "Agricultural inputs, export shipping and customer ordering may create seasonal production and inventory peaks.",
+      "Engineer-to-order operations can show lumpy revenue and work-in-progress movements."
+    ],
+    "working_capital_profile": "Manufacturers fund raw materials, work in progress and finished goods before collection. Lead times, minimum order quantities, safety stock, batch economics, customer terms and import content can make growth cash-consuming. Inventory records must distinguish usable, slow, obsolete, customer-specific and consigned stock, while WIP valuation depends on accurate routing, labour and overhead allocation.",
+    "asset_intensity": "Plant, tooling, property improvements and maintenance are often material. Book depreciation may not equal economic replacement. Specialised equipment can have low alternative-use or forced-sale value despite high replacement cost. Capacity, condition, downtime, compliance and the capital required to sustain output are central to valuation and lending.",
+    "regulatory_and_compliance": [
+      "Health and Safety at Work duties for machinery, mobile plant, dust, fumes, noise and hazardous substances",
+      "Food, product, electrical, building, environmental or export certification relevant to output",
+      "Resource consents, waste, emissions and energy requirements",
+      "Product quality, traceability, recall, warranty and importer or supplier duties"
+    ]
+  },
+  "subsectors": [
+    {
+      "id": "food_beverage",
+      "name": "Food and beverage manufacturing",
+      "aliases": ["food manufacturing", "beverage manufacturing", "food processor", "packaged food"],
+      "business_model": "Ingredients are processed and packaged for retail, food service or export under owned or customer brands.",
+      "revenue_drivers": ["Volume", "Product mix", "Distribution", "Price and export demand"],
+      "cost_base": ["Ingredients", "Packaging", "Labour", "Energy", "Quality and freight"],
+      "working_capital": "Shelf life, seasonal inputs and finished stock require disciplined planning and traceability.",
+      "asset_intensity": "Processing, packaging, cold storage and compliance assets can be significant.",
+      "credit_watchpoints": ["Yield and waste", "Shelf life", "Recall and certification", "Customer concentration"],
+      "valuation_watchpoints": ["Brand versus contract mix", "Normal capacity", "Food-safety systems", "Sustainable plant capex"]
+    },
+    {
+      "id": "metal_engineering",
+      "name": "Metal, machinery and engineering manufacturing",
+      "aliases": ["metal fabrication", "engineering manufacturer", "machinery manufacturer", "fabrication"],
+      "business_model": "Components, equipment or fabricated assemblies are produced to standard or customer design.",
+      "revenue_drivers": ["Order book", "Machine and labour hours", "Project milestones", "After-sales parts"],
+      "cost_base": ["Metals", "Skilled labour", "Machining and welding", "Energy and subcontracting"],
+      "working_capital": "Customer-specific WIP and long-lead materials can be difficult to redeploy if an order changes.",
+      "asset_intensity": "Machine tools, cranes, welding and testing equipment require maintenance and renewal.",
+      "credit_watchpoints": ["WIP recoverability", "Order concentration", "Machine utilisation", "Skilled labour"],
+      "valuation_watchpoints": ["Technical IP", "Customer qualification", "Owner engineering role", "Replacement capex"]
+    },
+    {
+      "id": "wood_building_products",
+      "name": "Wood and building-product manufacturing",
+      "aliases": ["wood product manufacturing", "joinery manufacturing", "building products", "timber processing"],
+      "business_model": "Timber, panels, joinery or other building inputs are processed for construction and distribution.",
+      "revenue_drivers": ["Construction activity", "Volume", "Specification", "Distributor demand"],
+      "cost_base": ["Timber or materials", "Labour", "Energy", "Freight and machinery"],
+      "working_capital": "Raw and finished stock can be bulky, seasonal and exposed to construction cycles.",
+      "asset_intensity": "Saws, presses, dust extraction and production property are material.",
+      "credit_watchpoints": ["Construction exposure", "Dust and machinery controls", "Stock aging", "Plant uptime"],
+      "valuation_watchpoints": ["Through-cycle volume", "Consent or specification position", "Maintenance catch-up", "Site suitability"]
+    },
+    {
+      "id": "contract_advanced",
+      "name": "Contract and advanced manufacturing",
+      "aliases": ["contract manufacturing", "advanced manufacturing", "electronics manufacturing", "precision manufacturing"],
+      "business_model": "Technical production is performed for customers using specialised process capability, quality systems and sometimes customer-owned designs.",
+      "revenue_drivers": ["Qualified programmes", "Units", "Yield", "Engineering and service income"],
+      "cost_base": ["Skilled labour", "Components", "Automation", "Quality systems and R&D"],
+      "working_capital": "Components may be imported with long lead times; customer programme changes can strand stock.",
+      "asset_intensity": "Automation, clean or controlled environments, testing and technical systems can be material.",
+      "credit_watchpoints": ["Programme concentration", "Component lead time", "Obsolescence", "Qualification and IP rights"],
+      "valuation_watchpoints": ["Switching costs", "Technical capability", "Customer-owned tooling", "R&D normalisation"]
+    }
+  ],
+  "credit_analysis": {
+    "primary_risks": [
+      {
+        "risk": "Input cost and pricing lag",
+        "mechanism": "Materials, energy, freight, wages or foreign exchange may rise before prices reset.",
+        "financial_signals": ["Gross margin by product", "Purchase-price variance", "FX exposure", "Price recovery lag"],
+        "mitigants": ["Indexation or frequent pricing", "Hedging policy", "Alternative suppliers", "Product redesign"]
+      },
+      {
+        "risk": "Utilisation, reliability and capital expenditure",
+        "mechanism": "Volume loss or breakdowns reduce absorption, while deferred maintenance can overstate cash generation.",
+        "financial_signals": ["Capacity utilisation", "Overall equipment effectiveness", "Downtime", "Capex versus depreciation"],
+        "mitigants": ["Preventive maintenance", "Redundant capacity", "Funded replacement plan", "Diversified demand"]
+      },
+      {
+        "risk": "Inventory, WIP and customer concentration",
+        "mechanism": "Long lead items and customer-specific stock may not be recoverable after cancellation or demand change.",
+        "financial_signals": ["Inventory days and aging", "WIP by order", "Top customers", "Forecast accuracy"],
+        "mitigants": ["Deposits and cancellation terms", "Common components", "Inventory controls", "Diversified customers"]
+      },
+      {
+        "risk": "Quality, safety and compliance event",
+        "mechanism": "Injury, recall, certification loss or environmental breach can stop production and create claims.",
+        "financial_signals": ["Incidents", "Reject and warranty rate", "Audit findings", "Insurance claims"],
+        "mitigants": ["Certified systems", "Traceability", "Machine guarding and training", "Recall and continuity plans"]
+      }
+    ],
+    "cash_conversion_and_working_capital": [
+      "Reconcile physical stock to perpetual records and test aging, ownership and net realisable value.",
+      "Review WIP by customer order, stage, margin, cancellation rights and recoverability.",
+      "Model material lead times, minimum orders and the working-capital effect of growth.",
+      "Measure free cash after normal maintenance, tooling and replacement capex."
+    ],
+    "collateral_considerations": [
+      "Plant needs serial, ownership, prior-security, condition and current orderly and forced-sale values.",
+      "Specialised equipment may have low realisable value despite high replacement cost.",
+      "Inventory eligibility should exclude obsolete, customer-owned, consigned and highly specific stock.",
+      "IP, certifications and customer tooling may be operationally critical but difficult collateral."
+    ],
+    "downside_stresses": ["Loss of a major programme with incomplete variable-cost removal", "Input-cost increase with delayed price recovery", "Plant outage plus urgent repair", "Inventory write-down and slower receivable collection"],
+    "monitoring_kpis": ["Sales and gross margin by product and customer", "Utilisation, yield, scrap and downtime", "Inventory and WIP days and aging", "On-time delivery, rejects, warranty and incidents", "Maintenance and capex versus plan", "Cash conversion, leverage and DSCR"],
+    "covenant_considerations": ["Minimum DSCR after maintenance capex", "Maximum leverage", "Minimum liquidity or working-capital headroom", "Borrowing-base controls and reporting triggers for customer loss, plant outage or recall"],
+    "diligence_questions": [
+      "Which products and customers generate contribution after scrap, rework, freight and support?",
+      "How much inventory or WIP is customer-specific, aged, imported or subject to ownership restrictions?",
+      "What plant replacement, maintenance and compliance spend is required over the debt term?",
+      "What happens to margin under lower utilisation and delayed pricing?",
+      "Are quality, safety, environmental and product certifications current and transferable?"
+    ]
+  },
+  "valuation_analysis": {
+    "value_drivers": ["Defensible technical capability, IP, qualification and customer switching costs", "Diversified customers and end markets", "Pricing discipline, yield and utilisation", "Reliable, compliant plant with funded replacement", "Management and engineering depth beyond the owner"],
+    "multiple_influences": ["Recurring qualified programmes and proprietary products can be more predictable than project or commodity production.", "High replacement cost does not equal market value, and deferred capex lowers cash-flow quality.", "Customer concentration, customer-owned IP and single-site risk reduce transferability."],
+    "normalisation_focus": ["Through-cycle utilisation and product margin", "Owner engineering and sales replacement", "Maintenance and replacement capex", "Normal scrap, warranty and quality cost", "Related-party property rent and R&D classification"],
+    "peer_selection": ["Match product and end market, make-to-stock versus order, branded versus contract, export mix and asset intensity.", "Compare customer concentration, margin, utilisation, plant age, growth and certification.", "Avoid combining food, commodity building products and advanced technical manufacturing without clear adjustments."],
+    "preferred_metrics": ["EV/EBITDA with explicit maintenance capex", "EV/EBITA for plant-intensive businesses", "EV/revenue only where gross margin and product economics closely align", "DCF or free cash flow after working capital and capex"],
+    "discount_and_premium_factors": ["Premium indicators include proprietary capability, qualified recurring programmes, strong yields and diversified demand.", "Discount indicators include capex catch-up, customer-specific stock, plant bottlenecks, recall risk and owner-held know-how."],
+    "diligence_questions": ["What portion of earnings is sustainable at normal utilisation and input prices?", "What capital and working capital are needed for the forecast?", "Who owns product IP, tooling and customer qualifications?", "Can technical, quality and sales capability transfer without the owner?"]
+  },
+  "market_research_sections": {
+    "credit_paper": "Manufacturing in New Zealand is diverse, ranging from food and building products to metal, machinery and advanced technical production. MBIE's advanced-manufacturing material describes opportunities around capability and transformation, while WorkSafe identifies machinery, vehicles, dust, fumes and hazardous substances as important sector risks. These sources frame the operating environment; credit quality still depends on the subject's customers, products, utilisation, plant, inventory and controls.\n\nA lender should bridge revenue to gross margin and cash by product and customer. Input prices, foreign exchange, labour, energy, yield, scrap, downtime and delayed repricing can materially change EBITDA. Growth commonly consumes cash through raw materials, work in progress, finished goods and receivables. Inventory and WIP require aging, ownership and recoverability tests, especially where components are imported or customer-specific. Debt service must be measured after sustainable maintenance, tooling and replacement capex.\n\nPlant can support security, but specialisation, condition, removal cost, prior liens and secondary-market depth drive recovery rather than replacement or book value. Quality, product recall, certification, environmental and worker-safety failures can interrupt production. The credit paper should stress lower utilisation, price-recovery lag, plant outage and stock write-down, then link monitoring and conditions to the borrower's actual sub-sector and control environment.",
+    "valuation_report": "Manufacturing value reflects sustainable cash generated from products, customers, process capability and plant—not the replacement cost of machinery alone. New Zealand firms often compete in specialist niches through design, responsiveness, quality or qualification. Valuation should therefore identify whether the subject is branded, contract, make-to-stock, engineer-to-order or advanced manufacturing, and match peers by end market, gross margin, customer concentration, export exposure and asset intensity.\n\nMaintainable earnings need to reflect normal utilisation, input prices, yield, scrap, warranty, owner engineering and sales remuneration and sustainable plant and tooling expenditure. Working-capital requirements can be substantial, particularly with long-lead imports, WIP and safety stock. Deferred maintenance may temporarily lift free cash and EBITDA multiples but weakens future cash flow. Customer-owned designs, tooling or approvals must not be treated as owned intangible value.\n\nTransferable value is stronger where technical capability is documented across a team, customer programmes are diversified and recurring, pricing and purchasing controls are effective, plant is reliable and compliant, and IP and certifications transfer. Concentrated programmes, customer-specific obsolete stock, single-site bottlenecks, capex catch-up, recall exposure and owner-held know-how increase risk. Current comparable and transaction evidence remains necessary for any market multiple."
+  },
+  "sources": [
+    {
+      "id": "mbie-advanced-manufacturing",
+      "title": "Advanced Manufacturing",
+      "publisher": "Ministry of Business, Innovation and Employment",
+      "url": "https://www.mbie.govt.nz/business-and-employment/economic-growth/previous-economic-development-work/industry-transformation-plans/advanced-manufacturing",
+      "published_date": "2023-03-13",
+      "accessed_date": "2026-07-26",
+      "source_type": "government_sector_report",
+      "supports": ["Sector structure and capability", "Productivity, skills and transformation context"]
+    },
+    {
+      "id": "worksafe-manufacturing",
+      "title": "Manufacturing",
+      "publisher": "WorkSafe New Zealand",
+      "url": "https://www.worksafe.govt.nz/topic-and-industry/manufacturing/",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Machinery, vehicle, dust, fume and hazardous-substance risk", "Health and safety context"]
+    },
+    {
+      "id": "worksafe-machinery",
+      "title": "Safe use of machinery",
+      "publisher": "WorkSafe New Zealand",
+      "url": "https://www.worksafe.govt.nz/topic-and-industry/machinery/safe-use-of-machinery/",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Machinery safety and guarding", "Manufacturer and supplier duties"]
+    },
+    {
+      "id": "stats-business-financial-data",
+      "title": "Business financial data",
+      "publisher": "Stats NZ",
+      "url": "https://www.stats.govt.nz/information-releases/business-financial-data-march-2026-quarter/",
+      "published_date": "2026-06-09",
+      "accessed_date": "2026-07-26",
+      "source_type": "official_statistics",
+      "supports": ["Industry sales, purchases, wages, profit and stock monitoring"]
+    }
+  ],
+  "limitations": [
+    "Manufacturing economics vary materially by product, process, end market and asset intensity.",
+    "Plant condition, capacity, stock, WIP, IP, customer qualification and compliance require company-specific evidence.",
+    "The MBIE Industry Transformation Plan is historical sector context; the programme has ended and must not be described as current policy.",
+    "No current multiple, beta, plant appraisal or inventory recovery value is supplied."
+  ]
+}
