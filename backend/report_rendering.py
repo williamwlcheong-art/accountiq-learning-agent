@@ -45,6 +45,93 @@ def _narrative_html(narrative: str) -> str:
     return "".join(chunks)
 
 
+_MARKET_SOURCE_LABELS = {
+    "stats_nz_cpi": "Stats NZ",
+    "stats_nz_gdp": "Stats NZ",
+    "stats_nz_migration": "Stats NZ",
+    "stats_nz_bfd": "Stats NZ Business Financial Data",
+    "rbnz_ocr": "Reserve Bank of New Zealand",
+}
+
+
+def _table_html(table_data: dict | None) -> str:
+    if not table_data:
+        return ""
+    headers = table_data.get("headers", [])
+    rows = table_data.get("rows", [])
+    if not isinstance(headers, list) or not isinstance(rows, list):
+        return ""
+    header_html = "".join(f"<th>{html.escape(str(cell))}</th>" for cell in headers)
+    rows_html = "".join(
+        "<tr>" + "".join(f"<td>{html.escape(str(cell))}</td>" for cell in row) + "</tr>"
+        for row in rows
+        if isinstance(row, list)
+    )
+    if not header_html and not rows_html:
+        return ""
+    return (
+        "<table><thead><tr>"
+        + header_html
+        + "</tr></thead><tbody>"
+        + rows_html
+        + "</tbody></table>"
+    )
+
+
+def _market_chart_html(chart: dict) -> str:
+    title = html.escape(str(chart.get("title") or "Market trend"))
+    subtitle = html.escape(str(chart.get("subtitle") or ""))
+    unit = html.escape(str(chart.get("unit") or ""))
+    note = html.escape(str(chart.get("note") or ""))
+    source_labels = list(
+        dict.fromkeys(
+            _MARKET_SOURCE_LABELS.get(str(source_id), str(source_id))
+            for source_id in chart.get("source_ids", [])
+        )
+    )
+    source_text = html.escape(", ".join(source_labels))
+    series_items = []
+    for series in chart.get("series", []) or []:
+        if not isinstance(series, dict):
+            continue
+        points = ", ".join(
+            f"{point.get('period')}: {point.get('value')}"
+            for point in series.get("values", []) or []
+            if isinstance(point, dict)
+        )
+        series_items.append(
+            f"<li><strong>{html.escape(str(series.get('name') or 'Series'))}</strong>: "
+            f"{html.escape(points)}</li>"
+        )
+    return (
+        '<figure class="market-line-chart">'
+        f"<figcaption><strong>{title}</strong><span>{subtitle}</span></figcaption>"
+        f"<ul>{''.join(series_items)}</ul>"
+        f"<p>Source: {source_text}. Unit: {unit}. {note}</p>"
+        "</figure>"
+    )
+
+
+def _market_payload_html(content: dict) -> str:
+    chunks = []
+    if isinstance(content.get("sector_scale_table"), dict):
+        chunks.append("<h3>Sector scale and boundary</h3>")
+        chunks.append(_table_html(content["sector_scale_table"]))
+    charts = content.get("market_charts")
+    if isinstance(charts, list):
+        chunks.extend(_market_chart_html(chart) for chart in charts if isinstance(chart, dict))
+    if isinstance(content.get("market_sources_table"), dict):
+        chunks.append("<h3>Market data sources</h3>")
+        chunks.append(_table_html(content["market_sources_table"]))
+    snapshot = content.get("market_snapshot")
+    if isinstance(snapshot, dict) and snapshot.get("usage_boundary"):
+        chunks.append(
+            f"<p><strong>Market evidence boundary:</strong> "
+            f"{html.escape(str(snapshot.get('usage_boundary')))}</p>"
+        )
+    return "".join(chunks)
+
+
 def _section_html(key: str, content) -> str:
     heading = html.escape(key.replace("_", " ").title())
     if isinstance(content, dict):
@@ -56,28 +143,11 @@ def _section_html(key: str, content) -> str:
 
     paragraphs = _narrative_html(narrative)
 
-    table_html = ""
-    if table_data:
-        headers = table_data.get("headers", [])
-        rows = table_data.get("rows", [])
-        if isinstance(headers, list) and isinstance(rows, list):
-            header_html = "".join(f"<th>{html.escape(str(cell))}</th>" for cell in headers)
-            rows_html = "".join(
-                "<tr>" + "".join(f"<td>{html.escape(str(cell))}</td>" for cell in row) + "</tr>"
-                for row in rows
-                if isinstance(row, list)
-            )
-            if header_html or rows_html:
-                table_html = (
-                    "<table><thead><tr>"
-                    + header_html
-                    + "</tr></thead><tbody>"
-                    + rows_html
-                    + "</tbody></table>"
-                )
+    table_html = _table_html(table_data)
+    market_html = _market_payload_html(content) if isinstance(content, dict) else ""
 
     section_class = " class=\"disclaimer\"" if key == "disclaimer" else ""
-    return f"<section{section_class}><h2>{heading}</h2>{paragraphs}{table_html}</section>"
+    return f"<section{section_class}><h2>{heading}</h2>{paragraphs}{table_html}{market_html}</section>"
 
 
 def render_report_html(

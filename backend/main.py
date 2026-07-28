@@ -61,6 +61,8 @@ from report_prompts import (
     compute_bank_credit_figures,
 )
 from research_loop import run_valuation_research
+from sector_library import enrich_research_brief, match_sector_report
+from market_intelligence import apply_market_intelligence_to_report_content
 from fcff_engine import calculate_fcff, report_prompt_payload
 from valuation import compute_multiples_crosscheck
 from valuation_inputs import (
@@ -2394,6 +2396,93 @@ def _narrative_to_html(text: str) -> str:
     return "".join(chunks)
 
 
+_MARKET_SOURCE_LABELS = {
+    "stats_nz_cpi": "Stats NZ",
+    "stats_nz_gdp": "Stats NZ",
+    "stats_nz_migration": "Stats NZ",
+    "stats_nz_bfd": "Stats NZ Business Financial Data",
+    "rbnz_ocr": "Reserve Bank of New Zealand",
+}
+
+
+def _report_table_html(table_data: dict | None, heading: str) -> str:
+    if not table_data:
+        return ""
+    headers = table_data.get("headers", []) or []
+    rows = table_data.get("rows", []) or []
+    if not isinstance(headers, list) or not isinstance(rows, list):
+        return ""
+    th_cells = "".join(f"<th>{_html_lib.escape(str(h))}</th>" for h in headers)
+    tr_rows = "".join(
+        "<tr>" + "".join(f"<td>{_html_lib.escape(str(c))}</td>" for c in row) + "</tr>"
+        for row in rows
+        if isinstance(row, list)
+    )
+    if not th_cells and not tr_rows:
+        return ""
+    return (
+        f"<div class='table-scroll' tabindex='0' role='region' "
+        f"aria-label='{_html_lib.escape(heading)} table'><table class='report-table'>"
+        f"<thead><tr>{th_cells}</tr></thead>"
+        f"<tbody>{tr_rows}</tbody>"
+        f"</table></div>"
+    )
+
+
+def _market_chart_html(chart: dict) -> str:
+    title = _html_lib.escape(str(chart.get("title") or "Market trend"))
+    subtitle = _html_lib.escape(str(chart.get("subtitle") or ""))
+    unit = _html_lib.escape(str(chart.get("unit") or ""))
+    note = _html_lib.escape(str(chart.get("note") or ""))
+    source_labels = list(
+        dict.fromkeys(
+            _MARKET_SOURCE_LABELS.get(str(source_id), str(source_id))
+            for source_id in chart.get("source_ids", [])
+        )
+    )
+    source_text = _html_lib.escape(", ".join(source_labels))
+    series_items = []
+    for series in chart.get("series", []) or []:
+        if not isinstance(series, dict):
+            continue
+        points = ", ".join(
+            f"{point.get('period')}: {point.get('value')}"
+            for point in series.get("values", []) or []
+            if isinstance(point, dict)
+        )
+        series_items.append(
+            f"<li><strong>{_html_lib.escape(str(series.get('name') or 'Series'))}</strong>: "
+            f"{_html_lib.escape(points)}</li>"
+        )
+    return (
+        '<figure class="market-line-chart">'
+        f"<figcaption><strong>{title}</strong><span>{subtitle}</span></figcaption>"
+        f"<ul>{''.join(series_items)}</ul>"
+        f"<p>Source: {source_text}. Unit: {unit}. {note}</p>"
+        "</figure>"
+    )
+
+
+def _market_payload_html(content: dict) -> str:
+    chunks = []
+    if isinstance(content.get("sector_scale_table"), dict):
+        chunks.append("<h3>Sector scale and boundary</h3>")
+        chunks.append(_report_table_html(content["sector_scale_table"], "Sector scale and boundary"))
+    charts = content.get("market_charts")
+    if isinstance(charts, list):
+        chunks.extend(_market_chart_html(chart) for chart in charts if isinstance(chart, dict))
+    if isinstance(content.get("market_sources_table"), dict):
+        chunks.append("<h3>Market data sources</h3>")
+        chunks.append(_report_table_html(content["market_sources_table"], "Market data sources"))
+    snapshot = content.get("market_snapshot")
+    if isinstance(snapshot, dict) and snapshot.get("usage_boundary"):
+        chunks.append(
+            f"<p><strong>Market evidence boundary:</strong> "
+            f"{_html_lib.escape(str(snapshot.get('usage_boundary')))}</p>"
+        )
+    return "".join(chunks)
+
+
 def _render_report_sections_html(sections: dict, section_order: list) -> str:
     """Render report sections as HTML, handling both plain-string and dict (narrative+table) sections.
 
@@ -2413,26 +2502,8 @@ def _render_report_sections_html(sections: dict, section_order: list) -> str:
 
         paragraphs = _narrative_to_html(narrative)
 
-        table_html = ""
-        if table_data:
-            headers = table_data.get("headers", []) or []
-            rows = table_data.get("rows", []) or []
-            if isinstance(headers, list) and isinstance(rows, list):
-                th_cells = "".join(
-                    f"<th>{_html_lib.escape(str(h))}</th>" for h in headers
-                )
-                tr_rows = "".join(
-                    "<tr>" + "".join(f"<td>{_html_lib.escape(str(c))}</td>" for c in row) + "</tr>"
-                    for row in rows if isinstance(row, list)
-                )
-                if th_cells or tr_rows:
-                    table_html = (
-                        f"<div class='table-scroll' tabindex='0' role='region' "
-                        f"aria-label='{_html_lib.escape(heading)} table'><table class='report-table'>"
-                        f"<thead><tr>{th_cells}</tr></thead>"
-                        f"<tbody>{tr_rows}</tbody>"
-                        f"</table></div>"
-                    )
+        table_html = _report_table_html(table_data, heading)
+        market_html = _market_payload_html(content) if isinstance(content, dict) else ""
 
         section_class = " class='disclaimer'" if key == "disclaimer" else ""
         section_html += f"""
@@ -2440,6 +2511,7 @@ def _render_report_sections_html(sections: dict, section_order: list) -> str:
             <h2>{_html_lib.escape(heading)}</h2>
             {paragraphs}
             {table_html}
+            {market_html}
         </section>"""
 
     return section_html
@@ -2804,10 +2876,22 @@ async def _generate_report(report_id: int) -> None:
             raw_fin_rows = snapshot["financial_rows"]
             intake_answers = snapshot["intake_answers"]
             report_type = snapshot["report_type"]
+            sector_match = None
+            if report_type in {"valuation_advisory", "bank_credit_paper"}:
+                try:
+                    sector_match = match_sector_report(company_sector, company_description)
+                except Exception as exc:
+                    print(f"[WARN] Sector library unavailable for report {report_id}: {exc}")
 
             if E2E_MODE:
                 await asyncio.sleep(0.05)
                 content_json = _e2e_report_content(report_type)
+                if report_type in {"valuation_advisory", "bank_credit_paper"}:
+                    content_json = apply_market_intelligence_to_report_content(
+                        content_json,
+                        sector_match,
+                        report_type,
+                    )
                 next_status = await _store_generated_report(
                     db,
                     report_id=report_id,
@@ -2842,6 +2926,7 @@ async def _generate_report(report_id: int) -> None:
             # --- 5. Run Python algorithm for Valuation Advisory (D-08) ---
             valuation_result = None
             bank_credit_figs = None
+            credit_research_brief = None
 
             if report_type == "valuation_advisory":
                 # 5a. Update status so the wizard can show 'researching' in real time
@@ -2866,6 +2951,11 @@ async def _generate_report(report_id: int) -> None:
                     company_location=company_location,
                     industry_sector=industry_sector_for_research,
                 )
+                research_brief = enrich_research_brief(
+                    brief.model_dump(),
+                    sector_match,
+                    report_type,
+                )
 
                 normalised_ebitda = float(typed_inputs.normalised_ebitda.value)
                 multiples_result = compute_multiples_crosscheck(
@@ -2889,7 +2979,7 @@ async def _generate_report(report_id: int) -> None:
                 }
 
                 valuation_result = {
-                    "research_brief": brief.model_dump(),
+                    "research_brief": research_brief,
                     "deterministic_fcff": deterministic_fcff,
                     "normalised_ebitda": normalised_ebitda,
                     "normalisations": [
@@ -2913,6 +3003,17 @@ async def _generate_report(report_id: int) -> None:
                 bank_credit_figs = compute_bank_credit_figures(
                     financial_rows_for_prompt, intake_answers
                 )
+                credit_research_brief = enrich_research_brief(
+                    {
+                        "company_summary": company_description,
+                        "sector_summary": "",
+                        "sources": [],
+                        "evidence_sources": [],
+                        "limitations": [],
+                    },
+                    sector_match,
+                    report_type,
+                )
 
             # --- 6. Build Claude prompt via report_prompts.build_prompt() ---
             system_prompt, user_message = build_prompt(
@@ -2926,10 +3027,17 @@ async def _generate_report(report_id: int) -> None:
                 ebitda_adjustments=ebitda_adjustments,
                 valuation_result=valuation_result,
                 bank_credit_figures=bank_credit_figs,
+                credit_research_brief=credit_research_brief,
             )
 
             # --- 7. Call Claude API (non-tool-use, plain JSON response) ---
             content_json = await _call_claude_for_report(system_prompt, user_message)
+            if report_type in {"valuation_advisory", "bank_credit_paper"}:
+                content_json = apply_market_intelligence_to_report_content(
+                    content_json,
+                    sector_match,
+                    report_type,
+                )
 
             # --- 8. Store validated content; paid valuations wait for reviewer approval ---
             next_status = await _store_generated_report(
