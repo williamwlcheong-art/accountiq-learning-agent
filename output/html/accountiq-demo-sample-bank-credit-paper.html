@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Demo Bank Credit Paper - AccountIQ Sample Services Limited</title><style>
+    :root { --navy:#082b4c; --blue:#1769aa; --ink:#172033; --muted:#667085; --line:#d7dee8; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#edf1f5; color:var(--ink); font-family:Arial,"Segoe UI",sans-serif; line-height:1.55; }
+    .viewer-toolbar { position:sticky; top:0; z-index:5; display:flex; justify-content:space-between; align-items:center; gap:14px; padding:10px max(20px,calc((100vw - 900px)/2)); background:rgba(8,43,76,.97); color:white; }
+    .viewer-toolbar a { color:white; text-decoration:none; font-weight:700; }
+    .viewer-toolbar-actions { display:flex; align-items:center; gap:14px; }
+    .viewer-download { padding:7px 12px; border:1px solid rgba(255,255,255,.55); border-radius:999px; }
+    .report { width:min(900px,calc(100% - 32px)); margin:28px auto 64px; }
+    .demo-banner { margin:0 0 18px; padding:14px 18px; border:1px solid #e3ad55; border-radius:8px; background:#fff8e8; color:#70450a; }
+    .demo-banner strong { display:block; margin-bottom:2px; }
+    .cover, .report-page, .report-section { background:white; box-shadow:0 12px 30px rgba(15,23,42,.1); }
+    .cover { position:relative; min-height:1120px; display:flex; flex-direction:column; justify-content:flex-end; padding:78px 74px; overflow:hidden; background:linear-gradient(150deg,#f8fbff 0 52%,#dceafb 52% 64%,#082b4c 64%); color:white; }
+    .brand { position:absolute; top:88px; left:74px; color:var(--navy); font-size:1.1rem; font-weight:900; letter-spacing:.04em; }
+    .cover-report-basis { position:relative; margin:64px 0 36px; padding:18px 22px; border:1px solid var(--line); border-radius:16px; background:rgba(255,255,255,.94); color:var(--ink); }
+    .cover-report-basis > span { display:block; margin-bottom:13px; color:var(--blue); font-size:.72rem; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
+    .cover-report-basis dl { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; margin:0; }
+    .cover-report-basis div { min-width:0; padding:0 15px; border-left:1px solid var(--line); }
+    .cover-report-basis div:first-child { padding-left:0; border-left:0; }
+    .cover-report-basis dt { margin:0 0 4px; color:var(--navy); font-size:.75rem; font-weight:850; }
+    .cover-report-basis dd { margin:0; color:var(--muted); font-size:.68rem; line-height:1.35; }
+    .cover-copy { position:relative; padding:28px 32px 30px; border:1px solid rgba(207,226,243,.3); border-radius:18px; background:rgba(8,43,76,.93); }
+    .cover-kicker { display:block; margin-bottom:12px; color:#b9d8f2; font-size:.78rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+    .cover h1 { margin:0 0 16px; font-size:3.15rem; line-height:1.06; }
+    .company { margin:0; font-size:1.4rem; font-weight:650; }
+    .cover-brief { margin:28px 0 0; padding:18px 20px; border:1px solid rgba(207,226,243,.35); border-radius:14px; background:rgba(255,255,255,.08); }
+    .cover-brief dl { display:grid; grid-template-columns:1fr 1fr; gap:13px 22px; margin:0; }
+    .cover-brief dt { color:#b9d8f2; font-size:.67rem; font-weight:850; letter-spacing:.09em; text-transform:uppercase; }
+    .cover-brief dd { margin:3px 0 0; color:white; font-size:.84rem; font-weight:700; overflow-wrap:anywhere; }
+    .report-page { min-height:1120px; margin-top:22px; padding:78px 74px; }
+    .contents h2, .report-section h2 { margin:0 0 26px; color:var(--navy); font-size:2.2rem; font-weight:400; }
+    .contents ol { display:grid; grid-template-columns:1fr 1fr; gap:0 36px; margin:0; padding:0; list-style:none; }
+    .contents li { border-bottom:1px solid var(--line); }
+    .contents a { display:flex; gap:12px; padding:12px 0; color:var(--ink); text-decoration:none; font-weight:700; }
+    .contents-number { min-width:2ch; color:var(--blue); }
+    .report-section { min-height:760px; margin-top:22px; padding:68px 74px 78px; }
+    .section-kicker { display:block; margin-bottom:8px; color:var(--blue); font-size:.68rem; font-weight:850; letter-spacing:.12em; text-transform:uppercase; }
+    .report-section h2 { padding-bottom:14px; border-bottom:1px solid var(--navy); }
+    .section-number { display:inline-block; min-width:2.5rem; margin-right:.7rem; color:var(--blue); font-size:1rem; font-weight:850; vertical-align:.3rem; }
+    h3 { margin:1.55rem 0 .55rem; color:var(--navy); font-size:1rem; }
+    p { margin:0 0 .9rem; font-size:.92rem; }
+    a { color:var(--blue); overflow-wrap:anywhere; }
+    ul { margin:.25rem 0 1rem 1.25rem; padding:0; }
+    table.report-table { width:100%; margin:20px 0 28px; border-collapse:collapse; font-size:.79rem; }
+    table.report-table caption { caption-side:top; margin:0 0 8px; color:var(--muted); font-size:.7rem; font-weight:850; letter-spacing:.08em; text-align:left; text-transform:uppercase; }
+    table.report-table th, table.report-table td { padding:9px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    table.report-table thead th { background:var(--navy); color:white; font-weight:750; }
+    table.report-table tbody tr:nth-child(even) { background:#f6f8fb; }
+    .disclaimer { border-top:8px solid #c9932f; background:#fffdf8; }
+    @media (max-width:720px) {
+      .report { width:100%; margin:0; }
+      .cover, .report-page, .report-section { min-height:auto; padding:46px 24px; box-shadow:none; }
+      .cover { min-height:80vh; }
+      .cover h1 { font-size:2.25rem; }
+      .brand { left:24px; }
+      .cover-report-basis { margin:88px 0 28px; padding:16px; }
+      .cover-report-basis dl, .cover-brief dl, .contents ol { grid-template-columns:1fr; }
+      .cover-report-basis div { padding:0; border-left:0; }
+      table.report-table { display:block; overflow-x:auto; }
+      .viewer-toolbar { flex-wrap:wrap; }
+      .viewer-toolbar-actions { width:100%; justify-content:space-between; }
+    }
+    @media print {
+      @page { size:A4; margin:0; }
+      body { background:white; }
+      .viewer-toolbar { display:none; }
+      .report { width:100%; margin:0; }
+      .cover, .report-page, .report-section { width:210mm; min-height:297mm; margin:0; padding:20mm 18mm; box-shadow:none; break-after:page; page-break-after:always; }
+      .report-section:last-child { break-after:auto; page-break-after:auto; }
+      tr, p, li { break-inside:avoid; page-break-inside:avoid; }
+    }
+    </style></head>
+<body>
+<nav class="viewer-toolbar"><a href="/wizard">&#8592; Back to wizard</a><div class="viewer-toolbar-actions"><span>PDF download ready</span><a class="viewer-download" href="./pdf" download>Download PDF</a></div></nav>
+<main class="report">
+<aside class="demo-banner" role="note"><strong>Demo data - not for reliance.</strong>Financial figures and research are fictional and demonstrate the AccountIQ credit-paper workflow.</aside>
+<section class="cover"><div class="brand">AccountIQ</div>
+    <aside class="cover-report-basis" aria-label="Report basis">
+      <span>Report basis</span>
+      <dl><div><dt>Uploaded financials</dt><dd>Revenue, EBITDA and balance sheet</dd></div><div><dt>Lender inputs</dt><dd>Facility, LVR, funding cost and security</dd></div><div><dt>Public client context</dt><dd>Business and sector research</dd></div><div><dt>Credit model</dt><dd>DSCR, ICR, leverage and NTOA</dd></div></dl>
+    </aside>
+    <div class="cover-copy"><span class="cover-kicker">Demo data - not for reliance</span><h1>Demo Bank Credit Paper</h1><p class="company">AccountIQ Sample Services Limited</p>
+    <aside class="cover-brief" aria-label="Report cover details">
+      <dl><div><dt>Prepared for</dt><dd>AccountIQ Sample Services Limited</dd></div><div><dt>Prepared by</dt><dd>AccountIQ</dd></div><div><dt>Report type</dt><dd>Demo Bank Credit Paper</dd></div><div><dt>Reference</dt><dd>AIQ-REP-009002</dd></div><div><dt>Prepared date</dt><dd>4 July 2026</dd></div><div><dt>Purpose</dt><dd>Credit paper / lender screening</dd></div><div><dt>Credit posture</dt><dd>Screening-only until diligence and bank approval</dd></div><div><dt>Reliance</dt><dd>Demo credit paper only - not for reliance.</dd></div></dl>
+    </aside>
+    </div></section>
+<section class="report-page contents"><h2>Contents</h2><ol><li><a href='#executive_summary' aria-label='01 Executive Summary'><span class='contents-number'>01</span><span>Executive Summary</span></a></li><li><a href='#transaction_summary' aria-label='02 Transaction Summary'><span class='contents-number'>02</span><span>Transaction Summary</span></a></li><li><a href='#sources_and_uses' aria-label='03 Sources &amp; Uses'><span class='contents-number'>03</span><span>Sources &amp; Uses</span></a></li><li><a href='#borrower_and_sponsor_profile' aria-label='04 Borrower &amp; Sponsor Profile'><span class='contents-number'>04</span><span>Borrower &amp; Sponsor Profile</span></a></li><li><a href='#facilities_requested' aria-label='05 Facilities Requested'><span class='contents-number'>05</span><span>Facilities Requested</span></a></li><li><a href='#security_package' aria-label='06 Security Package'><span class='contents-number'>06</span><span>Security Package</span></a></li><li><a href='#financial_performance_forecast' aria-label='07 Financial Performance &amp; Forecast'><span class='contents-number'>07</span><span>Financial Performance &amp; Forecast</span></a></li><li><a href='#coverage_and_sensitivity' aria-label='08 Coverage Ratios &amp; Sensitivity'><span class='contents-number'>08</span><span>Coverage Ratios &amp; Sensitivity</span></a></li><li><a href='#balance_sheet_debt_capacity' aria-label='09 Balance Sheet &amp; Debt Capacity'><span class='contents-number'>09</span><span>Balance Sheet &amp; Debt Capacity</span></a></li><li><a href='#industry_and_competitive_landscape' aria-label='10 Industry &amp; Competitive Landscape'><span class='contents-number'>10</span><span>Industry &amp; Competitive Landscape</span></a></li><li><a href='#proposed_covenants' aria-label='11 Proposed Covenants'><span class='contents-number'>11</span><span>Proposed Covenants</span></a></li><li><a href='#key_risks_and_mitigants' aria-label='12 Key Risks &amp; Mitigants'><span class='contents-number'>12</span><span>Key Risks &amp; Mitigants</span></a></li><li><a href='#conditions_precedent' aria-label='13 Conditions Precedent'><span class='contents-number'>13</span><span>Conditions Precedent</span></a></li><li><a href='#recommendation' aria-label='14 Recommendation'><span class='contents-number'>14</span><span>Recommendation</span></a></li><li><a href='#disclaimer' aria-label='15 Disclaimer'><span class='contents-number'>15</span><span>Disclaimer</span></a></li></ol></section>
+
+        <section id="executive_summary" class="report-section executive-summary section-executive-summary">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">01</span> Executive Summary</h2>
+            
+            <h3>Indicative terms request</h3><p>This demo bank credit paper for AccountIQ Sample Services Limited is drafted in the same practical style as a lender credit paper: requested facility, source of repayment, security, coverage, balance-sheet support, covenants, conditions and recommendation. Uploaded financials drive the tables; public research is simulated in demo mode until a live AI key is configured.</p><h3>Screening conclusion</h3><p>The requested facility of $1,250,000 requires revised structure or additional support before committee. The calculated supportable debt is $513,750, headroom / shortfall is $-736,250, and the binding constraint is Balance-sheet / NTOA support. This remains screening-only until source documents, collateral values, debt schedules and lender terms are confirmed.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Executive Summary detailed schedule</caption><thead><tr><th>Metric</th><th class="numeric-cell">Base case</th><th>Threshold / interpretation</th><th>Comment</th></tr></thead><tbody><tr><td>Latest uploaded EBITDA</td><td class="numeric-cell">$620,000</td><td>Credit anchor</td><td>Based on 2025.</td></tr><tr><td>Requested senior debt</td><td class="numeric-cell">$1,250,000</td><td>Facility amount</td><td>Compared with EBITDA, debt service, LVR and NTOA constraints.</td></tr><tr><td>Senior leverage</td><td class="numeric-cell">2.02x</td><td>Illustrative max 2.50x</td><td>Debt divided by latest uploaded EBITDA.</td></tr><tr><td>Base ICR</td><td class="numeric-cell">5.84x</td><td>Minimum 3.00x</td><td>EBITDA divided by cash interest.</td></tr><tr><td>Base DSCR</td><td class="numeric-cell">1.74x</td><td>Minimum 1.40x</td><td>EBITDA divided by cash interest plus scheduled principal.</td></tr><tr><td>Target LVR</td><td class="numeric-cell">60.0%</td><td>Security advance-rate assumption</td><td>Must be confirmed against lender collateral policy.</td></tr><tr><td>Supportable debt</td><td class="numeric-cell">$513,750</td><td>Minimum of capacity constraints</td><td>The binding constraint should drive the recommended structure.</td></tr><tr><td>Headroom / shortfall</td><td class="numeric-cell">$-736,250</td><td>Positive is headroom</td><td>Supportable debt less requested debt.</td></tr><tr><td>Binding constraint</td><td class="numeric-cell">Balance-sheet / NTOA support</td><td>Most conservative available limit</td><td>Use this as the credit sizing conclusion unless overridden by bank policy.</td></tr></tbody></table>
+            
+        </section>
+        <section id="transaction_summary" class="report-section section-transaction-summary">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">02</span> Transaction Summary</h2>
+            
+            <p>The transaction summary sets out the borrower structure, amount requested, debt purpose, term, repayment profile, funding cost and source of repayment. This mirrors the front half of a bank paper where the credit team needs to understand the ask before reading the detailed analysis.</p><h3>Transaction context supplied</h3><ul><li>Transaction Structure: Acquisition and refinance debt are consolidated at HoldCo, with one senior term facility and a separate short-dated sponsor bridge.</li><li>Borrower Structure: New HoldCo owns the existing operating company and the acquired target; both OpCos remain trading entities and provide guarantees.</li><li>Ownership And Sponsor: Founder retains operating control; an incoming investor subscribes for a minority interest and contributes acquisition equity.</li><li>Acquisition Rationale: Adds recurring customer relationships, geographic coverage and operating capacity; integration benefits remain subject to diligence.</li><li>Refinance Context: Existing equipment debt is to be repaid at completion; payout letters and current lender security releases are required.</li><li>Facility Structure: Senior term facility plus a separate sponsor bridge; bridge repayment is not assumed in senior DSCR.</li><li>Security Structure: First-ranking GSA over the operating entities, cross-guarantees and shareholder support; no property security assumed.</li><li>Sponsor Bridge Security: Personal guarantee and negative pledge to be documented separately from the OpCo security package.</li></ul>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Transaction Summary detailed schedule</caption><thead><tr><th>Facility term</th><th>Proposed / supplied detail</th><th>Credit treatment</th></tr></thead><tbody><tr><td>Borrower / structure</td><td>New HoldCo owns the existing operating company and the acquired target; both OpCos remain trading entities and provide guarantees.</td><td>Confirm legal borrower, guarantors and obligors before credit committee.</td></tr><tr><td>Transaction / group structure</td><td>Acquisition and refinance debt are consolidated at HoldCo, with one senior term facility and a separate short-dated sponsor bridge.</td><td>Sets the legal perimeter, obligors and whether acquisition and refinance debt are consolidated.</td></tr><tr><td>Ownership and sponsor</td><td>Founder retains operating control; an incoming investor subscribes for a minority interest and contributes acquisition equity.</td><td>Confirms sponsor rollover, investor contribution, control and key-person continuity.</td></tr><tr><td>Acquisition rationale</td><td>Adds recurring customer relationships, geographic coverage and operating capacity; integration benefits remain subject to diligence.</td><td>Explains the commercial reason for the transaction and any claimed contract or synergy support.</td></tr><tr><td>Existing debt / refinance context</td><td>Existing equipment debt is to be repaid at completion; payout letters and current lender security releases are required.</td><td>Confirms which existing facilities are being repaid and whether security is being consolidated.</td></tr><tr><td>Facility type</td><td>Senior secured acquisition and refinance term facility</td><td>Used as the base structure for lender screening.</td></tr><tr><td>Facility structure</td><td>Senior term facility plus a separate sponsor bridge; bridge repayment is not assumed in senior DSCR.</td><td>Separates senior operating debt from any sponsor, bridge or ancillary facility.</td></tr><tr><td>Amount requested</td><td>$1,250,000</td><td>Compared with cash-flow, LVR, collateral and balance-sheet capacity.</td></tr><tr><td>Purpose</td><td>Acquisition of a complementary operating business and refinance of existing debt</td><td>Use of funds drives sources-and-uses and required diligence.</td></tr><tr><td>Term</td><td>5.0 years</td><td>Determines scheduled amortisation and DSCR pressure.</td></tr><tr><td>Repayment profile</td><td>principal and interest</td><td>Principal repayment is modelled unless interest-only is selected.</td></tr><tr><td>Conservative funding cost</td><td>8.50%</td><td>Used for cash interest, ICR and rate-stress sensitivity.</td></tr><tr><td>Annual interest</td><td>$106,250</td><td>Estimated annual cash interest on the requested facility.</td></tr><tr><td>Annual principal</td><td>$250,000</td><td>Straight-line annual principal where amortising.</td></tr><tr><td>Annual debt service</td><td>$356,250</td><td>Interest plus scheduled principal used in DSCR.</td></tr><tr><td>Source of repayment</td><td>Operating cash flow from the combined group, supported by recurring service revenue and post-completion management accounts.</td><td>Primary cash source to service interest, principal and any bridge repayment.</td></tr><tr><td>Security package</td><td>general security and guarantee</td><td>Controls LVR and collateral diligence requirements.</td></tr><tr><td>Target LVR / advance rate</td><td>60.0%</td><td>Conservative lender advance-rate assumption supplied by the user.</td></tr></tbody></table>
+            
+        </section>
+        <section id="sources_and_uses" class="report-section section-sources-and-uses">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">03</span> Sources &amp; Uses</h2>
+            
+            <p>Sources and uses are built from the supplied facility amount and any optional refinance, costs, working-capital, equity or bridge details. Where detail is not provided, the table deliberately flags the missing funds-flow evidence rather than inventing a balanced transaction schedule.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Sources &amp; Uses detailed schedule</caption><thead><tr><th>Uses</th><th class="numeric-cell">Amount</th><th>Sources</th><th class="numeric-cell">Amount</th><th>Credit comment</th></tr></thead><tbody><tr><td>Acquisition of a complementary operating business and refinance of existing debt</td><td class="numeric-cell">$1,250,000</td><td>Requested senior facility</td><td class="numeric-cell">$1,250,000</td><td>Only the supplied request is treated as committed; detailed funds flow remains a committee condition.</td></tr><tr><td>Transaction / asset value</td><td class="numeric-cell">$1,900,000</td><td>Equity contribution</td><td class="numeric-cell">$705,000</td><td>Supports LVR/equity context but does not replace a signed sale and purchase agreement or funds-flow statement.</td></tr><tr><td>Refinance existing debt</td><td class="numeric-cell">$280,000</td><td>Included in facility request</td><td class="numeric-cell">$280,000</td><td>Debt schedule and payout letters required before credit committee.</td></tr><tr><td>Transaction / advisory costs</td><td class="numeric-cell">$55,000</td><td>Facility or equity funding</td><td class="numeric-cell">Not allocated</td><td>Legal, advisory, bank and diligence costs should be supported by invoices or estimates.</td></tr><tr><td>Working-capital / integration buffer</td><td class="numeric-cell">$120,000</td><td>Facility or retained cash</td><td class="numeric-cell">Not allocated</td><td>Buffer should be checked against monthly trading seasonality and creditor terms.</td></tr><tr><td>Additional bridge / sponsor facility</td><td class="numeric-cell">$180,000</td><td>Separate bridge funding</td><td class="numeric-cell">$180,000</td><td>Indicative 9-month bridge; repayment source: Refinancing or sponsor distribution after completion accounts and transaction proceeds are finalised..</td></tr></tbody></table>
+            
+        </section>
+        <section id="borrower_and_sponsor_profile" class="report-section section-borrower-and-sponsor-profile">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">04</span> Borrower &amp; Sponsor Profile</h2>
+            
+            <h3>Borrower profile</h3><p>Demo-mode public research is not connected. The report therefore treats AccountIQ Sample Services Limited as a private SME operating in New Zealand and relies on uploaded financials plus user-supplied context for business-specific facts.</p><h3>Sponsor / ownership context</h3><p>Demo mode has not completed live borrower research. Use the borrower / ownership structure supplied in the intake, Companies Office extracts, guarantor information and management background before presenting this as committee-ready.</p><h3>Supplied transaction and sponsor context</h3><ul><li>Transaction Structure: Acquisition and refinance debt are consolidated at HoldCo, with one senior term facility and a separate short-dated sponsor bridge.</li><li>Borrower Structure: New HoldCo owns the existing operating company and the acquired target; both OpCos remain trading entities and provide guarantees.</li><li>Ownership And Sponsor: Founder retains operating control; an incoming investor subscribes for a minority interest and contributes acquisition equity.</li><li>Acquisition Rationale: Adds recurring customer relationships, geographic coverage and operating capacity; integration benefits remain subject to diligence.</li><li>Refinance Context: Existing equipment debt is to be repaid at completion; payout letters and current lender security releases are required.</li><li>Facility Structure: Senior term facility plus a separate sponsor bridge; bridge repayment is not assumed in senior DSCR.</li><li>Security Structure: First-ranking GSA over the operating entities, cross-guarantees and shareholder support; no property security assumed.</li><li>Sponsor Bridge Security: Personal guarantee and negative pledge to be documented separately from the OpCo security package.</li></ul><h3>Repayment source</h3><p>Primary repayment is expected to come from operating cash flow shown in the uploaded financials. Any sponsor bridge, guarantee, property support or shareholder contribution should be documented separately and tested against its own repayment source.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+        </section>
+        <section id="facilities_requested" class="report-section section-facilities-requested">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">05</span> Facilities Requested</h2>
+            
+            <p>The facility terms below are the lender-screening structure used throughout the paper. The same amount, term, funding cost and repayment profile flow through the DSCR, ICR, LVR and debt-capacity calculations.</p><h3>Facility structure supplied</h3><ul><li>Transaction Structure: Acquisition and refinance debt are consolidated at HoldCo, with one senior term facility and a separate short-dated sponsor bridge.</li><li>Borrower Structure: New HoldCo owns the existing operating company and the acquired target; both OpCos remain trading entities and provide guarantees.</li><li>Ownership And Sponsor: Founder retains operating control; an incoming investor subscribes for a minority interest and contributes acquisition equity.</li><li>Acquisition Rationale: Adds recurring customer relationships, geographic coverage and operating capacity; integration benefits remain subject to diligence.</li><li>Refinance Context: Existing equipment debt is to be repaid at completion; payout letters and current lender security releases are required.</li><li>Facility Structure: Senior term facility plus a separate sponsor bridge; bridge repayment is not assumed in senior DSCR.</li><li>Security Structure: First-ranking GSA over the operating entities, cross-guarantees and shareholder support; no property security assumed.</li><li>Sponsor Bridge Security: Personal guarantee and negative pledge to be documented separately from the OpCo security package.</li></ul>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Facilities Requested detailed schedule</caption><thead><tr><th>Facility term</th><th>Proposed / supplied detail</th><th>Credit treatment</th></tr></thead><tbody><tr><td>Borrower / structure</td><td>New HoldCo owns the existing operating company and the acquired target; both OpCos remain trading entities and provide guarantees.</td><td>Confirm legal borrower, guarantors and obligors before credit committee.</td></tr><tr><td>Transaction / group structure</td><td>Acquisition and refinance debt are consolidated at HoldCo, with one senior term facility and a separate short-dated sponsor bridge.</td><td>Sets the legal perimeter, obligors and whether acquisition and refinance debt are consolidated.</td></tr><tr><td>Ownership and sponsor</td><td>Founder retains operating control; an incoming investor subscribes for a minority interest and contributes acquisition equity.</td><td>Confirms sponsor rollover, investor contribution, control and key-person continuity.</td></tr><tr><td>Acquisition rationale</td><td>Adds recurring customer relationships, geographic coverage and operating capacity; integration benefits remain subject to diligence.</td><td>Explains the commercial reason for the transaction and any claimed contract or synergy support.</td></tr><tr><td>Existing debt / refinance context</td><td>Existing equipment debt is to be repaid at completion; payout letters and current lender security releases are required.</td><td>Confirms which existing facilities are being repaid and whether security is being consolidated.</td></tr><tr><td>Facility type</td><td>Senior secured acquisition and refinance term facility</td><td>Used as the base structure for lender screening.</td></tr><tr><td>Facility structure</td><td>Senior term facility plus a separate sponsor bridge; bridge repayment is not assumed in senior DSCR.</td><td>Separates senior operating debt from any sponsor, bridge or ancillary facility.</td></tr><tr><td>Amount requested</td><td>$1,250,000</td><td>Compared with cash-flow, LVR, collateral and balance-sheet capacity.</td></tr><tr><td>Purpose</td><td>Acquisition of a complementary operating business and refinance of existing debt</td><td>Use of funds drives sources-and-uses and required diligence.</td></tr><tr><td>Term</td><td>5.0 years</td><td>Determines scheduled amortisation and DSCR pressure.</td></tr><tr><td>Repayment profile</td><td>principal and interest</td><td>Principal repayment is modelled unless interest-only is selected.</td></tr><tr><td>Conservative funding cost</td><td>8.50%</td><td>Used for cash interest, ICR and rate-stress sensitivity.</td></tr><tr><td>Annual interest</td><td>$106,250</td><td>Estimated annual cash interest on the requested facility.</td></tr><tr><td>Annual principal</td><td>$250,000</td><td>Straight-line annual principal where amortising.</td></tr><tr><td>Annual debt service</td><td>$356,250</td><td>Interest plus scheduled principal used in DSCR.</td></tr><tr><td>Source of repayment</td><td>Operating cash flow from the combined group, supported by recurring service revenue and post-completion management accounts.</td><td>Primary cash source to service interest, principal and any bridge repayment.</td></tr><tr><td>Security package</td><td>general security and guarantee</td><td>Controls LVR and collateral diligence requirements.</td></tr><tr><td>Target LVR / advance rate</td><td>60.0%</td><td>Conservative lender advance-rate assumption supplied by the user.</td></tr></tbody></table>
+            
+        </section>
+        <section id="security_package" class="report-section section-security-package">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">06</span> Security Package</h2>
+            
+            <p>Security is assessed by type, supplied value, target LVR, calculated LVR and the implied security value required where no appraisal is supplied. Fleet, property, GSA, guarantee and unsecured positions should each be confirmed with lender-form documents before committee.</p><h3>Security structure supplied</h3><ul><li>Transaction Structure: Acquisition and refinance debt are consolidated at HoldCo, with one senior term facility and a separate short-dated sponsor bridge.</li><li>Borrower Structure: New HoldCo owns the existing operating company and the acquired target; both OpCos remain trading entities and provide guarantees.</li><li>Ownership And Sponsor: Founder retains operating control; an incoming investor subscribes for a minority interest and contributes acquisition equity.</li><li>Acquisition Rationale: Adds recurring customer relationships, geographic coverage and operating capacity; integration benefits remain subject to diligence.</li><li>Refinance Context: Existing equipment debt is to be repaid at completion; payout letters and current lender security releases are required.</li><li>Facility Structure: Senior term facility plus a separate sponsor bridge; bridge repayment is not assumed in senior DSCR.</li><li>Security Structure: First-ranking GSA over the operating entities, cross-guarantees and shareholder support; no property security assumed.</li><li>Sponsor Bridge Security: Personal guarantee and negative pledge to be documented separately from the OpCo security package.</li></ul>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Security Package detailed schedule</caption><thead><tr><th>Security / LVR item</th><th>Value</th><th>Credit comment</th></tr></thead><tbody><tr><td>Security package</td><td>general security and guarantee</td><td>Confirms whether GSA, fleet, property, guarantee or unsecured treatment is being tested.</td></tr><tr><td>Security notes</td><td>General security over both OpCos, equipment register and guarantees; independent collateral confirmation required.</td><td>Operational detail to verify through PPSR, title, fleet schedule, property valuation or guarantees.</td></tr><tr><td>Security and guarantee structure</td><td>First-ranking GSA over the operating entities, cross-guarantees and shareholder support; no property security assumed.</td><td>Confirms GSAs, cross-guarantees, share pledges, property security and priority assumptions.</td></tr><tr><td>Supplied security value</td><td>$2,050,000</td><td>Used for calculated LVR where supplied.</td></tr><tr><td>Target LVR / advance rate</td><td>60.0%</td><td>Conservative advance-rate assumption used for debt-capacity screening.</td></tr><tr><td>Calculated LVR on supplied security</td><td>61.0%</td><td>Shows facility amount divided by supplied collateral value.</td></tr><tr><td>Transaction LVR / LTV</td><td>65.8%</td><td>Shows facility amount divided by supplied transaction or asset value where provided.</td></tr><tr><td>Implied security value needed</td><td>Not available</td><td>Security value implied by the requested amount and target LVR when no appraised value is supplied.</td></tr><tr><td>Lien / priority checks</td><td>Required before credit committee</td><td>PPSR, property title, prior-ranking debt, insurance and lender form-security documents required.</td></tr><tr><td>Sponsor bridge security</td><td>Personal guarantee and negative pledge to be documented separately from the OpCo security package.</td><td>Keep any personal bridge security separate from OpCo security and test its own enforceability.</td></tr></tbody></table>
+            
+        </section>
+        <section id="financial_performance_forecast" class="report-section section-financial-performance-forecast">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">07</span> Financial Performance &amp; Forecast</h2>
+            
+            <p>The uploaded trading history is the primary source for repayment capacity. The latest uploaded EBITDA is used as the credit anchor unless the user later supplies a lender-supported normalisation or QoE bridge.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Financial Performance &amp; Forecast detailed schedule</caption><thead><tr><th>Period</th><th class="numeric-cell">Revenue</th><th class="numeric-cell">EBITDA</th><th class="numeric-cell">Net profit</th><th class="numeric-cell">EBITDA margin</th></tr></thead><tbody><tr><td>2023</td><td class="numeric-cell">$2,800,000</td><td class="numeric-cell">$410,000</td><td class="numeric-cell">$228,000</td><td class="numeric-cell">14.6%</td></tr><tr><td>2024</td><td class="numeric-cell">$3,250,000</td><td class="numeric-cell">$505,000</td><td class="numeric-cell">$300,000</td><td class="numeric-cell">15.5%</td></tr><tr><td>2025</td><td class="numeric-cell">$3,760,000</td><td class="numeric-cell">$620,000</td><td class="numeric-cell">$382,000</td><td class="numeric-cell">16.5%</td></tr></tbody></table>
+            
+        </section>
+        <section id="coverage_and_sensitivity" class="report-section section-coverage-and-sensitivity">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">08</span> Coverage Ratios &amp; Sensitivity</h2>
+            
+            <p>Coverage and sensitivity are calculated from uploaded EBITDA and the requested funding terms. The table shows base coverage, rate stress and EBITDA downside. The amortisation profile then shows how leverage reduces through the proposed term where principal is scheduled.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Coverage Ratios &amp; Sensitivity detailed schedule</caption><thead><tr><th>Case</th><th class="numeric-cell">EBITDA</th><th class="numeric-cell">Funding cost</th><th class="numeric-cell">Cash interest</th><th class="numeric-cell">Annual principal</th><th class="numeric-cell">DSCR</th><th class="numeric-cell">ICR</th></tr></thead><tbody><tr><td>Base case</td><td class="numeric-cell">$620,000</td><td class="numeric-cell">8.50%</td><td class="numeric-cell">$106,250</td><td class="numeric-cell">$250,000</td><td class="numeric-cell">1.74x</td><td class="numeric-cell">5.84x</td></tr><tr><td>Rate stress +1.50%</td><td class="numeric-cell">$620,000</td><td class="numeric-cell">10.00%</td><td class="numeric-cell">$125,000</td><td class="numeric-cell">$250,000</td><td class="numeric-cell">1.65x</td><td class="numeric-cell">4.96x</td></tr><tr><td>EBITDA downside -10%</td><td class="numeric-cell">$558,000</td><td class="numeric-cell">8.50%</td><td class="numeric-cell">$106,250</td><td class="numeric-cell">$250,000</td><td class="numeric-cell">1.57x</td><td class="numeric-cell">5.25x</td></tr><tr><td>EBITDA downside -20%</td><td class="numeric-cell">$496,000</td><td class="numeric-cell">8.50%</td><td class="numeric-cell">$106,250</td><td class="numeric-cell">$250,000</td><td class="numeric-cell">1.39x</td><td class="numeric-cell">4.67x</td></tr></tbody></table><h3>P&amp;I leverage profile</h3><table class='report-table'><caption>P&amp;I leverage profile</caption><thead><tr><th>Period</th><th class="numeric-cell">Opening debt</th><th class="numeric-cell">Principal</th><th class="numeric-cell">Interest</th><th class="numeric-cell">Closing debt</th><th class="numeric-cell">Debt / EBITDA</th></tr></thead><tbody><tr><td>Year 1</td><td class="numeric-cell">$1,250,000</td><td class="numeric-cell">$250,000</td><td class="numeric-cell">$106,250</td><td class="numeric-cell">$1,000,000</td><td class="numeric-cell">2.02x</td></tr><tr><td>Year 2</td><td class="numeric-cell">$1,000,000</td><td class="numeric-cell">$250,000</td><td class="numeric-cell">$85,000</td><td class="numeric-cell">$750,000</td><td class="numeric-cell">1.61x</td></tr><tr><td>Year 3</td><td class="numeric-cell">$750,000</td><td class="numeric-cell">$250,000</td><td class="numeric-cell">$63,750</td><td class="numeric-cell">$500,000</td><td class="numeric-cell">1.21x</td></tr><tr><td>Year 4</td><td class="numeric-cell">$500,000</td><td class="numeric-cell">$250,000</td><td class="numeric-cell">$42,500</td><td class="numeric-cell">$250,000</td><td class="numeric-cell">0.81x</td></tr><tr><td>Year 5</td><td class="numeric-cell">$250,000</td><td class="numeric-cell">$250,000</td><td class="numeric-cell">$21,250</td><td class="numeric-cell">$0</td><td class="numeric-cell">0.40x</td></tr></tbody></table>
+            
+        </section>
+        <section id="balance_sheet_debt_capacity" class="report-section section-balance-sheet-debt-capacity">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">09</span> Balance Sheet &amp; Debt Capacity</h2>
+            
+            <p>The balance-sheet section shows the main operating assets and liabilities a lender needs to see: accounts receivable, stock, fixed assets, accounts payable, short-term debt, long-term debt, operating working capital and NTOA. NTOA is used here as a tangible operating asset proxy, not as a formal collateral valuation. Where the uploaded pack does not include a balance sheet, the section remains visible and the missing schedules become committee conditions.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Balance Sheet &amp; Debt Capacity detailed schedule</caption><thead><tr><th>Balance-sheet item</th><th class="numeric-cell">Latest extracted value</th><th>Credit relevance</th></tr></thead><tbody><tr><td>Cash</td><td class="numeric-cell">$185,000</td><td>Immediate liquidity and net-debt offset.</td></tr><tr><td>Accounts receivable</td><td class="numeric-cell">$410,000</td><td>Core working-capital asset and borrowing-base support, subject to aging and eligibility.</td></tr><tr><td>Stock / inventory</td><td class="numeric-cell">$95,000</td><td>Potential asset support if saleable and lender-eligible.</td></tr><tr><td>Fixed assets</td><td class="numeric-cell">$520,000</td><td>Tangible asset support for fleet, equipment or plant security where appraisals are available.</td></tr><tr><td>Accounts payable</td><td class="numeric-cell">$260,000</td><td>Operating liabilities that reduce net tangible operating asset support.</td></tr><tr><td>Short-term debt</td><td class="numeric-cell">$95,000</td><td>Current interest-bearing obligations and refinance risk.</td></tr><tr><td>Long-term debt</td><td class="numeric-cell">$280,000</td><td>Term borrowings that affect leverage and security priority.</td></tr><tr><td>Operating working capital</td><td class="numeric-cell">$165,000</td><td>Receivables plus stock and other operating current assets less operating current liabilities.</td></tr><tr><td>NTOA</td><td class="numeric-cell">$685,000</td><td>Net tangible operating assets used as a balance-sheet strength proxy before formal collateral valuation.</td></tr><tr><td>Borrowing-base proxy</td><td class="numeric-cell">$615,000</td><td>Illustrative 75% receivables, 50% stock and 50% fixed-asset support before lender eligibility checks.</td></tr></tbody></table><h3>Debt-capacity constraints</h3><table class='report-table'><caption>Debt-capacity constraints</caption><thead><tr><th>Constraint</th><th class="numeric-cell">Supportable debt</th><th>Basis</th><th>Binding</th><th>Caveat</th></tr></thead><tbody><tr><td>Leverage limit</td><td class="numeric-cell">$1,550,000</td><td>2.50x latest uploaded EBITDA</td><td>No</td><td>Illustrative senior-debt leverage ceiling; final appetite depends on business quality and lender policy.</td></tr><tr><td>Interest-cover limit</td><td class="numeric-cell">$2,431,373</td><td>3.00x minimum interest cover at 8.50% funding cost</td><td>No</td><td>Uses EBITDA / cash interest as a lender-view proxy.</td></tr><tr><td>DSCR / debt-service limit</td><td class="numeric-cell">$1,553,885</td><td>1.40x minimum DSCR over a 5.0-year term</td><td>No</td><td>Uses straight-line amortisation unless the intake marks the facility as interest-only.</td></tr><tr><td>Collateral / LVR limit</td><td class="numeric-cell">$1,230,000</td><td>60.0% LVR on supplied security value</td><td>No</td><td>Requires actual security valuation, ownership, lien priority and lender eligibility checks.</td></tr><tr><td>Balance-sheet / NTOA support</td><td class="numeric-cell">$513,750</td><td>75% of net tangible operating assets from uploaded balance-sheet items</td><td>Yes</td><td>NTOA is an operating balance-sheet strength proxy, not a formal collateral valuation.</td></tr></tbody></table>
+            
+        </section>
+        <section id="industry_and_competitive_landscape" class="report-section section-industry-and-competitive-landscape">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">10</span> Industry &amp; Competitive Landscape</h2>
+            
+            <h3>Sector context</h3><p>Demo-mode sector context for Business services is illustrative. Use a live AI key before relying on public-source market commentary.</p><h3>Credit relevance</h3><p>In a live run this section should be supported by public-source research into the borrower, sector, competitors, regulation, contracts, cyclicality and local operating footprint. In demo mode, treat the sector narrative as illustrative and rely on the uploaded financials for quantitative conclusions.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Industry &amp; Competitive Landscape detailed schedule</caption><thead><tr><th>Market evidence</th><th>Status</th><th>Credit use</th></tr></thead><tbody><tr><td>Sector and macro context</td><td>Illustrative demo context</td><td>Test demand, pricing and cost sensitivities before credit reliance.</td></tr></tbody></table>
+            
+        </section>
+        <section id="proposed_covenants" class="report-section section-proposed-covenants">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">11</span> Proposed Covenants</h2>
+            
+            <p>The covenants below are proposed lender controls only. They are not agreed terms and should be checked against the bank&#x27;s credit policy, facility type, borrower size and final EBITDA definition. The selected package is Balanced, covering Minimum DSCR, Minimum interest cover, Maximum senior leverage, No additional debt, Information reporting. User notes: Keep the senior package measurable and testable; bridge controls remain separate until repayment is documented.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Proposed Covenants detailed schedule</caption><thead><tr><th>Covenant / control</th><th>Proposed threshold or requirement</th><th>Mechanics / headroom</th><th>Why it matters</th></tr></thead><tbody><tr><td>Minimum DSCR</td><td>&gt;= 1.40x</td><td>Test quarterly on trailing 12-month lender EBITDA / cash interest plus scheduled principal.</td><td>Protects principal and interest serviceability.</td></tr><tr><td>Minimum interest cover</td><td>&gt;= 3.00x</td><td>Test lender EBITDA / cash interest; base and rate-stress cases are shown in the coverage table.</td><td>Protects rate-risk headroom where interest cost moves against the borrower.</td></tr><tr><td>Maximum senior leverage</td><td>&lt;= 2.50x</td><td>Debt / latest uploaded EBITDA until formal lender EBITDA and permitted adjustments are agreed.</td><td>Constrains over-leverage and keeps debt sized to maintainable cash earnings.</td></tr><tr><td>No additional debt</td><td>No new financial indebtedness without lender consent</td><td>Permit ordinary-course trade creditors but restrict new loans, leases, asset finance or subordinated debt.</td><td>Prevents security dilution, hidden leverage and cash-flow leakage.</td></tr><tr><td>Information reporting</td><td>Monthly management accounts; annual accounts; compliance certificate</td><td>Timing, template and officer certification to be agreed with the bank.</td><td>Lets the lender monitor trading, covenant headroom and early-warning indicators.</td></tr></tbody></table>
+            
+        </section>
+        <section id="key_risks_and_mitigants" class="report-section section-key-risks-and-mitigants">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">12</span> Key Risks &amp; Mitigants</h2>
+            
+            <p>The key risks and mitigants are framed for credit committee: what could impair repayment, what protects the lender, and which conditions are required before reliance.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Key Risks &amp; Mitigants detailed schedule</caption><thead><tr><th>Risk</th><th>Credit impact</th><th>Mitigant / condition</th></tr></thead><tbody><tr><td>Trading variance</td><td>Lower EBITDA reduces DSCR, ICR and leverage headroom.</td><td>Anchor the credit case on the latest uploaded EBITDA and require monthly management accounts before committee.</td></tr><tr><td>Interest-rate sensitivity</td><td>Higher funding cost compresses ICR and DSCR.</td><td>Use the conservative funding cost and +1.50% rate stress; consider hedging or fixed-rate tranche if bank policy requires.</td></tr><tr><td>Collateral value / lien priority</td><td>LVR support can fail if fleet/property values are stale or prior-ranking debt exists.</td><td>Require appraisals, PPSR/title searches, insurance, and bank-form security documents.</td></tr><tr><td>Balance-sheet support</td><td>Weak receivables, stock or fixed-asset support can make NTOA debt capacity binding.</td><td>Require AR/AP/stock aging, debt schedule and fixed-asset/fleet register.</td></tr><tr><td>Documentation and committee readiness</td><td>The paper is screening-only without signed terms, debt schedules, tax position and security documents.</td><td>Treat missing documents as conditions precedent before credit committee.</td></tr><tr><td>Management / key-person dependence</td><td>Owner/operator reliance can affect continuity and repayment source.</td><td>Confirm management bench, succession cover, key-person insurance and guarantor support where relevant.</td></tr></tbody></table>
+            
+        </section>
+        <section id="conditions_precedent" class="report-section section-conditions-precedent">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">13</span> Conditions Precedent</h2>
+            
+            <p>These items are required before the paper could move from screening-only to bank credit committee. They are deliberately specific so the user can see what evidence is missing.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Conditions Precedent detailed schedule</caption><thead><tr><th>Priority</th><th>Required before credit committee</th><th>Why it matters</th><th>Likely source / owner</th></tr></thead><tbody><tr><td>1</td><td>Latest management accounts and final FY financial statements</td><td>Confirms the EBITDA anchor, trading trend and cash conversion.</td><td>Borrower / accountant</td></tr><tr><td>1</td><td>Current debt schedule, payout letters and lender statements</td><td>Confirms existing debt, refinance need, pricing and security priority.</td><td>Borrower / existing lender</td></tr><tr><td>1</td><td>Signed or draft term sheet with facility amount, tenor, pricing, fees and repayment profile</td><td>Locks the structure tested in the paper.</td><td>Bank / borrower</td></tr><tr><td>1</td><td>Security schedule: fleet/equipment list, property title, PPSR searches and appraisals where applicable</td><td>Confirms collateral value, ownership and lien priority.</td><td>Borrower / valuer / solicitor</td></tr><tr><td>2</td><td>AR, AP and stock aging reports</td><td>Tests working-capital quality and borrowing-base eligibility.</td><td>Borrower / accountant</td></tr><tr><td>2</td><td>Tax status, GST/PAYE position and insurance certificates</td><td>Identifies leakage, arrears and asset-protection issues.</td><td>Borrower / accountant / broker</td></tr><tr><td>2</td><td>Companies Office extracts, ownership chart and guarantor information</td><td>Confirms borrower perimeter and guarantee/security parties.</td><td>Solicitor / borrower</td></tr><tr><td>3</td><td>Customer, contract, fleet, property or integration diligence relevant to the loan purpose</td><td>Supports risks and mitigants specific to the transaction.</td><td>Borrower / adviser</td></tr></tbody></table>
+            
+        </section>
+        <section id="recommendation" class="report-section section-recommendation">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">14</span> Recommendation</h2>
+            
+            <p>We recommend treating this as a screening-only credit paper until the conditions precedent are cleared. On the uploaded financials and supplied facility assumptions, the requested facility of $1,250,000 requires revised structure or additional support before committee; calculated supportable debt is $513,750 with headroom / shortfall of $-736,250. The binding constraint is Balance-sheet / NTOA support. The lender should proceed only if collateral, debt schedules, covenant definitions, tax status, management accounts and security documents support the structure.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            <table class='report-table'><caption>Recommendation detailed schedule</caption><thead><tr><th>Metric</th><th class="numeric-cell">Base case</th><th>Threshold / interpretation</th><th>Comment</th></tr></thead><tbody><tr><td>Latest uploaded EBITDA</td><td class="numeric-cell">$620,000</td><td>Credit anchor</td><td>Based on 2025.</td></tr><tr><td>Requested senior debt</td><td class="numeric-cell">$1,250,000</td><td>Facility amount</td><td>Compared with EBITDA, debt service, LVR and NTOA constraints.</td></tr><tr><td>Senior leverage</td><td class="numeric-cell">2.02x</td><td>Illustrative max 2.50x</td><td>Debt divided by latest uploaded EBITDA.</td></tr><tr><td>Base ICR</td><td class="numeric-cell">5.84x</td><td>Minimum 3.00x</td><td>EBITDA divided by cash interest.</td></tr><tr><td>Base DSCR</td><td class="numeric-cell">1.74x</td><td>Minimum 1.40x</td><td>EBITDA divided by cash interest plus scheduled principal.</td></tr><tr><td>Target LVR</td><td class="numeric-cell">60.0%</td><td>Security advance-rate assumption</td><td>Must be confirmed against lender collateral policy.</td></tr><tr><td>Supportable debt</td><td class="numeric-cell">$513,750</td><td>Minimum of capacity constraints</td><td>The binding constraint should drive the recommended structure.</td></tr><tr><td>Headroom / shortfall</td><td class="numeric-cell">$-736,250</td><td>Positive is headroom</td><td>Supportable debt less requested debt.</td></tr><tr><td>Binding constraint</td><td class="numeric-cell">Balance-sheet / NTOA support</td><td>Most conservative available limit</td><td>Use this as the credit sizing conclusion unless overridden by bank policy.</td></tr></tbody></table>
+            
+        </section>
+        <section id="disclaimer" class="report-section disclaimer section-disclaimer">
+            <span class="section-kicker">AccountIQ bank credit paper</span>
+            <h2><span class="section-number">15</span> Disclaimer</h2>
+            
+            <p>This demo bank credit paper is indicative only and has been prepared for testing the AccountIQ workflow. It does not constitute financial advice, credit approval, a bank commitment, legal advice or tax advice, should not be relied on as a substitute for independent professional advice, and is subject to the Financial Markets Conduct Act / FMCA context. A lender should complete its own credit assessment, due diligence, security review and approval process.</p>
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+        </section>
+</main></body></html>
