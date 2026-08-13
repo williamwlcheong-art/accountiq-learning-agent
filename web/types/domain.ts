@@ -42,6 +42,7 @@ export type ReportStatus = {
   created_at: string;
   completed_at: string | null;
   demo_mode?: boolean;
+  generation_mode?: "provider" | "evidence" | "demo";
 };
 
 export type ApiErrorBody = {

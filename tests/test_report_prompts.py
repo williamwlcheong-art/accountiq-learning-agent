@@ -269,7 +269,7 @@ def test_build_prompt_valuation_includes_table_instruction():
     assert "Propellerhead and Marina Terrace indicative valuation report standard" in usr
     assert "Propellerhead/Bayleys" not in usr
     assert "Public Research Brief" in usr
-    assert "Claude-researched" not in usr
+    assert "OpenAI-researched" not in usr
     assert "DCF Scenarios" in usr or "dcf_scenarios" in usr
     assert "Owner salary" in usr
     assert '"maintenance_capex": 120000' in usr
@@ -650,10 +650,12 @@ def test_build_prompt_other_report_types_unchanged_format():
 
 
 def test_table_sections_cover_all_quantitative_valuation_schedules():
-    assert len(TABLE_SECTIONS_VALUATION) == 13
+    assert len(TABLE_SECTIONS_VALUATION) == 14
     assert set(TABLE_SECTIONS_VALUATION).issubset(set(SECTION_SCHEMAS["valuation_advisory"]))
     assert "sources" in TABLE_SECTIONS_VALUATION
-    assert set(VALUATION_TABLE_SCHEDULE_KEYS) == set(TABLE_SECTIONS_VALUATION)
+    assert set(VALUATION_TABLE_SCHEDULE_KEYS) == (
+        set(TABLE_SECTIONS_VALUATION) - {"market_position"}
+    )
     assert VALUATION_REQUIRED_SUBTABLE_SCHEDULE_KEYS == {
         "dcf_analysis.cash_flow_schedule": "forecast_cash_flow_schedule",
         "sensitivity_and_risks.specific_risk_factors": "specific_risk_factors",

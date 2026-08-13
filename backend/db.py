@@ -43,8 +43,8 @@ CREATE TABLE IF NOT EXISTS documents (
     page_count      INTEGER,
     has_ocr         INTEGER DEFAULT 0,       -- 1 if OCR was needed
     extraction_status TEXT DEFAULT 'pending', -- pending | processing | done | failed
-    extraction_model  TEXT,                  -- claude model used
-    raw_claude_response TEXT,               -- full JSON from Claude
+    extraction_model  TEXT,                  -- rule-based or live provider model used
+    raw_provider_response TEXT,              -- full JSON from the live provider
     confidence_score  REAL,                 -- 0–1 overall confidence
     created_at      TEXT    DEFAULT (datetime('now')),
     updated_at      TEXT    DEFAULT (datetime('now'))
@@ -128,6 +128,9 @@ def _migrate_db(conn: sqlite3.Connection):
     for sql in [
         "ALTER TABLE documents ADD COLUMN narrative TEXT",
         "ALTER TABLE documents ADD COLUMN reporting_standard TEXT DEFAULT 'UNKNOWN'",
+        # Provider-neutral live extraction payload. Existing installations retain
+        # their historical raw-response column for backwards compatibility.
+        "ALTER TABLE documents ADD COLUMN raw_provider_response TEXT",
         # Phase 2: user ownership columns
         "ALTER TABLE companies ADD COLUMN user_id INTEGER",
         "ALTER TABLE documents ADD COLUMN user_id INTEGER",
@@ -247,12 +250,22 @@ def _migrate_db(conn: sqlite3.Connection):
             content         TEXT,
             error_message   TEXT,
             demo_mode       INTEGER DEFAULT 0,
+            generation_mode TEXT    DEFAULT 'provider',
+            research_evidence TEXT,
             created_at      TEXT    DEFAULT (datetime('now')),
             completed_at    TEXT
         )
     """)
     try:
         conn.execute("ALTER TABLE reports ADD COLUMN demo_mode INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE reports ADD COLUMN generation_mode TEXT DEFAULT 'provider'")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE reports ADD COLUMN research_evidence TEXT")
     except sqlite3.OperationalError:
         pass
     conn.execute("""

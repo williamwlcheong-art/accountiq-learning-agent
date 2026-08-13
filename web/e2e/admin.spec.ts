@@ -44,4 +44,8 @@ test("owner email registers as admin and can use admin workflows", async ({ page
 
   await page.getByRole("link", { name: /financials/i }).click();
   await expect(page.getByText(/revenue/i)).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole("link", { name: /settings/i }).click();
+  await expect(page.getByLabel(/openai api key/i)).toBeVisible();
+  await expect(page.getByLabel(/openai model/i)).toHaveValue("gpt-5.4-mini");
 });

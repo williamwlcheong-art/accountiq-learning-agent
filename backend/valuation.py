@@ -7,7 +7,7 @@ Refactored per D-W1/D-W2/D-W5/D-W6:
   - compute_wacc_scenarios() added for High/Mid/Low WACC from researched inputs
   - compute_dcf() and compute_illiquidity_discount() retained verbatim
 
-All computation is deterministic Python. Claude receives the output dict and writes narrative only.
+All computation is deterministic Python. The live provider receives the output dict and writes narrative only.
 """
 from __future__ import annotations
 import math

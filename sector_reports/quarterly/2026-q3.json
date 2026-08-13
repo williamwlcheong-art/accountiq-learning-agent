@@ -1,0 +1,418 @@
+{
+  "schema_version": "1.0",
+  "snapshot_id": "nz-market-intelligence-2026-q3",
+  "quarter": "2026 Q3",
+  "geography": "New Zealand",
+  "as_of_date": "2026-07-27",
+  "next_review_date": "2026-10-26",
+  "usage_boundary": "This is a generic New Zealand market baseline. It is not evidence of the subject company's performance, market share, equity value, enterprise value or addressable market. Sector monetary measures are broad nominal turnover proxies and must be read with their stated industry boundary.",
+  "economy_summary": {
+    "headline": "Activity is recovering, but the June fuel shock has lifted headline inflation and interrupted the easing cycle.",
+    "narrative": "New Zealand real GDP expanded 0.8% in the March 2026 quarter and was 0.8% higher than a year earlier. Annual CPI inflation then rose to 4.1% in the June 2026 quarter, with petrol and diesel the dominant contributors; excluding those fuels, annual CPI rose 2.9%. The Reserve Bank increased the OCR to 2.50% on 8 July 2026. Net migration has improved from its 2025 lows but remains well below the exceptional gains of 2023-24, while the provisional population reached 5.361 million at 31 March 2026. The unemployment rate was 5.3% in the March 2026 quarter.",
+    "valuation_implications": "The recovery in activity can support revenue expectations, but higher near-term inflation and funding costs warrant caution in nominal growth, working-capital and discount-rate assumptions. Forecasts should separate volume, price and fuel-sensitive effects rather than extrapolating headline inflation.",
+    "credit_implications": "Borrowers face a mixed environment: improving activity and migration can support demand, while fuel, electricity, rates and interest costs can pressure margins and debt service. Lenders should test pricing pass-through, liquidity headroom and coverage at both higher funding costs and lower EBITDA."
+  },
+  "macro_indicators": [
+    {
+      "id": "cpi",
+      "label": "Annual CPI inflation",
+      "value": 4.1,
+      "unit": "%",
+      "period": "June 2026 quarter",
+      "published_date": "2026-07-21",
+      "source_id": "stats_nz_cpi",
+      "commentary": "Headline inflation was fuel-led; annual inflation excluding petrol and diesel was 2.9%."
+    },
+    {
+      "id": "ocr",
+      "label": "Official Cash Rate",
+      "value": 2.5,
+      "unit": "%",
+      "period": "8 July 2026",
+      "published_date": "2026-07-08",
+      "source_id": "rbnz_ocr",
+      "commentary": "The OCR is the current policy rate, not a borrower funding rate or valuation risk-free rate."
+    },
+    {
+      "id": "gdp_qoq",
+      "label": "Real GDP growth",
+      "value": 0.8,
+      "unit": "% q/q",
+      "period": "March 2026 quarter",
+      "published_date": "2026-06-18",
+      "source_id": "stats_nz_gdp",
+      "commentary": "Production GDP grew 0.8% quarter-on-quarter and 0.8% year-on-year."
+    },
+    {
+      "id": "net_migration",
+      "label": "Annual net migration",
+      "value": 18800,
+      "unit": "people",
+      "period": "Year ended May 2026",
+      "published_date": "2026-07-14",
+      "source_id": "stats_nz_migration",
+      "commentary": "Provisional rolling annual net migration gain; Stats NZ reported an uncertainty interval of plus or minus 1,600."
+    },
+    {
+      "id": "population",
+      "label": "Estimated population",
+      "value": 5361300,
+      "unit": "people",
+      "period": "31 March 2026",
+      "published_date": "2026-05-18",
+      "source_id": "stats_nz_population",
+      "commentary": "Provisional national population estimate."
+    },
+    {
+      "id": "unemployment",
+      "label": "Unemployment rate",
+      "value": 5.3,
+      "unit": "%",
+      "period": "March 2026 quarter",
+      "published_date": "2026-05-06",
+      "source_id": "stats_nz_unemployment",
+      "commentary": "Seasonally adjusted unemployment rate; 163,000 people were unemployed."
+    }
+  ],
+  "charts": [
+    {
+      "id": "inflation_and_ocr",
+      "title": "Annual CPI inflation and Official Cash Rate",
+      "subtitle": "Headline inflation accelerated in June 2026 as the OCR moved higher in July.",
+      "type": "line",
+      "unit": "%",
+      "source_ids": ["stats_nz_cpi", "rbnz_ocr"],
+      "series": [
+        {
+          "name": "Annual CPI",
+          "values": [
+            {"period": "Sep 24", "value": 2.2},
+            {"period": "Dec 24", "value": 2.2},
+            {"period": "Mar 25", "value": 2.5},
+            {"period": "Jun 25", "value": 2.7},
+            {"period": "Sep 25", "value": 3.0},
+            {"period": "Dec 25", "value": 3.1},
+            {"period": "Mar 26", "value": 3.1},
+            {"period": "Jun 26", "value": 4.1}
+          ]
+        },
+        {
+          "name": "OCR at quarter end",
+          "values": [
+            {"period": "Sep 24", "value": 5.25},
+            {"period": "Dec 24", "value": 4.25},
+            {"period": "Mar 25", "value": 3.75},
+            {"period": "Jun 25", "value": 3.25},
+            {"period": "Sep 25", "value": 3.0},
+            {"period": "Dec 25", "value": 2.25},
+            {"period": "Mar 26", "value": 2.25},
+            {"period": "Jun 26", "value": 2.25}
+          ]
+        }
+      ],
+      "note": "The current OCR is 2.50% from 8 July 2026; the chart uses quarter-end observations for a consistent time axis."
+    },
+    {
+      "id": "gdp_growth",
+      "title": "Quarterly real GDP growth",
+      "subtitle": "The March 2026 quarter extended the uneven recovery in economic activity.",
+      "type": "line",
+      "unit": "% q/q",
+      "source_ids": ["stats_nz_gdp"],
+      "series": [
+        {
+          "name": "Real GDP growth",
+          "values": [
+            {"period": "Jun 24", "value": -0.5},
+            {"period": "Sep 24", "value": -1.2},
+            {"period": "Dec 24", "value": 0.1},
+            {"period": "Mar 25", "value": 0.9},
+            {"period": "Jun 25", "value": -0.7},
+            {"period": "Sep 25", "value": 0.9},
+            {"period": "Dec 25", "value": 0.5},
+            {"period": "Mar 26", "value": 0.8}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "net_migration",
+      "title": "Rolling annual net migration",
+      "subtitle": "The annual gain has recovered from its 2025 low but remains modest in recent historical context.",
+      "type": "line",
+      "unit": "people",
+      "source_ids": ["stats_nz_migration"],
+      "series": [
+        {
+          "name": "Net migration gain",
+          "values": [
+            {"period": "Jun 25", "value": 10472},
+            {"period": "Jul 25", "value": 10044},
+            {"period": "Aug 25", "value": 9632},
+            {"period": "Sep 25", "value": 10383},
+            {"period": "Oct 25", "value": 11195},
+            {"period": "Nov 25", "value": 11368},
+            {"period": "Dec 25", "value": 11784},
+            {"period": "Jan 26", "value": 13945},
+            {"period": "Feb 26", "value": 13942},
+            {"period": "Mar 26", "value": 15640},
+            {"period": "Apr 26", "value": 17517},
+            {"period": "May 26", "value": 18813}
+          ]
+        }
+      ],
+      "note": "The latest estimate is provisional and subject to revision."
+    }
+  ],
+  "sector_scale": {
+    "logistics": {
+      "boundary_label": "Transport, Postal and Warehousing",
+      "measure_kind": "sector_turnover_proxy",
+      "measure_label": "Four-quarter sector sales",
+      "latest_period": "March 2026 quarter",
+      "rolling_four_quarter_nzd_m": 43249.841,
+      "prior_four_quarter_nzd_m": 41707.474,
+      "annual_change_pct": 3.7,
+      "latest_quarter_nzd_m": 11044.371,
+      "series_reference": "BDCQ.SF1II1CS",
+      "confidence": "moderate",
+      "interpretation": "Nominal sales increased over the latest four quarters, indicating a broad operating market with positive current-price growth.",
+      "limitations": "The source boundary is broader than towing, recovery, freight or logistics sub-sectors and includes inter-industry sales. It is not addressable market, market share or company value.",
+      "series": [
+        {"period": "Jun 24", "value": 10390.628}, {"period": "Sep 24", "value": 10296.198},
+        {"period": "Dec 24", "value": 10431.084}, {"period": "Mar 25", "value": 10589.564},
+        {"period": "Jun 25", "value": 10536.731}, {"period": "Sep 25", "value": 10689.490},
+        {"period": "Dec 25", "value": 10979.249}, {"period": "Mar 26", "value": 11044.371}
+      ]
+    },
+    "construction": {
+      "boundary_label": "Construction",
+      "measure_kind": "sector_turnover_proxy",
+      "measure_label": "Four-quarter sector sales",
+      "latest_period": "March 2026 quarter",
+      "rolling_four_quarter_nzd_m": 92061.750,
+      "prior_four_quarter_nzd_m": 93375.404,
+      "annual_change_pct": -1.4,
+      "latest_quarter_nzd_m": 23807.399,
+      "series_reference": "BDCQ.SF1EE1CS",
+      "confidence": "moderate",
+      "interpretation": "The latest quarter improved, but four-quarter nominal sales remained below the preceding four quarters.",
+      "limitations": "This broad construction boundary combines residential, commercial, civil and trade activity. It is not a measure of the subject company's market.",
+      "series": [
+        {"period": "Jun 24", "value": 24047.415}, {"period": "Sep 24", "value": 23462.526},
+        {"period": "Dec 24", "value": 22885.066}, {"period": "Mar 25", "value": 22980.397},
+        {"period": "Jun 25", "value": 22340.525}, {"period": "Sep 25", "value": 22730.938},
+        {"period": "Dec 25", "value": 23182.888}, {"period": "Mar 26", "value": 23807.399}
+      ]
+    },
+    "retail": {
+      "boundary_label": "Retail Trade",
+      "measure_kind": "sector_turnover_proxy",
+      "measure_label": "Four-quarter sector sales",
+      "latest_period": "March 2026 quarter",
+      "rolling_four_quarter_nzd_m": 103234.742,
+      "prior_four_quarter_nzd_m": 98875.905,
+      "annual_change_pct": 4.4,
+      "latest_quarter_nzd_m": 26449.811,
+      "series_reference": "BDCQ.SF1GH1CS",
+      "confidence": "moderate",
+      "interpretation": "Broad nominal retail sales strengthened through the latest four quarters.",
+      "limitations": "The industry boundary includes multiple retail formats and does not adjust for inflation, channel mix or the subject company's product category.",
+      "series": [
+        {"period": "Jun 24", "value": 24612.385}, {"period": "Sep 24", "value": 24449.102},
+        {"period": "Dec 24", "value": 24719.988}, {"period": "Mar 25", "value": 25094.430},
+        {"period": "Jun 25", "value": 25185.661}, {"period": "Sep 25", "value": 25632.728},
+        {"period": "Dec 25", "value": 25966.542}, {"period": "Mar 26", "value": 26449.811}
+      ]
+    },
+    "hospitality": {
+      "boundary_label": "Accommodation and Food Services",
+      "measure_kind": "sector_turnover_proxy",
+      "measure_label": "Four-quarter sector sales",
+      "latest_period": "March 2026 quarter",
+      "rolling_four_quarter_nzd_m": 22518.645,
+      "prior_four_quarter_nzd_m": 21304.355,
+      "annual_change_pct": 5.7,
+      "latest_quarter_nzd_m": 5862.199,
+      "series_reference": "BDCQ.SF1GH2CS",
+      "confidence": "moderate",
+      "interpretation": "Nominal accommodation and food-service sales increased over the latest four quarters.",
+      "limitations": "The boundary combines accommodation and food services and does not distinguish tourism, venue, geographic or format differences.",
+      "series": [
+        {"period": "Jun 24", "value": 5205.701}, {"period": "Sep 24", "value": 5205.335},
+        {"period": "Dec 24", "value": 5470.729}, {"period": "Mar 25", "value": 5422.590},
+        {"period": "Jun 25", "value": 5427.609}, {"period": "Sep 25", "value": 5521.492},
+        {"period": "Dec 25", "value": 5707.345}, {"period": "Mar 26", "value": 5862.199}
+      ]
+    },
+    "manufacturing": {
+      "boundary_label": "Manufacturing",
+      "measure_kind": "sector_turnover_proxy",
+      "measure_label": "Four-quarter sector sales",
+      "latest_period": "March 2026 quarter",
+      "rolling_four_quarter_nzd_m": 138059.727,
+      "prior_four_quarter_nzd_m": 131095.215,
+      "annual_change_pct": 5.3,
+      "latest_quarter_nzd_m": 35614.441,
+      "series_reference": "BDCQ.SF1CCCS",
+      "confidence": "moderate",
+      "interpretation": "Manufacturing nominal sales improved across the latest four-quarter period.",
+      "limitations": "Manufacturing contains diverse sub-industries with different input costs, export exposure, capital intensity and margins.",
+      "series": [
+        {"period": "Jun 24", "value": 31925.683}, {"period": "Sep 24", "value": 31861.785},
+        {"period": "Dec 24", "value": 33034.309}, {"period": "Mar 25", "value": 34273.438},
+        {"period": "Jun 25", "value": 33453.586}, {"period": "Sep 25", "value": 34353.003},
+        {"period": "Dec 25", "value": 34638.697}, {"period": "Mar 26", "value": 35614.441}
+      ]
+    },
+    "professional_services": {
+      "boundary_label": "Professional, Scientific and Technical Services",
+      "measure_kind": "sector_turnover_proxy",
+      "measure_label": "Four-quarter sector sales",
+      "latest_period": "March 2026 quarter",
+      "rolling_four_quarter_nzd_m": 61848.712,
+      "prior_four_quarter_nzd_m": 59001.430,
+      "annual_change_pct": 4.8,
+      "latest_quarter_nzd_m": 15810.925,
+      "series_reference": "BDCQ.SF1MN1CS",
+      "confidence": "moderate",
+      "interpretation": "Nominal professional-services sales increased over the latest four quarters.",
+      "limitations": "The source combines professional, scientific and technical activities and is wider than any individual advisory or technical niche.",
+      "series": [
+        {"period": "Jun 24", "value": 14736.096}, {"period": "Sep 24", "value": 14561.561},
+        {"period": "Dec 24", "value": 14643.680}, {"period": "Mar 25", "value": 15060.093},
+        {"period": "Jun 25", "value": 15060.003}, {"period": "Sep 25", "value": 15464.582},
+        {"period": "Dec 25", "value": 15513.202}, {"period": "Mar 26", "value": 15810.925}
+      ]
+    },
+    "early_childhood_education_and_care": {
+      "boundary_label": "Licensed early childhood education services",
+      "measure_kind": "structural_scale",
+      "measure_label": "ECE participation and service footprint",
+      "latest_period": "2025 ECE census",
+      "confidence": "high",
+      "interpretation": "The sector comprised 4,390 licensed services serving 193,033 children with 33,712 teaching staff. Education-and-care occupancy was 82%.",
+      "limitations": "These are structural counts, not revenue, addressable market or market value. The broad Business Financial Data education-and-training series is retained only as a low-fit directional comparator.",
+      "metrics": [
+        {"label": "Licensed services", "value": 4390, "unit": "services"},
+        {"label": "Children enrolled", "value": 193033, "unit": "children"},
+        {"label": "Teaching staff", "value": 33712, "unit": "people"},
+        {"label": "Education-and-care occupancy", "value": 82, "unit": "%"}
+      ],
+      "broad_comparator": {
+        "boundary_label": "Education and Training",
+        "boundary_fit": "low",
+        "rolling_four_quarter_nzd_m": 4248.895,
+        "annual_change_pct": 4.3,
+        "series_reference": "BDCQ.SF1PP1CS",
+        "note": "Do not present this broad comparator as the size of the ECE market.",
+        "series": [
+          {"period": "Jun 24", "value": 999.350}, {"period": "Sep 24", "value": 1016.095},
+          {"period": "Dec 24", "value": 1019.046}, {"period": "Mar 25", "value": 1038.458},
+          {"period": "Jun 25", "value": 1016.741}, {"period": "Sep 25", "value": 993.451},
+          {"period": "Dec 25", "value": 1112.474}, {"period": "Mar 26", "value": 1126.229}
+        ]
+      }
+    },
+    "import_distribution": {
+      "boundary_label": "Wholesale Trade",
+      "measure_kind": "sector_turnover_proxy",
+      "measure_label": "Four-quarter sector sales",
+      "latest_period": "March 2026 quarter",
+      "rolling_four_quarter_nzd_m": 162266.487,
+      "prior_four_quarter_nzd_m": 151639.141,
+      "annual_change_pct": 7.0,
+      "latest_quarter_nzd_m": 42288.425,
+      "series_reference": "BDCQ.SF1FF1CS",
+      "confidence": "moderate",
+      "interpretation": "Broad nominal wholesale-trade sales increased strongly over the latest four quarters.",
+      "limitations": "Wholesale trade is a broad proxy for import distribution and includes domestic wholesale activity. Annual goods imports of NZ$87.8 billion in the year ended June 2026 provide additional context, not a directly additive market measure.",
+      "series": [
+        {"period": "Jun 24", "value": 37721.701}, {"period": "Sep 24", "value": 37336.366},
+        {"period": "Dec 24", "value": 37715.067}, {"period": "Mar 25", "value": 38866.007},
+        {"period": "Jun 25", "value": 39036.344}, {"period": "Sep 25", "value": 40188.941},
+        {"period": "Dec 25", "value": 40752.777}, {"period": "Mar 26", "value": 42288.425}
+      ],
+      "secondary_context": {
+        "label": "Annual goods imports",
+        "value_nzd_b": 87.8,
+        "period": "Year ended June 2026",
+        "source_id": "stats_nz_trade"
+      }
+    }
+  },
+  "sources": [
+    {
+      "id": "stats_nz_cpi",
+      "publisher": "Stats NZ",
+      "title": "Consumers price index and annual inflation at 4.1 percent in June 2026",
+      "url": "https://www.stats.govt.nz/news/annual-inflation-at-4-1-percent-in-june-2026/",
+      "published_date": "2026-07-21",
+      "supports": ["CPI level, components and inflation commentary"]
+    },
+    {
+      "id": "rbnz_ocr",
+      "publisher": "Reserve Bank of New Zealand",
+      "title": "Official Cash Rate",
+      "url": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+      "published_date": "2026-07-08",
+      "supports": ["Current OCR and monetary-policy context"]
+    },
+    {
+      "id": "stats_nz_gdp",
+      "publisher": "Stats NZ",
+      "title": "Gross domestic product",
+      "url": "https://www.stats.govt.nz/indicators/gross-domestic-product-gdp/",
+      "published_date": "2026-06-18",
+      "supports": ["Quarterly and annual real GDP growth"]
+    },
+    {
+      "id": "stats_nz_unemployment",
+      "publisher": "Stats NZ",
+      "title": "Unemployment rate",
+      "url": "https://www.stats.govt.nz/indicators/unemployment-rate/",
+      "published_date": "2026-05-06",
+      "supports": ["Unemployment rate and unemployed-person count"]
+    },
+    {
+      "id": "stats_nz_population",
+      "publisher": "Stats NZ",
+      "title": "Population of Aotearoa New Zealand",
+      "url": "https://www.stats.govt.nz/tereo/indicators/population-of-nz/",
+      "published_date": "2026-05-18",
+      "supports": ["Provisional national population estimate"]
+    },
+    {
+      "id": "stats_nz_migration",
+      "publisher": "Stats NZ",
+      "title": "International migration: May 2026",
+      "url": "https://www.stats.govt.nz/information-releases/international-migration-may-2026/",
+      "published_date": "2026-07-14",
+      "supports": ["Provisional rolling annual net migration"]
+    },
+    {
+      "id": "stats_nz_bfd",
+      "publisher": "Stats NZ",
+      "title": "Business financial data: March 2026 quarter",
+      "url": "https://www.stats.govt.nz/information-releases/business-financial-data-march-2026-quarter/",
+      "published_date": "2026-06-12",
+      "supports": ["Seasonally adjusted nominal industry sales and source series identifiers"]
+    },
+    {
+      "id": "education_counts_ece",
+      "publisher": "Ministry of Education — Education Counts",
+      "title": "Annual ECE Census 2025 fact sheets",
+      "url": "https://www.educationcounts.govt.nz/publications/series/annual-early-childhood-education-census/annual-ece-census-2025-fact-sheets",
+      "published_date": "2026-03-31",
+      "supports": ["Licensed ECE services, enrolled children, teaching staff and occupancy"]
+    },
+    {
+      "id": "stats_nz_trade",
+      "publisher": "Stats NZ",
+      "title": "Overseas merchandise trade: June 2026",
+      "url": "https://www.stats.govt.nz/information-releases/overseas-merchandise-trade-june-2026/",
+      "published_date": "2026-07-22",
+      "supports": ["Annual goods imports and merchandise trade balance"]
+    }
+  ]
+}

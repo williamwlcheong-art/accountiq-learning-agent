@@ -1,13 +1,13 @@
 """Run a live AccountIQ valuation-report smoke test.
 
 This is intentionally separate from normal pytest and E2E runs because it uses
-the configured Anthropic account. It proves that the live model can turn
+the configured OpenAI account. It proves that the live model can turn
 AccountIQ-computed valuation inputs into strict report JSON, pass the same
 backend quality gates as customer reports, and render browser/PDF artifacts for
 professional-output review.
 
 Usage:
-    ANTHROPIC_API_KEY=sk-ant-... python scripts/run_live_valuation_smoke.py
+    OPENAI_API_KEY=sk-proj-... python scripts/run_live_valuation_smoke.py
 
 The script refuses to run in demo mode or without a real-looking key. It never
 prints the key.
@@ -31,9 +31,9 @@ if str(BACKEND_DIR) not in sys.path:
 
 from main import (  # noqa: E402
     _REPORT_SECTION_TITLES,
-    _call_claude_for_report,
+    _call_openai_for_report,
     _demo_mode_enabled,
-    _live_anthropic_key_configured,
+    _live_openai_key_configured,
     _render_cover_report_brief_html,
     _render_cover_valuation_snapshot_html,
     _render_report_contents_html,
@@ -517,13 +517,13 @@ async def run_live_valuation_smoke(
             "Live valuation smoke requires demo mode to be off. "
             "Unset ACCOUNTIQ_DEMO_MODE and do not run with ACCOUNTIQ_E2E_MODE=true."
         )
-    if not _live_anthropic_key_configured():
+    if not _live_openai_key_configured():
         raise RuntimeError(
-            "Live valuation smoke requires a real Anthropic API key in ANTHROPIC_API_KEY."
+            "Live valuation smoke requires a real OpenAI API key in OPENAI_API_KEY."
         )
 
-    model = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    model = os.environ.get("OPENAI_MODEL", "gpt-5.4-mini")
+    api_key = os.environ.get("OPENAI_API_KEY", "")
     preflight_fresh = await _run_live_research_preflight(api_key, model)
 
     inputs = build_smoke_inputs()
@@ -538,7 +538,7 @@ async def run_live_valuation_smoke(
         ebitda_adjustments=inputs["ebitda_adjustments"],
         valuation_result=inputs["valuation_result"],
     )
-    content_json = await _call_claude_for_report(
+    content_json = await _call_openai_for_report(
         system_prompt,
         user_message,
         sections=SECTION_SCHEMAS["valuation_advisory"],

@@ -3506,6 +3506,188 @@ def _financial_trend_visual_flowable(
     return _FinancialTrendVisualFlowable(rows, available_width)
 
 
+class _MarketLineChartFlowable(Flowable):
+    """Draw a sourced, report-ready line chart from quarterly intelligence."""
+
+    _palette = (
+        colors.HexColor("#1769AA"),
+        colors.HexColor("#D97706"),
+        colors.HexColor("#2E7D32"),
+        colors.HexColor("#7C3AED"),
+    )
+
+    def __init__(self, chart: dict, available_width: float):
+        super().__init__()
+        self.chart = chart
+        self.width = available_width
+        self.height = 69 * mm
+
+    def wrap(self, availWidth: float, availHeight: float) -> tuple[float, float]:
+        self.width = min(self.width, availWidth)
+        return self.width, self.height
+
+    def draw(self) -> None:
+        series_list = [
+            series
+            for series in (self.chart.get("series") or [])
+            if isinstance(series, dict) and isinstance(series.get("values"), list)
+        ]
+        values: list[float] = []
+        for series in series_list:
+            for point in series.get("values") or []:
+                try:
+                    values.append(float(point.get("value")))
+                except (AttributeError, TypeError, ValueError):
+                    continue
+        if len(values) < 2:
+            return
+
+        canvas = self.canv
+        width, height = self.width, self.height
+        canvas.saveState()
+        canvas.setFillColor(colors.HexColor("#F8FBFF"))
+        canvas.setStrokeColor(colors.HexColor("#D7DEE8"))
+        canvas.roundRect(0, 0, width, height, 6, stroke=1, fill=1)
+
+        canvas.setFillColor(NAVY)
+        canvas.setFont("Helvetica-Bold", 8.2)
+        canvas.drawString(
+            7 * mm,
+            height - 8 * mm,
+            _normalize_pdf_text(str(self.chart.get("title") or "Market trend"))[:88],
+        )
+        subtitle = _normalize_pdf_text(str(self.chart.get("subtitle") or ""))
+        if subtitle:
+            canvas.setFillColor(MUTED)
+            canvas.setFont("Helvetica", 6.1)
+            canvas.drawString(7 * mm, height - 12 * mm, subtitle[:125])
+
+        legend_y = height - 17 * mm
+        legend_x = 7 * mm
+        for index, series in enumerate(series_list):
+            colour = self._palette[index % len(self._palette)]
+            canvas.setFillColor(colour)
+            canvas.rect(legend_x, legend_y, 4 * mm, 1.7 * mm, fill=1, stroke=0)
+            canvas.setFillColor(MUTED)
+            canvas.setFont("Helvetica", 5.8)
+            label = _normalize_pdf_text(str(series.get("name") or "Series"))[:32]
+            canvas.drawString(legend_x + 5 * mm, legend_y, label)
+            legend_x += min(50 * mm, 12 * mm + len(label) * 1.8 * mm)
+
+        chart_left = 18 * mm
+        chart_right = width - 7 * mm
+        chart_bottom = 14 * mm
+        chart_top = height - 22 * mm
+        chart_width = chart_right - chart_left
+        chart_height = chart_top - chart_bottom
+        minimum, maximum = min(values), max(values)
+        all_nonnegative = minimum >= 0
+        all_nonpositive = maximum <= 0
+        if all_nonnegative:
+            minimum = 0.0
+        if all_nonpositive:
+            maximum = 0.0
+        if abs(maximum - minimum) < 1e-9:
+            maximum = minimum + 1.0
+        padding = (maximum - minimum) * 0.08
+        if not all_nonnegative:
+            minimum -= padding
+        if not all_nonpositive:
+            maximum += padding
+        span = maximum - minimum
+
+        for grid_index in range(5):
+            ratio = grid_index / 4
+            y_value = chart_top - ratio * chart_height
+            label_value = maximum - ratio * span
+            canvas.setStrokeColor(colors.HexColor("#DFE5EC"))
+            canvas.setLineWidth(0.4)
+            canvas.line(chart_left, y_value, chart_right, y_value)
+            canvas.setFillColor(MUTED)
+            canvas.setFont("Helvetica", 5.2)
+            label = (
+                f"{label_value / 1000:,.0f}k"
+                if abs(label_value) >= 1000
+                else f"{label_value:,.1f}"
+            )
+            canvas.drawRightString(chart_left - 2 * mm, y_value - 1.2 * mm, label)
+
+        periods: list[str] = []
+        for series_index, series in enumerate(series_list):
+            points: list[tuple[str, float]] = []
+            for point in series.get("values") or []:
+                try:
+                    points.append(
+                        (
+                            _normalize_pdf_text(str(point.get("period") or "")),
+                            float(point.get("value")),
+                        )
+                    )
+                except (AttributeError, TypeError, ValueError):
+                    continue
+            if len(points) < 2:
+                continue
+            if not periods:
+                periods = [period for period, _value in points]
+            colour = self._palette[series_index % len(self._palette)]
+            canvas.setStrokeColor(colour)
+            canvas.setFillColor(colour)
+            canvas.setLineWidth(1.3)
+            previous: tuple[float, float] | None = None
+            for point_index, (_period, value) in enumerate(points):
+                x_value = chart_left + chart_width * point_index / max(len(points) - 1, 1)
+                y_value = chart_bottom + ((value - minimum) / span) * chart_height
+                if previous is not None:
+                    canvas.line(previous[0], previous[1], x_value, y_value)
+                canvas.circle(x_value, y_value, 1.15 * mm, fill=1, stroke=0)
+                previous = (x_value, y_value)
+
+        canvas.setFillColor(MUTED)
+        canvas.setFont("Helvetica", 4.9)
+        for index, period in enumerate(periods):
+            if len(periods) > 8 and index not in {0, len(periods) - 1} and index % 2:
+                continue
+            x_value = chart_left + chart_width * index / max(len(periods) - 1, 1)
+            canvas.drawCentredString(x_value, chart_bottom - 4 * mm, period)
+        unit = _normalize_pdf_text(str(self.chart.get("unit") or ""))
+        if unit:
+            canvas.drawString(7 * mm, chart_top + 1 * mm, unit[:28])
+        source_labels = {
+            "stats_nz_cpi": "Stats NZ",
+            "stats_nz_gdp": "Stats NZ",
+            "stats_nz_migration": "Stats NZ",
+            "stats_nz_bfd": "Stats NZ Business Financial Data",
+            "rbnz_ocr": "Reserve Bank of New Zealand",
+        }
+        sources = list(
+            dict.fromkeys(
+                source_labels.get(str(source_id), str(source_id))
+                for source_id in self.chart.get("source_ids") or []
+            )
+        )
+        if sources:
+            canvas.drawRightString(
+                chart_right,
+                4 * mm,
+                f"Source: {', '.join(sources)}"[:110],
+            )
+        canvas.restoreState()
+
+
+def _market_chart_flowables(
+    content: dict,
+    available_width: float,
+) -> list[_MarketLineChartFlowable]:
+    charts = content.get("market_charts") if isinstance(content, dict) else None
+    if not isinstance(charts, list):
+        return []
+    return [
+        _MarketLineChartFlowable(chart, available_width)
+        for chart in charts
+        if isinstance(chart, dict) and isinstance(chart.get("series"), list)
+    ]
+
+
 def _reader_guidance_table(
     guidance_rows: list[tuple[str, str, str]],
     available_width: float,
@@ -3901,6 +4083,10 @@ def write_report_pdf(
                 story.append(guidance_table)
             guidance = None
         story.extend(_narrative_flowables(narrative, styles))
+        if isinstance(content, dict):
+            for market_chart in _market_chart_flowables(content, available_width):
+                story.append(Spacer(1, 4 * mm))
+                story.append(market_chart)
         if report_type == "valuation_advisory" and key == "executive_summary":
             highlights = executive_valuation_highlights(sections)
             highlight_table = _executive_highlights_table(highlights, available_width, styles)
@@ -3986,6 +4172,8 @@ def write_report_pdf(
                 "specific_risk_factors": "Specific risk factors",
                 "debt_capacity_table": "Debt-capacity constraints",
                 "amortisation_profile_table": "P&I leverage profile",
+                "sector_scale_table": "Sector scale and boundary",
+                "market_sources_table": "Market data sources",
             }.get(sub_key, sub_key.replace("_", " ").title())
             story.append(Spacer(1, 5 * mm))
             story.append(Paragraph(html.escape(_normalize_pdf_text(subheading)), styles["subheading"]))

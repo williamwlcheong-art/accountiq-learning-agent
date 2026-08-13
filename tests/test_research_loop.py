@@ -2,7 +2,7 @@
 
 All tests in this file are OFFLINE — they exercise Pydantic validation
 and the four guardrails in _apply_guardrails(brief) directly. No live
-Anthropic API calls are made. Live API integration is exercised in the
+OpenAI API calls are made. Live API integration is exercised in the
 Wave 2 wizard checkpoint (Plan 04) and offline-only in CI.
 """
 
@@ -52,16 +52,11 @@ def _valid_brief_kwargs() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Duck-typed stubs for _extract_json_from_response (no anthropic import needed)
+# Duck-typed stubs for _extract_json_from_response (no SDK import needed)
 # ---------------------------------------------------------------------------
 
-class _StubTextBlock:
-    type = "text"
-    def __init__(self, text): self.text = text
-
-
 class _StubResponse:
-    def __init__(self, content): self.content = content
+    def __init__(self, output_text): self.output_text = output_text
 
 
 # ---------------------------------------------------------------------------
@@ -296,14 +291,14 @@ def test_guardrail_wacc_in_range_accepted():
 def test_extract_json_from_response_strips_code_fences():
     """_extract_json_from_response must strip ```json ... ``` fences and parse dict."""
     raw = '```json\n{"company_summary": "x", "risk_free_rate": 4.65}\n```'
-    response = _StubResponse([_StubTextBlock(raw)])
+    response = _StubResponse(raw)
     data = _extract_json_from_response(response)
     assert data["risk_free_rate"] == 4.65
 
 
 def test_extract_json_from_response_raises_when_no_text_block():
-    """Empty content list must raise ValueError."""
-    response = _StubResponse([])
+    """An empty output must raise ValueError."""
+    response = _StubResponse("")
     with pytest.raises(ValueError):
         _extract_json_from_response(response)
 
@@ -318,12 +313,8 @@ def test_run_valuation_research_is_async():
 
 
 def test_module_exports_web_search_tool_config():
-    """WEB_SEARCH_TOOL must match the AI-SPEC shape exactly."""
-    assert WEB_SEARCH_TOOL["type"] == "web_search_20250305"
-    assert WEB_SEARCH_TOOL["name"] == "web_search"
-    assert WEB_SEARCH_TOOL["max_uses"] == 15
-    assert WEB_SEARCH_TOOL["user_location"]["country"] == "NZ"
-    assert WEB_SEARCH_TOOL["user_location"]["timezone"] == "Pacific/Auckland"
+    """The hosted Responses API web-search tool needs no client-side dispatch."""
+    assert WEB_SEARCH_TOOL == {"type": "web_search"}
 
 
 def test_research_prompt_requires_full_http_source_urls():
@@ -338,27 +329,23 @@ def test_research_loop_uses_credentials_saved_after_module_import(monkeypatch):
     captured = {}
     valid_json = __import__("json").dumps(_valid_brief_kwargs())
 
-    class _FakeMessages:
+    class _FakeResponses:
         def create(self, **kwargs):
             captured["model"] = kwargs["model"]
             return SimpleNamespace(
-                content=[_StubTextBlock(valid_json)],
-                stop_reason="end_turn",
-                usage=SimpleNamespace(
-                    server_tool_use={},
-                    input_tokens=100,
-                    output_tokens=200,
-                ),
+                output_text=valid_json,
+                output=[],
+                usage=SimpleNamespace(input_tokens=100, output_tokens=200),
             )
 
     class _FakeClient:
         def __init__(self, api_key):
             captured["api_key"] = api_key
-            self.messages = _FakeMessages()
+            self.responses = _FakeResponses()
 
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-runtime-settings-value")
-    monkeypatch.setenv("CLAUDE_MODEL", "runtime-model")
-    monkeypatch.setattr(research_loop_module.anthropic, "Anthropic", _FakeClient)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-runtime-settings-value")
+    monkeypatch.setenv("OPENAI_MODEL", "runtime-model")
+    monkeypatch.setattr(research_loop_module, "_create_openai_client", _FakeClient)
 
     brief = research_loop_module.run_research_loop_sync(
         "Propellerhead Limited",
@@ -368,7 +355,7 @@ def test_research_loop_uses_credentials_saved_after_module_import(monkeypatch):
 
     assert brief.risk_free_rate == 4.65
     assert captured == {
-        "api_key": "sk-ant-runtime-settings-value",
+        "api_key": "sk-runtime-settings-value",
         "model": "runtime-model",
     }
 
@@ -378,25 +365,21 @@ def test_research_loop_includes_management_supplied_public_source_hints(monkeypa
     captured = {}
     valid_json = __import__("json").dumps(_valid_brief_kwargs())
 
-    class _FakeMessages:
+    class _FakeResponses:
         def create(self, **kwargs):
-            captured["prompt"] = kwargs["messages"][0]["content"]
+            captured["prompt"] = kwargs["input"]
             return SimpleNamespace(
-                content=[_StubTextBlock(valid_json)],
-                stop_reason="end_turn",
-                usage=SimpleNamespace(
-                    server_tool_use={},
-                    input_tokens=100,
-                    output_tokens=200,
-                ),
+                output_text=valid_json,
+                output=[],
+                usage=SimpleNamespace(input_tokens=100, output_tokens=200),
             )
 
     class _FakeClient:
         def __init__(self, api_key):
-            self.messages = _FakeMessages()
+            self.responses = _FakeResponses()
 
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-runtime-settings-value")
-    monkeypatch.setattr(research_loop_module.anthropic, "Anthropic", _FakeClient)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-runtime-settings-value")
+    monkeypatch.setattr(research_loop_module, "_create_openai_client", _FakeClient)
 
     research_loop_module.run_research_loop_sync(
         "Source Hints Limited",
@@ -420,9 +403,45 @@ def test_research_loop_includes_management_supplied_public_source_hints(monkeypa
     assert "If a supplied link cannot be corroborated, mention only that it was supplied as a matching hint" in captured["prompt"]
 
 
+def test_research_loop_includes_generic_sector_pack_as_a_caveated_checklist(monkeypatch):
+    """The live research agent should use the local pack without treating it as borrower fact."""
+    captured = {}
+    valid_json = __import__("json").dumps(_valid_brief_kwargs())
+
+    class _FakeResponses:
+        def create(self, **kwargs):
+            captured["prompt"] = kwargs["input"]
+            return SimpleNamespace(
+                output_text=valid_json,
+                output=[],
+                usage=SimpleNamespace(input_tokens=100, output_tokens=200),
+            )
+
+    class _FakeClient:
+        def __init__(self, api_key):
+            self.responses = _FakeResponses()
+
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-runtime-settings-value")
+    monkeypatch.setattr(research_loop_module, "_create_openai_client", _FakeClient)
+
+    research_loop_module.run_research_loop_sync(
+        "Freight Example Limited",
+        "Auckland, New Zealand",
+        "Logistics",
+        sector_context='{"sector_name": "Logistics", "diligence": ["Fleet age"]}',
+    )
+
+    prompt = captured["prompt"]
+    assert "AccountIQ generic New Zealand sector baseline:" in prompt
+    assert '"sector_name": "Logistics"' in prompt
+    assert "use the accountiq sector baseline as a research checklist" in prompt.lower()
+    assert "do not treat typical sector characteristics as facts about the subject company" in prompt.lower()
+    assert "do not derive a current transaction multiple, beta or funding rate" in prompt.lower()
+
+
 def test_research_loop_rejects_malformed_management_source_hints_before_provider_call(monkeypatch):
     """Direct research-loop calls should receive already-normalised public URLs."""
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-runtime-settings-value")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-runtime-settings-value")
 
     with pytest.raises(ValueError, match="company website must be a full public HTTP\\(S\\) URL"):
         research_loop_module.run_research_loop_sync(
@@ -443,7 +462,7 @@ def test_research_loop_rejects_malformed_management_source_hints_before_provider
 
 def test_research_loop_rejects_private_management_source_hints_before_provider_call(monkeypatch):
     """Source hints are public online avenues, not local or private-network locations."""
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-runtime-settings-value")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-runtime-settings-value")
 
     with pytest.raises(ValueError, match="company website must be a public HTTP\\(S\\) URL"):
         research_loop_module.run_research_loop_sync(

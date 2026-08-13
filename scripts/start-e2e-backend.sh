@@ -11,8 +11,8 @@ export ACCOUNTIQ_DB_PATH="$DB"
 export ACCOUNTIQ_E2E_MODE=true
 export SECRET_KEY="e2e-secret-key-not-for-production"
 export OWNER_EMAIL="owner-e2e@example.com"
-export ANTHROPIC_API_KEY="sk-ant-e2e-placeholder"
-export CLAUDE_MODEL="claude-sonnet-4-6"
+export OPENAI_API_KEY="sk-e2e-placeholder"
+export OPENAI_MODEL="gpt-5.4-mini"
 
 UVICORN="$ROOT/venv/bin/uvicorn"
 if [[ ! -x "$UVICORN" ]]; then

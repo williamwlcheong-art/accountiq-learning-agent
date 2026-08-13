@@ -42,13 +42,22 @@ export const SELF_SERVE_REPORT_TYPE: WizardReportType = "valuation_advisory";
 type ReportTypePickerProps = {
   selected: WizardReportType | null;
   onSelect: (reportType: WizardReportType) => void;
+  readiness?: Partial<Record<WizardReportType, ReportReadiness>> | null;
 };
 
-export function ReportTypePicker({ selected, onSelect }: ReportTypePickerProps) {
+export type ReportReadiness = {
+  ready: boolean;
+  issues: string[];
+  warnings: string[];
+  follow_up_items: Array<{ label: string; impact: string }>;
+};
+
+export function ReportTypePicker({ selected, onSelect, readiness }: ReportTypePickerProps) {
   return (
     <div className="report-type-list">
       {WIZARD_REPORT_TYPES.map((reportType) => {
         const isSelected = selected === reportType.key;
+        const reportReadiness = readiness?.[reportType.key];
         const className = [
           "report-type-card",
           isSelected ? "selected" : "",
@@ -75,6 +84,12 @@ export function ReportTypePicker({ selected, onSelect }: ReportTypePickerProps) 
             {!reportType.available ? (
               <small className="report-type-unavailable">
                 This professional pack is still on the roadmap.
+              </small>
+            ) : reportReadiness ? (
+              <small className={reportReadiness.ready ? "report-type-readiness ready" : "report-type-readiness needs-info"}>
+                {reportReadiness.ready
+                  ? "Core financial information is ready"
+                  : `Needs more financial information: ${reportReadiness.issues.join(", ")}.`}
               </small>
             ) : null}
           </button>

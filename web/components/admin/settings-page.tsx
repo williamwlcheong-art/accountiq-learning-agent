@@ -11,12 +11,14 @@ type Settings = {
   demo_mode_forced?: boolean;
   api_key_set: boolean;
   api_key_preview: string;
-  claude_model: string;
+  openai_model: string;
+  report_generation_mode?: "provider" | "evidence" | "demo" | "unavailable";
+  evidence_mode_available?: boolean;
 };
 
 type AiConnectionCheck = {
   ok: boolean;
-  status: "demo_mode" | "missing_key" | "verified" | "failed" | string;
+  status: "demo_mode" | "evidence_mode" | "missing_key" | "verified" | "failed" | string;
   message: string;
   model: string;
   demo_mode: boolean;
@@ -27,7 +29,7 @@ type AiConnectionCheck = {
 export function SettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [claudeModel, setClaudeModel] = useState("claude-sonnet-4-6");
+  const [openaiModel, setOpenaiModel] = useState("gpt-5.4-mini");
   const [demoMode, setDemoMode] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -39,7 +41,7 @@ export function SettingsPage() {
     try {
       const nextSettings = await apiFetch<Settings>("/settings");
       setSettings(nextSettings);
-      setClaudeModel(nextSettings.claude_model || "claude-sonnet-4-6");
+      setOpenaiModel(nextSettings.openai_model || "gpt-5.4-mini");
       setDemoMode(nextSettings.demo_mode);
       setError("");
     } catch (err) {
@@ -57,7 +59,7 @@ export function SettingsPage() {
       .then((nextSettings) => {
         if (cancelled) return;
         setSettings(nextSettings);
-        setClaudeModel(nextSettings.claude_model || "claude-sonnet-4-6");
+        setOpenaiModel(nextSettings.openai_model || "gpt-5.4-mini");
         setDemoMode(nextSettings.demo_mode);
         setError("");
       })
@@ -128,7 +130,7 @@ export function SettingsPage() {
       : connectionCheck?.ok
         ? "alert alert-success"
         : "alert alert-error";
-  const liveConnectionUnavailable = settings && !settings.demo_mode && !settings.api_key_set;
+  const evidenceModeActive = settings && !settings.demo_mode && !settings.api_key_set;
 
   return (
     <section className="admin-page">
@@ -154,14 +156,14 @@ export function SettingsPage() {
           </div>
         </div>
       ) : null}
-      {liveConnectionUnavailable ? (
-        <div className="alert alert-warning">
+      {evidenceModeActive ? (
+        <div className="alert alert-info">
           <div>
-            <strong>Live report generation is not configured yet.</strong>
+            <strong>Evidence-mode reporting is active — no commercial AI key is required.</strong>
             <p>
-              Without demo mode or a verified Anthropic API key, customers cannot generate live
-              valuation reports. Enable demo mode for local testing, or add and verify a live key
-              before turning this on for customers.
+              AccountIQ reads uploaded statements with its rule-based extractor and generates source-scoped
+              reports from company websites or public links approved in the intake. A live OpenAI key is
+              optional for broader agentic market research and model-written narrative.
             </p>
           </div>
         </div>
@@ -169,10 +171,10 @@ export function SettingsPage() {
 
       <form className="panel admin-form" onSubmit={save}>
         <div>
-          <h2>Demo mode and live research</h2>
+          <h2>Demo mode, evidence mode and live research</h2>
           <p className="muted">
-            Use demo mode to keep testing the five-question valuation journey, sample extraction and
-            PDF delivery without an Anthropic key. Turn it off when you are ready to use live research.
+            Turn demo mode off for real uploaded figures. Without a live provider key, AccountIQ automatically
+            uses evidence mode: deterministic financial extraction, approved public URLs and source-scoped reports.
           </p>
         </div>
         <label className="checkbox-row" htmlFor="demo-mode">
@@ -202,6 +204,8 @@ export function SettingsPage() {
                 ? "Live AI connection verified"
                 : connectionCheck.status === "demo_mode"
                   ? "Demo mode active"
+                  : connectionCheck.status === "evidence_mode"
+                    ? "Evidence-mode reports available"
                   : "Live AI connection not verified"}
             </strong>
             <p>{connectionCheck.message}</p>
@@ -212,24 +216,25 @@ export function SettingsPage() {
           </div>
         ) : null}
         <label htmlFor="api-key">
-          Anthropic API key <span className="optional-label">Optional</span>
-          <input id="api-key" name="api_key" type="password" placeholder="sk-ant-..." autoComplete="off" />
+          OpenAI API key <span className="optional-label">Optional</span>
+          <input id="api-key" name="api_key" type="password" placeholder="sk-proj-..." autoComplete="off" />
         </label>
-        <label htmlFor="claude-model">
-          Claude Model
+        <label htmlFor="openai-model">
+          OpenAI model
           <select
-            id="claude-model"
-            name="claude_model"
-            value={claudeModel}
-            onChange={(event) => setClaudeModel(event.target.value)}
+            id="openai-model"
+            name="openai_model"
+            value={openaiModel}
+            onChange={(event) => setOpenaiModel(event.target.value)}
           >
-            <option value="claude-sonnet-4-6">claude-sonnet-4-6</option>
-            <option value="claude-opus-4-7">claude-opus-4-7</option>
-            <option value="claude-haiku-4-5-20251001">claude-haiku-4-5</option>
+            <option value="gpt-5.4-mini">gpt-5.4-mini — cost-efficient</option>
+            <option value="gpt-5.4">gpt-5.4 — higher quality</option>
+            <option value="gpt-5.5">gpt-5.5 — deeper research</option>
           </select>
         </label>
         <p className="muted">
-          Save changes first, then verify the saved live connection before turning demo mode off for customers.
+          A live provider is optional. Save an API key and verify it only when you want broader agentic market research;
+          otherwise leave it blank and use evidence-mode reports.
         </p>
         <div className="wizard-delivery-actions">
           <button className="button button-primary" disabled={saving}>

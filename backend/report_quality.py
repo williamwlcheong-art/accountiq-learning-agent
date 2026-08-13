@@ -39,7 +39,7 @@ _IMPLEMENTATION_MARKERS = (
     "code fence",
     "system prompt",
     "user prompt",
-    "claude",
+    "openai",
     "language model",
     "ai narrative",
     "computed valuation rows",

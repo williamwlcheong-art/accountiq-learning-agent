@@ -44,6 +44,9 @@ test("regular user uploads and sees valuation and credit-paper self-serve picker
   await expect(page.getByText(/bank credit paper adds public client research/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /valuation advisory/i })).toBeEnabled();
   await expect(page.getByRole("button", { name: /valuation advisory/i })).toHaveClass(/selected/);
+  await expect(
+    page.getByRole("button", { name: /valuation advisory/i }).getByText(/core financial information is ready/i),
+  ).toBeVisible();
   await expect(page.getByText(/cash-flow analysis and market multiples/i)).toBeVisible();
   await expect(page.getByText(/using DCF/i)).toHaveCount(0);
   await expect(page.getByRole("button", { name: /bank credit paper/i })).toBeEnabled();
@@ -137,11 +140,13 @@ test("regular user can complete bank credit paper intake", async ({ page }) => {
     timeout: 15_000,
   });
   await page.getByRole("button", { name: /bank credit paper/i }).click();
+  await expect(page.getByText(/the uploaded financials can support this report/i)).toBeVisible();
+  await expect(page.getByText(/debt schedule, payout letters and lender statements/i)).toBeVisible();
   await page.getByRole("button", { name: /continue/i }).click();
 
   await expect(page.getByText("Client research setup", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /accountiq will research the client before drafting/i })).toBeVisible();
-  await expect(page.getByText(/public web research helps describe the business/i)).toBeVisible();
+  await expect(page.getByText(/collect public company context from the website and links you approve/i)).toBeVisible();
   await page.getByLabel(/business website/i).fill("credit-e2e.example.co.nz");
   await page.getByLabel(/main location/i).fill("Auckland");
   await page.getByLabel(/borrower \/ ownership structure/i).fill("Operating company borrower with owner support");

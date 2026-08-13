@@ -1398,7 +1398,7 @@ def test_valuation_report_html_audit_rejects_demo_language_in_live_report():
 def test_valuation_report_content_audit_catches_source_and_internal_language_gaps():
     content = copy.deepcopy(_e2e_report_content("valuation_advisory"))
     content["executive_summary"]["narrative"] += (
-        " Claude returned this JSON object. Growth source management_custom_override. "
+        " OpenAI returned this JSON object. Growth source management_custom_override. "
         "Raw answer revenue_outlook=not_sure."
     )
     content["sources"]["table"]["rows"] = [["Source name only", "", "No URL"]]
@@ -1554,7 +1554,7 @@ def test_valuation_report_content_audit_catches_follow_up_item_language():
 
 def test_valuation_report_content_audit_catches_template_placeholder_language():
     content = copy.deepcopy(_e2e_report_content("valuation_advisory"))
-    content["market_position"] += "\n\nMarket evidence to be confirmed."
+    content["market_position"]["narrative"] += "\n\nMarket evidence to be confirmed."
 
     audit = audit_valuation_report_content(content)
 

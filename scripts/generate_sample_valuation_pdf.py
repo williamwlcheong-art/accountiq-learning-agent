@@ -3,7 +3,7 @@
 This script intentionally uses the same PDF renderer and deterministic demo
 report content as the app's no-key/demo path. It gives us a reproducible sample
 artifact for reviewing the current valuation-report output without requiring a
-live Anthropic key.
+live OpenAI key.
 """
 from __future__ import annotations
 

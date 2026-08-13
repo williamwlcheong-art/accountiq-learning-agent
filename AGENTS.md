@@ -10,7 +10,7 @@ AccountIQ is an SME financial intelligence SaaS platform. Users upload financial
 - Frontend: Next.js App Router in `web/`.
 - Legacy UI: `frontend/index.html` is rollback/reference only. It is served at `/app` only when `ACCOUNTIQ_SERVE_LEGACY_FRONTEND=true`.
 - API proxy: browser calls use `/api/backend`; Next proxies through `web/app/api/backend/[...path]/route.ts` to `FASTAPI_ORIGIN`.
-- AI: Anthropic Claude API with forced tool-use for extraction/report generation; deterministic fallbacks exist for tests.
+- AI: OpenAI Responses API with structured output, hosted web research, and deterministic no-key fallbacks.
 
 ## Run Locally
 
