@@ -297,9 +297,9 @@ def test_docx_table_extraction(monkeypatch):
     monkeypatch.setattr(_ing, "DocxDocument", lambda path: mock_doc)
     monkeypatch.setattr(_ing, "HAS_PYTHON_DOCX", True)
 
-    claude_text, sheets, count, used_ocr = extract_docx_text("/fake/path.docx")
-    assert "Revenue\t1000" in claude_text, (
-        f"Expected 'Revenue\\t1000' in output, got: {claude_text!r}"
+    extraction_text, sheets, count, used_ocr = extract_docx_text("/fake/path.docx")
+    assert "Revenue\t1000" in extraction_text, (
+        f"Expected 'Revenue\\t1000' in output, got: {extraction_text!r}"
     )
     assert count == 1
     assert used_ocr is False
@@ -341,10 +341,10 @@ def test_docx_merged_cells_dedup(monkeypatch):
     monkeypatch.setattr(_ing, "DocxDocument", lambda path: mock_doc)
     monkeypatch.setattr(_ing, "HAS_PYTHON_DOCX", True)
 
-    claude_text, _, _, _ = extract_docx_text("/fake/path.docx")
+    extraction_text, _, _, _ = extract_docx_text("/fake/path.docx")
     # Should appear only once, not "Merged Cell\tMerged Cell\tValue"
-    assert claude_text.count("Merged Cell") == 1, (
-        f"Expected merged cell text to appear only once, got: {claude_text!r}"
+    assert extraction_text.count("Merged Cell") == 1, (
+        f"Expected merged cell text to appear only once, got: {extraction_text!r}"
     )
 
 

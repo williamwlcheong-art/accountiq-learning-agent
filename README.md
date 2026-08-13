@@ -5,6 +5,7 @@ AccountIQ is a financial intelligence prototype for SME business owners. Users u
 ## Architecture
 
 - `backend/` - FastAPI backend, SQLite persistence, uploads, ingestion, valuation, report generation, and email.
+- `sector_reports/` - versioned New Zealand sector and sub-sector research used by valuation and credit-paper market sections.
 - `web/` - Next.js App Router frontend for login, wizard, admin workflows, and E2E tests.
 - `frontend/` - legacy vanilla SPA kept as an opt-in rollback/reference fallback.
 - `.planning/` - project, roadmap, codebase, and phase planning docs.
@@ -33,7 +34,7 @@ uvicorn main:app --reload --port 8765
 
 In a linked git worktree that does not have its own `venv/`, use the parent checkout virtualenv, for example `source ../../venv/bin/activate`.
 
-For local valuation-flow testing without an Anthropic key or login, use explicit
+For local valuation-flow testing without an OpenAI key or login, use explicit
 demo mode:
 
 ```bash
@@ -64,6 +65,25 @@ npm run dev
 Open `http://localhost:3000`.
 
 The legacy UI is available at `http://localhost:8765/app` only when `ACCOUNTIQ_SERVE_LEGACY_FRONTEND=true`.
+
+## Sector Research Library
+
+AccountIQ includes a local, source-backed library for logistics, construction,
+retail, hospitality, manufacturing, professional services, early childhood
+education and care, and import distribution. Each pack includes sub-sector
+profiles, credit risks and mitigants, monitoring KPIs, valuation considerations,
+market-section drafting context and primary New Zealand source links.
+
+The backend matches the company sector and description to one pack and records
+the selected sector, sub-sector, review date, sources and limitations in the
+report's retained research evidence. This works with OpenAI provider research
+and deterministic no-key evidence reports. The packs are generic context only:
+they do not establish borrower facts, current transaction multiples, asset
+values, funding costs or a credit decision.
+
+See `sector_reports/README.md` for the evidence boundary and update process. The
+folder can be overridden with `ACCOUNTIQ_SECTOR_REPORT_DIR` when a deployment
+mounts the same validated library in a different location.
 
 ## Valuation Report Artifacts
 
@@ -120,7 +140,7 @@ If page images are already prepared, you can instead copy
 `reference-manifest.json`, fill in the image paths, and pass the same
 `--reference-manifest` option.
 
-For provider-backed smoke testing, configure a real `ANTHROPIC_API_KEY`, keep `ACCOUNTIQ_DEMO_MODE=false`, then run:
+For provider-backed smoke testing, configure a real `OPENAI_API_KEY`, keep `ACCOUNTIQ_DEMO_MODE=false`, then run:
 
 ```bash
 python scripts/run_live_valuation_smoke.py
@@ -139,6 +159,7 @@ Focused valuation/report checks:
 ```bash
 python -m pytest tests/test_report_rendering.py tests/test_report_quality.py tests/test_pdf_delivery.py tests/test_report_viewer.py tests/test_sample_html_generator.py tests/test_sample_pdf_generator.py -q
 python -m pytest tests/test_report_prompts.py tests/test_report_generation_validation.py -q
+python -m pytest tests/test_sector_library.py tests/test_research_loop.py -q
 python -m pytest tests/test_local_demo_config.py tests/test_admin_gate.py tests/test_wizard_endpoints.py -q
 ```
 

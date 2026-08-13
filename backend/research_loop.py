@@ -3,17 +3,17 @@ Agentic web-search research loop for business valuation.
 
 Public API
 ----------
-WEB_SEARCH_TOOL          - Anthropic web_search_20250305 tool config dict
+WEB_SEARCH_TOOL          - OpenAI Responses API web_search tool config dict
 RESEARCH_SYSTEM_PROMPT   - Static system prompt for the research loop
 ResearchBrief            - Pydantic v2 model (9 fields) — validated output of the loop
 run_research_loop_sync   - Synchronous entry point; call via run_in_executor from async code
 run_valuation_research   - Async entry point for FastAPI background tasks
 
 Design decisions:
-- D-R1: web_search_20250305 server-side tool (no client-side dispatch)
-- D-R2: max_uses=15 caps search cost at ~$0.15/run
-- D-R3: user_location.country=NZ biases results toward RBNZ/Stats NZ
-- D-R4: max_iterations=5 ceiling on pause_turn resume loop prevents runaway cost
+- D-R1: OpenAI Responses API hosted web_search tool (no client-side dispatch)
+- D-R2: the research prompt prioritises management-supplied public sources
+- D-R3: the model performs its own bounded search plan inside one Responses API call
+- D-R4: a retry ceiling prevents repeated rate-limit retries
 - D-R5: ResearchBrief is an immutable Pydantic v2 model — consumers cannot mutate
          WACC inputs after validation
 
@@ -31,7 +31,6 @@ import time
 from typing import Optional
 from urllib.parse import urlparse
 
-import anthropic
 from pydantic import BaseModel, Field, ValidationError
 
 logger = logging.getLogger(__name__)
@@ -41,25 +40,26 @@ logger = logging.getLogger(__name__)
 # environment so credentials saved through Admin Settings apply immediately.
 # ---------------------------------------------------------------------------
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.4-mini")
 MAX_TOKENS_RESEARCH = 8000
-MAX_LOOP_ITERATIONS = 5
 
 # ---------------------------------------------------------------------------
 # Web search tool definition (AI-SPEC Section 4 lines 303-312)
 # ---------------------------------------------------------------------------
 
-WEB_SEARCH_TOOL = {
-    "type": "web_search_20250305",
-    "name": "web_search",
-    "max_uses": 15,
-    "user_location": {
-        "type": "approximate",
-        "country": "NZ",
-        "timezone": "Pacific/Auckland",
-    },
-}
+WEB_SEARCH_TOOL = {"type": "web_search"}
+
+
+def _create_openai_client(api_key: str):
+    """Create the optional OpenAI SDK client only when live AI is configured."""
+    try:
+        from openai import OpenAI
+    except ImportError as exc:
+        raise RuntimeError(
+            "The OpenAI SDK is not installed. Install backend requirements before using live AI research."
+        ) from exc
+    return OpenAI(api_key=api_key)
 
 # ---------------------------------------------------------------------------
 # System prompt (AI-SPEC Section 4 lines 314-341)
@@ -125,10 +125,10 @@ class ResearchBrief(BaseModel):
 # ---------------------------------------------------------------------------
 
 def _extract_json_from_response(response) -> dict:
-    """Extract the final text block from the response and parse as JSON.
+    """Extract the final text output from a Responses API result and parse JSON.
 
     Args:
-        response: An anthropic.types.Message (or duck-typed equivalent with .content list).
+        response: An OpenAI Responses API result (or duck-typed equivalent).
 
     Returns:
         Parsed JSON dict from the final text block.
@@ -136,19 +136,10 @@ def _extract_json_from_response(response) -> dict:
     Raises:
         ValueError: If no text block is found or JSON parsing fails.
     """
-    text_blocks = [b for b in response.content if b.type == "text"]
-    if not text_blocks:
-        raise ValueError("No text block in Claude response — cannot extract research brief")
-    # Use last non-empty text block; the model sometimes emits an empty text block
-    # before or after tool-result blocks, which would cause json.loads("") to fail.
-    non_empty = [b for b in text_blocks if b.text.strip()]
-    if not non_empty:
-        raise ValueError(
-            f"All text blocks in Claude response are empty (stop_reason={response.stop_reason}). "
-            "The model may not have produced its JSON output yet — check max_iterations."
-        )
-    raw = non_empty[-1].text.strip()
-    # Claude may wrap JSON in a code fence despite instructions
+    raw = str(getattr(response, "output_text", "") or "").strip()
+    if not raw:
+        raise ValueError("OpenAI research response did not include text output")
+    # A model may still wrap JSON in a code fence despite instructions.
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
@@ -353,7 +344,7 @@ def _apply_guardrails(brief: ResearchBrief) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Synchronous research loop (AI-SPEC Section 4 lines 371-445)
+# Synchronous research call (AI-SPEC Section 4 lines 371-445)
 # ---------------------------------------------------------------------------
 
 def run_research_loop_sync(
@@ -362,25 +353,32 @@ def run_research_loop_sync(
     industry_sector: str,
     company_website: str = "",
     public_source_urls: object = None,
+    sector_context: str = "",
     max_retries: int = 2,
 ) -> ResearchBrief:
     """
-    Synchronous Anthropic SDK call with web_search tool.
+    Synchronous OpenAI Responses API call with hosted web_search.
 
     Run via run_in_executor — never call directly from an async context.
-    Raises RuntimeError on max_tokens, unbounded pause_turn loops, or empty API key.
+    Raises RuntimeError on an empty API key or exhausted rate-limit retries.
     Raises ValueError when Pydantic validation or any guardrail fails.
     """
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    model = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    model = os.environ.get("OPENAI_MODEL", "gpt-5.4-mini")
     if not api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY not set — cannot run research loop")
+        raise RuntimeError("OPENAI_API_KEY not set — cannot run research")
 
     company_website = _normalise_prompt_source_hint_url(company_website, "company website")
     source_urls = _coerce_public_source_urls(public_source_urls)
     source_hint_text = "\n".join(f"- {url}" for url in source_urls) or "Not supplied"
+    generic_sector_context = str(sector_context or "").strip()
+    sector_context_text = (
+        generic_sector_context
+        if generic_sector_context
+        else "No AccountIQ generic sector pack matched this business."
+    )
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = _create_openai_client(api_key)
 
     user_prompt = (
         f"Research this business for a valuation report:\n"
@@ -389,69 +387,52 @@ def run_research_loop_sync(
         f"Additional public source URLs supplied by management:\n{source_hint_text}\n"
         f"Location: {company_location}\n"
         f"Sector: {industry_sector}\n\n"
+        f"AccountIQ generic New Zealand sector baseline:\n{sector_context_text}\n\n"
         f"Use the management-supplied website and source URLs first when available, then corroborate material facts "
         f"with independent public sources. Treat supplied URLs as source hints, not proof on their own. "
+        f"Use the AccountIQ sector baseline as a research checklist and retain its primary-source URLs when relied on, "
+        f"but do not treat typical sector characteristics as facts about the subject company. Corroborate time-sensitive "
+        f"market statements and do not derive a current transaction multiple, beta or funding rate from the generic pack. "
         f"Do not use a public fact in the brief unless the supporting source URL is retained in sources. "
         f"If a supplied link cannot be corroborated, mention only that it was supplied as a matching hint. "
         f"Return the structured JSON brief when complete."
     )
 
-    messages = [{"role": "user", "content": user_prompt}]
-    iteration = 0
-    max_iterations = MAX_LOOP_ITERATIONS
-
-    while iteration < max_iterations:
-        # Retry once on rate limit (30K TPM tier) with a 65s back-off
-        for _attempt in range(2):
-            try:
-                response = client.messages.create(
-                    model=model,
-                    max_tokens=MAX_TOKENS_RESEARCH,
-                    system=RESEARCH_SYSTEM_PROMPT,
-                    tools=[WEB_SEARCH_TOOL],
-                    messages=messages,
-                )
-                break
-            except anthropic.RateLimitError:
-                if _attempt == 0:
-                    logger.warning("Rate limit hit — waiting 65s before retry")
-                    time.sleep(65)
-                else:
-                    raise
-        iteration += 1
-
-        # Log search activity for cost tracking (no API key in log output)
-        search_count = getattr(response.usage, "server_tool_use", {})
-        logger.info(
-            "Research loop iter=%d stop_reason=%s searches=%s input_tokens=%d output_tokens=%d",
-            iteration,
-            response.stop_reason,
-            search_count,
-            response.usage.input_tokens,
-            response.usage.output_tokens,
-        )
-
-        if response.stop_reason == "end_turn":
-            break
-
-        if response.stop_reason == "max_tokens":
-            raise RuntimeError(
-                f"Research loop hit max_tokens at iteration {iteration}. "
-                "Increase max_tokens or reduce MAX_SEARCHES."
+    response = None
+    attempts = max(1, int(max_retries))
+    for attempt in range(attempts):
+        try:
+            response = client.responses.create(
+                model=model,
+                instructions=RESEARCH_SYSTEM_PROMPT,
+                input=user_prompt,
+                tools=[WEB_SEARCH_TOOL],
+                max_output_tokens=MAX_TOKENS_RESEARCH,
             )
+            break
+        except Exception as exc:
+            is_rate_limited = type(exc).__name__ == "RateLimitError" or getattr(exc, "status_code", None) == 429
+            if not is_rate_limited or attempt >= attempts - 1:
+                raise
+            logger.warning("OpenAI rate limit hit — waiting 5s before retry")
+            time.sleep(5)
 
-        if response.stop_reason == "pause_turn":
-            # API paused long turn — append partial response and resume
-            messages.append({"role": "assistant", "content": response.content})
-            messages.append({
-                "role": "user",
-                "content": "Please continue and return the JSON brief when ready."
-            })
-            continue
+    if response is None:
+        raise RuntimeError("OpenAI research did not return a response")
 
-        raise RuntimeError(f"Unexpected stop_reason: {response.stop_reason!r}")
-    else:
-        raise RuntimeError(f"Research loop exceeded {max_iterations} iterations without end_turn")
+    output_items = getattr(response, "output", []) or []
+    search_count = sum(
+        1
+        for item in output_items
+        if (item.get("type") if isinstance(item, dict) else getattr(item, "type", "")) == "web_search_call"
+    )
+    usage = getattr(response, "usage", None)
+    logger.info(
+        "OpenAI research complete searches=%d input_tokens=%s output_tokens=%s",
+        search_count,
+        getattr(usage, "input_tokens", "unknown"),
+        getattr(usage, "output_tokens", "unknown"),
+    )
 
     # Parse and validate structured brief
     raw_dict = _extract_json_from_response(response)
@@ -476,6 +457,7 @@ async def run_valuation_research(
     industry_sector: str,
     company_website: str = "",
     public_source_urls: object = None,
+    sector_context: str = "",
 ) -> ResearchBrief:
     """
     Async entry point for FastAPI background tasks.
@@ -491,4 +473,5 @@ async def run_valuation_research(
         industry_sector,
         company_website,
         public_source_urls,
+        sector_context,
     )

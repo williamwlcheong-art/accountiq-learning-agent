@@ -18,7 +18,7 @@ _TESTS_DIR = Path(__file__).resolve().parent
 if str(_TESTS_DIR) not in sys.path:
     sys.path.insert(0, str(_TESTS_DIR))
 
-# Load .env before any module imports so SECRET_KEY and ANTHROPIC_API_KEY are available.
+# Load .env before any module imports so SECRET_KEY and OPENAI_API_KEY are available.
 # Walk up from the tests/ dir to find the .env (handles both worktree and main-repo runs).
 _HERE = Path(__file__).resolve().parent
 for _candidate in [

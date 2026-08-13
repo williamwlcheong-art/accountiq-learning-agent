@@ -383,12 +383,12 @@ table.
   promising live online research.
 - Demo mode must be explicit (`ACCOUNTIQ_DEMO_MODE=true`, or E2E test mode) rather than an
   automatic fallback when the live provider key is missing. This lets local users continue without
-  an Anthropic key while preventing production deployments from silently delivering simulated
+  an OpenAI key while preventing production deployments from silently delivering simulated
   reports.
 - Local no-key testing can use `scripts/start-demo-backend.sh`, which starts FastAPI with
   `ACCOUNTIQ_DEMO_MODE=true` without resetting the normal development database.
 - Live provider-backed quality checks can use `scripts/run_live_valuation_smoke.py` once a real
-  Anthropic key is configured. The script keeps demo mode off, verifies the live research
+  OpenAI key is configured. The script keeps demo mode off, verifies the live research
   connection, asks the live model for strict valuation-report JSON around AccountIQ-computed
   inputs, runs the same report validators as the app and can render a PDF artifact under
   `output/pdf/`.

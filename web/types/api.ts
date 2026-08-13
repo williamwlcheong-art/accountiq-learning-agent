@@ -676,8 +676,8 @@ export interface components {
         Body_update_settings_settings_post: {
             /** Api Key */
             api_key?: string;
-            /** Claude Model */
-            claude_model?: string;
+            /** Openai Model */
+            openai_model?: string;
         };
         /** Body_upload_document_documents_upload_post */
         Body_upload_document_documents_upload_post: {

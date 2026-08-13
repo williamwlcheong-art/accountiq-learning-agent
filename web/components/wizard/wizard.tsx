@@ -9,6 +9,7 @@ import { ReportStatusCard } from "@/components/wizard/report-status-card";
 import {
   ReportTypePicker,
   SELF_SERVE_REPORT_TYPE,
+  type ReportReadiness,
   type WizardReportType,
 } from "@/components/wizard/report-type-picker";
 import { ApiError, apiFetch, postForm, postJson } from "@/lib/api-client";
@@ -79,6 +80,7 @@ type FinancialReview = {
   invalid_override_ids: string[];
   warnings: string[];
   balance_sheet: BalanceSheetReview;
+  readiness?: Partial<Record<WizardReportType, ReportReadiness>>;
 };
 
 type WizardProps = {
@@ -257,10 +259,27 @@ export function Wizard({ user }: WizardProps) {
       body.append("files", selectedFile);
     });
 
+    const previousUpload = upload;
+    const previousDocumentIds = previousUpload?.document_ids?.length
+      ? previousUpload.document_ids
+      : previousUpload?.document_id
+        ? [previousUpload.document_id]
+        : [];
+
     setLoading(true);
     try {
       const result = await postForm<UploadResult>("/wizard/upload", body);
-      setUpload(result);
+      const newDocumentIds = result.document_ids?.length
+        ? result.document_ids
+        : [result.document_id];
+      const documentIds = previousUpload?.company_id === result.company_id
+        ? Array.from(new Set([...previousDocumentIds, ...newDocumentIds]))
+        : newDocumentIds;
+      setUpload({
+        ...result,
+        document_id: documentIds[documentIds.length - 1],
+        document_ids: documentIds,
+      });
       setDocumentStatus({
         id: result.document_id,
         extraction_status: result.status,
@@ -322,6 +341,19 @@ export function Wizard({ user }: WizardProps) {
     setError("");
   }
 
+  function startAdditionalUpload() {
+    setStep("upload");
+    setFiles([]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setDocumentStatus(null);
+    setFinancialReview(null);
+    setFinancialReconciliationOverrides({});
+    setReportType(null);
+    setIntakeDrafts({});
+    setReportId(null);
+    setError("");
+  }
+
   const selectedFileLabel =
     files.length === 0
       ? ""
@@ -330,6 +362,9 @@ export function Wizard({ user }: WizardProps) {
         : `${files.length} financial statements selected`;
   const isFinancialReadinessError = /key valuation figures/i.test(error);
   const extractionFailed = step === "processing" && documentStatus?.extraction_status === "failed";
+  const selectedReportReadiness = reportType
+    ? financialReview?.readiness?.[reportType]
+    : undefined;
 
   return (
     <>
@@ -457,7 +492,7 @@ export function Wizard({ user }: WizardProps) {
             <p>
               {upload?.demo_mode
                 ? "We are reading the uploaded financial statements and using simulated public research and report assumptions so you can test the journey without an API key."
-                : "We are extracting the financial history, balance sheet and possible earnings adjustments before asking you anything else."}
+                : "We are extracting the financial history, balance sheet and possible earnings adjustments before asking you anything else. A commercial AI key is not required for this step."}
             </p>
             <p className={`status-pill status-${documentStatus?.extraction_status ?? "processing"}`}>
               Status: {documentStatus?.extraction_status ?? "processing"}
@@ -571,6 +606,15 @@ export function Wizard({ user }: WizardProps) {
               enterprise value; Bank Credit Paper adds public client research, lender questions,
               security, LVR and debt-capacity analysis.
             </p>
+            <div className="alert alert-info">
+              <strong>No commercial AI key required</strong>
+              <p>
+                If a live provider is not configured, AccountIQ prepares an evidence-mode report
+                from your uploaded accounts and the company website or public links you approve.
+                It records the source trail and labels model conventions where independent market
+                research has not been retrieved.
+              </p>
+            </div>
             {financialReview?.balance_sheet.periods.length ? (
               <div className="upload-guidance-panel" aria-label="Balance sheet review">
                 <div>
@@ -590,12 +634,76 @@ export function Wizard({ user }: WizardProps) {
                 ) : null}
               </div>
             ) : null}
-            <ReportTypePicker selected={reportType} onSelect={setReportType} />
+            <ReportTypePicker
+              selected={reportType}
+              onSelect={setReportType}
+              readiness={financialReview?.readiness}
+            />
+            {selectedReportReadiness ? (
+              <section
+                className={selectedReportReadiness.ready ? "report-readiness-panel ready" : "report-readiness-panel needs-info"}
+                aria-live="polite"
+                aria-labelledby="report-readiness-title"
+              >
+                <div>
+                  <span className="eyebrow">
+                    {selectedReportReadiness.ready ? "Ready to prepare" : "More information needed"}
+                  </span>
+                  <h2 id="report-readiness-title">
+                    {selectedReportReadiness.ready
+                      ? "The uploaded financials can support this report"
+                      : "Add the missing financial information before continuing"}
+                  </h2>
+                  {selectedReportReadiness.issues.length ? (
+                    <p>
+                      This report needs {selectedReportReadiness.issues.join(", ")} from the uploaded
+                      statements. AccountIQ will not fill these gaps with assumptions.
+                    </p>
+                  ) : (
+                    <p>
+                      The core financial information is present. The items below are not required to
+                      start, but obtaining them will make the final report more useful and easier to
+                      support with an adviser or lender.
+                    </p>
+                  )}
+                </div>
+                {selectedReportReadiness.warnings.length ? (
+                  <div className="report-readiness-notes">
+                    <strong>Current limitations</strong>
+                    <ul>
+                      {selectedReportReadiness.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                <div className="report-readiness-follow-up">
+                  <strong>Information that will strengthen the output</strong>
+                  <ul>
+                    {selectedReportReadiness.follow_up_items.map((item) => (
+                      <li key={item.label}>
+                        <span>{item.label}</span>
+                        <small>{item.impact}</small>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {!selectedReportReadiness.ready ? (
+                  <button type="button" className="button button-secondary" onClick={startAdditionalUpload}>
+                    Upload more financial statements
+                  </button>
+                ) : null}
+              </section>
+            ) : null}
             <div className="wizard-actions">
               <button className="button button-secondary" onClick={() => setStep("upload")}>
                 {"<- Back"}
               </button>
-              <button className="button button-primary" onClick={() => setStep("intake")} disabled={!reportType}>
+              <button
+                className="button button-primary"
+                onClick={() => setStep("intake")}
+                disabled={!reportType || selectedReportReadiness?.ready === false}
+              >
                 Continue -&gt;
               </button>
             </div>

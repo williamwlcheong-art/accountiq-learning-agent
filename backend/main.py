@@ -70,7 +70,19 @@ from report_quality import (
     audit_valuation_report_html,
     audit_valuation_report_pdf,
 )
+from evidence_research import collect_evidence_research, evidence_sources_table
 from research_loop import WEB_SEARCH_TOOL, run_valuation_research
+from sector_library import (
+    enrich_research_brief,
+    match_sector_report,
+    sector_prompt_context,
+)
+from market_intelligence import apply_market_intelligence_to_report_content
+from report_readiness import (
+    assess_credit_financial_readiness,
+    credit_readiness_message,
+    report_follow_up_items,
+)
 from valuation import (
     compute_wacc_scenarios, compute_dcf, compute_illiquidity_discount,
     compute_multiples_range, select_revenue_growth_assumption,
@@ -144,6 +156,27 @@ def _demo_mode_enabled() -> bool:
     return E2E_MODE or _env_flag("ACCOUNTIQ_DEMO_MODE")
 
 
+def _report_generation_mode() -> str:
+    """Select the report engine without silently labelling a live report as demo.
+
+    ``auto`` is the default: use the OpenAI workflow when a valid
+    key is configured and otherwise use the deterministic evidence workflow.
+    The evidence workflow only fetches user-approved public URLs and writes
+    reports from templates plus calculated financial schedules; it never calls
+    OpenAI or another commercial AI provider.
+    """
+    if _demo_mode_enabled():
+        return "demo"
+    requested = os.environ.get("ACCOUNTIQ_REPORT_GENERATION_MODE", "auto").strip().lower()
+    if requested not in {"auto", "provider", "evidence"}:
+        requested = "auto"
+    if requested == "evidence":
+        return "evidence"
+    if requested == "provider":
+        return "provider" if _live_openai_key_configured() else "unavailable"
+    return "provider" if _live_openai_key_configured() else "evidence"
+
+
 def _row_value(row, key: str, default=None):
     """Return a value from sqlite row-like objects without assuming the column exists."""
     if row is None:
@@ -179,12 +212,22 @@ def _report_demo_mode_from_row(row) -> bool:
     return _content_looks_like_demo_report(_row_value(row, "content", ""))
 
 
-def _live_anthropic_key_configured() -> bool:
-    key = os.environ.get("ANTHROPIC_API_KEY", "")
+def _report_generation_mode_from_row(row) -> str:
+    """Use persisted generation mode so a retry/review stays auditable."""
+    if _report_demo_mode_from_row(row):
+        return "demo"
+    mode = str(_row_value(row, "generation_mode", "") or "").strip().lower()
+    if mode in {"provider", "evidence", "demo"}:
+        return mode
+    return "provider"
+
+
+def _live_openai_key_configured() -> bool:
+    key = os.environ.get("OPENAI_API_KEY", "")
     return bool(
         key
-        and not key.startswith("sk-ant-YOUR")
-        and key != "sk-ant-e2e-placeholder"
+        and not key.startswith("sk-YOUR")
+        and key != "sk-e2e-placeholder"
     )
 
 
@@ -197,9 +240,9 @@ def _live_research_connection_error_detail(current_user: dict) -> str:
     """Return a safe setup-error message for the current user type."""
     if current_user.get("is_admin"):
         return (
-            "Report preparation is unavailable until the AI research connection "
-            "is configured and verified in Admin Settings. For local no-key testing, "
-            "enable demo mode first; for live reports, add and verify an Anthropic API key."
+            "Provider-only report generation is selected, but the live AI research connection is not configured. "
+            "Switch AccountIQ to evidence mode to generate source-scoped reports without a commercial AI key, "
+            "or add and verify an OpenAI API key for provider research."
         )
     return (
         "Report preparation is temporarily unavailable. "
@@ -207,32 +250,34 @@ def _live_research_connection_error_detail(current_user: dict) -> str:
     )
 
 
-def _anthropic_key_cache_signature(key: str) -> str:
+def _openai_key_cache_signature(key: str) -> str:
     """Return a non-secret cache signature for a provider key."""
     if len(key) <= 12:
         return f"len:{len(key)}"
     return f"{key[:8]}:{key[-4:]}:{len(key)}"
 
 
-def _anthropic_live_research_preflight_sync(api_key: str, model: str) -> None:
-    """Verify the live Anthropic model accepts AccountIQ's web-search setup."""
-    import anthropic as _anthropic
+def _openai_live_research_preflight_sync(api_key: str, model: str) -> None:
+    """Verify the selected OpenAI model accepts AccountIQ's web-search setup."""
+    try:
+        from openai import OpenAI
+    except ImportError as exc:
+        raise RuntimeError("The OpenAI SDK is not installed.") from exc
 
-    client = _anthropic.Anthropic(api_key=api_key)
-    client.messages.create(
+    client = OpenAI(api_key=api_key)
+    client.responses.create(
         model=model,
-        max_tokens=1,
-        system=(
+        max_output_tokens=16,
+        input=(
             "AccountIQ connection check. Reply OK only. "
             "Do not use web search or any other tool."
         ),
         tools=[WEB_SEARCH_TOOL],
-        messages=[{"role": "user", "content": "Reply OK only."}],
     )
 
 
 def _live_research_preflight_cache_key(api_key: str, model: str) -> str:
-    return f"{_anthropic_key_cache_signature(api_key)}:{model}"
+    return f"{_openai_key_cache_signature(api_key)}:{model}"
 
 
 async def _run_live_research_preflight(api_key: str, model: str) -> bool:
@@ -243,7 +288,7 @@ async def _run_live_research_preflight(api_key: str, model: str) -> bool:
         return False
 
     await asyncio.wait_for(
-        asyncio.to_thread(_anthropic_live_research_preflight_sync, api_key, model),
+        asyncio.to_thread(_openai_live_research_preflight_sync, api_key, model),
         timeout=_LIVE_RESEARCH_PREFLIGHT_TIMEOUT_SECONDS,
     )
     _live_research_preflight_cache[cache_key] = time.monotonic()
@@ -254,11 +299,11 @@ async def _ensure_live_research_connection(current_user: dict) -> None:
     """Fail before queueing when the live AI research connection cannot run."""
     if _demo_mode_enabled():
         return
-    if not _live_anthropic_key_configured():
+    if not _live_openai_key_configured():
         raise HTTPException(503, _live_research_connection_error_detail(current_user))
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    model = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    model = os.environ.get("OPENAI_MODEL", "gpt-5.4-mini")
 
     try:
         await _run_live_research_preflight(api_key, model)
@@ -367,11 +412,21 @@ def _e2e_report_content(report_type: str, *, demo_mode: bool = True) -> dict:
                 "customers, while management has confirmed that responsibility is shared across "
                 "the operating team."
             ),
-            "market_position": (
-                "The relevant New Zealand services market remains fragmented. Competitive advantage "
-                "depends on customer retention, delivery quality and trusted relationships. Public "
-                "market evidence was cross-checked against the company's private operating context."
-            ),
+            "market_position": {
+                "narrative": (
+                    "The relevant New Zealand services market remains fragmented. Competitive advantage "
+                    "depends on customer retention, delivery quality and trusted relationships. Public "
+                    "market evidence was cross-checked against the company's private operating context."
+                ),
+                "table": {
+                    "headers": ["Market consideration", "Current context", "Valuation relevance"],
+                    "rows": [[
+                        "Competitive structure",
+                        "Fragmented private-SME market",
+                        "Customer retention and delivery quality affect maintainable earnings and risk.",
+                    ]],
+                },
+            },
             "about_business_valuations": (
                 "## What the valuation represents\n"
                 "A business valuation estimates what a willing, informed buyer might pay and a willing, "
@@ -793,7 +848,7 @@ def _e2e_report_content(report_type: str, *, demo_mode: bool = True) -> dict:
                 "is not regulated advice under the FMCA, and should not be relied "
                 "on without independent professional advice."
             )
-        elif section.endswith("summary") or section in {"valuation_summary", "financial_summary"}:
+        elif section in set(TABLE_SECTIONS_VALUATION + TABLE_SECTIONS_BANK_CREDIT):
             content[section] = {
                 "narrative": f"E2E generated {title} with <script>escaped text</script> for safety checks.",
                 "table": {
@@ -801,6 +856,16 @@ def _e2e_report_content(report_type: str, *, demo_mode: bool = True) -> dict:
                     "rows": [["Revenue", "$1,250,000"], ["EBITDA", "$240,000"]],
                 },
             }
+            if report_type == "bank_credit_paper" and section == "coverage_and_sensitivity":
+                content[section]["amortisation_profile_table"] = {
+                    "headers": ["Year", "Opening debt", "Closing debt"],
+                    "rows": [["Year 1", "$250,000", "$200,000"]],
+                }
+            if report_type == "bank_credit_paper" and section == "balance_sheet_debt_capacity":
+                content[section]["debt_capacity_table"] = {
+                    "headers": ["Constraint", "Supportable debt", "Basis"],
+                    "rows": [["Illustrative coverage constraint", "$250,000", "E2E test data"]],
+                }
         else:
             content[section] = f"E2E generated {title} for {report_type}."
     return content
@@ -1219,30 +1284,30 @@ async def list_documents(
 
 
 def _extract_company_name_from_pdf_sync(filepath: str) -> str:
-    """Extract company name from page 1 of a PDF via Claude. Returns empty string on failure."""
+    """Extract company name from page 1 of a PDF via OpenAI. Returns empty string on failure."""
     try:
         import pdfplumber
-        import anthropic
+        from openai import OpenAI
         with pdfplumber.open(filepath) as pdf:
             if not pdf.pages:
                 return ""
             page1_text = pdf.pages[0].extract_text(x_tolerance=2, y_tolerance=3) or ""
         if not page1_text.strip():
             return ""
-        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
-        msg = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=64,
-            messages=[{
-                "role": "user",
-                "content": (
-                    "Extract the company or entity name from this financial document cover page. "
-                    "Reply with ONLY the company name — no explanation, no punctuation.\n\n"
-                    f"{page1_text[:2000]}"
-                )
-            }]
+        api_key = os.environ.get("OPENAI_API_KEY", "")
+        if not api_key:
+            return ""
+        client = OpenAI(api_key=api_key)
+        response = client.responses.create(
+            model=os.environ.get("OPENAI_MODEL", "gpt-5.4-mini"),
+            max_output_tokens=64,
+            input=(
+                "Extract the company or entity name from this financial document cover page. "
+                "Reply with ONLY the company name — no explanation, no punctuation.\n\n"
+                f"{page1_text[:2000]}"
+            ),
         )
-        name = msg.content[0].text.strip() if msg.content else ""
+        name = str(getattr(response, "output_text", "") or "").strip()
         return name[:200] if name else ""
     except Exception:
         return ""
@@ -1311,7 +1376,7 @@ async def upload_document(
             contents = await file.read()
             with open(tmp_path, "wb") as f:
                 f.write(contents)
-            # Extract company name from PDF page 1 via Claude
+            # Extract company name from PDF page 1 via OpenAI when configured.
             loop = asyncio.get_running_loop()
             extracted = await loop.run_in_executor(
                 None, _extract_company_name_from_pdf_sync, str(tmp_path)
@@ -1618,18 +1683,20 @@ async def confidence_stats(
 @app.get("/settings")
 async def get_settings(current_user: dict = Depends(require_admin)):
     """Return current settings (API key masked)."""
-    key = os.environ.get("ANTHROPIC_API_KEY", "")
-    live_key_configured = _live_anthropic_key_configured()
+    key = os.environ.get("OPENAI_API_KEY", "")
+    live_key_configured = _live_openai_key_configured()
     import ingestion as ing
     return {
         "demo_mode": _demo_mode_enabled(),
         "demo_mode_configured": _env_flag("ACCOUNTIQ_DEMO_MODE"),
         "demo_mode_forced": E2E_MODE,
         "api_key_set": live_key_configured,
+        "report_generation_mode": _report_generation_mode(),
+        "evidence_mode_available": True,
         "api_key_preview": (
             (key[:12] + "…" + key[-4:]) if len(key) > 20 else "set"
         ) if live_key_configured else "",
-        "claude_model": os.environ.get("CLAUDE_MODEL") or ing.CLAUDE_MODEL,
+        "openai_model": os.environ.get("OPENAI_MODEL") or ing.OPENAI_MODEL,
         "env_file": str(ENV_PATH),
     }
 
@@ -1637,7 +1704,7 @@ async def get_settings(current_user: dict = Depends(require_admin)):
 @app.post("/settings")
 async def update_settings(
     api_key:      str = Form(None),
-    claude_model: str = Form(None),
+    openai_model: str = Form(None),
     demo_mode: Optional[str] = Form(None),
     current_user: dict = Depends(require_admin),
 ):
@@ -1653,19 +1720,19 @@ async def update_settings(
         os.environ["ACCOUNTIQ_DEMO_MODE"] = demo_value
         msg_parts.append(f"Demo mode {'enabled' if demo_enabled else 'disabled'}.")
 
-    if api_key and api_key.startswith("sk-ant-"):
-        set_key(str(ENV_PATH), "ANTHROPIC_API_KEY", api_key)
-        os.environ["ANTHROPIC_API_KEY"] = api_key
-        ing.ANTHROPIC_API_KEY = api_key
+    if api_key and api_key.startswith("sk-"):
+        set_key(str(ENV_PATH), "OPENAI_API_KEY", api_key)
+        os.environ["OPENAI_API_KEY"] = api_key
+        ing.OPENAI_API_KEY = api_key
         msg_parts.append("API key saved.")
     elif api_key:
-        raise HTTPException(400, "Key must start with sk-ant-")
+        raise HTTPException(400, "Key must start with sk-")
 
-    if claude_model:
-        set_key(str(ENV_PATH), "CLAUDE_MODEL", claude_model)
-        os.environ["CLAUDE_MODEL"] = claude_model
-        ing.CLAUDE_MODEL = claude_model
-        msg_parts.append(f"Model set to {claude_model}.")
+    if openai_model:
+        set_key(str(ENV_PATH), "OPENAI_MODEL", openai_model)
+        os.environ["OPENAI_MODEL"] = openai_model
+        ing.OPENAI_MODEL = openai_model
+        msg_parts.append(f"Model set to {openai_model}.")
 
     return {"ok": True, "message": " ".join(msg_parts) if msg_parts else "No settings changed."}
 
@@ -1673,7 +1740,7 @@ async def update_settings(
 @app.post("/settings/ai-connection/check")
 async def check_ai_connection(current_user: dict = Depends(require_admin)):
     """Verify whether AccountIQ can use the configured live AI research connection."""
-    model = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+    model = os.environ.get("OPENAI_MODEL", "gpt-5.4-mini")
 
     if _demo_mode_enabled():
         return {
@@ -1681,27 +1748,27 @@ async def check_ai_connection(current_user: dict = Depends(require_admin)):
             "status": "demo_mode",
             "message": (
                 "Demo mode is active, so live AI research was not checked. "
-                "You can continue testing the valuation journey without an Anthropic key."
+                "You can continue testing the valuation journey without an OpenAI key."
             ),
             "model": model,
             "demo_mode": True,
-            "api_key_set": _live_anthropic_key_configured(),
+            "api_key_set": _live_openai_key_configured(),
         }
 
-    if not _live_anthropic_key_configured():
+    if not _live_openai_key_configured():
         return {
-            "ok": False,
-            "status": "missing_key",
+            "ok": True,
+            "status": "evidence_mode",
             "message": (
-                "Live AI research is not configured. Add an Anthropic API key or enable demo mode "
-                "before asking customers to generate valuation reports."
+                "Live AI research is not configured. AccountIQ can still extract uploaded accounts with the "
+                "rule-based reader and generate evidence-mode reports from approved public URLs without an OpenAI key."
             ),
             "model": model,
             "demo_mode": False,
             "api_key_set": False,
         }
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("OPENAI_API_KEY", "")
     try:
         fresh_check = await _run_live_research_preflight(api_key, model)
     except Exception as exc:
@@ -1710,7 +1777,7 @@ async def check_ai_connection(current_user: dict = Depends(require_admin)):
             "ok": False,
             "status": "failed",
             "message": (
-                "Live AI research could not be verified. Check the Anthropic key, selected model "
+                "Live AI research could not be verified. Check the OpenAI key, selected model "
                 "and whether the account has access to the required web-search tools."
             ),
             "model": model,
@@ -1860,7 +1927,7 @@ async def wizard_upload(
                 UPDATE documents
                 SET extraction_status='pending',
                     confidence_score=NULL,
-                    raw_claude_response=NULL,
+                    raw_provider_response=NULL,
                     narrative=NULL,
                     updated_at=datetime('now')
                 WHERE id=? AND user_id=?
@@ -1958,9 +2025,21 @@ async def wizard_financial_review(
         source_document_ids=resolved_document_ids,
         overrides=overrides,
     )
+    valuation_readiness = assess_valuation_financial_readiness(reconciliation["rows"])
+    credit_readiness = assess_credit_financial_readiness(reconciliation["rows"])
     return {
         "document_ids": resolved_document_ids,
         **reconciliation,
+        "readiness": {
+            "valuation_advisory": {
+                **valuation_readiness,
+                "follow_up_items": report_follow_up_items(
+                    valuation_readiness,
+                    credit_readiness,
+                )["valuation_advisory"],
+            },
+            "bank_credit_paper": credit_readiness,
+        },
     }
 
 
@@ -2154,6 +2233,24 @@ def _normalise_public_source_urls(value: object) -> list[str]:
     if len(urls) > 10:
         raise HTTPException(422, "public source URLs cannot contain more than 10 links")
     return urls
+
+
+def _require_evidence_mode_source_hints(intake_answers: dict) -> None:
+    """Require a bounded public-source scope for no-provider business research.
+
+    Evidence mode is deliberately not an unrestricted crawler.  Requiring one
+    approved company website or public URL gives the user control over what is
+    fetched, keeps the report's source trail reviewable, and prevents a report
+    from claiming it researched a business when it had no public source at all.
+    """
+    website = str(intake_answers.get("company_website") or "").strip()
+    source_urls = intake_answers.get("public_source_urls") or []
+    if website or source_urls:
+        return
+    raise HTTPException(
+        422,
+        "Add the business website or at least one public source URL so AccountIQ can collect source-backed business context without an AI provider.",
+    )
 
 
 def _normalise_optional_company_location(value: object) -> str:
@@ -2928,10 +3025,8 @@ async def _ensure_report_generation_ready(
             "Review the financial-statement sources and choose the figure to use before preparing a report.",
         )
 
-    # Fail before queueing when no live AI connection is configured. This avoids
-    # making a customer wait for a job that can only end in a technical failure.
-    # E2E/demo mode remains deterministic and explicit.
-    if not _demo_mode_enabled() and not _live_anthropic_key_configured():
+    generation_mode = _report_generation_mode()
+    if generation_mode == "unavailable":
         raise HTTPException(503, _live_research_connection_error_detail(current_user))
 
     if report_type == "valuation_advisory" and not _demo_mode_enabled():
@@ -2941,8 +3036,12 @@ async def _ensure_report_generation_ready(
                 422,
                 _valuation_financial_readiness_message(readiness["issues"]),
             )
+    if report_type == "bank_credit_paper" and not _demo_mode_enabled():
+        readiness = assess_credit_financial_readiness(reconciliation["rows"])
+        if not readiness["ready"]:
+            raise HTTPException(422, credit_readiness_message(readiness["issues"]))
 
-    if not _demo_mode_enabled():
+    if generation_mode == "provider":
         await _ensure_live_research_connection(current_user)
 
     return resolved_document_ids
@@ -3008,6 +3107,10 @@ async def wizard_report_generate(
     elif report_type == "bank_credit_paper":
         _validate_bank_credit_intake_answers(intake_answers)
 
+    generation_mode = _report_generation_mode()
+    if generation_mode == "evidence":
+        _require_evidence_mode_source_hints(intake_answers)
+
     # Store the selected source document for each material overlap with the
     # report intake. It is deliberately excluded from the short business/lender
     # questionnaire validation above.
@@ -3034,7 +3137,7 @@ async def wizard_report_generate(
         reconciliation_overrides=reconciliation_overrides,
         current_user=current_user,
     )
-    report_demo_mode = _demo_mode_enabled()
+    report_demo_mode = generation_mode == "demo"
     primary_source_document_id = source_document_ids_for_generation[-1]
     generation_source_arg: int | list[int] = (
         source_document_ids_for_generation[0]
@@ -3044,9 +3147,15 @@ async def wizard_report_generate(
 
     # Create report row (status = queued per D-04)
     async with db.execute("""
-        INSERT INTO reports (company_id, user_id, report_type, status, demo_mode)
-        VALUES (?, ?, ?, 'queued', ?)
-    """, (company_id, current_user["id"], report_type, int(report_demo_mode))) as cur:
+        INSERT INTO reports (company_id, user_id, report_type, status, demo_mode, generation_mode)
+        VALUES (?, ?, ?, 'queued', ?, ?)
+    """, (
+        company_id,
+        current_user["id"],
+        report_type,
+        int(report_demo_mode),
+        generation_mode,
+    )) as cur:
         report_id = cur.lastrowid
 
     # Store intake answers
@@ -3072,7 +3181,12 @@ async def wizard_report_generate(
         generation_source_arg,
     )
 
-    return {"report_id": report_id, "status": "queued", "demo_mode": report_demo_mode}
+    return {
+        "report_id": report_id,
+        "status": "queued",
+        "demo_mode": report_demo_mode,
+        "generation_mode": generation_mode,
+    }
 
 
 @app.get("/wizard/report/{report_id}/status")
@@ -3083,7 +3197,7 @@ async def wizard_report_status(
 ):
     """Return current status of a report generation job."""
     async with db.execute("""
-        SELECT id, report_type, status, error_message, created_at, completed_at, demo_mode, content
+        SELECT id, report_type, status, error_message, created_at, completed_at, demo_mode, generation_mode, content
         FROM reports
         WHERE id=? AND user_id=?
     """, (report_id, current_user["id"])) as cur:
@@ -3092,6 +3206,7 @@ async def wizard_report_status(
         raise HTTPException(404, "Report not found")
     payload = dict(row)
     payload["demo_mode"] = _report_demo_mode_from_row(row)
+    payload["generation_mode"] = _report_generation_mode_from_row(row)
     payload.pop("content", None)
     return payload
 
@@ -3148,6 +3263,9 @@ async def wizard_report_retry(
         _validate_valuation_intake_answers(intake_answers)
     elif report["report_type"] == "bank_credit_paper":
         _validate_bank_credit_intake_answers(intake_answers)
+    generation_mode = _report_generation_mode()
+    if generation_mode == "evidence":
+        _require_evidence_mode_source_hints(intake_answers)
     source_document_ids = _source_document_ids_from_intake_row(intake_row)
     reconciliation_overrides = _normalise_financial_reconciliation_overrides(
         stored_reconciliation_overrides
@@ -3162,7 +3280,7 @@ async def wizard_report_retry(
         reconciliation_overrides=reconciliation_overrides,
         current_user=current_user,
     )
-    report_demo_mode = _demo_mode_enabled()
+    report_demo_mode = generation_mode == "demo"
     generation_source_arg: int | list[int] = (
         source_document_ids_for_generation[0]
         if len(source_document_ids_for_generation) == 1
@@ -3172,9 +3290,9 @@ async def wizard_report_retry(
     # Reset status
     await db.execute("""
         UPDATE reports
-        SET status='queued', error_message=NULL, completed_at=NULL, demo_mode=?
+        SET status='queued', error_message=NULL, completed_at=NULL, demo_mode=?, generation_mode=?, research_evidence=NULL
         WHERE id=? AND user_id=?
-    """, (int(report_demo_mode), report_id, current_user["id"]))
+    """, (int(report_demo_mode), generation_mode, report_id, current_user["id"]))
     if intake_row:
         await db.execute(
             "UPDATE report_intake SET answers=?, source_document_ids=? WHERE id=?",
@@ -3195,7 +3313,12 @@ async def wizard_report_retry(
         intake_answers,
         generation_source_arg,
     )
-    return {"report_id": report_id, "status": "queued", "demo_mode": report_demo_mode}
+    return {
+        "report_id": report_id,
+        "status": "queued",
+        "demo_mode": report_demo_mode,
+        "generation_mode": generation_mode,
+    }
 
 
 @app.get("/wizard/company/{company_id}/profile-status")
@@ -3998,6 +4121,159 @@ def _report_table_caption(key: str) -> str:
     return key.replace("_", " ").title()
 
 
+def _render_market_line_chart_html(chart: dict) -> str:
+    """Render a deterministic, accessible inline SVG market chart."""
+    series_list = [
+        item
+        for item in (chart.get("series") or [])
+        if isinstance(item, dict) and isinstance(item.get("values"), list)
+    ]
+    numeric_values: list[float] = []
+    for series in series_list:
+        for point in series.get("values") or []:
+            try:
+                numeric_values.append(float(point.get("value")))
+            except (AttributeError, TypeError, ValueError):
+                continue
+    if not series_list or len(numeric_values) < 2:
+        return ""
+
+    width, height = 720.0, 286.0
+    left, right, top, bottom = 70.0, 24.0, 24.0, 54.0
+    plot_width = width - left - right
+    plot_height = height - top - bottom
+    minimum = min(numeric_values)
+    maximum = max(numeric_values)
+    all_nonnegative = minimum >= 0
+    all_nonpositive = maximum <= 0
+    if all_nonnegative:
+        minimum = 0.0
+    if all_nonpositive:
+        maximum = 0.0
+    if math.isclose(minimum, maximum):
+        maximum = minimum + 1.0
+    padding = (maximum - minimum) * 0.08
+    if not all_nonnegative:
+        minimum -= padding
+    if not all_nonpositive:
+        maximum += padding
+    span = maximum - minimum
+    palette = ("#1769aa", "#d97706", "#2e7d32", "#7c3aed")
+
+    def point_xy(index: int, count: int, value: float) -> tuple[float, float]:
+        x_value = left + (plot_width * index / max(count - 1, 1))
+        y_value = top + ((maximum - value) / span) * plot_height
+        return x_value, y_value
+
+    grid_lines = []
+    for index in range(5):
+        ratio = index / 4
+        y_value = top + ratio * plot_height
+        label_value = maximum - ratio * span
+        if abs(label_value) >= 1000:
+            label = f"{label_value / 1000:,.0f}k"
+        elif abs(label_value) >= 100:
+            label = f"{label_value:,.0f}"
+        else:
+            label = f"{label_value:,.1f}"
+        grid_lines.append(
+            f'<line x1="{left:.1f}" y1="{y_value:.1f}" x2="{width-right:.1f}" '
+            f'y2="{y_value:.1f}" stroke="#dfe5ec" stroke-width="1"/>'
+            f'<text x="{left-9:.1f}" y="{y_value+4:.1f}" text-anchor="end" '
+            f'fill="#637083" font-size="11">{_html_lib.escape(label)}</text>'
+        )
+
+    paths = []
+    legends = []
+    period_labels: list[str] = []
+    for series_index, series in enumerate(series_list):
+        valid_points: list[tuple[str, float]] = []
+        for point in series.get("values") or []:
+            try:
+                valid_points.append((str(point.get("period") or ""), float(point.get("value"))))
+            except (AttributeError, TypeError, ValueError):
+                continue
+        if len(valid_points) < 2:
+            continue
+        if not period_labels:
+            period_labels = [label for label, _value in valid_points]
+        colour = palette[series_index % len(palette)]
+        coordinates = [
+            point_xy(index, len(valid_points), value)
+            for index, (_period, value) in enumerate(valid_points)
+        ]
+        path_points = " ".join(f"{x_value:.1f},{y_value:.1f}" for x_value, y_value in coordinates)
+        circles = "".join(
+            f'<circle cx="{x_value:.1f}" cy="{y_value:.1f}" r="3.2" '
+            f'fill="{colour}" stroke="white" stroke-width="1.4"/>'
+            for x_value, y_value in coordinates
+        )
+        paths.append(
+            f'<polyline points="{path_points}" fill="none" stroke="{colour}" '
+            f'stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>{circles}'
+        )
+        legends.append(
+            f'<span><i style="background:{colour}"></i>'
+            f'{_html_lib.escape(str(series.get("name") or "Series"))}</span>'
+        )
+
+    if not paths:
+        return ""
+    x_labels = []
+    for index, label in enumerate(period_labels):
+        if len(period_labels) > 8 and index not in {0, len(period_labels) - 1} and index % 2:
+            continue
+        x_value, _ = point_xy(index, len(period_labels), 0)
+        x_labels.append(
+            f'<text x="{x_value:.1f}" y="{height-bottom+22:.1f}" text-anchor="middle" '
+            f'fill="#637083" font-size="10">{_html_lib.escape(label)}</text>'
+        )
+
+    source_names = {
+        "stats_nz_cpi": "Stats NZ",
+        "stats_nz_gdp": "Stats NZ",
+        "stats_nz_migration": "Stats NZ",
+        "stats_nz_bfd": "Stats NZ Business Financial Data",
+        "rbnz_ocr": "Reserve Bank of New Zealand",
+    }
+    sources = list(
+        dict.fromkeys(
+            source_names.get(str(source_id), str(source_id))
+            for source_id in chart.get("source_ids") or []
+        )
+    )
+    note = str(chart.get("note") or "").strip()
+    caption = " · ".join(
+        value
+        for value in (
+            f"Source: {', '.join(sources)}" if sources else "",
+            note,
+        )
+        if value
+    )
+    return f"""
+    <figure class="market-line-chart">
+      <figcaption>
+        <strong>{_html_lib.escape(str(chart.get("title") or "Market trend"))}</strong>
+        <span>{_html_lib.escape(str(chart.get("subtitle") or ""))}</span>
+      </figcaption>
+      <div class="market-chart-legend">{"".join(legends)}</div>
+      <svg viewBox="0 0 {width:.0f} {height:.0f}" role="img"
+           aria-label="{_html_lib.escape(str(chart.get('title') or 'Market trend'), quote=True)}">
+        {"".join(grid_lines)}
+        <line x1="{left:.1f}" y1="{top:.1f}" x2="{left:.1f}" y2="{height-bottom:.1f}" stroke="#9aa8b8"/>
+        <line x1="{left:.1f}" y1="{height-bottom:.1f}" x2="{width-right:.1f}" y2="{height-bottom:.1f}" stroke="#9aa8b8"/>
+        {"".join(paths)}
+        {"".join(x_labels)}
+        <text x="15" y="{top + plot_height / 2:.1f}" text-anchor="middle"
+              transform="rotate(-90 15 {top + plot_height / 2:.1f})"
+              fill="#637083" font-size="11">{_html_lib.escape(str(chart.get("unit") or ""))}</text>
+      </svg>
+      <p class="market-chart-source">{_html_lib.escape(caption)}</p>
+    </figure>
+    """
+
+
 def _render_report_sections_html(
     sections: dict,
     section_order: list,
@@ -4061,6 +4337,11 @@ def _render_report_sections_html(
         if isinstance(content, dict):
             narrative = str(content.get("narrative", "") or "")
             table_data = content.get("table") if isinstance(content.get("table"), dict) else None
+            market_charts = (
+                content.get("market_charts")
+                if isinstance(content.get("market_charts"), list)
+                else []
+            )
             extra_tables = {
                 sub_key: sub_value
                 for sub_key, sub_value in content.items()
@@ -4072,9 +4353,15 @@ def _render_report_sections_html(
         else:
             narrative = str(content) if content is not None else ""
             table_data = None
+            market_charts = []
             extra_tables = {}
 
         paragraphs = _narrative_to_html(narrative)
+        market_charts_html = "".join(
+            _render_market_line_chart_html(chart)
+            for chart in market_charts
+            if isinstance(chart, dict)
+        )
         executive_highlights_html = (
             _render_executive_valuation_highlights_html(sections)
             if is_valuation_report and key == "executive_summary"
@@ -4151,6 +4438,8 @@ def _render_report_sections_html(
                 "specific_risk_factors": "Specific risk factors",
                 "debt_capacity_table": "Debt-capacity constraints",
                 "amortisation_profile_table": "P&I leverage profile",
+                "sector_scale_table": "Sector scale and boundary",
+                "market_sources_table": "Market data sources",
             }.get(sub_key, _report_table_caption(sub_key))
             subtable_html = render_table(subtable, subheading)
             if subtable_html:
@@ -4177,6 +4466,7 @@ def _render_report_sections_html(
             <h2><span class="section-number">{section_number:02d}</span> {_html_lib.escape(heading)}</h2>
             {pre_narrative_guidance_html}
             {paragraphs}
+            {market_charts_html}
             {executive_highlights_html}
             {valuation_range_visual_html}
             {pre_table_guidance_html}
@@ -4438,7 +4728,7 @@ async def wizard_report_view(
 ):
     """Render a completed report as the browser review surface for the report pack."""
     async with db.execute("""
-        SELECT r.id, r.report_type, r.status, r.content, r.completed_at, r.demo_mode,
+        SELECT r.id, r.report_type, r.status, r.content, r.completed_at, r.demo_mode, r.generation_mode,
                c.name
         FROM reports r
         JOIN companies c ON c.id = r.company_id
@@ -4460,8 +4750,15 @@ async def wizard_report_view(
     valuation_purpose = _valuation_purpose_label(intake_answers.get("valuation_purpose"))
     section_order = SECTION_SCHEMAS.get(row["report_type"], list(sections.keys()))
     demo_mode = _report_demo_mode_from_row(row)
+    generation_mode = _report_generation_mode_from_row(row)
     if row["report_type"] == "valuation_advisory":
-        label = "Demo Indicative Valuation Report" if demo_mode else "Indicative Valuation Report"
+        label = (
+            "Demo Indicative Valuation Report"
+            if demo_mode
+            else "Evidence-Mode Indicative Valuation Report"
+            if generation_mode == "evidence"
+            else "Indicative Valuation Report"
+        )
     else:
         label = row["report_type"].replace("_", " ").title()
     back_url = f"{os.getenv('APP_BASE_URL', 'http://localhost:3000').rstrip('/')}/wizard"
@@ -4722,6 +5019,15 @@ async def wizard_report_view(
   .reader-guidance dt {{ margin:0 0 4px; color:var(--blue); font-size:.7rem; font-weight:850; letter-spacing:.05em; text-transform:uppercase; }}
   .reader-guidance dd {{ margin:0; color:var(--navy); font-size:1rem; font-weight:850; font-variant-numeric:tabular-nums; }}
   .reader-guidance p {{ margin:6px 0 0; color:var(--muted); font-size:.77rem; line-height:1.35; }}
+  .market-line-chart {{ margin:24px 0; padding:18px 20px 14px; border:1px solid #dbe5ef; border-radius:14px;
+                        background:linear-gradient(145deg, #f8fbff, #fff); break-inside:avoid; }}
+  .market-line-chart figcaption strong {{ display:block; color:var(--navy); font-size:.98rem; }}
+  .market-line-chart figcaption span {{ display:block; margin-top:3px; color:var(--muted); font-size:.77rem; }}
+  .market-line-chart svg {{ display:block; width:100%; height:auto; margin-top:8px; overflow:visible; }}
+  .market-chart-legend {{ display:flex; flex-wrap:wrap; gap:14px; margin:12px 0 0; color:var(--muted); font-size:.72rem; }}
+  .market-chart-legend span {{ display:inline-flex; align-items:center; gap:6px; }}
+  .market-chart-legend i {{ width:18px; height:3px; border-radius:999px; }}
+  .market-chart-source {{ margin:4px 0 0; color:var(--muted); font-size:.67rem; line-height:1.4; }}
   .financial-trend-visual {{ margin:0 0 28px; padding:18px 20px; border:1px solid #dbeafe; border-radius:14px;
                              background:linear-gradient(135deg, #f8fbff, #ffffff); }}
   .financial-trend-header {{ display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:14px; }}
@@ -4863,7 +5169,7 @@ async def wizard_report_pdf(
     """Render the authenticated report view to a downloadable A4 PDF."""
     async with db.execute(
         """
-        SELECT r.id, r.report_type, r.status, r.content, r.completed_at, r.demo_mode, c.name
+        SELECT r.id, r.report_type, r.status, r.content, r.completed_at, r.demo_mode, r.generation_mode, c.name
         FROM reports r
         JOIN companies c ON c.id = r.company_id
         WHERE r.id=? AND r.user_id=?
@@ -4884,10 +5190,13 @@ async def wizard_report_pdf(
     valuation_purpose = _valuation_purpose_label(intake_answers.get("valuation_purpose"))
     company_name = row["name"]
     demo_mode = _report_demo_mode_from_row(row)
+    generation_mode = _report_generation_mode_from_row(row)
     if row["report_type"] == "valuation_advisory":
         report_label = (
             "Demo Indicative Valuation Report"
             if demo_mode
+            else "Evidence-Mode Indicative Valuation Report"
+            if generation_mode == "evidence"
             else "Indicative Valuation Report"
         )
     else:
@@ -5039,9 +5348,17 @@ def _demo_report_content_from_inputs(
                 "Demo mode has not run live web research. Use the uploaded financials and any user-supplied "
                 "context as the business-specific evidence for this test draft."
             ),
-            "market_position": (
+            "market_position": _section_with_table(
                 "Market-position commentary is illustrative in demo mode. Configure live research before relying "
-                "on sector positioning or comparable evidence."
+                "on sector positioning or comparable evidence.",
+                {
+                    "headers": ["Market evidence", "Status", "Use in report"],
+                    "rows": [[
+                        "Sector and macro context",
+                        "Illustrative demo context",
+                        "Do not use as a company-specific conclusion.",
+                    ]],
+                },
             ),
             "about_business_valuations": (
                 "A business valuation distinguishes enterprise value from equity value. Enterprise value is the "
@@ -5267,12 +5584,20 @@ def _demo_report_content_from_inputs(
                 bank_credit_figures.get("balance_sheet_strength_table") or {},
                 debt_capacity_table=debt_capacity_table,
             ),
-            "industry_and_competitive_landscape": (
+            "industry_and_competitive_landscape": _section_with_table(
                 f"## Sector context\n{sector_summary}\n\n"
                 "## Credit relevance\n"
                 "In a live run this section should be supported by public-source research into the borrower, sector, "
                 "competitors, regulation, contracts, cyclicality and local operating footprint. In demo mode, treat "
-                "the sector narrative as illustrative and rely on the uploaded financials for quantitative conclusions."
+                "the sector narrative as illustrative and rely on the uploaded financials for quantitative conclusions.",
+                {
+                    "headers": ["Market evidence", "Status", "Credit use"],
+                    "rows": [[
+                        "Sector and macro context",
+                        "Illustrative demo context",
+                        "Test demand, pricing and cost sensitivities before credit reliance.",
+                    ]],
+                },
             ),
             "proposed_covenants": _section_with_table(
                 (
@@ -5322,6 +5647,234 @@ def _demo_report_content_from_inputs(
     return content
 
 
+def _replace_demo_copy_with_evidence_copy(value: object) -> object:
+    """Remove demo wording when reusing deterministic report schedules in evidence mode."""
+    if isinstance(value, dict):
+        return {key: _replace_demo_copy_with_evidence_copy(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_replace_demo_copy_with_evidence_copy(item) for item in value]
+    if not isinstance(value, str):
+        return value
+    replacements = (
+        ("Demo-mode", "Evidence-mode"),
+        ("demo-mode", "evidence-mode"),
+        ("Demo mode", "Evidence mode"),
+        ("demo mode", "evidence mode"),
+        ("This local demo", "This evidence-mode"),
+        ("This demo", "This evidence-mode"),
+        ("demo report", "evidence-mode report"),
+        ("demo draft", "evidence-mode draft"),
+        ("demo figures", "documented model conventions"),
+        ("demo market", "documented model-convention"),
+        ("demo discount-rate", "documented model-convention"),
+        ("demo EV/EBITDA", "documented EV/EBITDA"),
+        ("simulated public research", "approved public-source evidence"),
+        ("simulated research", "approved public-source evidence"),
+        ("simulated market evidence", "approved public-source evidence"),
+        ("sample professional valuation assumptions", "documented valuation assumptions"),
+        ("sample valuation evidence", "documented valuation evidence"),
+        ("labelled demo source URLs", "retained public source URLs"),
+        ("sample public-source research", "approved public-source evidence"),
+        ("live AI key", "independent market evidence"),
+        ("live research", "independent external research"),
+        ("live web research", "independent external research"),
+        ("No live", "No independent"),
+        ("Demo ", "Documented "),
+        ("demo ", "documented "),
+    )
+    text = value
+    for old, new in replacements:
+        text = text.replace(old, new)
+    return text
+
+
+def _evidence_mode_assumption_source_trail(table: object) -> dict:
+    """Keep market-assumption provenance accurate when no public market feed ran."""
+    if not isinstance(table, dict):
+        return {"headers": [], "rows": []}
+    result = json.loads(json.dumps(table))
+    for row in result.get("rows", []):
+        if not isinstance(row, list):
+            continue
+        for index, cell in enumerate(row):
+            if isinstance(cell, str) and "public research" in cell.lower():
+                row[index] = re.sub(
+                    r"public research[^;:.]*[:;]?",
+                    "Public research not retrieved; documented model convention:",
+                    cell,
+                    flags=re.IGNORECASE,
+                )
+    return result
+
+
+def _evidence_mode_report_content_from_inputs(
+    *,
+    report_type: str,
+    company_name: str,
+    financial_rows: list[dict],
+    valuation_result: dict | None,
+    bank_credit_figures: dict | None,
+    research_brief: dict | None,
+) -> dict:
+    """Build a source-scoped report without invoking a commercial AI provider.
+
+    Financial schedules remain the existing deterministic calculations.  This
+    function replaces only the old demo framing with explicit public-evidence
+    limits, rather than trying to imitate a model-written research narrative.
+    """
+    content = _demo_report_content_from_inputs(
+        report_type=report_type,
+        company_name=company_name,
+        financial_rows=financial_rows,
+        valuation_result=valuation_result,
+        bank_credit_figures=bank_credit_figures,
+        credit_research_brief=research_brief,
+    )
+    content = _replace_demo_copy_with_evidence_copy(content)
+    brief = research_brief or {}
+    source_records = brief.get("evidence_sources") if isinstance(brief, dict) else []
+    source_urls = [str(item) for item in (brief.get("sources") or [])] if isinstance(brief, dict) else []
+    limitations = [str(item) for item in (brief.get("limitations") or [])] if isinstance(brief, dict) else []
+    evidence_summary = str(brief.get("company_summary") or "No public-source evidence was retained.")
+    sector_summary = str(brief.get("sector_summary") or "No sector evidence was retained.")
+    limitation_text = " ".join(limitations) or (
+        "Only approved public sources were considered; the report does not perform open-web discovery."
+    )
+    source_scope = ", ".join(source_urls[:3]) or "the public URLs supplied in the intake"
+
+    if report_type == "valuation_advisory" and valuation_result:
+        sources_table = evidence_sources_table(source_records)
+        if not sources_table.get("rows") and source_urls:
+            sources_table = {
+                "headers": ["Source", "URL", "Supports / used for"],
+                "rows": [[
+                    "Management-supplied public source",
+                    source_urls[0],
+                    "Source scope supplied for evidence-mode research; no factual claim is made unless readable content was retrieved.",
+                ]],
+            }
+        comparable_source = source_urls[0] if source_urls else "https://www.rbnz.govt.nz/"
+        valuation_result["sources_table"] = sources_table
+        valuation_result["assumption_source_trail"] = _evidence_mode_assumption_source_trail(
+            valuation_result.get("assumption_source_trail")
+        )
+        content["introduction"] = (
+            f"## Client and report purpose\nThis indicative valuation for {company_name} is prepared from uploaded "
+            "financial information, management-confirmed private inputs and the approved public-source evidence trail. "
+            "It is prepared for the client or intended user to assess a preliminary going-concern value. The valuation date is the report preparation date unless an alternative valuation date is expressly agreed.\n\n"
+            "## Sources of information and evidence boundary\nFinancial schedules use the uploaded financial statements. "
+            f"Public context is limited to {source_scope}; {limitation_text}\n\n"
+            "## Evidence-mode generation\nThis report was prepared without a commercial AI provider. "
+            "It uses deterministic financial calculations and the retained public-source evidence trail.\n\n"
+            "## Reliance limitation\nThis is an indicative analysis, not an independent business valuation, financial advice, tax advice or legal advice. "
+            "It is confidential to the intended user and should not be relied on without independent professional advice."
+        )
+        content["executive_summary"] = _section_with_table(
+            "The valuation schedules use the uploaded accounts and transparent model conventions. Public company context is limited to the retained evidence trail; "
+            "no commercial AI provider, open-web search or paid market database was used.",
+            valuation_result.get("executive_summary_table") or {},
+        )
+        content["business_overview"] = (
+            f"## Public information reviewed\n{evidence_summary}\n\n"
+            "## Evidence boundary\nThe report retains the reviewed URLs and retrieval status. Published website content is context only and is not independent verification of management representations."
+        )
+        content["market_position"] = _section_with_table(
+            f"## Sector context\n{sector_summary}\n\n"
+            "## Valuation relevance\nNo automated open-web discovery, paid data source or transaction database was used. Sector growth, competitor, regulatory and comparable-transaction conclusions are therefore not asserted unless the retained public evidence directly supports them.",
+            {
+                "headers": ["Evidence boundary", "Evidence available", "Valuation use"],
+                "rows": [[
+                    "Approved public-source scope",
+                    source_scope,
+                    "Use only for corroborated market context; do not infer company market share.",
+                ]],
+            },
+        )
+        content["about_business_valuations"] = (
+            "A business valuation estimates a range of value for a going concern, recognising that a willing buyer and willing seller may place different values on the same future cash flows. "
+            "Enterprise value measures the operating business before debt and surplus cash, while equity value is the amount remaining for shareholders after the debt and cash bridge. "
+            "Maintainable earnings are the recurring earnings a market participant expects the business to sustain after normalising one-off, non-operating or owner-specific items. "
+            "The valuation range reflects uncertainty in future performance, funding costs, growth, customer retention and other risk factors rather than a single guaranteed outcome."
+        )
+        content["general_principles"] = (
+            "This analysis assumes a willing buyer and a willing seller dealing at arm's length, each acting with reasonable knowledge and without compulsion. "
+            "It assumes the business continues as a going concern at the valuation date and that the financial information fairly represents the operating business. "
+            "The conclusion is date-sensitive: changes in trading, finance costs, management continuity, assets, liabilities or market conditions may change the indicated valuation range."
+        )
+        content["valuation_methodology"] = (
+            "Discounted cash flow (DCF) is the primary method because it converts the business's expected future cash-generating capacity into enterprise value using a documented discount rate. "
+            "The EV/EBITDA multiple range is a reasonableness cross-check only. In evidence mode, the multiple and WACC inputs are transparent model conventions rather than independently researched market data. "
+            "Any market multiple comparison remains sensitive to scale, growth, margins, customer concentration, contract security and other comparability factors."
+        )
+        content["valuation_assumptions"] = _section_with_table(
+            "The source trail distinguishes uploaded financial data, management-confirmed private inputs and public research not retrieved in evidence mode. "
+            "Where independent market evidence is unavailable, AccountIQ labels the documented model convention rather than presenting it as a market fact.",
+            valuation_result.get("assumption_source_trail") or {},
+        )
+        content["multiples_crosscheck"] = _section_with_table(
+            "The EV/EBITDA range is a transparent model convention for a private-SME cross-check. It is not a conclusion drawn from comparable transactions because no independent transaction evidence was retrieved in this run.",
+            valuation_result.get("multiples_crosscheck_table") or {},
+        )
+        content["comparable_evidence"] = _section_with_table(
+            "No independent comparable-transaction evidence was retrieved. The table records this limitation rather than manufacturing a market-data conclusion.",
+            {
+                "headers": ["Evidence / transaction", "Date", "Metric or multiple", "Relevance and limitations", "Source"],
+                "rows": [[
+                    "No comparable transaction evidence retrieved",
+                    "Not available",
+                    "Not available",
+                    "The EV/EBITDA range is a documented model convention only; it is not independently corroborated market evidence.",
+                    f"Approved public-source scope - {comparable_source}",
+                ]],
+            },
+        )
+        content["sources"] = _section_with_table(
+            "This source ledger records the public URLs approved for this run, when they were retrieved, and the limited purpose for which they were considered. Uploaded financial statements remain the source for all financial schedules.",
+            sources_table,
+        )
+        content["disclaimer"] = (
+            "This evidence-mode indicative valuation does not constitute financial advice under the Financial Markets Conduct Act / FMCA context and should not be relied on for lending, sale, investment, tax or legal decisions. "
+            "It is not an independent business valuation. Users should obtain independent professional financial, legal, tax and accounting advice and complete appropriate due diligence before acting."
+        )
+        return {section: content.get(section, "") for section in SECTION_SCHEMAS[report_type]}
+
+    if report_type == "bank_credit_paper" and bank_credit_figures:
+        evidence_note = (
+            f"\n\n## Public-source evidence boundary\n{limitation_text} "
+            "The retained source list is used for borrower context only; uploaded financials and lender-provided terms drive the quantitative credit analysis."
+        )
+        content["borrower_and_sponsor_profile"] = (
+            f"## Borrower profile\n{evidence_summary}\n\n"
+            "## Sponsor / ownership context\nConfirm borrower structure, ownership, guarantees and management capability with Companies Office extracts and lender due diligence before committee.\n\n"
+            "## Repayment source\nPrimary repayment is expected to come from operating cash flow in the uploaded financial statements. Any sponsor support, guarantee or property support must be documented and assessed separately."
+            + evidence_note
+        )
+        content["industry_and_competitive_landscape"] = _section_with_table(
+            f"## Sector context\n{sector_summary}\n\n"
+            "## Credit relevance\nThe report does not make unsupported statements about competitors, contracts, regulation or sector growth. Those points should be added only when supported by a retained source or lender diligence."
+            + evidence_note,
+            {
+                "headers": ["Evidence boundary", "Evidence available", "Credit use"],
+                "rows": [[
+                    "Approved public-source scope",
+                    source_scope,
+                    "Use for borrower context only; financials and lender terms drive debt capacity.",
+                ]],
+            },
+        )
+        content["executive_summary"] = _section_with_table(
+            "This indicative credit paper uses uploaded financials, lender-supplied facility terms and approved public-source context. No commercial AI provider, open-web search or paid market database was used.",
+            bank_credit_figures.get("credit_metrics_table") or {},
+        )
+        content["disclaimer"] = (
+            "This evidence-mode bank credit paper is indicative only. It is not financial advice, a credit approval, a bank commitment, legal advice or tax advice and should not be relied on instead of independent professional advice. "
+            "A lender must complete its own credit assessment, due diligence, security review and approval process."
+        )
+        return {section: content.get(section, "") for section in SECTION_SCHEMAS[report_type]}
+
+    return content
+
+
 async def _generate_report(
     report_id: int,
     company_id: int,
@@ -5332,7 +5885,7 @@ async def _generate_report(
 ) -> None:
     """
     Background task: read financial data + profile, run Python algorithms
-    (Valuation Advisory only), call Claude for narrative, store JSON content,
+    (Valuation Advisory only), call OpenAI for narrative, store JSON content,
     send email on completion.
 
     Uses build_prompt() from report_prompts and SECTION_SCHEMAS for validation.
@@ -5347,11 +5900,12 @@ async def _generate_report(
 
         try:
             async with db.execute(
-                "SELECT demo_mode, content FROM reports WHERE id=?",
+                "SELECT demo_mode, generation_mode, content FROM reports WHERE id=?",
                 (report_id,),
             ) as cur:
                 report_mode_row = await cur.fetchone()
             report_demo_mode = _report_demo_mode_from_row(report_mode_row)
+            generation_mode = _report_generation_mode_from_row(report_mode_row)
 
             # Mark as generating
             await db.execute(
@@ -5361,9 +5915,15 @@ async def _generate_report(
             await db.commit()
             print(f"[REPORT] Generating report_id={report_id} type={report_type}")
 
-            if report_demo_mode and (E2E_MODE or not source_document_ids):
+            if generation_mode == "demo" and (E2E_MODE or not source_document_ids):
                 await asyncio.sleep(0.05)
                 content_json = _e2e_report_content(report_type, demo_mode=True)
+                if report_type in {"valuation_advisory", "bank_credit_paper"}:
+                    content_json = apply_market_intelligence_to_report_content(
+                        content_json,
+                        None,
+                        report_type,
+                    )
                 await db.execute(
                     """
                     UPDATE reports
@@ -5388,6 +5948,22 @@ async def _generate_report(
             company_name = company["name"]
             company_sector = company["sector"] or ""
             company_description = company["description"] or ""
+            sector_match = None
+            if report_type in {"valuation_advisory", "bank_credit_paper"}:
+                try:
+                    sector_match = match_sector_report(
+                        company_sector,
+                        company_description,
+                    )
+                except Exception as exc:
+                    # A missing optional pack must not hide an otherwise valid
+                    # financial report. The report evidence records that no
+                    # sector match was available.
+                    print(f"[WARN] Sector library unavailable for report {report_id}: {exc}")
+            sector_context = sector_prompt_context(
+                sector_match,
+                report_type,
+            )
 
             # --- 2. Management team ---
             async with db.execute("""
@@ -5492,11 +6068,19 @@ async def _generate_report(
                 company_website = (intake_answers.get("company_website") or "") if isinstance(intake_answers, dict) else ""
                 public_source_urls = intake_answers.get("public_source_urls", []) if isinstance(intake_answers, dict) else []
                 industry_sector_for_research = company_sector or "General SME"
-                if report_demo_mode:
+                if generation_mode == "demo":
                     brief = _demo_research_brief(
                         company_name=company_name,
                         company_location=company_location,
                         industry_sector=industry_sector_for_research,
+                    )
+                elif generation_mode == "evidence":
+                    brief = await collect_evidence_research(
+                        company_name=company_name,
+                        company_location=company_location,
+                        industry_sector=industry_sector_for_research,
+                        company_website=company_website,
+                        public_source_urls=public_source_urls,
                     )
                 else:
                     brief = await run_valuation_research(
@@ -5505,8 +6089,13 @@ async def _generate_report(
                         industry_sector=industry_sector_for_research,
                         company_website=company_website,
                         public_source_urls=public_source_urls,
+                        sector_context=sector_context,
                     )
-                brief_data = brief.model_dump()
+                brief_data = enrich_research_brief(
+                    brief.model_dump(),
+                    sector_match,
+                    report_type,
+                )
                 management_supplied_sources: list[object] = []
                 if company_website:
                     management_supplied_sources.append(company_website)
@@ -5522,6 +6111,13 @@ async def _generate_report(
                     comparable_transactions=brief_data.get("comparable_transactions"),
                     sources=brief_data.get("sources"),
                 )
+                if generation_mode == "evidence":
+                    sources_table = evidence_sources_table(brief_data.get("evidence_sources") or [])
+                await db.execute(
+                    "UPDATE reports SET research_evidence=? WHERE id=?",
+                    (json.dumps(brief_data), report_id),
+                )
+                await db.commit()
 
                 # 5c. Compute WACC scenarios (percent), then 3x DCF (decimal), then illiquidity discount
                 wacc_pct = compute_wacc_scenarios(
@@ -5849,11 +6445,19 @@ async def _generate_report(
                     else []
                 )
                 industry_sector_for_research = company_sector or "General SME"
-                if report_demo_mode:
+                if generation_mode == "demo":
                     credit_brief = _demo_research_brief(
                         company_name=company_name,
                         company_location=company_location,
                         industry_sector=industry_sector_for_research,
+                    )
+                elif generation_mode == "evidence":
+                    credit_brief = await collect_evidence_research(
+                        company_name=company_name,
+                        company_location=company_location,
+                        industry_sector=industry_sector_for_research,
+                        company_website=company_website,
+                        public_source_urls=public_source_urls,
                     )
                 else:
                     credit_brief = await run_valuation_research(
@@ -5862,13 +6466,24 @@ async def _generate_report(
                         industry_sector=industry_sector_for_research,
                         company_website=company_website,
                         public_source_urls=public_source_urls,
+                        sector_context=sector_context,
                     )
-                credit_research_brief = credit_brief.model_dump()
+                credit_research_brief = enrich_research_brief(
+                    credit_brief.model_dump(),
+                    sector_match,
+                    report_type,
+                )
+                if generation_mode == "evidence":
+                    await db.execute(
+                        "UPDATE reports SET research_evidence=? WHERE id=?",
+                        (json.dumps(credit_research_brief), report_id),
+                    )
+                    await db.commit()
                 bank_credit_figs = compute_bank_credit_figures(
                     financial_rows_for_prompt, intake_answers
                 )
 
-            if report_demo_mode:
+            if generation_mode == "demo":
                 content_json = _demo_report_content_from_inputs(
                     report_type=report_type,
                     company_name=company_name,
@@ -5877,8 +6492,19 @@ async def _generate_report(
                     bank_credit_figures=bank_credit_figs,
                     credit_research_brief=credit_research_brief,
                 )
+            elif generation_mode == "evidence":
+                content_json = _evidence_mode_report_content_from_inputs(
+                    report_type=report_type,
+                    company_name=company_name,
+                    financial_rows=financial_rows_for_prompt,
+                    valuation_result=valuation_result,
+                    bank_credit_figures=bank_credit_figs,
+                    research_brief=(valuation_result or {}).get("research_brief")
+                    if report_type == "valuation_advisory"
+                    else credit_research_brief,
+                )
             else:
-                # --- 6. Build Claude prompt via report_prompts.build_prompt() ---
+                # --- 6. Build OpenAI prompt via report_prompts.build_prompt() ---
                 system_prompt, user_message = build_prompt(
                     report_type=report_type,
                     company_name=company_name,
@@ -5893,18 +6519,25 @@ async def _generate_report(
                     credit_research_brief=credit_research_brief,
                 )
 
-                # --- 7. Call Claude API (non-tool-use, plain JSON response) ---
-                content_json = await _call_claude_for_report(
+                # --- 7. Call OpenAI Responses API for the structured report JSON ---
+                content_json = await _call_openai_for_report(
                     system_prompt, user_message,
                     sections=SECTION_SCHEMAS[report_type],
                 )
 
-                # --- 8. Validate the complete customer-facing report structure ---
-                _validate_generated_report_content(content_json, report_type)
-                if report_type == "valuation_advisory":
-                    if valuation_result is not None:
-                        _validate_valuation_report_figures(content_json, valuation_result)
-                    _enforce_valuation_professional_content_audit(content_json)
+            if report_type in {"valuation_advisory", "bank_credit_paper"}:
+                content_json = apply_market_intelligence_to_report_content(
+                    content_json,
+                    sector_match,
+                    report_type,
+                )
+
+            # --- 8. Validate the complete customer-facing report structure ---
+            _validate_generated_report_content(content_json, report_type)
+            if report_type == "valuation_advisory" and generation_mode == "provider":
+                if valuation_result is not None:
+                    _validate_valuation_report_figures(content_json, valuation_result)
+                _enforce_valuation_professional_content_audit(content_json)
 
             # --- 8b. FMCA disclaimer compliance gate (REPT-06 + AI-SPEC guardrail) ---
             if report_type == "valuation_advisory":
@@ -5974,46 +6607,54 @@ async def _generate_report(
                 print(f"[REPORT ERROR] Failed to mark report failed: {db_exc}")
 
 
-async def _call_claude_for_report(
+async def _call_openai_for_report(
     system_prompt: str,
     user_message: str,
     sections: list[str],
 ) -> dict:
     """
-    Call Claude claude-sonnet-4-6 for report generation (plain JSON, no tool-use).
+    Call the OpenAI Responses API for report generation (plain JSON, no tool-use).
     Returns parsed dict with section keys.
     """
-    import anthropic as _anthropic
-    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    try:
+        from openai import OpenAI
+    except ImportError as exc:
+        raise RuntimeError("The OpenAI SDK is not installed.") from exc
+    key = os.environ.get("OPENAI_API_KEY", "")
     if not key:
-        raise RuntimeError("ANTHROPIC_API_KEY not set — cannot generate report")
+        raise RuntimeError("OPENAI_API_KEY not set — cannot generate report")
 
-    model = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
-    client = _anthropic.Anthropic(api_key=key)
+    model = os.environ.get("OPENAI_MODEL", "gpt-5.4-mini")
+    client = OpenAI(api_key=key)
 
     loop = asyncio.get_running_loop()
-    response = await loop.run_in_executor(None, lambda: client.messages.create(
+    response = await loop.run_in_executor(None, lambda: client.responses.create(
         model=model,
-        max_tokens=8192,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_message}],
+        max_output_tokens=8192,
+        instructions=system_prompt,
+        input=user_message,
+        text={"format": {"type": "json_object"}},
     ))
 
-    if response.stop_reason == "max_tokens":
+    incomplete_details = getattr(response, "incomplete_details", None)
+    if (
+        getattr(response, "status", "") == "incomplete"
+        and getattr(incomplete_details, "reason", "") == "max_output_tokens"
+    ):
         raise RuntimeError(
             "Report generation was truncated before completion. Please retry."
         )
-    raw_text = response.content[0].text if response.content else ""
+    raw_text = str(getattr(response, "output_text", "") or "")
 
-    # Parse JSON from Claude's response
+    # Parse JSON from the provider response.
     content_json = _parse_json_from_response(raw_text, sections)
     return content_json
 
 
 def _parse_json_from_response(raw_text: str, sections: list[str]) -> dict:
     """
-    Extract JSON from Claude's response text.
-    Handles cases where Claude wraps JSON in markdown code fences.
+    Extract JSON from a provider response text.
+    Handles cases where a model wraps JSON in markdown code fences.
     Raises when a complete JSON object cannot be parsed. Missing sections are
     handled by the report-content validation gate rather than hidden with
     customer-visible placeholder text.
@@ -6151,7 +6792,7 @@ def _validate_generated_report_content(content: dict, report_type: str) -> None:
         "code fence",
         "system prompt",
         "user prompt",
-        "claude",
+        "openai",
         "language model",
         "ai narrative",
     )

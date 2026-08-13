@@ -933,9 +933,9 @@ export function IntakeForm({
                 <h2 id="credit-research-contract-title">AccountIQ will research the client before drafting</h2>
               </div>
               <p>
-                The uploaded accounts provide the numbers. Public web research helps describe the business,
-                sector, operating footprint and market context. These fields are optional hints, not a
-                research assignment for you.
+                The uploaded accounts provide the numbers. AccountIQ can collect public company context from
+                the website and links you approve. Add at least one website or public URL for source-backed
+                research without a commercial AI provider.
               </p>
               <ul>
                 <li>Uploaded financials drive the credit metrics and balance-sheet strength view</li>
@@ -956,7 +956,7 @@ export function IntakeForm({
                     placeholder="https://example.co.nz"
                     defaultValue={String(creditAnswers.company_website ?? "")}
                   />
-                  <span className="field-help">Used to help AccountIQ identify the right business online.</span>
+                  <span className="field-help">Recommended for evidence-mode research. AccountIQ can read this site and a small number of relevant pages on the same domain.</span>
                 </label>
                 <label htmlFor="credit-company-location">
                   Main location
@@ -991,7 +991,7 @@ export function IntakeForm({
                         : String(creditAnswers.public_source_urls ?? "")
                     }
                   />
-                  <span className="field-help">Optional. Up to 10 public URLs; AccountIQ treats them as hints to corroborate.</span>
+                  <span className="field-help">Add one or more public URLs if there is no official site. Up to 10 links; AccountIQ records what it retrieved and does not use unreadable pages for factual claims.</span>
                 </label>
               </div>
             </fieldset>
@@ -1555,21 +1555,21 @@ export function IntakeForm({
               <p>
                 {demoMode
                   ? "AccountIQ will use sample business research, sample market evidence and simulated valuation assumptions so you can test the finished journey without an API key. You only need to answer the same private facts a live valuation would require."
-                  : "AccountIQ will research the business, sector, comparable transactions and current market evidence. You only need to answer the private facts we cannot verify online."}
+                  : "AccountIQ will use the business website or public links you approve to assemble a retained evidence trail. If a live provider is configured it can broaden that research; otherwise the report labels its documented market conventions rather than presenting them as independently researched facts."}
               </p>
             </div>
             <ul>
-              <li>{demoMode ? "Sample company background" : "Company background and public milestones"}</li>
-              <li>{demoMode ? "Sample market and competitor context" : "Market, competitors and sector conditions"}</li>
-              <li>{demoMode ? "Sample discount-rate and inflation assumptions" : "Current discount-rate evidence and NZ inflation"}</li>
-              <li>{demoMode ? "Sample comparable evidence" : "Comparable transaction evidence"}</li>
+              <li>{demoMode ? "Sample company background" : "Approved company website and public-source context"}</li>
+              <li>{demoMode ? "Sample market and competitor context" : "Evidence boundaries and retained source URLs"}</li>
+              <li>{demoMode ? "Sample discount-rate and inflation assumptions" : "Transparent model conventions where independent market evidence is unavailable"}</li>
+              <li>{demoMode ? "Sample comparable evidence" : "Comparable evidence only when it is independently sourced"}</li>
             </ul>
             <aside className="source-trail-note" aria-label="Source trail reassurance">
               <strong>{demoMode ? "Source trail demonstrated" : "Source trail retained"}</strong>
               <span>
                 {demoMode
                   ? "The sample report demonstrates how sample public evidence and labelled demo URLs appear in the finished pack."
-                  : "Public evidence and URLs are kept in the report so a reader can see what supported the valuation assumptions."}
+                  : "Public evidence and URLs are kept in the report so a reader can see what supported the company context and where documented model conventions were used."}
               </span>
             </aside>
           </section>

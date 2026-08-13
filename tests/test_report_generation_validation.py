@@ -423,7 +423,7 @@ def _sample_valuation_result() -> dict:
 def test_customer_safe_report_failure_message_hides_provider_and_prompt_terms():
     msg = _customer_safe_report_failure_message(
         RuntimeError(
-            "Anthropic invalid_request_error: Claude returned an invalid JSON object "
+            "OpenAI invalid_request_error returned an invalid JSON object "
             "after reading the system prompt for sk-ant-secret"
         ),
         "valuation_advisory",
@@ -432,8 +432,7 @@ def test_customer_safe_report_failure_message_hides_provider_and_prompt_terms():
     assert "valuation report quality checks" in msg
     lowered = msg.lower()
     for forbidden in (
-        "anthropic",
-        "claude",
+        "openai",
         "json",
         "system prompt",
         "sk-ant",
@@ -579,7 +578,7 @@ def test_validation_rejects_empty_tables_and_placeholder_content():
         _validate_generated_report_content(content, "valuation_advisory")
 
     content = copy.deepcopy(_e2e_report_content("valuation_advisory"))
-    content["market_position"] += "\n\nSector benchmark detail is TBD."
+    content["market_position"]["narrative"] += "\n\nSector benchmark detail is TBD."
     with pytest.raises(ValueError, match="placeholder"):
         _validate_generated_report_content(content, "valuation_advisory")
 
@@ -597,7 +596,7 @@ def test_validation_rejects_client_facing_implementation_language_in_narrative()
 def test_validation_rejects_client_facing_implementation_language_in_tables():
     content = copy.deepcopy(_e2e_report_content("valuation_advisory"))
     content["valuation_assumptions"]["table"]["rows"][0][3] += (
-        " Return this JSON object exactly as supplied by Claude."
+        " Return this JSON object exactly as supplied by OpenAI."
     )
 
     with pytest.raises(ValueError, match="client-facing implementation language"):

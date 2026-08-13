@@ -1,0 +1,210 @@
+{
+  "schema_version": "1.0",
+  "sector_id": "professional_services",
+  "sector_name": "Professional Services",
+  "geography": "New Zealand",
+  "as_of_date": "2026-07-26",
+  "next_review_date": "2027-07-26",
+  "aliases": ["business consulting", "accounting practice", "legal practice", "engineering consultancy", "architecture practice", "technology consulting"],
+  "overview": {
+    "summary": "Professional-services firms monetise specialised people, knowledge, reputation and client relationships. The sector includes accounting, legal, engineering, architecture, management, technology and other advisory practices. Physical capital needs are often modest, but value and credit quality depend on partner and staff retention, utilisation, pricing, recurring client work, work-in-progress discipline, professional standards, liability exposure and whether relationships and intellectual capital extend beyond individual principals.",
+    "business_models": [
+      "Hourly or daily billing based on professional time and charge-out rates",
+      "Fixed-fee projects where scope and delivery discipline determine margin",
+      "Retainers, managed services or recurring compliance engagements",
+      "Success, transaction or performance fees with timing and outcome risk",
+      "Multi-partner practices distributing profit to working owners"
+    ],
+    "industry_structure": [
+      "Large multidisciplinary firms coexist with partner-led boutiques and specialist practices.",
+      "Reputation, credential, sector expertise, referrals and trusted relationships create differentiation.",
+      "Talent mobility can make revenue and value portable unless institutional systems and teams retain clients."
+    ],
+    "demand_drivers": [
+      "Regulatory and compliance requirements",
+      "Business formation, transactions, disputes and investment",
+      "Construction, infrastructure, technology and transformation activity",
+      "Outsourcing, specialist skill shortages and demand for independent advice"
+    ],
+    "margin_and_cost_drivers": [
+      "Professional headcount, utilisation, charge-out rate, write-offs and staff leverage",
+      "Partner compensation, recruitment, retention and subcontractor cost",
+      "Project scope, WIP recovery, collection and bad debt",
+      "Technology, insurance, premises, compliance and knowledge management"
+    ],
+    "cyclicality_and_seasonality": [
+      "Transaction, recruitment, design and discretionary consulting can be cyclical.",
+      "Tax, audit, compliance, managed services and certain legal work may be more recurring.",
+      "Year-end filing, court, project or client-budget cycles can concentrate workloads and WIP."
+    ],
+    "working_capital_profile": "Professional firms fund payroll while time accumulates in WIP and before invoices are collected. Unbilled time, fixed-fee overruns, partner discretion, disputed scope and slow client approval affect recovery. Trust or client monies are not operating liquidity. Partner drawings can mask the cash required to fund growth and seasonal work.",
+    "asset_intensity": "Physical assets are generally modest, but systems, data, professional indemnity cover, licences, templates and trained teams are essential. Goodwill is vulnerable if clients or staff can leave. Receivables may support lending, while WIP is less certain and should be tested for age, stage and recoverability.",
+    "regulatory_and_compliance": [
+      "Professional licensing, codes, continuing education and independence requirements by discipline",
+      "Professional indemnity, conflicts, engagement terms and limitation of liability",
+      "Privacy, cyber security, confidential and client-money obligations",
+      "AML/CFT obligations for captured accountants, lawyers, conveyancers and other reporting entities"
+    ]
+  },
+  "subsectors": [
+    {
+      "id": "accounting_legal",
+      "name": "Accounting, legal and compliance practices",
+      "aliases": ["accounting firm", "accounting practice", "law firm", "legal practice", "tax advisory"],
+      "business_model": "Recurring compliance and advisory work is combined with projects, disputes or transactions.",
+      "revenue_drivers": ["Client numbers", "Recurring engagements", "Charge-out and recovery", "Advisory mix"],
+      "cost_base": ["Professional salaries", "Partner remuneration", "Insurance", "Systems and premises"],
+      "working_capital": "Payroll precedes billing; WIP, debtors and partner drawings require discipline. Client or trust money is segregated.",
+      "asset_intensity": "Low tangible assets but high reputation, licensing and client-relationship dependence.",
+      "credit_watchpoints": ["Partner departures", "WIP recovery", "PI claims", "AML and trust controls"],
+      "valuation_watchpoints": ["Recurring fees", "Client ownership", "Partner transition", "Normal partner remuneration"]
+    },
+    {
+      "id": "engineering_architecture",
+      "name": "Engineering and architecture consulting",
+      "aliases": ["engineering consultancy", "architecture practice", "design consultancy", "planning consultancy"],
+      "business_model": "Technical design, consenting, supervision and advice are delivered by project stage.",
+      "revenue_drivers": ["Backlog", "Technical staff", "Utilisation", "Rates and project milestones"],
+      "cost_base": ["Qualified staff", "Software", "Insurance", "Subconsultants"],
+      "working_capital": "Long projects and client approval can create WIP; fixed-fee scope creep reduces recovery.",
+      "asset_intensity": "Low physical assets, with technical systems and qualified teams central.",
+      "credit_watchpoints": ["Project and client concentration", "WIP aging", "PI exposure", "Qualified staff"],
+      "valuation_watchpoints": ["Backlog quality", "Team credentials", "Owner sign-off role", "Infrastructure versus development mix"]
+    },
+    {
+      "id": "management_it_consulting",
+      "name": "Management and technology consulting",
+      "aliases": ["management consulting", "it consultancy", "technology consulting", "digital agency", "business advisory"],
+      "business_model": "Specialist teams deliver advisory, implementation, software or managed services under time, project or recurring contracts.",
+      "revenue_drivers": ["Consultant headcount", "Utilisation", "Day rate", "Project pipeline and recurring services"],
+      "cost_base": ["People", "Contractors", "Software", "Sales and premises"],
+      "working_capital": "Payroll and contractors precede milestone billing; project overruns and bench time consume cash.",
+      "asset_intensity": "Low tangible assets, but IP, systems, certifications and staff capability may matter.",
+      "credit_watchpoints": ["Utilisation and bench", "Pipeline conversion", "Project overruns", "Contractor dependence"],
+      "valuation_watchpoints": ["Recurring managed services", "Founder relationships", "Reusable IP", "Staff retention"]
+    },
+    {
+      "id": "specialist_advisory",
+      "name": "Specialist and transaction advisory",
+      "aliases": ["advisory firm", "transaction advisory", "valuation firm", "recruitment consultancy", "environmental consultancy"],
+      "business_model": "Niche expertise is sold through project, success-fee or retained engagements.",
+      "revenue_drivers": ["Mandates", "Completion rate", "Fees", "Referrals and specialist capacity"],
+      "cost_base": ["Senior professionals", "Research and data", "Insurance", "Marketing"],
+      "working_capital": "Success-fee timing can be volatile; retainers and deposits reduce risk.",
+      "asset_intensity": "Low tangible capital and high key-person or reputation exposure.",
+      "credit_watchpoints": ["Fee concentration", "Mandate pipeline", "Key-person continuity", "Liability"],
+      "valuation_watchpoints": ["Normal cycle fees", "Transferable reputation", "Team depth", "Repeat and referral channels"]
+    }
+  ],
+  "credit_analysis": {
+    "primary_risks": [
+      {
+        "risk": "Key-person and staff mobility",
+        "mechanism": "Partners or senior staff may take clients, capability and future fees when they leave.",
+        "financial_signals": ["Revenue by principal", "Staff turnover", "Client ownership", "Notice and restraint terms"],
+        "mitigants": ["Team-based delivery", "Succession", "Institutional CRM and IP", "Deferred consideration or retention"]
+      },
+      {
+        "risk": "Utilisation, pipeline and fee pressure",
+        "mechanism": "Lower demand creates bench cost while fixed-fee overruns or rate pressure reduce recovery.",
+        "financial_signals": ["Utilisation", "Realisation", "Backlog", "Pipeline conversion", "Gross margin"],
+        "mitigants": ["Recurring work", "Flexible staffing", "Scope control", "Diverse clients and sectors"]
+      },
+      {
+        "risk": "WIP, receivable and cash leakage",
+        "mechanism": "Aged or unapproved time may not bill, and partner drawings can exceed sustainable cash generation.",
+        "financial_signals": ["WIP aging", "Debtor days", "Write-offs", "Cash conversion", "Drawings"],
+        "mitigants": ["Frequent billing", "Deposits", "WIP review", "Drawing policy and liquidity buffer"]
+      },
+      {
+        "risk": "Professional liability, conduct and cyber",
+        "mechanism": "Errors, conflicts, privacy breach or regulatory failure can create claims and reputational loss.",
+        "financial_signals": ["Claims and notifications", "PI cover", "Audit findings", "Cyber incidents"],
+        "mitigants": ["Engagement controls", "Quality review", "Insurance", "Cyber and AML programmes"]
+      }
+    ],
+    "cash_conversion_and_working_capital": [
+      "Age WIP by client, engagement, responsible partner and probability of billing.",
+      "Separate recurring invoices, milestone claims, success fees and disputed debtors.",
+      "Reconcile partner drawings, tax and current-account movements to free cash.",
+      "Exclude trust or client monies from available liquidity and collateral."
+    ],
+    "collateral_considerations": [
+      "Receivables may be lendable after concentration, set-off, aging and eligibility reserves.",
+      "WIP has lower certainty and depends on engagement rights and client acceptance.",
+      "Physical assets are generally weak collateral; enterprise value depends on continued people and clients.",
+      "Change-of-control, professional ownership and client-consent restrictions may limit transfer."
+    ],
+    "downside_stresses": ["Departure of a revenue-leading principal", "Utilisation and rate decline", "Write-off of aged WIP and receivables", "Professional claim above an insurance retention or limit"],
+    "monitoring_kpis": ["Revenue and gross profit by client, principal and service", "Utilisation and realisation", "Backlog and weighted pipeline", "WIP and debtor aging", "Staff turnover and vacancies", "Cash conversion, drawings, leverage and DSCR"],
+    "covenant_considerations": ["Minimum DSCR and liquidity", "Maximum leverage", "Restrictions on drawings while covenants or taxes are deficient", "Notice of key-person departure, material claim or regulatory event"],
+    "diligence_questions": [
+      "How much revenue and gross profit is controlled by each principal and top client?",
+      "What portion of WIP and pipeline is contracted, billable and likely to convert?",
+      "What partner remuneration and drawings are required to retain working owners?",
+      "Are PI insurance, licences, AML/CFT where applicable, privacy and cyber controls adequate?",
+      "Do client engagements, staff, IP and systems transfer on a change of control?"
+    ]
+  },
+  "valuation_analysis": {
+    "value_drivers": ["Recurring and diversified client fees", "Team-based relationships and management depth", "Strong utilisation, pricing and WIP recovery", "Documented methods, IP and systems", "Low claims history and effective compliance"],
+    "multiple_influences": ["Recurring compliance or managed-service revenue is typically more predictable than success-fee or project-only income.", "Profit distributed to working partners must be adjusted for market remuneration before applying an enterprise multiple.", "Founder-held relationships, staff flight risk and aged WIP reduce transferability."],
+    "normalisation_focus": ["Market remuneration for every working owner", "Partner benefits and discretionary expenses", "WIP and debtor write-offs", "One-off transaction fees versus cycle-normal income", "Sustainable recruitment, insurance, software and compliance costs"],
+    "peer_selection": ["Match discipline, recurring versus project or success-fee mix, staff leverage, regulation and client base.", "Separate accounting/legal, design, management/IT and niche transaction firms.", "Compare owner remuneration treatment, utilisation, growth, margins and concentration."],
+    "preferred_metrics": ["EV/EBITDA after full working-owner remuneration", "EV/revenue as a secondary check only with comparable margins and recurrence", "Price-to-earnings for partner practices where capital structure is consistent", "DCF for contractual recurring or strongly changing fee streams"],
+    "discount_and_premium_factors": ["Premium indicators include recurring diversified fees, team-owned clients, low staff turnover and scalable IP.", "Discount indicators include founder dependence, success-fee volatility, WIP issues, claims and partner-transition risk."],
+    "diligence_questions": ["What profit remains after market remuneration for all continuing professional roles?", "Which clients and staff are likely to remain through transition?", "How much revenue is recurring, contracted or repeatable?", "Are professional ownership, consent or conduct restrictions compatible with the transaction?"]
+  },
+  "market_research_sections": {
+    "credit_paper": "Professional-services firms are usually people- and relationship-intensive rather than asset-heavy. Credit analysis should focus on recurring versus project or success-fee revenue, client and principal concentration, utilisation, realisation, backlog, work-in-progress recovery and staff retention. Physical collateral is often modest, so repayment depends primarily on cash flow and the continuity of professionals and client engagements.\n\nPayroll is paid while time accumulates in WIP and before clients settle. A lender should age WIP and debtors by engagement and responsible principal, assess fixed-fee overruns and write-offs, and reconcile partner drawings and tax to operating cash. Trust or client monies are not available liquidity. The departure of one principal may simultaneously reduce revenue, capability and collection, making key-person and succession analysis material.\n\nRegulatory requirements vary by discipline. Licensing, professional indemnity, conflicts, privacy, cyber and client-money controls apply broadly, while captured accountants, lawyers and other reporting entities have AML/CFT obligations. The paper should connect these requirements and people risks to the subject's actual service mix, insurance, engagement terms, staff data and transition plan. Enterprise value is a weak substitute for security unless the client and team base is demonstrably transferable.",
+    "valuation_report": "Professional-services value resides in sustainable client relationships, people, reputation, methods and systems. The correct unit of analysis is not revenue alone but the profit remaining after full market remuneration for working owners, together with utilisation, realisation, WIP recovery, recurring fee mix and staff leverage. Accounting or legal compliance work, engineering and architecture projects, management or IT consulting and success-fee advisory have different cash-flow and transferability profiles and need separate peers.\n\nNormalisation should replace partner distributions with market role remuneration, remove only genuinely non-recurring fees or costs, and provide for normal insurance, recruitment, technology and compliance. Aged WIP and debtors should be written to supportable recovery rather than treated as value at book. Pipeline has limited value unless engagement, timing, staffing and conversion are credible. Change-of-control, professional ownership and client-consent restrictions also require review.\n\nTransferable value is stronger where clients are served by teams, fees are recurring and diversified, staff turnover is low, IP and processes are institutional and succession is documented. Founder-held relationships, success-fee volatility, key-person credential dependence, staff flight risk, claims and weak WIP controls reduce confidence in maintainable earnings. The sector pack supplies a qualitative framework; current market multiples need separately sourced, genuinely comparable evidence."
+  },
+  "sources": [
+    {
+      "id": "stats-business-financial-data",
+      "title": "Business financial data",
+      "publisher": "Stats NZ",
+      "url": "https://www.stats.govt.nz/information-releases/business-financial-data-march-2026-quarter/",
+      "published_date": "2026-06-09",
+      "accessed_date": "2026-07-26",
+      "source_type": "official_statistics",
+      "supports": ["Industry sales, wages and operating profit monitoring", "Professional-service market context"]
+    },
+    {
+      "id": "dia-aml-legislation",
+      "title": "AML/CFT legislation",
+      "publisher": "Department of Internal Affairs",
+      "url": "https://www.dia.govt.nz/AML-CFT-Legislation",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Captured professional-services reporting entities", "AML/CFT compliance context"]
+    },
+    {
+      "id": "privacy-business",
+      "title": "Privacy for agencies and businesses",
+      "publisher": "Office of the Privacy Commissioner",
+      "url": "https://www.privacy.org.nz/responsibilities/your-obligations/",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Privacy obligations", "Client-data risk"]
+    },
+    {
+      "id": "companies-register",
+      "title": "New Zealand Companies Register",
+      "publisher": "Companies Office",
+      "url": "https://companies-register.companiesoffice.govt.nz/",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "official_register",
+      "supports": ["Entity and director corroboration", "Company-specific research pathway"]
+    }
+  ],
+  "limitations": [
+    "Professional-services regulation and economics differ by discipline and the subject's professional bodies must be checked.",
+    "Client ownership, staff retention, WIP recovery, claims and engagement transfer require company-specific evidence.",
+    "Generic sector context cannot establish a recurring-revenue percentage, client retention rate or key-person risk for the subject.",
+    "No current valuation multiple or enterprise-value collateral conclusion is supplied."
+  ]
+}

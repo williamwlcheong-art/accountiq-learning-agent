@@ -1,6 +1,6 @@
 """Tests for the live valuation smoke-test harness.
 
-The real script is intentionally manual because it calls Anthropic. These tests
+The real script is intentionally manual because it calls OpenAI. These tests
 mock the provider and PDF renderer so CI verifies the harness wiring without
 making network calls.
 """
@@ -54,9 +54,9 @@ def test_live_smoke_inputs_include_report_quality_evidence():
 async def test_live_smoke_refuses_to_run_without_real_key(tmp_path, monkeypatch):
     module = _load_smoke_module()
     monkeypatch.setattr(module, "_demo_mode_enabled", lambda: False)
-    monkeypatch.setattr(module, "_live_anthropic_key_configured", lambda: False)
+    monkeypatch.setattr(module, "_live_openai_key_configured", lambda: False)
 
-    with pytest.raises(RuntimeError, match="real Anthropic API key"):
+    with pytest.raises(RuntimeError, match="real OpenAI API key"):
         await module.run_live_valuation_smoke(
             output_json=tmp_path / "smoke.json",
             output_pdf=None,
@@ -70,9 +70,9 @@ async def test_live_smoke_runs_preflight_validators_and_writes_artifacts(
 ):
     module = _load_smoke_module()
     monkeypatch.setattr(module, "_demo_mode_enabled", lambda: False)
-    monkeypatch.setattr(module, "_live_anthropic_key_configured", lambda: True)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-live-smoke-test")
-    monkeypatch.setenv("CLAUDE_MODEL", "claude-sonnet-4-6")
+    monkeypatch.setattr(module, "_live_openai_key_configured", lambda: True)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-live-smoke-test")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-5.4-mini")
 
     calls: dict[str, object] = {}
 
@@ -80,7 +80,7 @@ async def test_live_smoke_runs_preflight_validators_and_writes_artifacts(
         calls["preflight"] = (api_key, model)
         return True
 
-    async def fake_call_claude(system_prompt, user_message, sections):
+    async def fake_call_openai(system_prompt, user_message, sections):
         calls["prompt"] = {
             "system_prompt": system_prompt,
             "user_message": user_message,
@@ -130,7 +130,7 @@ async def test_live_smoke_runs_preflight_validators_and_writes_artifacts(
         output_path.write_bytes(b"%PDF-1.4\n% mocked live smoke pdf\n")
 
     monkeypatch.setattr(module, "_run_live_research_preflight", fake_preflight)
-    monkeypatch.setattr(module, "_call_claude_for_report", fake_call_claude)
+    monkeypatch.setattr(module, "_call_openai_for_report", fake_call_openai)
     monkeypatch.setattr(module, "_validate_generated_report_content", fake_validate_content)
     monkeypatch.setattr(module, "_validate_valuation_report_figures", fake_validate_figures)
     monkeypatch.setattr(module, "audit_valuation_report_content", fake_content_audit)
@@ -151,7 +151,7 @@ async def test_live_smoke_runs_preflight_validators_and_writes_artifacts(
     assert Path(result["json_path"]).exists()
     assert Path(result["html_path"]).exists()
     assert Path(result["pdf_path"]).exists()
-    assert calls["preflight"] == ("sk-ant-live-smoke-test", "claude-sonnet-4-6")
+    assert calls["preflight"] == ("sk-live-smoke-test", "gpt-5.4-mini")
     assert calls["validate_content"][0] == "valuation_advisory"
     assert calls["validate_figures"] == [
         "Mid-case forecast",
@@ -177,5 +177,5 @@ async def test_live_smoke_runs_preflight_validators_and_writes_artifacts(
 
     payload = json.loads(Path(result["json_path"]).read_text(encoding="utf-8"))
     assert payload["metadata"]["purpose"] == "AccountIQ live valuation smoke test"
-    assert payload["metadata"]["model"] == "claude-sonnet-4-6"
+    assert payload["metadata"]["model"] == "gpt-5.4-mini"
     assert "AccountIQ-Calculated DCF Analysis Table" in calls["prompt"]["user_message"]

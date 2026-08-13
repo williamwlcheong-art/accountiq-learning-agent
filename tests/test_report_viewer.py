@@ -1,4 +1,5 @@
 """Unit tests for wizard_report_view section rendering (Phase 05.1 D-I4)."""
+import json
 import sys
 from pathlib import Path
 
@@ -7,6 +8,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from main import (
+    _evidence_mode_report_content_from_inputs,
     _demo_report_content_from_inputs,
     _inline_report_html,
     _narrative_to_html,
@@ -177,6 +179,50 @@ def test_demo_bank_credit_content_fills_required_sections_and_tables():
     assert content["balance_sheet_debt_capacity"]["debt_capacity_table"]["rows"]
     assert "selected package is Balanced" in content["proposed_covenants"]["narrative"]
     assert "screening-only" in content["recommendation"]["narrative"]
+
+
+def test_evidence_mode_bank_credit_content_is_not_a_demo_or_ai_report():
+    figures = compute_bank_credit_figures(
+        [
+            {"canonical_key": "revenue", "statement": "pnl", "values": {"2025": 1_000_000}},
+            {"canonical_key": "ebitda", "statement": "pnl", "values": {"2025": 240_000}},
+            {"canonical_key": "net_profit", "statement": "pnl", "values": {"2025": 150_000}},
+            {"canonical_key": "cash_and_bank", "statement": "bs", "values": {"2025": 95_000}},
+            {"canonical_key": "trade_debtors", "statement": "bs", "values": {"2025": 210_000}},
+            {"canonical_key": "trade_creditors", "statement": "bs", "values": {"2025": 155_000}},
+        ],
+        {
+            "loan_purpose": "Fleet refinance",
+            "amount_requested": 250_000,
+            "proposed_term_years": 5,
+            "conservative_funding_cost_pct": 8.5,
+            "lvr_percent": 60,
+            "security_package": "fleet_and_property",
+            "security_value": 450_000,
+            "repayment_profile": "principal_and_interest",
+            "source_of_repayment": "Operating cash flow",
+            "selected_covenants": ["minimum_dscr"],
+        },
+    )
+    content = _evidence_mode_report_content_from_inputs(
+        report_type="bank_credit_paper",
+        company_name="Towing Example Ltd",
+        financial_rows=[],
+        valuation_result=None,
+        bank_credit_figures=figures,
+        research_brief={
+            "company_summary": "The approved business website describes a towing operator with fleet support services.",
+            "sector_summary": "No open-web discovery was used; the report is limited to the approved company website.",
+            "sources": ["https://example.co.nz"],
+            "limitations": ["Only the approved company website was reviewed."],
+        },
+    )
+
+    _validate_generated_report_content(content, "bank_credit_paper")
+    rendered = json.dumps(content).lower()
+    assert "demo" not in rendered
+    assert "openai" not in rendered
+    assert "public-source evidence boundary" in rendered
 
 
 def test_renders_browser_report_table_captions_for_dense_schedules():

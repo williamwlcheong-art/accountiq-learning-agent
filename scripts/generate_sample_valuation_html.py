@@ -3,7 +3,7 @@
 This script intentionally uses the same deterministic demo report content and
 the same lower-level HTML renderers as the app's report viewer. It gives us a
 reproducible browser artifact for reviewing the current valuation-report output
-without requiring a live Anthropic key or a running dev server.
+without requiring a live OpenAI key or a running dev server.
 """
 from __future__ import annotations
 

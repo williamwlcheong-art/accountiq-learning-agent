@@ -74,6 +74,7 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
   const isValuationReport = status?.report_type === "valuation_advisory";
   const isCreditReport = status?.report_type === "bank_credit_paper";
   const isDemoReport = Boolean(status?.demo_mode);
+  const isEvidenceReport = status?.generation_mode === "evidence";
   const heading = isDone
     ? isValuationReport
       ? "Your valuation report is ready"
@@ -96,6 +97,8 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
     generating: "Building report",
     researching: isDemoReport
       ? "Preparing simulated evidence"
+      : isEvidenceReport
+        ? "Collecting approved public-source evidence"
       : isCreditReport
         ? "Researching client and credit evidence"
         : "Researching market evidence",
@@ -105,9 +108,13 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
   const valuationStatusMessage = isDone
     ? isDemoReport
       ? "AccountIQ has prepared your labelled demo valuation pack from the uploaded financials, five private answers, earnings review, simulated public research, valuation model and report-letter front matter. "
+      : isEvidenceReport
+        ? "AccountIQ has prepared your evidence-mode valuation pack from the uploaded financials, private answers, earnings review, approved public sources and valuation model. "
       : "AccountIQ has prepared your source-backed valuation pack from the uploaded financials, five private answers, earnings review, market research, valuation model and report-letter front matter. "
     : isDemoReport
       ? "AccountIQ is combining your financial upload, private answers, simulated public research, valuation modelling, report-letter front matter and PDF formatting to prepare a labelled demo valuation pack. "
+      : isEvidenceReport
+        ? "AccountIQ is combining your financial upload, private answers, approved public-source evidence and valuation modelling to prepare an evidence-mode valuation pack. "
       : "AccountIQ is combining your financial upload, private answers, market research, valuation modelling, report-letter front matter and PDF formatting to prepare a source-backed valuation pack. ";
   const genericStatusMessage = isDone
     ? isCreditReport
@@ -167,6 +174,18 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
         </div>
       ) : null}
 
+      {isEvidenceReport ? (
+        <div className="alert alert-info">
+          <strong>Evidence-mode report</strong>
+          <p>
+            This report is generated without a commercial AI provider. AccountIQ uses the uploaded
+            financials, lender or valuation inputs, and only the public URLs approved in the
+            intake. The report records what was retrieved and does not present model conventions
+            as independently researched market facts.
+          </p>
+        </div>
+      ) : null}
+
       {!isFailed ? (
         <p>
           {isValuationReport
@@ -186,10 +205,12 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
               <span>We have the financial statements and the short private-fact intake.</span>
             </li>
             <li className={`valuation-prep-step valuation-prep-step-${valuationStepState("research")}`}>
-              <strong>{isDemoReport ? "Simulated research and market evidence" : "Research and market evidence"}</strong>
+              <strong>{isDemoReport ? "Simulated research and market evidence" : isEvidenceReport ? "Approved public-source evidence" : "Research and market evidence"}</strong>
               <span>
                 {isDemoReport
                   ? "We use simulated public-source context and sample valuation evidence, retaining labelled demo source URLs for review."
+                  : isEvidenceReport
+                    ? "We fetch only the company website and public URLs you approved, retaining retrieval status and source URLs for review."
                   : "We match the business to public sources, market context and valuation evidence, retaining source URLs for review."}
               </span>
             </li>
@@ -232,6 +253,8 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
                 <span>
                   {isDemoReport
                     ? "Management input trail, labelled demo source URLs, sample comparable evidence and PDF delivery."
+                    : isEvidenceReport
+                      ? "Management input trail, approved public-source URLs, evidence boundaries and PDF delivery."
                     : "Management input trail, public source URLs, comparable evidence and PDF delivery."}
                 </span>
               </li>
@@ -244,6 +267,8 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
         <p className="wizard-note">
           {isDemoReport
             ? "AccountIQ is preparing simulated market evidence and sample professional valuation assumptions for this demo journey."
+            : isEvidenceReport
+              ? "AccountIQ is retrieving the approved public sources and assembling the evidence trail without using a commercial AI provider."
             : "AccountIQ is gathering market evidence and professional valuation assumptions. This can take a little longer than standard reports."}
         </p>
       ) : null}

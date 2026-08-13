@@ -1,7 +1,7 @@
 """
 Rule-based financial extractor — no API credits needed.
 Uses synonym dictionaries + column detection, same approach as the AccountIQ SPA.
-Falls back gracefully when Claude API is unavailable.
+Falls back gracefully when live AI extraction is unavailable.
 """
 import re
 from typing import Optional
@@ -397,7 +397,7 @@ def _extract_statement(pages: list[str], syns: dict[str, list[str]]) -> dict:
 def rule_based_extract(text_pages: list[str]) -> dict:
     """
     Run rule-based extraction on all pages.
-    Returns a dict shaped like Claude's JSON response.
+    Returns a dict shaped like the live extraction response.
     """
     # Determine periods from all pages combined
     combined = "\n".join(text_pages)
@@ -446,5 +446,5 @@ def rule_based_extract(text_pages: list[str]) -> dict:
         "currency":          currency,
         "unit":              unit,
         "rows":              rows,
-        "extraction_notes":  "Rule-based extraction (no Claude API). Accuracy ~70-80%. Top up credits for Claude-powered extraction.",
+        "extraction_notes":  "Rule-based deterministic extraction with no commercial AI provider. Review the extracted figures and source statements before relying on a report.",
     }

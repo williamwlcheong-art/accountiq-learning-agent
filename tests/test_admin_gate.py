@@ -104,7 +104,7 @@ async def test_admin_settings_explains_demo_mode_without_treating_placeholder_as
 
     await _register_admin(client, "admin@example.com")
     monkeypatch.setattr(main_module, "E2E_MODE", True)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-e2e-placeholder")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-e2e-placeholder")
 
     response = await client.get("/settings")
 
@@ -115,14 +115,14 @@ async def test_admin_settings_explains_demo_mode_without_treating_placeholder_as
     assert response.json()["api_key_preview"] == ""
 
 
-def test_admin_live_research_setup_error_names_demo_and_live_key_paths():
+def test_admin_live_research_setup_error_names_evidence_and_live_key_paths():
     import main as main_module
 
     detail = main_module._live_research_connection_error_detail({"is_admin": 1})
 
-    assert "Admin Settings" in detail
-    assert "enable demo mode" in detail
-    assert "Anthropic API key" in detail
+    assert "evidence mode" in detail
+    assert "commercial AI key" in detail
+    assert "OpenAI API key" in detail
 
 
 async def test_admin_settings_reports_explicit_demo_mode_without_live_key(
@@ -135,7 +135,7 @@ async def test_admin_settings_reports_explicit_demo_mode_without_live_key(
     await _register_admin(client, "admin@example.com")
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.setenv("ACCOUNTIQ_DEMO_MODE", "true")
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     response = await client.get("/settings")
 
@@ -144,6 +144,32 @@ async def test_admin_settings_reports_explicit_demo_mode_without_live_key(
     assert response.json()["demo_mode_configured"] is True
     assert response.json()["demo_mode_forced"] is False
     assert response.json()["api_key_set"] is False
+
+
+async def test_admin_can_save_openai_key_and_model(client, fresh_all_db, monkeypatch, tmp_path):
+    """The primary settings form persists the OpenAI configuration names."""
+    import ingestion
+    import main as main_module
+
+    await _register_admin(client, "admin@example.com")
+    monkeypatch.setattr(main_module, "ENV_PATH", tmp_path / ".env")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    monkeypatch.setattr(ingestion, "OPENAI_API_KEY", "")
+    monkeypatch.setattr(ingestion, "OPENAI_MODEL", "gpt-5.4-mini")
+
+    response = await client.post(
+        "/settings",
+        data={"api_key": "sk-proj-settings-test", "openai_model": "gpt-5.4"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["ok"] is True
+    assert "API key saved." in response.json()["message"]
+    assert "Model set to gpt-5.4." in response.json()["message"]
+    saved = (tmp_path / ".env").read_text(encoding="utf-8")
+    assert "OPENAI_API_KEY='sk-proj-settings-test'" in saved
+    assert "OPENAI_MODEL='gpt-5.4'" in saved
 
 
 async def test_regular_user_ai_connection_check_403(client, fresh_all_db):
@@ -163,7 +189,7 @@ async def test_admin_ai_connection_check_reports_demo_mode(
     await _register_admin(client, "admin@example.com")
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.setenv("ACCOUNTIQ_DEMO_MODE", "true")
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     response = await client.post("/settings/ai-connection/check")
 
@@ -175,7 +201,7 @@ async def test_admin_ai_connection_check_reports_demo_mode(
     assert response.json()["api_key_set"] is False
 
 
-async def test_admin_ai_connection_check_reports_missing_live_key(
+async def test_admin_ai_connection_check_reports_evidence_mode_when_live_key_is_missing(
     client,
     fresh_all_db,
     monkeypatch,
@@ -185,14 +211,14 @@ async def test_admin_ai_connection_check_reports_missing_live_key(
     await _register_admin(client, "admin@example.com")
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     response = await client.post("/settings/ai-connection/check")
 
     assert response.status_code == 200, response.text
-    assert response.json()["ok"] is False
-    assert response.json()["status"] == "missing_key"
-    assert "Add an Anthropic API key" in response.json()["message"]
+    assert response.json()["ok"] is True
+    assert response.json()["status"] == "evidence_mode"
+    assert "evidence-mode reports" in response.json()["message"]
     assert response.json()["demo_mode"] is False
     assert response.json()["api_key_set"] is False
 
@@ -207,8 +233,8 @@ async def test_admin_ai_connection_check_runs_live_preflight(
     await _register_admin(client, "admin@example.com")
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-admin-connection-pass")
-    monkeypatch.setenv("CLAUDE_MODEL", "claude-sonnet-4-6")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-admin-connection-pass")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-5.4-mini")
     main_module._live_research_preflight_cache.clear()
 
     calls: list[tuple[str, str]] = []
@@ -218,7 +244,7 @@ async def test_admin_ai_connection_check_runs_live_preflight(
 
     monkeypatch.setattr(
         main_module,
-        "_anthropic_live_research_preflight_sync",
+        "_openai_live_research_preflight_sync",
         pass_preflight,
     )
 
@@ -228,8 +254,8 @@ async def test_admin_ai_connection_check_runs_live_preflight(
     assert response.json()["ok"] is True
     assert response.json()["status"] == "verified"
     assert response.json()["cached"] is False
-    assert response.json()["model"] == "claude-sonnet-4-6"
-    assert calls == [("sk-ant-admin-connection-pass", "claude-sonnet-4-6")]
+    assert response.json()["model"] == "gpt-5.4-mini"
+    assert calls == [("sk-admin-connection-pass", "gpt-5.4-mini")]
 
 
 async def test_admin_ai_connection_check_reports_failure_without_provider_leak(
@@ -242,17 +268,17 @@ async def test_admin_ai_connection_check_reports_failure_without_provider_leak(
     await _register_admin(client, "admin@example.com")
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-admin-connection-fail")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-admin-connection-fail")
     main_module._live_research_preflight_cache.clear()
 
     def fail_preflight(_api_key, _model):
         raise RuntimeError(
-            "Anthropic invalid_request_error for Claude model with sk-ant-secret"
+            "OpenAI invalid_request_error with sk-secret"
         )
 
     monkeypatch.setattr(
         main_module,
-        "_anthropic_live_research_preflight_sync",
+        "_openai_live_research_preflight_sync",
         fail_preflight,
     )
 
@@ -264,7 +290,7 @@ async def test_admin_ai_connection_check_reports_failure_without_provider_leak(
     message = response.json()["message"]
     assert "could not be verified" in message
     lowered = message.lower()
-    for forbidden in ("invalid_request_error", "claude", "sk-ant-secret"):
+    for forbidden in ("invalid_request_error", "sk-secret"):
         assert forbidden not in lowered
 
 

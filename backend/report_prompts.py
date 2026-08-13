@@ -1,8 +1,8 @@
 """
-Report section schemas and Claude prompt builders for all 5 AccountIQ report types.
+Report section schemas and OpenAI prompt builders for all 5 AccountIQ report types.
 
 SECTION_SCHEMAS: stable section key lists used by generate_report() and Phase 7 templates.
-build_prompt(): returns (system_prompt, user_message) tuple for Claude messages.create().
+build_prompt(): returns (system_prompt, user_message) tuple for OpenAI Responses API generation.
 compute_bank_credit_figures(): deterministic DSCR and sensitivity computations (D-09).
 """
 from __future__ import annotations
@@ -23,6 +23,7 @@ from valuation import (
 
 TABLE_SECTIONS_VALUATION = [
     "executive_summary",
+    "market_position",
     "financial_performance",
     "financial_ratio_analysis",
     "normalisations_schedule",
@@ -46,6 +47,7 @@ TABLE_SECTIONS_BANK_CREDIT = [
     "financial_performance_forecast",
     "coverage_and_sensitivity",
     "balance_sheet_debt_capacity",
+    "industry_and_competitive_landscape",
     "proposed_covenants",
     "key_risks_and_mitigants",
     "conditions_precedent",
@@ -1031,7 +1033,7 @@ def build_prompt(
     credit_research_brief: Optional[dict] = None,
 ) -> tuple[str, str]:
     """
-    Build the (system_prompt, user_message) tuple for Claude messages.create().
+    Build the (system_prompt, user_message) tuple for OpenAI Responses API generation.
 
     report_type must be a key in SECTION_SCHEMAS.
     valuation_result: output of compute_valuation() — required for valuation_advisory.
@@ -1301,7 +1303,7 @@ in the AccountIQ-calculated sources or comparable-evidence tables.
 - introduction: Engagement scope, client, purpose, valuation date, sources of information, basis of valuation, liability and confidentiality, and indicative/FMCA compliance.
 - executive_summary: Lead with the DCF valuation range and midpoint, then explain the purpose, primary method, key earnings base, and the two or three assumptions with the greatest valuation impact. Keep it decision-useful and concise. Use executive_summary_table verbatim {{headers: executive_summary_table.headers, rows: executive_summary_table.rows}}.
 - business_overview: Use research_brief.company_summary; do not invent facts.
-- market_position: Use research_brief.sector_summary; reference credible NZ-specific competitors, regulators, or market evidence where available.
+- market_position: Return narrative plus a non-empty table. Use research_brief.sector_summary and research_brief.market_intelligence; reference credible NZ-specific competitors, regulators, macro indicators or market evidence where available. Preserve each statistic's period, unit and industry boundary. Describe private-industry monetary measures as sector turnover/scale proxies, not market capitalisation, and do not infer the subject company's market share.
 - about_business_valuations: Explain enterprise value versus equity value, going-concern value, maintainable earnings, why a range is more appropriate than false precision, and how readers, management and market participants should think about risk and uncertainty. Keep this educational and specific to an SME valuation audience.
 - valuation_methodology: Explain that DCF is the primary method and researched comparable market multiples are an independent cross-check. Explain why these methods are appropriate for this business and do not refer to a user risk score.
 - financial_performance: narrative + table using financial_performance_table verbatim {{headers: financial_performance_table.headers, rows: financial_performance_table.rows}}. The commentary must walk through the summary P&L in plain language: revenue, direct costs or cost of sales, gross profit, operating expenses, EBITDA, depreciation/amortisation where available, EBIT and net profit. Where the table includes key expense breakdown rows, explain the major cost categories such as wages/salaries and rent/occupancy, and call out other material expenses shown in the table. Explain the bridge from revenue to EBITDA and why expense rows matter for the earnings view. Explain only trends that are visible in the uploaded financials; do not invent missing periods or metrics.
@@ -1389,7 +1391,7 @@ Annual principal repayment: ${bank_credit_figures['annual_principal']:,.0f}
 - financial_performance_forecast: narrative + table using financial_trend_table verbatim {{headers: financial_trend_table.headers, rows: financial_trend_table.rows}}. Explain revenue, EBITDA and net profit trends from uploaded financials and whether the latest year is a conservative credit anchor. Do not invent forecasts unless the user supplied them.
 - coverage_and_sensitivity: narrative + table using the coverage_table converted into headers/rows with columns case, EBITDA, funding cost, cash interest, annual principal, DSCR and ICR. Also include amortisation_profile_table verbatim as an additional table. Explain base DSCR/ICR, rate stress, EBITDA downside and deleveraging through the debt term.
 - balance_sheet_debt_capacity: narrative + table using balance_sheet_strength_table verbatim. Also include debt_capacity_table verbatim as an additional table. Explain NTOA as operating tangible assets less operating liabilities before cash/debt. Identify the binding debt-capacity constraint.
-- industry_and_competitive_landscape: Use public research for business/sector context, competitive position, regulatory or contract drivers, and cyclicality. Keep unsupported claims appropriately caveated.
+- industry_and_competitive_landscape: Return narrative plus a non-empty table. Use public research and credit_research_brief.market_intelligence for business/sector context, macro conditions, competitive position, regulatory or contract drivers, and cyclicality. Preserve each statistic's period, unit and industry boundary. Describe private-industry monetary measures as sector turnover/scale proxies, not market capitalisation, and keep unsupported claims appropriately caveated.
 - proposed_covenants: narrative + table using proposed_covenants_table verbatim {{headers: proposed_covenants_table.headers, rows: proposed_covenants_table.rows}}. Label these as proposed, not agreed.
 - key_risks_and_mitigants: narrative + table using key_risks_mitigants_table verbatim {{headers: key_risks_mitigants_table.headers, rows: key_risks_mitigants_table.rows}}. Cover trading variance, customer/contract concentration, rate sensitivity, collateral valuation, liquidity, management/key person, refinancing and documentation gaps.
 - conditions_precedent: narrative + table using conditions_precedent_table verbatim {{headers: conditions_precedent_table.headers, rows: conditions_precedent_table.rows}}. List exact items required before credit committee.

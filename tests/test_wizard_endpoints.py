@@ -261,7 +261,7 @@ async def test_report_generation_accepts_multiple_source_document_ids(
     monkeypatch.setattr(main_module, "_generate_report", fake_generate_report)
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.setenv("ACCOUNTIQ_DEMO_MODE", "true")
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     response = await client.post(
         "/wizard/report/generate",
@@ -735,6 +735,41 @@ async def test_bank_credit_generate_accepts_focused_credit_intake(
     payload = response.json()
     assert payload["status"] == "queued"
     assert payload["demo_mode"] is True
+
+
+@pytest.mark.asyncio
+async def test_bank_credit_generate_blocks_missing_core_financials_with_actionable_message(
+    client,
+    fresh_all_db,
+    monkeypatch,
+):
+    company_id = await _register_and_create_company(client)
+    document_id = await _seed_source_document(company_id)
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.setenv("ACCOUNTIQ_REPORT_GENERATION_MODE", "evidence")
+
+    response = await client.post(
+        "/wizard/report/generate",
+        json={
+            "company_id": company_id,
+            "source_document_id": document_id,
+            "report_type": "bank_credit_paper",
+            "intake_answers": {
+                "loan_purpose": "Refinance existing debt",
+                "amount_requested": 250_000,
+                "proposed_term_years": 5,
+                "conservative_funding_cost_pct": 8.5,
+                "lvr_percent": 60,
+                "security_package": "general_security",
+                "repayment_profile": "principal_and_interest",
+                "company_website": "https://example.co.nz",
+            },
+        },
+    )
+
+    assert response.status_code == 422
+    assert "revenue" in response.json()["detail"]
+    assert "balance sheet" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
@@ -1353,7 +1388,8 @@ async def test_report_generation_fails_before_queue_when_ai_connection_missing(
     document_id = await _seed_source_document(company_id)
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("ACCOUNTIQ_REPORT_GENERATION_MODE", "provider")
 
     response = await client.post(
         "/wizard/report/generate",
@@ -1382,7 +1418,8 @@ async def test_report_generation_treats_placeholder_ai_key_as_missing(
     document_id = await _seed_source_document(company_id)
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-YOUR_KEY_HERE")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-YOUR_KEY_HERE")
+    monkeypatch.setenv("ACCOUNTIQ_REPORT_GENERATION_MODE", "provider")
 
     response = await client.post(
         "/wizard/report/generate",
@@ -1411,7 +1448,7 @@ async def test_live_valuation_rejects_done_upload_without_core_financial_rows(
     document_id = await _seed_source_document(company_id)
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-live-looking-test-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-live-looking-test-key")
 
     response = await client.post(
         "/wizard/report/generate",
@@ -1450,7 +1487,7 @@ async def test_live_valuation_readiness_uses_selected_upload_not_stale_company_r
     )
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-live-looking-test-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-live-looking-test-key")
 
     response = await client.post(
         "/wizard/report/generate",
@@ -1487,7 +1524,7 @@ async def test_live_valuation_preflights_research_connection_before_queueing(
     )
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-live-preflight-fail")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-live-preflight-fail")
     main_module._live_research_preflight_cache.clear()
 
     def fail_preflight(_api_key, _model):
@@ -1495,7 +1532,7 @@ async def test_live_valuation_preflights_research_connection_before_queueing(
 
     monkeypatch.setattr(
         main_module,
-        "_anthropic_live_research_preflight_sync",
+        "_openai_live_research_preflight_sync",
         fail_preflight,
     )
 
@@ -1534,7 +1571,8 @@ async def test_live_valuation_queues_after_research_preflight_passes(
     )
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-live-preflight-pass")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-live-preflight-pass")
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
     main_module._live_research_preflight_cache.clear()
 
     preflight_calls: list[tuple[str, str]] = []
@@ -1564,7 +1602,7 @@ async def test_live_valuation_queues_after_research_preflight_passes(
 
     monkeypatch.setattr(
         main_module,
-        "_anthropic_live_research_preflight_sync",
+        "_openai_live_research_preflight_sync",
         pass_preflight,
     )
     monkeypatch.setattr(main_module, "_generate_report", fake_generate_report)
@@ -1582,7 +1620,7 @@ async def test_live_valuation_queues_after_research_preflight_passes(
     assert response.status_code == 201, response.text
     assert response.json()["status"] == "queued"
     assert preflight_calls == [
-        ("sk-ant-live-preflight-pass", "claude-sonnet-4-6")
+        ("sk-live-preflight-pass", "gpt-5.4-mini")
     ]
     assert captured["company_id"] == company_id
     assert captured["report_type"] == "valuation_advisory"
@@ -1602,7 +1640,7 @@ async def test_report_generation_can_continue_in_explicit_demo_mode_without_ai_k
     document_id = await _seed_source_document(company_id)
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.setenv("ACCOUNTIQ_DEMO_MODE", "true")
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     response = await client.post(
         "/wizard/report/generate",
@@ -1622,6 +1660,58 @@ async def test_report_generation_can_continue_in_explicit_demo_mode_without_ai_k
             assert (await cur.fetchone())[0] == 1
         async with db.execute("SELECT demo_mode FROM reports") as cur:
             assert (await cur.fetchone())[0] == 1
+
+
+@pytest.mark.asyncio
+async def test_report_generation_uses_evidence_mode_without_an_ai_key(
+    client,
+    fresh_all_db,
+    monkeypatch,
+):
+    company_id = await _register_and_create_company(client, email="evidence-mode-queue@example.com")
+    document_id = await _seed_source_document(company_id, email="evidence-mode-queue@example.com")
+    await _seed_financial_rows(
+        company_id,
+        document_id,
+        [
+            ("pnl", "revenue", "Revenue", "2025", 1_000_000),
+            ("pnl", "ebitda", "EBITDA", "2025", 220_000),
+            ("pnl", "net_profit", "Net profit", "2025", 145_000),
+        ],
+    )
+    captured: dict[str, object] = {}
+
+    async def fake_generate_report(*args):
+        captured["args"] = args
+
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ACCOUNTIQ_REPORT_GENERATION_MODE", raising=False)
+    monkeypatch.setattr(main_module, "_generate_report", fake_generate_report)
+
+    intake = _complete_valuation_intake()
+    intake["company_website"] = "https://example.co.nz"
+    intake["public_source_urls"] = []
+    response = await client.post(
+        "/wizard/report/generate",
+        json={
+            "company_id": company_id,
+            "source_document_id": document_id,
+            "report_type": "valuation_advisory",
+            "intake_answers": intake,
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["demo_mode"] is False
+    assert response.json()["generation_mode"] == "evidence"
+    assert captured["args"][2]  # authenticated user id passed to background generation
+    async with aiosqlite.connect(main_module.DB_PATH) as db:
+        async with db.execute("SELECT demo_mode, generation_mode FROM reports") as cur:
+            demo_mode, generation_mode = await cur.fetchone()
+    assert demo_mode == 0
+    assert generation_mode == "evidence"
 
 
 @pytest.mark.asyncio
@@ -1647,7 +1737,7 @@ async def test_background_report_generation_uses_stored_demo_mode(
 
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
     await main_module._generate_report(
         report_id,
@@ -1668,6 +1758,129 @@ async def test_background_report_generation_uses_stored_demo_mode(
     assert status == "done"
     assert demo_mode == 1
     assert "Demo figures and simulated research" in content
+
+
+@pytest.mark.asyncio
+async def test_background_evidence_mode_generates_a_source_scoped_valuation_without_ai_key(
+    client,
+    fresh_all_db,
+    monkeypatch,
+):
+    from evidence_research import EvidenceResearchBrief, EvidenceSource
+
+    email = "evidence-mode-generation@example.com"
+    company_id = await _register_and_create_company(client, email=email)
+    async with aiosqlite.connect(main_module.DB_PATH) as db:
+        await db.execute(
+            "UPDATE companies SET sector=?, description=? WHERE id=?",
+            (
+                "Towing and recovery",
+                "A specialised tow-truck fleet provides roadside recovery and secure vehicle storage.",
+                company_id,
+            ),
+        )
+        await db.commit()
+    document_id = await _seed_source_document(company_id, email=email, label="evidence-mode")
+    await _seed_financial_rows(
+        company_id,
+        document_id,
+        [
+            ("pnl", "revenue", "Revenue", "2024", 900_000),
+            ("pnl", "revenue", "Revenue", "2025", 1_000_000),
+            ("pnl", "ebitda", "EBITDA", "2025", 220_000),
+            ("pnl", "net_profit", "Net profit", "2025", 145_000),
+            ("pnl", "depreciation_amortisation", "Depreciation", "2025", 20_000),
+            ("bs", "cash_and_bank", "Cash", "2025", 75_000),
+            ("bs", "trade_debtors", "Trade debtors", "2025", 135_000),
+            ("bs", "trade_creditors", "Trade creditors", "2025", 105_000),
+            ("bs", "long_term_debt", "Term debt", "2025", 180_000),
+        ],
+    )
+    async with aiosqlite.connect(main_module.DB_PATH) as db:
+        async with db.execute("SELECT user_id FROM companies WHERE id=?", (company_id,)) as cur:
+            user_id = (await cur.fetchone())[0]
+        async with db.execute(
+            """
+            INSERT INTO reports (company_id, user_id, report_type, status, demo_mode, generation_mode)
+            VALUES (?, ?, 'valuation_advisory', 'queued', 0, 'evidence')
+            """,
+            (company_id, user_id),
+        ) as cur:
+            report_id = cur.lastrowid
+        await db.commit()
+
+    async def fake_evidence_research(**_kwargs):
+        return EvidenceResearchBrief(
+            company_summary=(
+                "AccountIQ reviewed the official website. It describes the business as a towing and recovery operator "
+                "providing roadside assistance and fleet support."
+            ),
+            sector_summary=(
+                "The report treats the borrower as a towing and recovery business in Auckland. "
+                "No open-web discovery or transaction database was used."
+            ),
+            comparable_transactions="No independent comparable transaction evidence was retrieved.",
+            industry_category="Towing and recovery",
+            sources=["https://example.co.nz"],
+            evidence_sources=[
+                EvidenceSource(
+                    url="https://example.co.nz",
+                    title="Example Towing",
+                    source_type="company website",
+                    retrieved_at="2026-07-17T00:00:00+00:00",
+                    excerpt="Roadside assistance and fleet support across Auckland.",
+                )
+            ],
+            limitations=[
+                "Only the approved company website was reviewed; no open-web search was performed.",
+                "Discount-rate and multiple inputs are documented model conventions where independent market evidence is unavailable.",
+            ],
+        )
+
+    async def fake_send_report_ready_email(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(main_module, "collect_evidence_research", fake_evidence_research)
+    monkeypatch.setattr(main_module, "send_report_ready_email", fake_send_report_ready_email)
+
+    intake = _complete_valuation_intake()
+    intake["company_website"] = "https://example.co.nz"
+    intake["public_source_urls"] = []
+
+    await main_module._generate_report(
+        report_id,
+        company_id,
+        user_id,
+        "valuation_advisory",
+        intake,
+        document_id,
+    )
+
+    async with aiosqlite.connect(main_module.DB_PATH) as db:
+        async with db.execute(
+            "SELECT status, content, demo_mode, generation_mode, research_evidence FROM reports WHERE id=?",
+            (report_id,),
+        ) as cur:
+            status, content, demo_mode, generation_mode, research_evidence = await cur.fetchone()
+
+    assert status == "done"
+    assert demo_mode == 0
+    assert generation_mode == "evidence"
+    assert "Evidence-mode generation" in content
+    assert "https://example.co.nz" in content
+    assert "without a commercial AI provider" in content
+    assert "demo" not in content.lower()
+    assert "openai" not in content.lower()
+    assert "https://example.co.nz" in research_evidence
+    assert "AccountIQ generic sector baseline" in content
+    assert "New Zealand freight and supply chain strategy" in content
+    assert "https://www.transport.govt.nz/area-of-interest/freight-and-logistics/new-zealand-freight-and-supply-chain-strategy" in content
+    assert '"sector_id": "logistics"' in research_evidence
+    assert '"subsector_id": "towing_recovery"' in research_evidence
+    assert '"status": "curated"' in research_evidence
 
 
 @pytest.mark.asyncio
@@ -1775,7 +1988,8 @@ async def test_report_retry_fails_before_requeue_when_ai_connection_missing(
     report_id = await _seed_failed_valuation_report(company_id, document_id)
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("ACCOUNTIQ_REPORT_GENERATION_MODE", "provider")
 
     response = await client.post(f"/wizard/report/{report_id}/retry")
 
@@ -1827,7 +2041,7 @@ async def test_live_valuation_retry_rejects_done_upload_without_core_financial_r
     report_id = await _seed_failed_valuation_report(company_id, document_id)
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-live-looking-test-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-live-looking-test-key")
 
     response = await client.post(f"/wizard/report/{report_id}/retry")
 
@@ -2097,7 +2311,7 @@ async def test_background_report_generation_uses_selected_upload_financial_rows(
         captured["valuation_result"] = kwargs["valuation_result"]
         return "system", "user"
 
-    async def fake_call_claude(*_args, **_kwargs):
+    async def fake_call_openai(*_args, **_kwargs):
         return main_module._e2e_report_content("valuation_advisory")
 
     async def fake_send_report_ready_email(*_args, **_kwargs):
@@ -2107,7 +2321,7 @@ async def test_background_report_generation_uses_selected_upload_financial_rows(
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
     monkeypatch.setattr(main_module, "run_valuation_research", fake_research)
     monkeypatch.setattr(main_module, "build_prompt", fake_build_prompt)
-    monkeypatch.setattr(main_module, "_call_claude_for_report", fake_call_claude)
+    monkeypatch.setattr(main_module, "_call_openai_for_report", fake_call_openai)
     monkeypatch.setattr(main_module, "_validate_generated_report_content", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(main_module, "_validate_valuation_report_figures", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(main_module, "send_report_ready_email", fake_send_report_ready_email)
@@ -2239,8 +2453,8 @@ async def test_background_valuation_failure_stores_customer_safe_message(
 
     async def fake_research(**_kwargs):
         raise RuntimeError(
-            "Anthropic invalid_request_error: Claude returned an invalid JSON object "
-            "after reading the system prompt for sk-ant-secret"
+            "OpenAI invalid_request_error returned an invalid JSON object "
+            "after reading the system prompt for sk-secret"
         )
 
     monkeypatch.setattr(main_module, "E2E_MODE", False)
@@ -2270,11 +2484,10 @@ async def test_background_valuation_failure_stores_customer_safe_message(
     )
     lowered = error_message.lower()
     for forbidden in (
-        "anthropic",
-        "claude",
+        "openai",
         "json",
         "system prompt",
-        "sk-ant",
+        "sk-secret",
         "invalid_request_error",
     ):
         assert forbidden not in lowered

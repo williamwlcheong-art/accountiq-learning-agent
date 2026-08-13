@@ -1,8 +1,8 @@
 """
 PDF / Excel ingestion pipeline:
   1. Extract text (pdfplumber + pytesseract for image pages, pandas for Excel)
-  2. Send to Claude via tool-use with GAAP/IFRS system prompt + pattern hints
-  3. Parse structured tool response → financial_rows + narrative
+  2. Send to OpenAI via structured output with GAAP/IFRS system prompt + pattern hints
+  3. Parse structured response → financial_rows + narrative
   4. Record new label patterns for future learning
 """
 import os
@@ -10,7 +10,6 @@ import json
 import asyncio
 from typing import Optional
 
-import anthropic
 import pdfplumber
 
 try:
@@ -32,8 +31,8 @@ from db import record_patterns, get_pattern_library, normalise_label
 # Config
 # ---------------------------------------------------------------------------
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-CLAUDE_MODEL = "claude-sonnet-4-6"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.4-mini")
 MAX_TEXT_CHARS = 60_000
 OCR_DPI = 300
 
@@ -177,7 +176,7 @@ Use plain business language. Be concise and specific."""
 
 
 # ---------------------------------------------------------------------------
-# Tool definition — structured extraction
+# Structured-output schema — financial extraction
 # ---------------------------------------------------------------------------
 
 _ROW_SCHEMA = {
@@ -192,21 +191,17 @@ _ROW_SCHEMA = {
     },
 }
 
-EXTRACT_TOOL = {
-    "name": "extract_financials",
-    "description": "Extract all financial data and narrative from the uploaded statement",
-    "input_schema": {
-        "type": "object",
-        "required": ["periods", "currency", "unit", "reporting_standard", "rows", "narrative"],
-        "properties": {
-            "periods":            {"type": "array", "items": {"type": "string"}, "description": "Fiscal years found, most recent first"},
-            "currency":           {"type": "string", "description": "ISO 4217 code e.g. NZD, AUD, USD"},
-            "unit":               {"type": "string", "enum": ["whole", "thousands", "millions"]},
-            "reporting_standard": {"type": "string", "enum": ["GAAP", "IFRS", "UNKNOWN"]},
-            "rows":               {"type": "array", "items": _ROW_SCHEMA},
-            "extraction_notes":   {"type": "string"},
-            "narrative":          {"type": "string", "description": "3–4 paragraph executive summary"},
-        },
+EXTRACT_RESPONSE_SCHEMA = {
+    "type": "object",
+    "required": ["periods", "currency", "unit", "reporting_standard", "rows", "narrative"],
+    "properties": {
+        "periods":            {"type": "array", "items": {"type": "string"}, "description": "Fiscal years found, most recent first"},
+        "currency":           {"type": "string", "description": "ISO 4217 code e.g. NZD, AUD, USD"},
+        "unit":               {"type": "string", "enum": ["whole", "thousands", "millions"]},
+        "reporting_standard": {"type": "string", "enum": ["GAAP", "IFRS", "UNKNOWN"]},
+        "rows":               {"type": "array", "items": _ROW_SCHEMA},
+        "extraction_notes":   {"type": "string"},
+        "narrative":          {"type": "string", "description": "3–4 paragraph executive summary"},
     },
 }
 
@@ -228,7 +223,7 @@ def _ocr_page(page) -> str:
 
 
 def extract_pdf_text(filepath: str) -> tuple[str, list[str], int, bool]:
-    """Returns (claude_text, all_page_texts, page_count, used_ocr)."""
+    """Returns (extraction_text, all_page_texts, page_count, used_ocr)."""
     all_pages: list[str] = []
     used_ocr = False
 
@@ -263,17 +258,17 @@ def extract_pdf_text(filepath: str) -> tuple[str, list[str], int, bool]:
             min_idx = min(range(len(selected)), key=lambda k: selected[k][0])
             removed = selected.pop(min_idx)
             total_chars -= len(f"--- PAGE {removed[1]+1} ---\n{removed[2]}")
-        claude_parts = [(i, f"--- PAGE {i+1} ---\n{pt}") for _, i, pt in selected]
-        claude_parts.sort(key=lambda x: x[0])
-        claude_text = "\n".join(c for _, c in claude_parts)
+        extraction_parts = [(i, f"--- PAGE {i+1} ---\n{pt}") for _, i, pt in selected]
+        extraction_parts.sort(key=lambda x: x[0])
+        extraction_text = "\n".join(c for _, c in extraction_parts)
     except ImportError:
-        claude_text = ""
+        extraction_text = ""
 
-    if not claude_text:
-        claude_text = "\n".join(f"--- PAGE {i+1} ---\n{p}" for i, p in enumerate(all_pages))
-        claude_text = claude_text[:MAX_TEXT_CHARS]
+    if not extraction_text:
+        extraction_text = "\n".join(f"--- PAGE {i+1} ---\n{p}" for i, p in enumerate(all_pages))
+        extraction_text = extraction_text[:MAX_TEXT_CHARS]
 
-    return claude_text, all_pages, page_count, used_ocr
+    return extraction_text, all_pages, page_count, used_ocr
 
 
 # ---------------------------------------------------------------------------
@@ -281,7 +276,7 @@ def extract_pdf_text(filepath: str) -> tuple[str, list[str], int, bool]:
 # ---------------------------------------------------------------------------
 
 def extract_excel_text(filepath: str) -> tuple[str, list[str], int, bool]:
-    """Returns (claude_text, sheet_texts, sheet_count, used_ocr=False)."""
+    """Returns (extraction_text, sheet_texts, sheet_count, used_ocr=False)."""
     try:
         import pandas as pd
     except ImportError:
@@ -304,7 +299,7 @@ def extract_excel_text(filepath: str) -> tuple[str, list[str], int, bool]:
 # ---------------------------------------------------------------------------
 
 def extract_docx_text(filepath: str) -> tuple[str, list[str], int, bool]:
-    """Returns (claude_text, [combined], 1, used_ocr=False).
+    """Returns (extraction_text, [combined], 1, used_ocr=False).
     Table-first extraction: tab-separated cells per row, prefixed with TABLE markers.
     Non-table paragraphs appended after all tables. Merged cells deduplicated by _tc identity.
     """
@@ -356,20 +351,28 @@ def _build_pattern_hints(pattern_lib: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Claude extraction — tool-use
+# OpenAI extraction — structured output
 # ---------------------------------------------------------------------------
 
-async def call_claude(
+async def call_openai(
     pdf_text: str,
     pattern_lib: dict,
     entity_type: str,
     fiscal_year_end: str,
     model: str = None,
 ) -> dict:
-    """Call Claude with forced tool-use. Returns the tool input dict directly."""
-    key   = os.environ.get("ANTHROPIC_API_KEY") or ANTHROPIC_API_KEY
-    model = model or os.environ.get("CLAUDE_MODEL") or CLAUDE_MODEL
-    client = anthropic.Anthropic(api_key=key)
+    """Call OpenAI Responses API and return the validated JSON-shaped output."""
+    key = os.environ.get("OPENAI_API_KEY") or OPENAI_API_KEY
+    model = model or os.environ.get("OPENAI_MODEL") or OPENAI_MODEL
+    if not key:
+        raise RuntimeError("OPENAI_API_KEY not set — cannot extract financial statements")
+    try:
+        from openai import OpenAI
+    except ImportError as exc:
+        raise RuntimeError(
+            "The OpenAI SDK is not installed. Install backend requirements before using live AI extraction."
+        ) from exc
+    client = OpenAI(api_key=key)
 
     pattern_hints = _build_pattern_hints(pattern_lib)
     entity_desc = "listed company annual report" if entity_type == "listed" else "SME / private compilation report"
@@ -384,25 +387,32 @@ Learned label patterns (use as hints for mapping raw labels to canonical keys):
 Financial statement text:
 {pdf_text}"""
 
-    loop = asyncio.get_event_loop()
-    response = await loop.run_in_executor(None, lambda: client.messages.create(
+    loop = asyncio.get_running_loop()
+    response = await loop.run_in_executor(None, lambda: client.responses.create(
         model=model,
-        max_tokens=4096,
-        system=[{
-            "type": "text",
-            "text": SYSTEM_PROMPT,
-            "cache_control": {"type": "ephemeral"},
-        }],
-        tools=[EXTRACT_TOOL],
-        tool_choice={"type": "tool", "name": "extract_financials"},
-        messages=[{"role": "user", "content": user_message}],
+        instructions=SYSTEM_PROMPT,
+        input=user_message,
+        max_output_tokens=4096,
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "financial_extraction",
+                "schema": EXTRACT_RESPONSE_SCHEMA,
+                "strict": False,
+            }
+        },
     ))
 
-    tool_block = next((b for b in response.content if b.type == "tool_use"), None)
-    if tool_block is None:
-        raise RuntimeError("Claude did not return a tool_use block")
-
-    return tool_block.input
+    raw_text = str(getattr(response, "output_text", "") or "").strip()
+    if not raw_text:
+        raise RuntimeError("OpenAI did not return a financial extraction")
+    try:
+        parsed = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("OpenAI returned invalid financial extraction JSON") from exc
+    if not isinstance(parsed, dict):
+        raise RuntimeError("OpenAI financial extraction must be a JSON object")
+    return parsed
 
 
 # ---------------------------------------------------------------------------
@@ -531,15 +541,15 @@ async def ingest_document(
         fp_lower = filepath.lower()
         loop = asyncio.get_running_loop()
         if fp_lower.endswith((".xlsx", ".xls", ".xlsm")):
-            claude_text, all_page_texts, page_count, used_ocr = await loop.run_in_executor(
+            extraction_text, all_page_texts, page_count, used_ocr = await loop.run_in_executor(
                 None, extract_excel_text, filepath
             )
         elif fp_lower.endswith(".docx"):
-            claude_text, all_page_texts, page_count, used_ocr = await loop.run_in_executor(
+            extraction_text, all_page_texts, page_count, used_ocr = await loop.run_in_executor(
                 None, extract_docx_text, filepath
             )
         else:
-            claude_text, all_page_texts, page_count, used_ocr = await loop.run_in_executor(
+            extraction_text, all_page_texts, page_count, used_ocr = await loop.run_in_executor(
                 None, extract_pdf_text, filepath
             )
 
@@ -548,42 +558,42 @@ async def ingest_document(
             (page_count, int(used_ocr), document_id)
         )
         await db.commit()
-        await log("info", f"Extracted {page_count} pages/sheets ({len(claude_text)} chars)")
+        await log("info", f"Extracted {page_count} pages/sheets ({len(extraction_text)} chars)")
 
         # 2. Load pattern library
         pattern_lib = await get_pattern_library(db)
         await log("info", f"Pattern library: {sum(len(v) for v in pattern_lib.values())} total patterns")
 
-        # 3. Try Claude (tool-use); fall back to rule-based on auth/billing errors
+        # 3. Try OpenAI structured extraction; fall back to rule-based on auth/billing errors
         parsed = None
         extraction_method = "rule_based"
-        live_model = os.environ.get("CLAUDE_MODEL") or CLAUDE_MODEL
-        api_key    = os.environ.get("ANTHROPIC_API_KEY") or ANTHROPIC_API_KEY
+        live_model = os.environ.get("OPENAI_MODEL") or OPENAI_MODEL
+        api_key = os.environ.get("OPENAI_API_KEY") or OPENAI_API_KEY
 
-        if api_key and not api_key.startswith("sk-ant-YOUR"):
+        if api_key and not api_key.startswith("sk-YOUR"):
             try:
-                await log("info", f"Calling Claude ({live_model}) with tool-use extraction…")
-                parsed = await call_claude(
-                    claude_text, pattern_lib, entity_type, fiscal_year_end, live_model
+                await log("info", f"Calling OpenAI ({live_model}) with structured extraction…")
+                parsed = await call_openai(
+                    extraction_text, pattern_lib, entity_type, fiscal_year_end, live_model
                 )
                 extraction_method = live_model
                 periods = parsed.get("periods", [])
                 std     = parsed.get("reporting_standard", "UNKNOWN")
-                await log("info", f"Claude extracted {len(parsed.get('rows',[]))} rows for {periods} [{std}]")
+                await log("info", f"OpenAI extracted {len(parsed.get('rows',[]))} rows for {periods} [{std}]")
 
                 await db.execute("""
                     UPDATE documents SET
-                        raw_claude_response = ?,
+                        raw_provider_response = ?,
                         extraction_model    = ?,
                         updated_at          = datetime('now')
                     WHERE id = ?
                 """, (json.dumps(parsed), live_model, document_id))
                 await db.commit()
 
-            except Exception as claude_err:
-                err_str = str(claude_err)
-                if any(x in err_str.lower() for x in ("credit balance", "invalid x-api-key", "authentication")):
-                    await log("warn", f"Claude unavailable ({err_str[:120]}) — falling back to rule-based extractor")
+            except Exception as openai_err:
+                err_str = str(openai_err)
+                if any(x in err_str.lower() for x in ("credit balance", "incorrect api key", "authentication", "insufficient_quota")):
+                    await log("warn", f"OpenAI unavailable ({err_str[:120]}) — falling back to rule-based extractor")
                     parsed = None
                 else:
                     raise
