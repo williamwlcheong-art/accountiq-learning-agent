@@ -281,6 +281,14 @@ _VALUATION_INTAKE_FIELD_LABELS = {
     "revenue_quality": "Revenue predictability",
     "revenue_outlook": "Revenue outlook",
     "private_context": "Other private context",
+    "business_address": "Business / premises address",
+    "instructing_party": "Instructing party / intended recipient",
+    "valuation_date": "Preferred valuation date",
+    "source_information": "Source inventory",
+    "operations_and_services": "Operations and services",
+    "forecast_pipeline_evidence": "Forecast / pipeline support",
+    "premises_and_lease": "Premises / lease context",
+    "management_continuity": "Management continuity",
     "debt_override": "Interest-bearing debt override",
     "surplus_assets": "Surplus or non-operating assets",
     "replacement_manager_cost": "Replacement manager cost",
@@ -302,6 +310,14 @@ _VALUATION_PRIVATE_INTAKE_FIELDS = (
     "revenue_quality",
     "revenue_outlook",
     "private_context",
+    "business_address",
+    "instructing_party",
+    "valuation_date",
+    "source_information",
+    "operations_and_services",
+    "forecast_pipeline_evidence",
+    "premises_and_lease",
+    "management_continuity",
 )
 
 _VALUATION_OPTIONAL_EXPERT_FIELDS = {
@@ -524,8 +540,24 @@ def compute_bank_credit_figures(
         except (TypeError, ValueError):
             return 0.0
 
+    def _latest_optional(values: dict) -> float | None:
+        """Return an extracted value without turning a missing line into zero."""
+        if not values:
+            return None
+        latest_period = sorted(values.keys())[-1]
+        value = values.get(latest_period)
+        if value in (None, ""):
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
     def _latest_for(statement: str, *keys: str) -> float:
         return _latest(_first_values(statement, *keys))
+
+    def _latest_for_optional(statement: str, *keys: str) -> float | None:
+        return _latest_optional(_first_values(statement, *keys))
 
     def _fmt_amount(value: float | None) -> str:
         if value is None:
@@ -684,32 +716,95 @@ def compute_bank_credit_figures(
         },
     ]
 
-    cash = abs(_latest_for("bs", "cash_and_bank", "cash_and_equivalents", "cash"))
-    receivables = abs(_latest_for("bs", "trade_debtors", "accounts_receivable", "debtors"))
-    inventory = abs(_latest_for("bs", "inventory", "stock"))
-    total_current_assets = abs(_latest_for("bs", "total_current_assets", "current_assets"))
-    fixed_assets = abs(_latest_for("bs", "fixed_assets_net", "fixed_assets", "property_plant_equipment"))
-    total_assets = abs(_latest_for("bs", "total_assets"))
-    payables = abs(_latest_for("bs", "trade_creditors", "accounts_payable", "creditors"))
-    short_term_debt = abs(_latest_for("bs", "short_term_debt", "current_borrowings"))
-    long_term_debt = abs(_latest_for("bs", "long_term_debt", "non_current_borrowings"))
-    total_current_liabilities = abs(_latest_for("bs", "total_current_liab", "total_current_liabilities"))
-    total_liabilities = abs(_latest_for("bs", "total_liabilities"))
-    shareholders_equity = _latest_for("bs", "shareholders_equity", "net_assets")
-    extracted_interest_bearing_debt = short_term_debt + long_term_debt
-    if extracted_interest_bearing_debt == 0:
-        extracted_interest_bearing_debt = abs(_latest_for("bs", "total_debt", "borrowings"))
+    cash_value = _latest_for_optional("bs", "cash_and_bank", "cash_and_equivalents", "cash")
+    receivables_value = _latest_for_optional("bs", "trade_debtors", "accounts_receivable", "debtors")
+    inventory_value = _latest_for_optional("bs", "inventory", "stock")
+    total_current_assets_value = _latest_for_optional("bs", "total_current_assets", "current_assets")
+    fixed_assets_value = _latest_for_optional("bs", "fixed_assets_net", "fixed_assets", "property_plant_equipment")
+    total_assets_value = _latest_for_optional("bs", "total_assets")
+    payables_value = _latest_for_optional("bs", "trade_creditors", "accounts_payable", "creditors")
+    short_term_debt_value = _latest_for_optional("bs", "short_term_debt", "current_borrowings")
+    long_term_debt_value = _latest_for_optional("bs", "long_term_debt", "non_current_borrowings")
+    total_current_liabilities_value = _latest_for_optional("bs", "total_current_liab", "total_current_liabilities")
+    total_liabilities_value = _latest_for_optional("bs", "total_liabilities")
+    shareholders_equity = _latest_for_optional("bs", "shareholders_equity", "net_assets")
+    explicit_other_current_assets = _latest_for_optional("bs", "other_current_assets")
+    explicit_other_current_liabilities = _latest_for_optional("bs", "other_current_liab", "other_current_liabilities")
 
-    other_operating_current_assets = max(total_current_assets - cash - receivables - inventory, 0.0)
-    other_operating_current_liabilities = max(
-        total_current_liabilities - payables - short_term_debt,
-        0.0,
+    cash = abs(cash_value) if cash_value is not None else None
+    receivables = abs(receivables_value) if receivables_value is not None else None
+    inventory = abs(inventory_value) if inventory_value is not None else None
+    total_current_assets = abs(total_current_assets_value) if total_current_assets_value is not None else None
+    fixed_assets = abs(fixed_assets_value) if fixed_assets_value is not None else None
+    total_assets = abs(total_assets_value) if total_assets_value is not None else None
+    payables = abs(payables_value) if payables_value is not None else None
+    short_term_debt = abs(short_term_debt_value) if short_term_debt_value is not None else None
+    long_term_debt = abs(long_term_debt_value) if long_term_debt_value is not None else None
+    total_current_liabilities = (
+        abs(total_current_liabilities_value) if total_current_liabilities_value is not None else None
     )
-    operating_working_capital = (
-        receivables + inventory + other_operating_current_assets - payables - other_operating_current_liabilities
+    total_liabilities = abs(total_liabilities_value) if total_liabilities_value is not None else None
+    extracted_interest_bearing_debt: float | None
+    if short_term_debt is not None and long_term_debt is not None:
+        extracted_interest_bearing_debt = short_term_debt + long_term_debt
+    else:
+        total_debt_value = _latest_for_optional("bs", "total_debt", "borrowings")
+        extracted_interest_bearing_debt = abs(total_debt_value) if total_debt_value is not None else None
+
+    other_operating_current_assets: float | None = None
+    if explicit_other_current_assets is not None:
+        other_operating_current_assets = abs(explicit_other_current_assets)
+    elif (
+        total_current_assets is not None
+        and cash is not None
+        and receivables is not None
+        and inventory is not None
+    ):
+        other_operating_current_assets = max(total_current_assets - cash - receivables - inventory, 0.0)
+
+    other_operating_current_liabilities: float | None = None
+    if explicit_other_current_liabilities is not None:
+        other_operating_current_liabilities = abs(explicit_other_current_liabilities)
+    elif (
+        total_current_liabilities is not None
+        and payables is not None
+        and short_term_debt is not None
+    ):
+        other_operating_current_liabilities = max(
+            total_current_liabilities - payables - short_term_debt,
+            0.0,
+        )
+
+    operating_working_capital: float | None = None
+    if (
+        receivables is not None
+        and inventory is not None
+        and payables is not None
+        and other_operating_current_assets is not None
+        and other_operating_current_liabilities is not None
+    ):
+        operating_working_capital = (
+            receivables
+            + inventory
+            + other_operating_current_assets
+            - payables
+            - other_operating_current_liabilities
+        )
+    ntoa = (
+        operating_working_capital + fixed_assets
+        if operating_working_capital is not None and fixed_assets is not None
+        else None
     )
-    ntoa = operating_working_capital + fixed_assets
-    borrowing_base_proxy = (receivables * 0.75) + (inventory * 0.50) + (fixed_assets * 0.50)
+    borrowing_base_proxy = (
+        (receivables * 0.75) + (inventory * 0.50) + (fixed_assets * 0.50)
+        if receivables is not None and inventory is not None and fixed_assets is not None
+        else None
+    )
+    net_debt = (
+        extracted_interest_bearing_debt - cash
+        if extracted_interest_bearing_debt is not None and cash is not None
+        else None
+    )
     calculated_lvr = (amount / security_value * 100.0) if amount > 0 and security_value > 0 else None
     implied_security_value = (amount / lvr_rate) if amount > 0 and lvr_rate > 0 and security_value == 0 else None
     transaction_lvr = (amount / transaction_value * 100.0) if amount > 0 and transaction_value > 0 else None
@@ -723,7 +818,7 @@ def compute_bank_credit_figures(
         "short_term_debt": _fmt_amount(short_term_debt),
         "long_term_debt": _fmt_amount(long_term_debt),
         "interest_bearing_debt": _fmt_amount(extracted_interest_bearing_debt),
-        "net_debt": _fmt_amount(extracted_interest_bearing_debt - cash),
+        "net_debt": _fmt_amount(net_debt),
         "shareholders_equity": _fmt_amount(shareholders_equity),
         "operating_working_capital": _fmt_amount(operating_working_capital),
         "ntoa": _fmt_amount(ntoa),
@@ -751,8 +846,12 @@ def compute_bank_credit_figures(
     interest_capacity = last_ebitda / (min_icr * funding_rate) if last_ebitda > 0 and funding_rate > 0 else 0.0
     service_factor = funding_rate + ((1.0 / term) if amortising and term > 0 else 0.0)
     dscr_capacity = last_ebitda / (min_dscr * service_factor) if last_ebitda > 0 and service_factor > 0 else 0.0
-    collateral_capacity = security_value * lvr_rate if security_value > 0 and lvr_rate > 0 else borrowing_base_proxy
-    ntoa_capacity = max(ntoa * 0.75, 0.0)
+    collateral_capacity = (
+        security_value * lvr_rate
+        if security_value > 0 and lvr_rate > 0
+        else borrowing_base_proxy
+    )
+    ntoa_capacity = max(ntoa * 0.75, 0.0) if ntoa is not None else None
 
     constraints = [
         {
@@ -779,7 +878,11 @@ def compute_bank_credit_figures(
             "basis": (
                 f"{lvr_pct:.1f}% LVR on supplied security value"
                 if security_value > 0 and lvr_rate > 0
-                else "Uploaded balance-sheet borrowing-base proxy: 75% debtors, 50% stock, 50% fixed assets"
+                else (
+                    "Uploaded balance-sheet borrowing-base proxy: 75% debtors, 50% stock, 50% fixed assets"
+                    if borrowing_base_proxy is not None
+                    else "Not available; balance-sheet collateral evidence was not extracted"
+                )
             ),
             "caveat": "Requires actual security valuation, ownership, lien priority and lender eligibility checks.",
         },
@@ -790,13 +893,20 @@ def compute_bank_credit_figures(
             "caveat": "NTOA is an operating balance-sheet strength proxy, not a formal collateral valuation.",
         },
     ]
-    positive_constraints = [row for row in constraints if row["supportable_debt"] > 0]
-    supportable_debt = min((row["supportable_debt"] for row in positive_constraints), default=0.0)
-    binding = next((row for row in positive_constraints if row["supportable_debt"] == supportable_debt), None)
+    available_constraints = [row for row in constraints if row["supportable_debt"] is not None]
+    supportable_debt = (
+        min(row["supportable_debt"] for row in available_constraints)
+        if available_constraints
+        else None
+    )
+    binding = next(
+        (row for row in available_constraints if row["supportable_debt"] == supportable_debt),
+        None,
+    )
     debt_capacity_table = [
         {
             "constraint": row["constraint"],
-            "supportable_debt": _fmt_amount(row["supportable_debt"]) if row["supportable_debt"] > 0 else "Not available",
+            "supportable_debt": _fmt_amount(row["supportable_debt"]),
             "basis": row["basis"],
             "binding": "Yes" if binding and row["constraint"] == binding["constraint"] else "No",
             "caveat": row["caveat"],
@@ -820,15 +930,24 @@ def compute_bank_credit_figures(
         "calculated_lvr": f"{calculated_lvr:.1f}%" if calculated_lvr is not None else "Not available",
         "transaction_lvr": f"{transaction_lvr:.1f}%" if transaction_lvr is not None else "Not available",
         "implied_security_value": _fmt_amount(implied_security_value) if implied_security_value else "Not available",
-        "supportable_debt": _fmt_amount(supportable_debt) if supportable_debt > 0 else "Not available",
-        "capacity_headroom": _fmt_amount(supportable_debt - amount) if supportable_debt > 0 and amount > 0 else "Not available",
+        "supportable_debt": _fmt_amount(supportable_debt),
+        "capacity_headroom": (
+            _fmt_amount(supportable_debt - amount)
+            if supportable_debt is not None and amount > 0
+            else "Not available"
+        ),
         "binding_constraint": binding["constraint"] if binding else "Not available",
     }
     facility_terms_table = {
         "headers": ["Facility term", "Proposed / supplied detail", "Credit treatment"],
         "rows": [
             ["Borrower / structure", _answer_text("borrower_structure"), "Confirm legal borrower, guarantors and obligors before credit committee."],
+            ["Transaction / group structure", _answer_text("transaction_structure"), "Sets the legal perimeter, obligors and whether acquisition and refinance debt are consolidated."],
+            ["Ownership and sponsor", _answer_text("ownership_and_sponsor"), "Confirms sponsor rollover, investor contribution, control and key-person continuity."],
+            ["Acquisition rationale", _answer_text("acquisition_rationale"), "Explains the commercial reason for the transaction and any claimed contract or synergy support."],
+            ["Existing debt / refinance context", _answer_text("refinance_context"), "Confirms which existing facilities are being repaid and whether security is being consolidated."],
             ["Facility type", _answer_text("facility_type", "Senior secured term debt"), "Used as the base structure for lender screening."],
+            ["Facility structure", _answer_text("facility_structure"), "Separates senior operating debt from any sponsor, bridge or ancillary facility."],
             ["Amount requested", requested_facility_summary["amount_requested"], "Compared with cash-flow, LVR, collateral and balance-sheet capacity."],
             ["Purpose", requested_facility_summary["loan_purpose"], "Use of funds drives sources-and-uses and required diligence."],
             ["Term", requested_facility_summary["term"], "Determines scheduled amortisation and DSCR pressure."],
@@ -903,12 +1022,14 @@ def compute_bank_credit_figures(
         "rows": [
             ["Security package", _friendly_choice(intake_answers.get("security_package")), "Confirms whether GSA, fleet, property, guarantee or unsecured treatment is being tested."],
             ["Security notes", _answer_text("security_notes"), "Operational detail to verify through PPSR, title, fleet schedule, property valuation or guarantees."],
+            ["Security and guarantee structure", _answer_text("security_structure"), "Confirms GSAs, cross-guarantees, share pledges, property security and priority assumptions."],
             ["Supplied security value", requested_facility_summary["security_value"], "Used for calculated LVR where supplied."],
             ["Target LVR / advance rate", requested_facility_summary["target_lvr"], "Conservative advance-rate assumption used for debt-capacity screening."],
             ["Calculated LVR on supplied security", requested_facility_summary["calculated_lvr"], "Shows facility amount divided by supplied collateral value."],
             ["Transaction LVR / LTV", requested_facility_summary["transaction_lvr"], "Shows facility amount divided by supplied transaction or asset value where provided."],
             ["Implied security value needed", requested_facility_summary["implied_security_value"], "Security value implied by the requested amount and target LVR when no appraised value is supplied."],
             ["Lien / priority checks", "Required before credit committee", "PPSR, property title, prior-ranking debt, insurance and lender form-security documents required."],
+            ["Sponsor bridge security", _answer_text("sponsor_bridge_security"), "Keep any personal bridge security separate from OpCo security and test its own enforceability."],
         ],
     }
     credit_metrics_table = {
@@ -1010,7 +1131,11 @@ def compute_bank_credit_figures(
         "key_risks_mitigants_table": key_risks_mitigants_table,
         "conditions_precedent_table": conditions_precedent_table,
         "supportable_debt": supportable_debt,
-        "capacity_headroom": supportable_debt - amount if supportable_debt > 0 and amount > 0 else None,
+        "capacity_headroom": (
+            supportable_debt - amount
+            if supportable_debt is not None and amount > 0
+            else None
+        ),
         "binding_constraint": binding["constraint"] if binding else None,
     }
 
@@ -1366,7 +1491,7 @@ Selected covenant package: {json.dumps(bank_credit_figures.get('covenant_package
 Proposed covenants table: {json.dumps(bank_credit_figures.get('proposed_covenants_table') or {}, indent=2)}
 Key risks and mitigants table: {json.dumps(bank_credit_figures.get('key_risks_mitigants_table') or {}, indent=2)}
 Conditions precedent table: {json.dumps(bank_credit_figures.get('conditions_precedent_table') or {}, indent=2)}
-Supportable debt: ${float(bank_credit_figures.get('supportable_debt') or 0):,.0f}
+Supportable debt: {(bank_credit_figures.get('requested_facility_summary') or {}).get('supportable_debt', 'Not available')}
 Capacity headroom / shortfall: {bank_credit_figures.get('capacity_headroom')}
 Binding constraint: {bank_credit_figures.get('binding_constraint') or 'Not available'}
 Annual principal repayment: ${bank_credit_figures['annual_principal']:,.0f}

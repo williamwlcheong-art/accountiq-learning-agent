@@ -3,7 +3,10 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { apiFetch } from "@/lib/api-client";
-import type { WizardReportType } from "@/components/wizard/report-type-picker";
+import type {
+  ReportReadiness,
+  WizardReportType,
+} from "@/components/wizard/report-type-picker";
 
 type EbitdaAdjustment = {
   id: number;
@@ -40,8 +43,10 @@ type IntakeFormProps = {
   reportType: WizardReportType;
   companyId: number;
   demoMode?: boolean;
+  reportReadiness?: ReportReadiness;
   initialDraft?: IntakeDraft;
   onDraftChange?: (draft: IntakeDraft) => void;
+  onAddDocuments?: () => void;
   onBack: () => void;
   onSubmit: (answers: Record<string, unknown>) => void;
   loading: boolean;
@@ -436,6 +441,21 @@ function normaliseValuationSourceHints(answers: Record<string, unknown>): { answ
   if (privateContext.error) return { answers, error: privateContext.error };
   if ("private_context" in normalised || privateContext.text) normalised.private_context = privateContext.text;
 
+  for (const [field, label, maxLength] of [
+    ["business_address", "Business / premises address", 240],
+    ["instructing_party", "Instructing party / intended recipient", 240],
+    ["valuation_date", "Preferred valuation date", 40],
+    ["source_information", "Source inventory", 1000],
+    ["operations_and_services", "Operations and services", 1200],
+    ["forecast_pipeline_evidence", "Forecast / pipeline support", 1200],
+    ["premises_and_lease", "Premises / lease context", 800],
+    ["management_continuity", "Management continuity", 800],
+  ] as const) {
+    const result = normaliseOptionalText(normalised[field], label, maxLength);
+    if (result.error) return { answers, error: result.error };
+    if (field in normalised || result.text) normalised[field] = result.text;
+  }
+
   return { answers: normalised };
 }
 
@@ -469,15 +489,101 @@ function normaliseCreditSourceHints(answers: Record<string, unknown>): { answers
     normalised.borrower_structure = borrowerStructure.text;
   }
 
+  for (const [field, label, maxLength] of [
+    ["transaction_structure", "Transaction / group structure", 1000],
+    ["ownership_and_sponsor", "Ownership and sponsor context", 800],
+    ["acquisition_rationale", "Acquisition rationale", 1000],
+    ["refinance_context", "Existing debt / refinance context", 800],
+    ["facility_structure", "Facility structure", 800],
+    ["security_structure", "Security and guarantee structure", 800],
+    ["sponsor_bridge_security", "Sponsor bridge security", 600],
+  ] as const) {
+    const result = normaliseOptionalText(normalised[field], label, maxLength);
+    if (result.error) return { answers, error: result.error };
+    if (field in normalised || result.text) normalised[field] = result.text;
+  }
+
   return { answers: normalised };
+}
+
+function IntakeEvidencePanel({
+  reportType,
+  readiness,
+  onAddDocuments,
+}: {
+  reportType: WizardReportType;
+  readiness?: ReportReadiness;
+  onAddDocuments?: () => void;
+}) {
+  if (!readiness) return null;
+
+  const isCredit = reportType === "bank_credit_paper";
+  const heading = readiness.ready
+    ? isCredit
+      ? "Prepare a first-pass credit paper, or add lender evidence now"
+      : "The valuation can be prepared from this upload"
+    : isCredit
+      ? "Add the missing financial information before preparing the credit paper"
+      : "Add the missing financial information before preparing the valuation";
+  const summary = readiness.ready
+    ? isCredit
+      ? "The uploaded statements are enough for the initial calculations. The paper will remain screening-only until the lender evidence below is obtained and checked."
+      : "The uploaded statements are enough to start. The items below will strengthen the valuation range and the support for maintainable earnings."
+    : `AccountIQ needs ${readiness.issues.join(", ")} before it can prepare a useful report. It will not fill these gaps with assumptions.`;
+
+  return (
+    <section
+      className={`report-readiness-panel intake-support-panel ${readiness.ready ? "ready" : "needs-info"}`}
+      aria-live="polite"
+      aria-labelledby="intake-evidence-title"
+    >
+      <div>
+        <span className="eyebrow">{readiness.ready ? "Evidence check" : "Required before continuing"}</span>
+        <h2 id="intake-evidence-title">{heading}</h2>
+        <p>{summary}</p>
+      </div>
+      {readiness.warnings.length ? (
+        <div className="report-readiness-notes">
+          <strong>Current limitations</strong>
+          <ul>
+            {readiness.warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {readiness.follow_up_items.length ? (
+        <div className="report-readiness-follow-up">
+          <strong>{isCredit ? "Evidence to obtain for a stronger lender paper" : "Information that strengthens the valuation"}</strong>
+          <ul>
+            {readiness.follow_up_items.map((item) => (
+              <li key={item.label}>
+                <span>{item.label}</span>
+                <small>{item.impact}</small>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {onAddDocuments ? (
+        <div className="wizard-actions">
+          <button type="button" className="button button-secondary" onClick={onAddDocuments}>
+            Add supporting files
+          </button>
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 export function IntakeForm({
   reportType,
   companyId,
   demoMode = false,
+  reportReadiness,
   initialDraft,
   onDraftChange,
+  onAddDocuments,
   onBack,
   onSubmit,
   loading,
@@ -912,6 +1018,11 @@ export function IntakeForm({
               : "You can continue. AccountIQ will research public client context and use your uploaded accounts; only lender-specific facts are requested below."}
           </div>
         ) : null}
+        <IntakeEvidencePanel
+          reportType={reportType}
+          readiness={reportReadiness}
+          onAddDocuments={onAddDocuments}
+        />
 
         <div className="valuation-intake-progress" aria-label="Credit paper progress">
           <div>
@@ -973,7 +1084,7 @@ export function IntakeForm({
                   <input
                     id="credit-borrower-structure"
                     name="borrower_structure"
-                    placeholder="e.g. operating company, HoldCo borrower, owner-operator, guarantors"
+                    placeholder="e.g. HoldCo borrower; operating companies; owner-operator; guarantors and ownership percentages"
                     defaultValue={String(creditAnswers.borrower_structure ?? "")}
                   />
                   <span className="field-help">Optional. Add anything the accounts and public research may not show.</span>
@@ -1225,8 +1336,49 @@ export function IntakeForm({
             </fieldset>
 
             <details className="advanced-valuation-details">
-              <summary>Optional: add sources & uses, bridge details or stricter lender thresholds</summary>
+              <summary>Optional: add transaction structure, sources & uses or bridge details</summary>
               <div className="valuation-question-grid">
+                <label htmlFor="credit-transaction-structure" className="valuation-wide-field">
+                  Transaction / group structure
+                  <textarea
+                    id="credit-transaction-structure"
+                    name="transaction_structure"
+                    rows={3}
+                    placeholder="e.g. new HoldCo owns two OpCos; acquisition and refinance consolidated at HoldCo; one monthly repayment"
+                    defaultValue={String(creditAnswers.transaction_structure ?? "")}
+                  />
+                  <span className="field-help">Use this when the request involves an acquisition, group restructure or more than one legal entity.</span>
+                </label>
+                <label htmlFor="credit-ownership-sponsor" className="valuation-wide-field">
+                  Ownership and sponsor context
+                  <textarea
+                    id="credit-ownership-sponsor"
+                    name="ownership_and_sponsor"
+                    rows={3}
+                    placeholder="e.g. sponsor retains 55%; investor subscribes 45%; owner-operator remains managing director"
+                    defaultValue={String(creditAnswers.ownership_and_sponsor ?? "")}
+                  />
+                </label>
+                <label htmlFor="credit-acquisition-rationale" className="valuation-wide-field">
+                  Acquisition rationale
+                  <textarea
+                    id="credit-acquisition-rationale"
+                    name="acquisition_rationale"
+                    rows={3}
+                    placeholder="Contracts, strategic fit, recurring demand, synergies, market access or continuity supporting the transaction"
+                    defaultValue={String(creditAnswers.acquisition_rationale ?? "")}
+                  />
+                </label>
+                <label htmlFor="credit-refinance-context" className="valuation-wide-field">
+                  Existing debt / refinance context
+                  <textarea
+                    id="credit-refinance-context"
+                    name="refinance_context"
+                    rows={3}
+                    placeholder="Which existing debt is being refinanced, why, and whether facilities/security are being consolidated"
+                    defaultValue={String(creditAnswers.refinance_context ?? "")}
+                  />
+                </label>
                 <label htmlFor="credit-facility-type">
                   Facility type
                   <input
@@ -1234,6 +1386,15 @@ export function IntakeForm({
                     name="facility_type"
                     placeholder="e.g. senior secured term loan, acquisition facility, working capital line"
                     defaultValue={String(creditAnswers.facility_type ?? "")}
+                  />
+                </label>
+                <label htmlFor="credit-facility-structure">
+                  Facility structure
+                  <input
+                    id="credit-facility-structure"
+                    name="facility_structure"
+                    placeholder="e.g. senior term facility plus separate personal bridge"
+                    defaultValue={String(creditAnswers.facility_structure ?? "")}
                   />
                 </label>
                 <label htmlFor="credit-transaction-value">
@@ -1306,6 +1467,16 @@ export function IntakeForm({
                     defaultValue={String(creditAnswers.source_of_repayment ?? "")}
                   />
                 </label>
+                <label htmlFor="credit-security-structure" className="valuation-wide-field">
+                  Security and guarantee structure
+                  <textarea
+                    id="credit-security-structure"
+                    name="security_structure"
+                    rows={3}
+                    placeholder="e.g. first-ranking GSAs, cross-guarantees, share pledges, property mortgage, personal guarantee"
+                    defaultValue={String(creditAnswers.security_structure ?? "")}
+                  />
+                </label>
                 <label htmlFor="credit-sponsor-bridge-amount">
                   Additional bridge amount ($)
                   <input
@@ -1339,6 +1510,16 @@ export function IntakeForm({
                     rows={3}
                     placeholder="e.g. estate distribution, shareholder contribution, property refinance, planned asset sale"
                     defaultValue={String(creditAnswers.sponsor_bridge_repayment_source ?? "")}
+                  />
+                </label>
+                <label htmlFor="credit-sponsor-bridge-security" className="valuation-wide-field">
+                  Sponsor bridge security
+                  <textarea
+                    id="credit-sponsor-bridge-security"
+                    name="sponsor_bridge_security"
+                    rows={3}
+                    placeholder="Separate borrower, guarantee, property pledge, negative pledge or other bridge security"
+                    defaultValue={String(creditAnswers.sponsor_bridge_security ?? "")}
                   />
                 </label>
                 <label htmlFor="credit-private-context" className="valuation-wide-field">
@@ -1455,6 +1636,11 @@ export function IntakeForm({
             : "Some profile data is incomplete - your report may have gaps. You can still generate the report."}
         </div>
       ) : null}
+      <IntakeEvidencePanel
+        reportType={reportType}
+        readiness={reportReadiness}
+        onAddDocuments={onAddDocuments}
+      />
 
       {(
         <>
@@ -1801,6 +1987,93 @@ export function IntakeForm({
                   Keep this to a short note. It is optional and only used for valuation-relevant context that accounts and public research cannot show.
                 </span>
               </label>
+            </details>
+            <details className="optional-research-details">
+              <summary>Optional: strengthen the report evidence</summary>
+              <p>
+                These are the details that appear in a professional valuation report. Add what you know, or use
+                <strong> Add supporting files </strong> above for forecasts, leases, pipeline evidence, organisation charts or source accounts.
+                Leave anything unavailable blank; the report will label the limitation rather than fill it in.
+              </p>
+              <div className="valuation-question-grid">
+                <label htmlFor="business-address">
+                  Business / premises address
+                  <input
+                    id="business-address"
+                    name="business_address"
+                    placeholder="e.g. 139 Ridgway Street, Whanganui"
+                    defaultValue={String(valuationAnswers.business_address ?? "")}
+                  />
+                </label>
+                <label htmlFor="instructing-party">
+                  Instructing party / intended recipient
+                  <input
+                    id="instructing-party"
+                    name="instructing_party"
+                    placeholder="e.g. Directors; lender; prospective purchaser"
+                    defaultValue={String(valuationAnswers.instructing_party ?? "")}
+                  />
+                </label>
+                <label htmlFor="valuation-date">
+                  Preferred valuation date
+                  <input
+                    id="valuation-date"
+                    name="valuation_date"
+                    type="date"
+                    defaultValue={String(valuationAnswers.valuation_date ?? "")}
+                  />
+                </label>
+                <label htmlFor="source-information" className="valuation-wide-field">
+                  Source inventory
+                  <textarea
+                    id="source-information"
+                    name="source_information"
+                    rows={3}
+                    placeholder="e.g. signed FY2025 accounts; draft FY2026 accounts; FY2027 budget; lease; management discussions"
+                    defaultValue={String(valuationAnswers.source_information ?? "")}
+                  />
+                </label>
+                <label htmlFor="operations-and-services" className="valuation-wide-field">
+                  Operations and services
+                  <textarea
+                    id="operations-and-services"
+                    name="operations_and_services"
+                    rows={3}
+                    placeholder="What the business does, its main services, customers and operating footprint"
+                    defaultValue={String(valuationAnswers.operations_and_services ?? "")}
+                  />
+                </label>
+                <label htmlFor="forecast-pipeline-evidence" className="valuation-wide-field">
+                  Forecast / pipeline support
+                  <textarea
+                    id="forecast-pipeline-evidence"
+                    name="forecast_pipeline_evidence"
+                    rows={3}
+                    placeholder="What supports the forecast: signed contracts, near-contracted work, backlog, budget or management plan"
+                    defaultValue={String(valuationAnswers.forecast_pipeline_evidence ?? "")}
+                  />
+                </label>
+                <label htmlFor="premises-and-lease">
+                  Premises / lease context
+                  <textarea
+                    id="premises-and-lease"
+                    name="premises_and_lease"
+                    rows={3}
+                    placeholder="Owner-occupied or leased, related-party terms, expiry or recent changes"
+                    defaultValue={String(valuationAnswers.premises_and_lease ?? "")}
+                  />
+                </label>
+                <label htmlFor="management-continuity">
+                  Management continuity
+                  <textarea
+                    id="management-continuity"
+                    name="management_continuity"
+                    rows={3}
+                    placeholder="Who remains, key-person dependencies, handover or succession considerations"
+                    defaultValue={String(valuationAnswers.management_continuity ?? "")}
+                  />
+                </label>
+              </div>
             </details>
               </fieldset>
 

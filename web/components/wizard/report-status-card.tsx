@@ -9,9 +9,10 @@ import type { ReportStatus } from "@/types/domain";
 type ReportStatusCardProps = {
   reportId: number;
   userEmail: string;
+  onAddDocuments?: () => void;
 };
 
-export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps) {
+export function ReportStatusCard({ reportId, userEmail, onAddDocuments }: ReportStatusCardProps) {
   const router = useRouter();
   const [status, setStatus] = useState<ReportStatus | null>(null);
   const [error, setError] = useState("");
@@ -153,6 +154,16 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
     return "pending";
   };
 
+  const creditStepState = (step: "inputs" | "research" | "analysis" | "delivery") => {
+    if (isFailed) return "pending";
+    if (isDone) return "complete";
+    if (step === "inputs") return "complete";
+    if (currentStatus === "researching" && step === "research") return "current";
+    if (currentStatus === "generating" && step === "research") return "complete";
+    if (currentStatus === "generating" && step === "analysis") return "current";
+    return "pending";
+  };
+
   return (
     <section className="wizard-card">
       <h2>{heading}</h2>
@@ -263,6 +274,60 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
         </>
       ) : null}
 
+      {isCreditReport && !isFailed ? (
+        <>
+          <ol className="valuation-prep-steps credit-prep-steps" aria-label="Credit paper preparation steps">
+            <li className={`valuation-prep-step credit-prep-step-${creditStepState("inputs")}`}>
+              <strong>Financials and lender inputs captured</strong>
+              <span>We have the accounts, facility request, repayment profile, security and covenant choices.</span>
+            </li>
+            <li className={`valuation-prep-step credit-prep-step-${creditStepState("research")}`}>
+              <strong>{isDemoReport ? "Simulated client and sector context" : isEvidenceReport ? "Approved public-source evidence" : "Client and credit context"}</strong>
+              <span>
+                {isDemoReport
+                  ? "Demo context is labelled and kept separate from the uploaded financial evidence."
+                  : isEvidenceReport
+                    ? "Only the website and public links you approved are retained as evidence."
+                    : "Borrower, sector and operating context are assembled for the lender view."}
+              </span>
+            </li>
+            <li className={`valuation-prep-step credit-prep-step-${creditStepState("analysis")}`}>
+              <strong>Coverage, security and debt capacity</strong>
+              <span>AccountIQ calculates DSCR, ICR, LVR, leverage, NTOA, downside sensitivity and proposed controls.</span>
+            </li>
+            <li className={`valuation-prep-step credit-prep-step-${creditStepState("delivery")}`}>
+              <strong>Credit paper and PDF delivery</strong>
+              <span>The finished pack shows risks, conditions precedent, recommendation, browser review and PDF delivery.</span>
+            </li>
+          </ol>
+
+          <section className="valuation-pack-preview credit-pack-preview" aria-labelledby="credit-pack-preview-title">
+            <div>
+              <span className="eyebrow">{isDone ? "Credit paper ready" : "Credit paper being prepared"}</span>
+              <h3 id="credit-pack-preview-title">A screening paper with a clear route to committee</h3>
+              <p>
+                The output is not a bank approval. It records what the uploaded evidence supports, what is missing,
+                and what should be cleared before committee.
+              </p>
+            </div>
+            <ul>
+              <li>
+                <strong>Credit case</strong>
+                <span>Facility request, sources and uses, borrower context and repayment source.</span>
+              </li>
+              <li>
+                <strong>Capacity analysis</strong>
+                <span>Financial trend, coverage, security, LVR and balance-sheet debt capacity.</span>
+              </li>
+              <li>
+                <strong>Decision controls</strong>
+                <span>Proposed covenants, risks and mitigants, conditions precedent and recommendation.</span>
+              </li>
+            </ul>
+          </section>
+        </>
+      ) : null}
+
       {currentStatus === "researching" ? (
         <p className="wizard-note">
           {isDemoReport
@@ -289,6 +354,11 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
             <a className="button button-secondary" href={`/api/backend/wizard/report/${reportId}/pdf`} download>
               Download PDF
             </a>
+            {onAddDocuments ? (
+              <button type="button" className="button button-secondary" onClick={onAddDocuments}>
+                Add supporting files
+              </button>
+            ) : null}
           </div>
           {isValuationReport ? (
             <div className="wizard-delivery-guide" aria-label="How to use the valuation report pack">
@@ -299,6 +369,18 @@ export function ReportStatusCard({ reportId, userEmail }: ReportStatusCardProps)
               <div>
                 <strong>Download the PDF for sharing</strong>
                 <span>The PDF is the print-ready professional pack for adviser, lender, board or owner discussions.</span>
+              </div>
+            </div>
+          ) : null}
+          {isCreditReport ? (
+            <div className="wizard-delivery-guide" aria-label="How to use the credit paper">
+              <div>
+                <strong>Use this as a screening paper</strong>
+                <span>Before lender review, obtain current management accounts, the debt schedule and payout letters, and current security evidence or appraisals.</span>
+              </div>
+              <div>
+                <strong>Clear the conditions before committee</strong>
+                <span>Confirm borrower and guarantor details, AR/AP or stock ageing where relevant, tax status, insurance and signed lender terms.</span>
               </div>
             </div>
           ) : null}

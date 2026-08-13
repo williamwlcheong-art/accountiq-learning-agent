@@ -521,6 +521,43 @@ def test_compute_bank_credit_figures_includes_balance_sheet_strength_and_debt_ca
     assert figures["conditions_precedent_table"]["rows"]
 
 
+def test_compute_bank_credit_figures_keeps_missing_balance_sheet_values_unavailable():
+    figures = compute_bank_credit_figures(
+        [
+            {"canonical_key": "revenue", "statement": "pnl", "values": {"2025": 1_000_000}},
+            {"canonical_key": "ebitda", "statement": "pnl", "values": {"2025": 240_000}},
+            {"canonical_key": "net_profit", "statement": "pnl", "values": {"2025": 150_000}},
+        ],
+        {
+            "loan_purpose": "Refinance existing debt",
+            "amount_requested": 250_000,
+            "proposed_term_years": 5,
+            "conservative_funding_cost_pct": 8.5,
+            "lvr_percent": 60,
+            "security_package": "general_security",
+            "repayment_profile": "principal_and_interest",
+        },
+    )
+
+    strength = figures["balance_sheet_strength"]
+    assert strength["cash"] == "Not available"
+    assert strength["accounts_receivable"] == "Not available"
+    assert strength["ntoa"] == "Not available"
+    assert strength["net_debt"] == "Not available"
+
+    constraints = {row["constraint"]: row for row in figures["debt_capacity_table"]}
+    assert constraints["Collateral / LVR limit"]["supportable_debt"] == "Not available"
+    assert constraints["Balance-sheet / NTOA support"]["supportable_debt"] == "Not available"
+    assert figures["requested_facility_summary"]["binding_constraint"] in {
+        "Leverage limit",
+        "Interest-cover limit",
+        "DSCR / debt-service limit",
+    }
+
+    balance_values = " ".join(row[1] for row in figures["balance_sheet_strength_table"]["rows"])
+    assert "$0" not in balance_values
+
+
 def test_compute_bank_credit_figures_respects_selected_covenant_package():
     figures = compute_bank_credit_figures(
         [

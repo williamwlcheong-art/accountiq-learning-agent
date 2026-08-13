@@ -27,6 +27,12 @@ type UploadResult = {
   demo_mode: boolean;
 };
 
+type AdditionalUploadContext = {
+  title: string;
+  detail: string;
+  items: string[];
+};
+
 type GenerateResult = {
   report_id: number;
   status: string;
@@ -121,6 +127,7 @@ export function Wizard({ user }: WizardProps) {
   const [documentStatus, setDocumentStatus] = useState<WizardDocumentStatus | null>(null);
   const [financialReview, setFinancialReview] = useState<FinancialReview | null>(null);
   const [financialReconciliationOverrides, setFinancialReconciliationOverrides] = useState<Record<string, number>>({});
+  const [additionalUploadContext, setAdditionalUploadContext] = useState<AdditionalUploadContext | null>(null);
   const [reportType, setReportType] = useState<WizardReportType | null>(null);
   const [intakeDrafts, setIntakeDrafts] = useState<Partial<Record<WizardReportType, IntakeDraft>>>({});
   const [reportId, setReportId] = useState<number | null>(null);
@@ -335,6 +342,7 @@ export function Wizard({ user }: WizardProps) {
     setDocumentStatus(null);
     setFinancialReview(null);
     setFinancialReconciliationOverrides({});
+    setAdditionalUploadContext(null);
     setReportType(null);
     setIntakeDrafts({});
     setReportId(null);
@@ -342,14 +350,29 @@ export function Wizard({ user }: WizardProps) {
   }
 
   function startAdditionalUpload() {
+    const readiness = reportType ? financialReview?.readiness?.[reportType] : undefined;
+    const isCredit = reportType === "bank_credit_paper";
+    setAdditionalUploadContext({
+      title: readiness?.ready
+        ? isCredit
+          ? "Add lender evidence before preparing the paper"
+          : "Add information to strengthen the valuation"
+        : isCredit
+          ? "Add the missing financial information for the credit paper"
+          : "Add the missing financial information for the valuation",
+      detail: readiness?.ready
+        ? isCredit
+          ? "The current upload can support an initial screening paper. These documents improve the lender view and help clear conditions before committee."
+          : "The current upload can support the valuation. These documents improve trend analysis, maintainable earnings and the enterprise-to-equity bridge."
+        : `The current upload is missing ${readiness?.issues.join(", ") || "required financial information"}. AccountIQ will not fill those gaps with assumptions.`,
+      items: (readiness?.follow_up_items ?? []).slice(0, 5).map((item) => item.label),
+    });
     setStep("upload");
     setFiles([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
     setDocumentStatus(null);
     setFinancialReview(null);
     setFinancialReconciliationOverrides({});
-    setReportType(null);
-    setIntakeDrafts({});
     setReportId(null);
     setError("");
   }
@@ -400,6 +423,22 @@ export function Wizard({ user }: WizardProps) {
         {step === "upload" ? (
           <section className="wizard-card">
             <h1>Upload your financial statements</h1>
+            {additionalUploadContext ? (
+              <div className="upload-guidance-panel" aria-label="Why more files are requested">
+                <div>
+                  <span className="eyebrow">More information requested</span>
+                  <h2>{additionalUploadContext.title}</h2>
+                  <p>{additionalUploadContext.detail}</p>
+                </div>
+                {additionalUploadContext.items.length ? (
+                  <ul>
+                    {additionalUploadContext.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
             <div className="upload-guidance-panel" aria-label="Best files for valuation and credit paper">
               <div>
                 <span className="eyebrow">Best files for valuation or credit paper</span>
@@ -717,6 +756,7 @@ export function Wizard({ user }: WizardProps) {
               reportType={reportType}
               companyId={upload.company_id}
               demoMode={upload.demo_mode}
+              reportReadiness={selectedReportReadiness}
               initialDraft={intakeDrafts[reportType]}
               onDraftChange={(draft) =>
                 setIntakeDrafts((current) => ({
@@ -724,6 +764,7 @@ export function Wizard({ user }: WizardProps) {
                   [reportType]: draft,
                 }))
               }
+              onAddDocuments={startAdditionalUpload}
               onBack={() => setStep("report-type")}
               onSubmit={generateReport}
               loading={loading}
@@ -733,7 +774,11 @@ export function Wizard({ user }: WizardProps) {
 
         {step === "status" && reportId ? (
           <>
-            <ReportStatusCard reportId={reportId} userEmail={user.email} />
+            <ReportStatusCard
+              reportId={reportId}
+              userEmail={user.email}
+              onAddDocuments={startAdditionalUpload}
+            />
             <button className="button button-secondary wizard-reset" onClick={reset}>
               Upload another -&gt;
             </button>

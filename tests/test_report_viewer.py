@@ -171,6 +171,12 @@ def test_demo_bank_credit_content_fills_required_sections_and_tables():
         valuation_result=None,
         bank_credit_figures=figures,
         credit_research_brief={"company_summary": "Towing Example is a towing operator."},
+        intake_answers={
+            "transaction_structure": "New HoldCo owns the operating companies and consolidates acquisition and refinance debt.",
+            "ownership_and_sponsor": "Sponsor retains 55%; incoming investor subscribes for 45%.",
+            "facility_structure": "Senior term facility plus a separate sponsor bridge.",
+            "security_structure": "Cross-guarantees and first-ranking GSAs from both operating companies.",
+        },
     )
 
     _validate_generated_report_content(content, "bank_credit_paper")
@@ -179,6 +185,49 @@ def test_demo_bank_credit_content_fills_required_sections_and_tables():
     assert content["balance_sheet_debt_capacity"]["debt_capacity_table"]["rows"]
     assert "selected package is Balanced" in content["proposed_covenants"]["narrative"]
     assert "screening-only" in content["recommendation"]["narrative"]
+    assert "New HoldCo owns the operating companies" in content["transaction_summary"]["narrative"]
+    assert "separate sponsor bridge" in content["facilities_requested"]["narrative"]
+    assert "first-ranking GSAs" in content["security_package"]["narrative"]
+
+
+def test_demo_valuation_content_carries_reference_level_context_into_report_sections():
+    valuation_result = {
+        "executive_summary_table": {"headers": ["Item", "Value"], "rows": [["Enterprise value", "$1,000,000"]]},
+        "financial_performance_table": {"headers": ["Metric", "2025"], "rows": [["Revenue", "$2,000,000"]]},
+        "financial_ratio_table": {"headers": ["Ratio", "2025"], "rows": [["EBITDA margin", "20.0%"]]},
+        "normalisation_schedule": {"headers": ["Item", "Value"], "rows": [["Normalised EBITDA", "$400,000"]]},
+        "balance_sheet_summary_table": {"headers": ["Item", "Value"], "rows": [["Net debt", "$0"]]},
+        "assumption_source_trail": {"headers": ["Input", "Source"], "rows": [["Growth", "Uploaded history"]]},
+        "wacc_assumptions_table": {"headers": ["Input", "Value"], "rows": [["WACC", "12.0%"]]},
+        "dcf_analysis_table": {"headers": ["Input", "Value"], "rows": [["DCF", "$1,000,000"]]},
+        "forecast_cash_flow_schedule": {"headers": ["Year", "FCFF"], "rows": [["Year 1", "$100,000"]]},
+        "valuation_summary_table": {"headers": ["Method", "Value"], "rows": [["DCF", "$1,000,000"]]},
+        "multiples_crosscheck_table": {"headers": ["Multiple", "Value"], "rows": [["4.0x", "$1,600,000"]]},
+        "sensitivity_table": {"headers": ["Case", "Value"], "rows": [["Base", "$1,000,000"]]},
+        "specific_risk_factors": {"headers": ["Risk", "Treatment"], "rows": [["Key person", "Diligence"]]},
+        "comparable_evidence_table": {"headers": ["Evidence", "Source"], "rows": [["None", "Not available"]]},
+        "sources_table": {"headers": ["Source", "Use"], "rows": [["Uploaded accounts", "Financial schedules"]]},
+    }
+    content = _demo_report_content_from_inputs(
+        report_type="valuation_advisory",
+        company_name="Venture Build (APS Homes Limited)",
+        financial_rows=[],
+        valuation_result=valuation_result,
+        bank_credit_figures=None,
+        credit_research_brief=None,
+        intake_answers={
+            "business_address": "139 Ridgway Street, Whanganui",
+            "instructing_party": "Bayleys Business - Strategic Transactions Services",
+            "valuation_date": "2026-06-12",
+            "source_information": "Signed FY2025 accounts; draft FY2026 accounts; FY2027 budget; lease",
+            "forecast_pipeline_evidence": "Signed and near-contracted pipeline supports the forecast.",
+            "management_continuity": "Current management remains with the business.",
+        },
+    )
+
+    assert "139 Ridgway Street, Whanganui" in content["introduction"]
+    assert "Signed FY2025 accounts" in content["sources"]["narrative"]
+    assert "Current management remains" in content["valuation_assumptions"]["narrative"]
 
 
 def test_evidence_mode_bank_credit_content_is_not_a_demo_or_ai_report():
@@ -1100,6 +1149,25 @@ def test_cover_brief_labels_demo_reports_as_not_for_reliance():
     assert "Indicative valuation support only" not in html
 
 
+def test_renders_credit_cover_brief_with_screening_language():
+    html = _render_cover_report_brief_html(
+        company_name="Credit Borrower Limited",
+        report_label="Bank Credit Paper",
+        report_type="bank_credit_paper",
+        report_id=55,
+        generated_at="2026-07-04 09:15:00",
+        demo_mode=False,
+    )
+
+    assert "Prepared date" in html
+    assert "4 July 2026" in html
+    assert "Credit paper / lender screening" in html
+    assert "Screening-only until diligence and bank approval" in html
+    assert "Indicative lender screening only" in html
+    assert "Valuation date" not in html
+    assert "Basis of value" not in html
+
+
 def test_renders_cover_report_basis_without_extra_questions():
     html = _render_cover_report_basis_html()
 
@@ -1114,6 +1182,18 @@ def test_renders_cover_report_basis_without_extra_questions():
     assert "<dt>AccountIQ model</dt>" in html
     assert "DCF, WACC, multiples and sensitivity" in html
     assert "questionnaire" not in html.lower()
+
+
+def test_renders_credit_cover_basis_without_valuation_labels():
+    html = _render_cover_report_basis_html("bank_credit_paper")
+
+    assert "Lender inputs" in html
+    assert "Facility, LVR, funding cost and security" in html
+    assert "Public client context" in html
+    assert "Credit model" in html
+    assert "DSCR, ICR, leverage and NTOA" in html
+    assert "Five private inputs" not in html
+    assert "DCF, WACC, multiples and sensitivity" not in html
 
 
 def test_renders_valuation_basis_front_matter_without_extra_questions():

@@ -69,6 +69,8 @@ from report_quality import (
     audit_valuation_report_content,
     audit_valuation_report_html,
     audit_valuation_report_pdf,
+    audit_bank_credit_report_html,
+    audit_bank_credit_report_pdf,
 )
 from evidence_research import collect_evidence_research, evidence_sources_table
 from research_loop import WEB_SEARCH_TOOL, run_valuation_research
@@ -347,6 +349,59 @@ def _e2e_financial_rows() -> list[tuple[str, str, str, str, float, float]]:
 
 def _e2e_report_content(report_type: str, *, demo_mode: bool = True) -> dict:
     sections = SECTION_SCHEMAS.get(report_type, ["executive_summary", "disclaimer"])
+    if report_type == "bank_credit_paper":
+        demo_note = (
+            " Public research and financial figures are simulated only to demonstrate the AccountIQ "
+            "credit-paper experience."
+            if demo_mode
+            else " Public-source context is retained separately from uploaded financials and lender inputs."
+        )
+        section_narratives = {
+            "executive_summary": (
+                "This screening-only bank credit paper reviews a requested facility of $1,000,000. "
+                "Uploaded financials and lender inputs support the initial DSCR, ICR, LVR, NTOA and "
+                "supportable debt view. The request remains subject to conditions precedent before committee."
+                + demo_note
+            ),
+            "transaction_summary": "The transaction summary records the proposed purpose, amount, term, funding cost, security and repayment profile.",
+            "sources_and_uses": "Sources and uses show the requested facility and identify any funds-flow evidence still required.",
+            "borrower_and_sponsor_profile": "The borrower profile is limited to supplied company context and identifies the repayment source and guarantor evidence required.",
+            "facilities_requested": "The facilities requested section sets out the proposed lender structure used throughout the credit calculations.",
+            "security_package": "The security package section tests the proposed security, LVR and lien-priority evidence before credit committee.",
+            "financial_performance_forecast": "Uploaded trading history is the credit anchor; no unsupported forecast is substituted for missing financial evidence.",
+            "coverage_and_sensitivity": "Coverage ratios show base DSCR and ICR, rate stress, EBITDA downside and the scheduled deleveraging profile.",
+            "balance_sheet_debt_capacity": "The balance-sheet section explains cash, debt, working capital and NTOA as a debt-capacity proxy rather than a formal collateral valuation.",
+            "industry_and_competitive_landscape": "Industry context is illustrative in demo mode and must be checked against approved public sources before lender reliance.",
+            "proposed_covenants": "The proposed lender controls are not agreed terms and must be tested against final bank policy and the agreed EBITDA definition.",
+            "key_risks_and_mitigants": "Key risks include trading variance, interest-rate pressure, collateral value, liquidity, management dependence and documentation gaps.",
+            "conditions_precedent": "Conditions precedent identify the management accounts, debt schedule, security evidence, ownership information and lender terms required before committee.",
+            "recommendation": "The recommendation is screening-only: confirm the conditions precedent and revise structure if the supportable debt or coverage limits are not met.",
+            "disclaimer": "This bank credit paper is indicative only, does not constitute financial advice, credit approval or a bank commitment, and should not be relied on without independent professional advice. The paper is prepared with regard to the FMCA context.",
+        }
+        table_sections = set(TABLE_SECTIONS_BANK_CREDIT)
+        content: dict = {}
+        for section in sections:
+            if section not in table_sections:
+                content[section] = section_narratives[section]
+                continue
+            content[section] = {
+                "narrative": section_narratives.get(section, "The credit paper section records the lender-screening position."),
+                "table": {
+                    "headers": ["Credit item", "Position", "Credit treatment"],
+                    "rows": [["Uploaded financials", "Available for screening", "Confirm source documents before committee."]],
+                },
+            }
+            if section == "coverage_and_sensitivity":
+                content[section]["amortisation_profile_table"] = {
+                    "headers": ["Period", "Opening debt", "Closing debt"],
+                    "rows": [["Year 1", "$1,000,000", "$850,000"]],
+                }
+            if section == "balance_sheet_debt_capacity":
+                content[section]["debt_capacity_table"] = {
+                    "headers": ["Constraint", "Supportable debt", "Basis"],
+                    "rows": [["Illustrative leverage limit", "$900,000", "Latest uploaded EBITDA"]],
+                }
+        return content
     if report_type == "valuation_advisory":
         demo_disclaimer = (
             " Demo figures and simulated research are included only to demonstrate the AccountIQ "
@@ -2077,6 +2132,14 @@ _VALUATION_OPTIONAL_INTAKE_FIELDS = frozenset(
         "company_location",
         "public_source_urls",
         "private_context",
+        "business_address",
+        "instructing_party",
+        "valuation_date",
+        "source_information",
+        "operations_and_services",
+        "forecast_pipeline_evidence",
+        "premises_and_lease",
+        "management_continuity",
         "normalisations",
         "replacement_manager_cost",
         "debt_override",
@@ -2096,6 +2159,14 @@ _VALUATION_OPTIONAL_FIELD_LABELS = {
     "debt_override": "Interest-bearing debt at valuation date",
     "surplus_assets": "Surplus or non-operating assets",
     "custom_growth_rate": "Specific supported annual revenue growth",
+    "business_address": "Business / premises address",
+    "instructing_party": "Instructing party / intended recipient",
+    "valuation_date": "Preferred valuation date",
+    "source_information": "Source inventory",
+    "operations_and_services": "Operations and services",
+    "forecast_pipeline_evidence": "Forecast / pipeline support",
+    "premises_and_lease": "Premises / lease context",
+    "management_continuity": "Management continuity",
 }
 
 _BANK_CREDIT_SECURITY_OPTIONS = {
@@ -2127,7 +2198,12 @@ _BANK_CREDIT_OPTIONAL_FIELDS = frozenset(
         "company_location",
         "public_source_urls",
         "borrower_structure",
+        "transaction_structure",
+        "ownership_and_sponsor",
+        "acquisition_rationale",
+        "refinance_context",
         "facility_type",
+        "facility_structure",
         "private_credit_context",
         "security_value",
         "security_notes",
@@ -2139,6 +2215,8 @@ _BANK_CREDIT_OPTIONAL_FIELDS = frozenset(
         "sponsor_bridge_amount",
         "sponsor_bridge_term_months",
         "sponsor_bridge_repayment_source",
+        "security_structure",
+        "sponsor_bridge_security",
         "refinance_amount",
         "transaction_fees",
         "existing_debt_to_refinance",
@@ -2491,6 +2569,13 @@ def _validate_bank_credit_intake_answers(answers: dict) -> None:
         ("security_notes", "security notes", 600),
         ("source_of_repayment", "source of repayment", 500),
         ("sponsor_bridge_repayment_source", "bridge repayment source", 500),
+        ("transaction_structure", "transaction / group structure", 1000),
+        ("ownership_and_sponsor", "ownership and sponsor context", 800),
+        ("acquisition_rationale", "acquisition rationale", 1000),
+        ("refinance_context", "existing debt / refinance context", 800),
+        ("facility_structure", "facility structure", 800),
+        ("security_structure", "security and guarantee structure", 800),
+        ("sponsor_bridge_security", "sponsor bridge security", 600),
     ):
         text = _normalise_optional_credit_context(
             answers.get(field),
@@ -2720,6 +2805,26 @@ def _validate_valuation_intake_answers(answers: dict) -> None:
         answers["private_context"] = private_context
     elif "private_context" in answers:
         answers["private_context"] = ""
+
+    for field, label, max_chars in (
+        ("business_address", "business / premises address", 240),
+        ("instructing_party", "instructing party / intended recipient", 240),
+        ("valuation_date", "preferred valuation date", 40),
+        ("source_information", "source inventory", 1000),
+        ("operations_and_services", "operations and services", 1200),
+        ("forecast_pipeline_evidence", "forecast / pipeline support", 1200),
+        ("premises_and_lease", "premises / lease context", 800),
+        ("management_continuity", "management continuity", 800),
+    ):
+        text = _normalise_optional_credit_context(
+            answers.get(field),
+            label,
+            max_chars=max_chars,
+        )
+        if text:
+            answers[field] = text
+        elif field in answers:
+            answers[field] = ""
 
     normalisations = answers.get("normalisations", [])
     if not isinstance(normalisations, list):
@@ -4551,23 +4656,39 @@ def _render_cover_report_brief_html(
     demo_mode: bool = False,
 ) -> str:
     """Render professional cover metadata without adding more owner questions."""
-    purpose = valuation_purpose.strip() or "Not specified"
-    valuation_date = report_display_date(generated_at)
-    reliance = (
-        "Demo data only - not for reliance."
-        if demo_mode
-        else "Indicative valuation support only; obtain independent professional advice before reliance."
-    )
-    rows = [
-        ("Prepared for", company_name),
-        ("Prepared by", "AccountIQ"),
-        ("Report type", report_label),
-        ("Reference", report_reference_code(report_id, report_type)),
-        ("Valuation date", valuation_date),
-        ("Purpose", purpose),
-        ("Basis of value", "Indicative fair-market value, going-concern basis"),
-        ("Reliance", reliance),
-    ]
+    if report_type == "bank_credit_paper":
+        reliance = (
+            "Demo credit paper only - not for reliance."
+            if demo_mode
+            else "Indicative lender screening only; not credit approval or a lender commitment."
+        )
+        rows = [
+            ("Prepared for", company_name),
+            ("Prepared by", "AccountIQ"),
+            ("Report type", report_label),
+            ("Reference", report_reference_code(report_id, report_type)),
+            ("Prepared date", report_display_date(generated_at)),
+            ("Purpose", "Credit paper / lender screening"),
+            ("Credit posture", "Screening-only until diligence and bank approval"),
+            ("Reliance", reliance),
+        ]
+    else:
+        purpose = valuation_purpose.strip() or "Not specified"
+        reliance = (
+            "Demo data only - not for reliance."
+            if demo_mode
+            else "Indicative valuation support only; obtain independent professional advice before reliance."
+        )
+        rows = [
+            ("Prepared for", company_name),
+            ("Prepared by", "AccountIQ"),
+            ("Report type", report_label),
+            ("Reference", report_reference_code(report_id, report_type)),
+            ("Valuation date", report_display_date(generated_at)),
+            ("Purpose", purpose),
+            ("Basis of value", "Indicative fair-market value, going-concern basis"),
+            ("Reliance", reliance),
+        ]
     row_html = "".join(
         "<div>"
         f"<dt>{_html_lib.escape(label)}</dt>"
@@ -4582,26 +4703,23 @@ def _render_cover_report_brief_html(
     """
 
 
-def _render_cover_report_basis_html() -> str:
+def _render_cover_report_basis_html(report_type: str = "valuation_advisory") -> str:
     """Render the evidence basis on the cover without asking more questions."""
-    rows = [
-        (
-            "Uploaded financials",
-            "Revenue, earnings and balance sheet",
-        ),
-        (
-            "Five private inputs",
-            "Only facts management can confirm",
-        ),
-        (
-            "Public-source trail",
-            "Research URLs retained for review",
-        ),
-        (
-            "AccountIQ model",
-            "DCF, WACC, multiples and sensitivity",
-        ),
-    ]
+    rows = (
+        [
+            ("Uploaded financials", "Revenue, EBITDA and balance sheet"),
+            ("Lender inputs", "Facility, LVR, funding cost and security"),
+            ("Public client context", "Business and sector research"),
+            ("Credit model", "DSCR, ICR, leverage and NTOA"),
+        ]
+        if report_type == "bank_credit_paper"
+        else [
+            ("Uploaded financials", "Revenue, earnings and balance sheet"),
+            ("Five private inputs", "Only facts management can confirm"),
+            ("Public-source trail", "Research URLs retained for review"),
+            ("AccountIQ model", "DCF, WACC, multiples and sensitivity"),
+        ]
+    )
     row_html = "".join(
         "<div>"
         f"<dt>{_html_lib.escape(label)}</dt>"
@@ -4770,8 +4888,8 @@ async def wizard_report_view(
         else ""
     )
     cover_report_basis_html = (
-        _render_cover_report_basis_html()
-        if row["report_type"] == "valuation_advisory"
+        _render_cover_report_basis_html(row["report_type"])
+        if row["report_type"] in {"valuation_advisory", "bank_credit_paper"}
         else ""
     )
     cover_brief_html = (
@@ -4784,7 +4902,7 @@ async def wizard_report_view(
             valuation_purpose=valuation_purpose,
             demo_mode=demo_mode,
         )
-        if row["report_type"] == "valuation_advisory"
+        if row["report_type"] in {"valuation_advisory", "bank_credit_paper"}
         else ""
     )
     basis_html = (
@@ -5157,6 +5275,19 @@ async def wizard_report_view(
                 "Generated valuation browser report failed professional artifact quality checks"
                 + (f": {issue_details}" if issue_details else "."),
             )
+    elif row["report_type"] == "bank_credit_paper":
+        audit = audit_bank_credit_report_html(html, demo_mode=demo_mode)
+        if not audit.passed:
+            issue_details = ", ".join(
+                issue.get("code", "quality_issue")
+                for issue in (audit.as_dict().get("issues") or [])
+                if isinstance(issue, dict)
+            )
+            raise HTTPException(
+                500,
+                "Generated bank credit browser report failed professional artifact quality checks"
+                + (f": {issue_details}" if issue_details else "."),
+            )
     return HTMLResponse(content=html)
 
 
@@ -5239,18 +5370,35 @@ async def wizard_report_pdf(
                 "Generated valuation PDF failed professional artifact quality checks"
                 + (f": {issue_details}" if issue_details else "."),
             )
+    elif row["report_type"] == "bank_credit_paper":
+        audit = await loop.run_in_executor(
+            None,
+            lambda: audit_bank_credit_report_pdf(output_path, demo_mode=demo_mode),
+        )
+        if not audit.passed:
+            issue_details = ", ".join(
+                issue.get("code", "quality_issue")
+                for issue in (audit.as_dict().get("issues") or [])
+                if isinstance(issue, dict)
+            )
+            raise HTTPException(
+                500,
+                "Generated bank credit PDF failed professional artifact quality checks"
+                + (f": {issue_details}" if issue_details else "."),
+            )
 
     safe_name = _re.sub(r"[^A-Za-z0-9._-]+", "-", company_name).strip("-") or f"report-{report_id}"
     reference_code = report_reference_code(report_id, row["report_type"])
 
+    if row["report_type"] == "bank_credit_paper":
+        download_suffix = "demo-bank-credit-paper" if demo_mode else "bank-credit-paper"
+    else:
+        download_suffix = "demo-indicative-valuation" if demo_mode else "indicative-valuation"
+
     return FileResponse(
         path=output_path,
         media_type="application/pdf",
-        filename=(
-            f"{safe_name}-{reference_code}-demo-indicative-valuation.pdf"
-            if demo_mode
-            else f"{safe_name}-{reference_code}-indicative-valuation.pdf"
-        ),
+        filename=f"{safe_name}-{reference_code}-{download_suffix}.pdf",
     )
 
 
@@ -5319,6 +5467,23 @@ def _records_to_table(records: list[dict], headers: list[tuple[str, str]]) -> di
     }
 
 
+def _format_report_intake_context(intake_answers: dict | None, fields: tuple[str, ...]) -> str:
+    """Format supplied context for deterministic report narratives without inventing missing facts."""
+    answers = intake_answers or {}
+    lines: list[str] = []
+    for field in fields:
+        value = answers.get(field)
+        if value in (None, "", [], {}):
+            continue
+        if isinstance(value, (list, tuple, set)):
+            display = "; ".join(str(item).strip() for item in value if str(item).strip())
+        else:
+            display = str(value).strip()
+        if display:
+            lines.append(f"- {field.replace('_', ' ').title()}: {display}")
+    return "\n".join(lines) or "- No additional context supplied."
+
+
 def _demo_report_content_from_inputs(
     *,
     report_type: str,
@@ -5327,15 +5492,43 @@ def _demo_report_content_from_inputs(
     valuation_result: dict | None,
     bank_credit_figures: dict | None,
     credit_research_brief: dict | None,
+    intake_answers: dict | None = None,
 ) -> dict:
     """Build a no-key demo report draft that preserves uploaded financial figures."""
     content = _e2e_report_content(report_type, demo_mode=True)
+    valuation_context = _format_report_intake_context(
+        intake_answers,
+        (
+            "business_address",
+            "instructing_party",
+            "valuation_date",
+            "source_information",
+            "operations_and_services",
+            "forecast_pipeline_evidence",
+            "premises_and_lease",
+            "management_continuity",
+        ),
+    )
+    credit_context = _format_report_intake_context(
+        intake_answers,
+        (
+            "transaction_structure",
+            "borrower_structure",
+            "ownership_and_sponsor",
+            "acquisition_rationale",
+            "refinance_context",
+            "facility_structure",
+            "security_structure",
+            "sponsor_bridge_security",
+        ),
+    )
     if report_type == "valuation_advisory" and valuation_result:
         content.update({
             "introduction": (
                 f"## Client and report purpose\nThis local demo indicative valuation draft for {company_name} "
                 "uses the figures extracted from the uploaded financial statements. Public research and "
                 "narrative drafting are simulated because demo mode is active.\n\n"
+                f"## Supplied report context\n{valuation_context}\n\n"
                 "## Reliance limitation\nThis is a test draft only and should not be relied on for lending, "
                 "sale, investment or tax decisions."
             ),
@@ -5346,7 +5539,7 @@ def _demo_report_content_from_inputs(
             ),
             "business_overview": (
                 "Demo mode has not run live web research. Use the uploaded financials and any user-supplied "
-                "context as the business-specific evidence for this test draft."
+                f"context as the business-specific evidence for this test draft.\n\n## Business-specific context\n{valuation_context}"
             ),
             "market_position": _section_with_table(
                 "Market-position commentary is illustrative in demo mode. Configure live research before relying "
@@ -5391,7 +5584,7 @@ def _demo_report_content_from_inputs(
             ),
             "valuation_assumptions": _section_with_table(
                 "The assumptions trail shows which values came from uploaded accounts, management inputs, demo "
-                "market assumptions or AccountIQ model conventions.",
+                f"market assumptions or AccountIQ model conventions.\n\n## Management and forecast context\n{valuation_context}",
                 valuation_result.get("assumption_source_trail") or {},
             ),
             "wacc_assumptions": _section_with_table(
@@ -5421,7 +5614,8 @@ def _demo_report_content_from_inputs(
                 valuation_result.get("comparable_evidence_table") or {},
             ),
             "sources": _section_with_table(
-                "No live public sources were queried in this demo run. Uploaded financial statements are the source for the financial schedules.",
+                "No live public sources were queried in this demo run. Uploaded financial statements are the source for the financial schedules.\n\n"
+                f"## Source inventory supplied by management\n{valuation_context}",
                 valuation_result.get("sources_table") or {},
             ),
             "disclaimer": (
@@ -5449,7 +5643,6 @@ def _demo_report_content_from_inputs(
 
     if report_type == "bank_credit_paper" and bank_credit_figures:
         summary = bank_credit_figures.get("requested_facility_summary") or {}
-        supportable_debt = float(bank_credit_figures.get("supportable_debt") or 0)
         capacity_headroom = bank_credit_figures.get("capacity_headroom")
         requested_amount = str(summary.get("amount_requested") or "Not provided")
         binding_constraint = str(summary.get("binding_constraint") or "Not available")
@@ -5517,7 +5710,8 @@ def _demo_report_content_from_inputs(
                 (
                     "The transaction summary sets out the borrower structure, amount requested, debt purpose, term, "
                     "repayment profile, funding cost and source of repayment. This mirrors the front half of a bank "
-                    "paper where the credit team needs to understand the ask before reading the detailed analysis."
+                    f"paper where the credit team needs to understand the ask before reading the detailed analysis.\n\n"
+                    f"## Transaction context supplied\n{credit_context}"
                 ),
                 bank_credit_figures.get("facility_terms_table") or {},
             ),
@@ -5533,8 +5727,8 @@ def _demo_report_content_from_inputs(
                 f"## Borrower profile\n{company_summary}\n\n"
                 "## Sponsor / ownership context\n"
                 "Demo mode has not completed live borrower research. Use the borrower / ownership structure supplied "
-                "in the intake, Companies Office extracts, guarantor information and management background before "
-                "presenting this as committee-ready.\n\n"
+                f"in the intake, Companies Office extracts, guarantor information and management background before "
+                f"presenting this as committee-ready.\n\n## Supplied transaction and sponsor context\n{credit_context}\n\n"
                 "## Repayment source\n"
                 "Primary repayment is expected to come from operating cash flow shown in the uploaded financials. "
                 "Any sponsor bridge, guarantee, property support or shareholder contribution should be documented "
@@ -5544,7 +5738,7 @@ def _demo_report_content_from_inputs(
                 (
                     "The facility terms below are the lender-screening structure used throughout the paper. The same "
                     "amount, term, funding cost and repayment profile flow through the DSCR, ICR, LVR and debt-capacity "
-                    "calculations."
+                    f"calculations.\n\n## Facility structure supplied\n{credit_context}"
                 ),
                 bank_credit_figures.get("facility_terms_table") or {},
             ),
@@ -5552,7 +5746,7 @@ def _demo_report_content_from_inputs(
                 (
                     "Security is assessed by type, supplied value, target LVR, calculated LVR and the implied security "
                     "value required where no appraisal is supplied. Fleet, property, GSA, guarantee and unsecured "
-                    "positions should each be confirmed with lender-form documents before committee."
+                    f"positions should each be confirmed with lender-form documents before committee.\n\n## Security structure supplied\n{credit_context}"
                 ),
                 bank_credit_figures.get("security_analysis_table") or {},
             ),
@@ -5715,6 +5909,7 @@ def _evidence_mode_report_content_from_inputs(
     valuation_result: dict | None,
     bank_credit_figures: dict | None,
     research_brief: dict | None,
+    intake_answers: dict | None = None,
 ) -> dict:
     """Build a source-scoped report without invoking a commercial AI provider.
 
@@ -5729,6 +5924,7 @@ def _evidence_mode_report_content_from_inputs(
         valuation_result=valuation_result,
         bank_credit_figures=bank_credit_figures,
         credit_research_brief=research_brief,
+        intake_answers=intake_answers,
     )
     content = _replace_demo_copy_with_evidence_copy(content)
     brief = research_brief or {}
@@ -6491,6 +6687,7 @@ async def _generate_report(
                     valuation_result=valuation_result,
                     bank_credit_figures=bank_credit_figs,
                     credit_research_brief=credit_research_brief,
+                    intake_answers=intake_answers,
                 )
             elif generation_mode == "evidence":
                 content_json = _evidence_mode_report_content_from_inputs(
@@ -6502,6 +6699,7 @@ async def _generate_report(
                     research_brief=(valuation_result or {}).get("research_brief")
                     if report_type == "valuation_advisory"
                     else credit_research_brief,
+                    intake_answers=intake_answers,
                 )
             else:
                 # --- 6. Build OpenAI prompt via report_prompts.build_prompt() ---

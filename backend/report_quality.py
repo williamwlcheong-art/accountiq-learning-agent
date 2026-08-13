@@ -319,6 +319,65 @@ _VALUATION_SECTION_TITLES = {
     "general_principles": "General Principles",
     "glossary": "Glossary",
 }
+_CREDIT_SECTION_TITLES = {
+    "executive_summary": "Executive Summary",
+    "transaction_summary": "Transaction Summary",
+    "sources_and_uses": "Sources & Uses",
+    "borrower_and_sponsor_profile": "Borrower & Sponsor Profile",
+    "facilities_requested": "Facilities Requested",
+    "security_package": "Security Package",
+    "financial_performance_forecast": "Financial Performance & Forecast",
+    "coverage_and_sensitivity": "Coverage Ratios & Sensitivity",
+    "balance_sheet_debt_capacity": "Balance Sheet & Debt Capacity",
+    "industry_and_competitive_landscape": "Industry & Competitive Landscape",
+    "proposed_covenants": "Proposed Covenants",
+    "key_risks_and_mitigants": "Key Risks & Mitigants",
+    "conditions_precedent": "Conditions Precedent",
+    "recommendation": "Recommendation",
+    "disclaimer": "Disclaimer",
+}
+_CREDIT_REQUIRED_COVER_MARKERS = (
+    "Prepared for",
+    "Prepared by",
+    "Report type",
+    "Reference",
+    "Prepared date",
+    "Purpose",
+    "Credit posture",
+    "Reliance",
+)
+_CREDIT_REQUIRED_BASIS_MARKERS = (
+    "Report basis",
+    "Uploaded financials",
+    "Lender inputs",
+    "Public client context",
+    "Debt-capacity model",
+)
+_CREDIT_REQUIRED_BODY_MARKERS = (
+    "screening-only",
+    "requested facility",
+    "DSCR",
+    "ICR",
+    "LVR",
+    "NTOA",
+    "supportable debt",
+    "conditions precedent",
+    "proposed lender controls",
+)
+_CREDIT_VALUATION_ONLY_MARKERS = (
+    "valuation snapshot",
+    "valuation date",
+    "basis of value",
+    "indicative fair-market value",
+    "indicative valuation pack",
+    "reliance is limited to the valuation purpose stated",
+    "valuation conclusion at a glance",
+    "wacc build visual",
+    "dcf value build visual",
+)
+_CREDIT_PLACEHOLDER_MARKERS = tuple(
+    marker for marker in _PLACEHOLDER_MARKERS if marker not in {"tbc", "to be confirmed"}
+)
 _SCOPE_EXCLUSION_CONCEPTS = {
     "audit or assurance engagement": (("audit",), ("assurance",)),
     "legal or tax advice": (("legal",), ("tax",)),
@@ -3613,4 +3672,264 @@ def audit_valuation_report_pdf(pdf_path: Path, *, demo_mode: bool) -> ReportQual
         artifact=audit.artifact,
         issues=tuple(issues),
         metadata=metadata,
+    )
+
+
+def _credit_numbered_section_markers() -> tuple[str, ...]:
+    """Return expected numbered section headings for credit-paper audits."""
+    return tuple(
+        f"{index:02d} {_CREDIT_SECTION_TITLES.get(key, key.replace('_', ' ').title())}"
+        for index, key in enumerate(SECTION_SCHEMAS["bank_credit_paper"], start=1)
+    )
+
+
+def _credit_numbered_section_order_issues(text: str) -> list[str]:
+    """Return issues when credit-paper sections appear out of order."""
+    lowered = " ".join(str(text or "").split()).lower()
+    marker_positions = [
+        (
+            marker,
+            [match.start() for match in re.finditer(re.escape(marker.lower()), lowered)],
+        )
+        for marker in _credit_numbered_section_markers()
+    ]
+    issues: list[str] = []
+
+    def check_order(label: str, indexed_positions: list[tuple[str, int]]) -> None:
+        if len(indexed_positions) < 2:
+            return
+        previous_marker, previous_position = indexed_positions[0]
+        for marker, position in indexed_positions[1:]:
+            if position <= previous_position:
+                issues.append(
+                    f"{label} section order breaks at {marker}; it appears before {previous_marker}."
+                )
+                return
+            previous_marker, previous_position = marker, position
+
+    check_order(
+        "Contents",
+        [(marker, positions[0]) for marker, positions in marker_positions if positions],
+    )
+    check_order(
+        "Body",
+        [(marker, positions[-1]) for marker, positions in marker_positions if len(positions) >= 2],
+    )
+    return issues
+
+
+def _credit_artifact_text_issues(
+    text: str,
+    *,
+    cover_text: str,
+    demo_mode: bool,
+    artifact_label: str,
+) -> list[ReportQualityIssue]:
+    """Apply report-type-specific checks shared by HTML and PDF credit outputs."""
+    normalised = " ".join(str(text or "").split())
+    lowered = normalised.lower()
+    cover_lowered = " ".join(str(cover_text or "").split()).lower()
+    issues: list[ReportQualityIssue] = []
+
+    for marker in _CREDIT_REQUIRED_COVER_MARKERS:
+        if marker.lower() not in cover_lowered:
+            issues.append(
+                _issue(
+                    f"missing_{artifact_label}_credit_cover_marker",
+                    f"{artifact_label.upper()} credit-paper cover is missing marker: {marker}",
+                )
+            )
+    missing_body_markers = [
+        marker for marker in _CREDIT_REQUIRED_BODY_MARKERS if marker.lower() not in lowered
+    ]
+    if missing_body_markers:
+        issues.append(
+            _issue(
+                f"missing_{artifact_label}_credit_marker",
+                f"{artifact_label.upper()} credit paper is missing lender-output markers: {missing_body_markers}",
+            )
+        )
+
+    for marker in _credit_numbered_section_markers():
+        marker_count = lowered.count(marker.lower())
+        if marker_count == 0:
+            issues.append(
+                _issue(
+                    f"missing_{artifact_label}_credit_section",
+                    f"{artifact_label.upper()} credit paper is missing numbered section heading: {marker}",
+                )
+            )
+        elif marker_count < 2:
+            issues.append(
+                _issue(
+                    f"{artifact_label}_credit_section_mismatch",
+                    f"{artifact_label.upper()} credit paper should show each numbered section in contents and body: {marker}",
+                )
+            )
+    for order_issue in _credit_numbered_section_order_issues(normalised):
+        issues.append(
+            _issue(
+                f"{artifact_label}_credit_section_order",
+                f"{artifact_label.upper()} credit-paper sections are out of order: {order_issue}",
+            )
+        )
+
+    valuation_only_markers = [
+        marker for marker in _CREDIT_VALUATION_ONLY_MARKERS if marker.lower() in lowered
+    ]
+    if valuation_only_markers:
+        issues.append(
+            _issue(
+                f"{artifact_label}_credit_valuation_language",
+                f"{artifact_label.upper()} credit paper contains valuation-only framing: {valuation_only_markers}",
+            )
+        )
+
+    layout_artifacts = [marker for marker in _UNICODE_LAYOUT_ARTIFACTS if marker in normalised]
+    if layout_artifacts:
+        issues.append(
+            _issue(
+                f"{artifact_label}_credit_layout_artifact",
+                f"{artifact_label.upper()} credit paper contains layout/glyph artifacts: {layout_artifacts}",
+            )
+        )
+    placeholder_markers = [marker for marker in _CREDIT_PLACEHOLDER_MARKERS if marker in lowered]
+    if placeholder_markers:
+        issues.append(
+            _issue(
+                f"{artifact_label}_credit_placeholder_text",
+                f"{artifact_label.upper()} credit paper contains placeholder text: {placeholder_markers}",
+            )
+        )
+    draft_language_markers = [marker for marker in _DRAFT_LANGUAGE_MARKERS if marker in lowered]
+    if draft_language_markers:
+        issues.append(
+            _issue(
+                f"{artifact_label}_credit_draft_language",
+                f"{artifact_label.upper()} credit paper reads like a draft artifact: {draft_language_markers}",
+            )
+        )
+    if demo_mode and "demo data - not for reliance" not in lowered:
+        issues.append(
+            _issue(
+                f"missing_{artifact_label}_credit_demo_label",
+                f"Demo {artifact_label.upper()} credit paper must be labelled as not for reliance.",
+            )
+        )
+    if not demo_mode and "demo data - not for reliance" in lowered:
+        issues.append(
+            _issue(
+                f"unexpected_{artifact_label}_credit_demo_label",
+                f"Live {artifact_label.upper()} credit paper must not be labelled as demo data.",
+            )
+        )
+    return issues
+
+
+def audit_bank_credit_report_html(html: str, *, demo_mode: bool) -> ReportQualityAudit:
+    """Audit rendered browser Bank Credit Paper HTML for lender-pack presentation."""
+    raw_html = str(html or "")
+    visible_text = _html_visible_text(raw_html)
+    cover_text = _html_cover_text(raw_html)
+    cover_basis_text = _html_cover_report_basis_text(raw_html)
+    normalised = " ".join(visible_text.split())
+    raw_lowered = raw_html.lower()
+    issues = _credit_artifact_text_issues(
+        normalised,
+        cover_text=cover_text,
+        demo_mode=demo_mode,
+        artifact_label="html",
+    )
+    cover_basis_lowered = cover_basis_text.lower()
+    missing_basis_markers = [
+        marker
+        for marker in _CREDIT_REQUIRED_BASIS_MARKERS
+        if marker.lower() not in cover_basis_lowered
+        and not (
+            marker == "Debt-capacity model"
+            and "credit model" in cover_basis_lowered
+        )
+    ]
+    if (
+        'class="cover-report-basis"' not in raw_lowered
+        or 'aria-label="report basis"' not in raw_lowered
+        or missing_basis_markers
+    ):
+        issues.append(
+            _issue(
+                "missing_html_credit_report_basis",
+                "Browser credit-paper cover must include the lender report-basis strip with: "
+                f"{missing_basis_markers or list(_CREDIT_REQUIRED_BASIS_MARKERS)}",
+            )
+        )
+    if 'class="cover"' not in raw_lowered:
+        issues.append(_issue("missing_html_credit_cover_page", "Browser credit paper is missing the cover page."))
+    if 'class="report-page contents"' not in raw_lowered:
+        issues.append(_issue("missing_html_credit_contents_page", "Browser credit paper is missing the contents page."))
+    if 'href="./pdf"' not in raw_lowered and "href='./pdf'" not in raw_lowered:
+        issues.append(_issue("missing_html_credit_pdf_download", "Browser credit paper is missing the PDF download action."))
+    if "<script" in raw_lowered or "javascript:" in raw_lowered or "onerror=" in raw_lowered or "onclick=" in raw_lowered:
+        issues.append(_issue("html_credit_unsafe_markup", "Browser credit paper contains unsafe markup."))
+
+    return ReportQualityAudit(
+        artifact="bank_credit_report_html",
+        issues=tuple(issues),
+        metadata={
+            "section_count": len(SECTION_SCHEMAS["bank_credit_paper"]),
+            "url_count": _url_count(raw_html),
+            "demo_mode": demo_mode,
+        },
+    )
+
+
+def audit_bank_credit_report_pdf(pdf_path: Path, *, demo_mode: bool) -> ReportQualityAudit:
+    """Extract and audit a Bank Credit Paper PDF artifact."""
+    import pdfplumber
+
+    pdf_path = Path(pdf_path)
+    if not pdf_path.exists():
+        return ReportQualityAudit(
+            artifact="bank_credit_report_pdf",
+            issues=(_issue("pdf_missing", f"PDF file does not exist: {pdf_path}"),),
+            metadata={"page_count": 0, "demo_mode": demo_mode},
+        )
+    if not pdf_path.read_bytes().startswith(b"%PDF-"):
+        return ReportQualityAudit(
+            artifact="bank_credit_report_pdf",
+            issues=(_issue("pdf_invalid_header", f"File does not look like a PDF: {pdf_path}"),),
+            metadata={"page_count": 0, "demo_mode": demo_mode},
+        )
+
+    with pdfplumber.open(pdf_path) as pdf:
+        page_texts = [page.extract_text() or "" for page in pdf.pages]
+        text = "\n".join(page_texts)
+        page_count = len(pdf.pages)
+    cover_text = _pdf_cover_text(text)
+    issues = _credit_artifact_text_issues(
+        text,
+        cover_text=cover_text,
+        demo_mode=demo_mode,
+        artifact_label="pdf",
+    )
+    if demo_mode:
+        demo_label = "DEMO DATA - NOT FOR RELIANCE"
+        missing_demo_label_pages = [
+            index for index, page_text in enumerate(page_texts, start=1) if demo_label not in page_text
+        ]
+        if missing_demo_label_pages:
+            issues.append(
+                _issue(
+                    "missing_demo_credit_label_pages",
+                    "Demo credit PDF must repeat the not-for-reliance label on every page. "
+                    f"Missing pages: {missing_demo_label_pages}",
+                )
+            )
+    return ReportQualityAudit(
+        artifact="bank_credit_report_pdf",
+        issues=tuple(issues),
+        metadata={
+            "page_count": page_count,
+            "url_count": _url_count(text),
+            "demo_mode": demo_mode,
+        },
     )

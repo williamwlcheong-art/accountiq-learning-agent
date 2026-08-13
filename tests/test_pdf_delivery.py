@@ -23,6 +23,7 @@ async def _register_and_seed_report(
     email: str,
     status: str = "done",
     *,
+    report_type: str = "valuation_advisory",
     demo_mode: bool = False,
 ) -> int:
     response = await client.post(
@@ -46,13 +47,14 @@ async def _register_and_seed_report(
             """
             INSERT INTO reports
                 (company_id, user_id, report_type, status, content, completed_at, demo_mode)
-            VALUES (?, ?, 'valuation_advisory', ?, ?, datetime('now'), ?)
+            VALUES (?, ?, ?, ?, ?, datetime('now'), ?)
             """,
             (
                 company_id,
                 user_id,
+                report_type,
                 status,
-                json.dumps(_e2e_report_content("valuation_advisory", demo_mode=demo_mode)),
+                json.dumps(_e2e_report_content(report_type, demo_mode=demo_mode)),
                 int(demo_mode),
             ),
         ) as cur:
@@ -298,6 +300,44 @@ async def test_demo_pdf_is_unmistakably_labelled(client, fresh_all_db, tmp_path,
 
 
 @pytest.mark.asyncio
+async def test_demo_credit_pdf_uses_credit_filename_and_cover_language(
+    client,
+    fresh_all_db,
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setattr(main_module, "EXPORT_DIR", tmp_path)
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
+    report_id = await _register_and_seed_report(
+        client,
+        "pdf-credit-demo@example.com",
+        report_type="bank_credit_paper",
+        demo_mode=True,
+    )
+
+    response = await client.get(f"/wizard/report/{report_id}/pdf")
+
+    assert response.status_code == 200, response.text
+    assert (
+        f"PDF-Delivery-Limited-AIQ-REP-{report_id:06d}-demo-bank-credit-paper.pdf"
+        in response.headers["content-disposition"]
+    )
+    with pdfplumber.open(tmp_path / f"report-{report_id}.pdf") as pdf:
+        text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+    assert "Bank Credit Paper" in text
+    assert "CREDIT POSTURE Screening-only" in text
+    assert "Lender inputs" in text
+    assert "Debt-capacity model" in text
+    assert "15 Disclaimer" in text
+    assert "Conditions Precedent" in text
+    assert "screening-only" in text
+    assert "Reliance at a glance" not in text
+    assert "indicative valuation pack" not in text.lower()
+    assert "DEMO DATA - NOT FOR RELIANCE" in text
+
+
+@pytest.mark.asyncio
 async def test_demo_html_viewer_is_unmistakably_labelled(client, fresh_all_db, monkeypatch):
     monkeypatch.setattr(main_module, "E2E_MODE", False)
     monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
@@ -334,6 +374,70 @@ async def test_demo_html_viewer_is_unmistakably_labelled(client, fresh_all_db, m
     assert "Demo Indicative Valuation Report" in response.text
     assert "Demo data - not for reliance" in response.text
     assert "simulated" in response.text
+
+
+@pytest.mark.asyncio
+async def test_credit_html_viewer_has_credit_cover_metadata(client, fresh_all_db, monkeypatch):
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.delenv("ACCOUNTIQ_DEMO_MODE", raising=False)
+    report_id = await _register_and_seed_report(
+        client,
+        "html-credit-demo@example.com",
+        report_type="bank_credit_paper",
+        demo_mode=True,
+    )
+
+    response = await client.get(f"/wizard/report/{report_id}/view")
+
+    assert response.status_code == 200, response.text
+    assert "Bank Credit Paper" in response.text
+    assert "Screening-only until diligence and bank approval" in response.text
+    assert "Lender inputs" in response.text
+    assert "Public client context" in response.text
+    assert "Credit model" in response.text
+    assert "15 Disclaimer" in response.text
+    assert "Conditions Precedent" in response.text
+    assert "Reliance at a glance" not in response.text
+    assert "indicative valuation pack" not in response.text.lower()
+    assert 'href="./pdf"' in response.text
+
+
+@pytest.mark.asyncio
+async def test_credit_pdf_refuses_delivery_when_professional_audit_fails(
+    client,
+    fresh_all_db,
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setattr(main_module, "EXPORT_DIR", tmp_path)
+    report_id = await _register_and_seed_report(
+        client,
+        "pdf-credit-audit-fail@example.com",
+        report_type="bank_credit_paper",
+        demo_mode=True,
+    )
+
+    def fake_credit_pdf_audit(path, *, demo_mode):
+        assert path == tmp_path / f"report-{report_id}.pdf"
+        assert demo_mode is True
+        return ReportQualityAudit(
+            artifact="bank_credit_report_pdf",
+            issues=(
+                ReportQualityIssue(
+                    "missing_credit_section",
+                    "PDF credit paper is missing numbered section heading: 09 Balance Sheet & Debt Capacity",
+                ),
+            ),
+            metadata={"page_count": 15},
+        )
+
+    monkeypatch.setattr(main_module, "audit_bank_credit_report_pdf", fake_credit_pdf_audit)
+
+    response = await client.get(f"/wizard/report/{report_id}/pdf")
+
+    assert response.status_code == 500
+    assert "failed professional artifact quality checks" in response.json()["detail"]
+    assert "missing_credit_section" in response.json()["detail"]
 
 
 @pytest.mark.asyncio

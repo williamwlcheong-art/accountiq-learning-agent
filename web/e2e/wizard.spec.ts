@@ -144,6 +144,26 @@ test("regular user can complete bank credit paper intake", async ({ page }) => {
   await expect(page.getByText(/debt schedule, payout letters and lender statements/i)).toBeVisible();
   await page.getByRole("button", { name: /continue/i }).click();
 
+  await expect(page.getByRole("heading", { name: /prepare a first-pass credit paper/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /add supporting files/i })).toBeVisible();
+  await page.getByRole("button", { name: /add supporting files/i }).click();
+  await expect(page.getByRole("heading", { name: /upload your financial statements/i })).toBeVisible();
+  await expect(page.getByText(/add lender evidence before preparing the paper/i)).toBeVisible();
+  await expect(page.getByText(/debt schedule, payout letters and lender statements/i)).toBeVisible();
+  await expect(page.getByLabel(/business name/i)).toHaveValue("Credit E2E Ltd");
+  const supportingPdf = fs.readFileSync(path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
+  await page.setInputFiles('input[type="file"]', {
+    name: "credit-supporting.pdf",
+    mimeType: "application/pdf",
+    buffer: supportingPdf,
+  });
+  await page.getByRole("button", { name: /continue/i }).click();
+  await expect(page.getByRole("heading", { name: /choose your report/i })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByRole("button", { name: /bank credit paper/i })).toHaveClass(/selected/);
+  await page.getByRole("button", { name: /continue/i }).click();
+
   await expect(page.getByText("Client research setup", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /accountiq will research the client before drafting/i })).toBeVisible();
   await expect(page.getByText(/collect public company context from the website and links you approve/i)).toBeVisible();
@@ -157,6 +177,8 @@ test("regular user can complete bank credit paper intake", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /only the credit-structuring facts are required/i })).toBeVisible();
   await expect(page.getByText(/client research hints retained/i)).toBeVisible();
   await expect(page.getByText("https://credit-e2e.example.co.nz", { exact: true })).toBeVisible();
+  await expect(page.getByText(/optional: add transaction structure, sources & uses or bridge details/i)).toBeVisible();
+  await expect(page.getByLabel("Transaction / group structure")).toHaveCount(1);
   await page.getByLabel(/what is the debt for/i).fill("Refinance existing debt and fund fleet expansion.");
   await page.getByLabel(/facility amount requested/i).fill("250000");
   await page.getByLabel(/term of debt/i).fill("5");
@@ -170,6 +192,13 @@ test("regular user can complete bank credit paper intake", async ({ page }) => {
 
   await expect(page.getByRole("link", { name: /open report/i })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("heading", { name: /your bank credit paper is ready/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /screening paper with a clear route to committee/i })).toBeVisible();
+  await expect(page.getByText(/coverage, security and debt capacity/i)).toBeVisible();
+  await expect(page.getByText(/use this as a screening paper/i)).toBeVisible();
+  await expect(page.getByText(/current management accounts, the debt schedule and payout letters/i)).toBeVisible();
+  await page.getByRole("button", { name: /add supporting files/i }).click();
+  await expect(page.getByRole("heading", { name: /upload your financial statements/i })).toBeVisible();
+  await expect(page.getByText(/add lender evidence before preparing the paper/i)).toBeVisible();
 });
 
 test("failed financial extraction explains what to upload before valuation questions", async ({ page }) => {
@@ -210,6 +239,8 @@ test("regular user can complete valuation-specific intake", async ({ page, conte
   await page.getByRole("button", { name: /continue/i }).click();
   await page.getByText("Valuation Advisory").click();
   await page.getByRole("button", { name: /continue/i }).click();
+  await expect(page.getByRole("heading", { name: /valuation can be prepared from this upload/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /add supporting files/i })).toBeVisible();
   await expect(page.getByText(/we will simulate the desk work/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: /only five answers are required/i })).toBeVisible();
   await expect(page.getByText(/optional links and private context can be skipped/i)).toBeVisible();
@@ -223,6 +254,8 @@ test("regular user can complete valuation-specific intake", async ({ page, conte
   await expect(page.getByText(/sample business research, sample market evidence and simulated valuation assumptions/i)).toBeVisible();
   await expect(page.getByText(/source trail demonstrated/i)).toBeVisible();
   await expect(page.getByText(/sample public evidence and labelled demo urls appear in the finished pack/i)).toBeVisible();
+  await expect(page.getByText(/optional: strengthen the report evidence/i)).toBeVisible();
+  await expect(page.getByLabel("Forecast / pipeline support")).toHaveCount(1);
   await expect(page.getByText(/valuation inputs/i)).toHaveCount(0);
   await expect(page.getByText(/five required answers, each used in the report/i)).toBeVisible();
   await expect(page.getByText(/we keep this to five required answers/i)).toBeVisible();

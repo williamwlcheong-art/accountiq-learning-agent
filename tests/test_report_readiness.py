@@ -26,6 +26,21 @@ def test_credit_readiness_is_ready_but_keeps_lender_follow_ups_visible():
     assert readiness["ready"] is True
     assert any(item["label"] == "Debt schedule, payout letters and lender statements" for item in readiness["follow_up_items"])
     assert any(item["label"] == "A more recent balance sheet" for item in readiness["follow_up_items"])
+    assert any("working-capital and NTOA analysis" in warning for warning in readiness["warnings"])
+    assert any("fixed-asset line" in warning for warning in readiness["warnings"])
+
+
+def test_credit_readiness_does_not_treat_unclassified_balance_sheet_rows_as_usable():
+    readiness = assess_credit_financial_readiness(
+        [
+            {"statement": "pnl", "row_key": "revenue", "period": "FY2025", "value": 1_000_000},
+            {"statement": "pnl", "row_key": "ebitda", "period": "FY2025", "value": 180_000},
+            {"statement": "bs", "row_key": "unclassified_line", "period": "FY2025", "value": 250_000},
+        ]
+    )
+
+    assert readiness["ready"] is False
+    assert "usable balance-sheet lines" in readiness["issues"]
 
 
 def test_report_follow_ups_are_separated_by_report_type():

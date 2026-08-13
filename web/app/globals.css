@@ -424,6 +424,14 @@ a {
   background: #f8fffa;
 }
 
+.intake-support-panel {
+  margin-top: 0;
+}
+
+.intake-support-panel .wizard-actions {
+  margin-top: 0;
+}
+
 .report-readiness-panel.needs-info {
   border-left-color: var(--amber);
   background: #fffaf2;

@@ -29,6 +29,51 @@ _DEBT_KEYS = {
     "current_debt",
     "non_current_debt",
 }
+_BALANCE_SHEET_EVIDENCE_KEYS = {
+    "cash",
+    "cash_and_bank",
+    "cash_and_equivalents",
+    "trade_debtors",
+    "accounts_receivable",
+    "debtors",
+    "inventory",
+    "stock",
+    "fixed_assets_net",
+    "fixed_assets",
+    "property_plant_equipment",
+    "trade_creditors",
+    "accounts_payable",
+    "creditors",
+    "short_term_debt",
+    "current_borrowings",
+    "long_term_debt",
+    "non_current_borrowings",
+    "borrowings",
+    "total_debt",
+    "total_current_assets",
+    "current_assets",
+    "total_current_liab",
+    "total_current_liabilities",
+    "total_assets",
+    "total_liabilities",
+    "shareholders_equity",
+    "net_assets",
+}
+_WORKING_CAPITAL_KEYS = {
+    "trade_debtors",
+    "accounts_receivable",
+    "debtors",
+    "inventory",
+    "stock",
+    "trade_creditors",
+    "accounts_payable",
+    "creditors",
+}
+_FIXED_ASSET_KEYS = {
+    "fixed_assets_net",
+    "fixed_assets",
+    "property_plant_equipment",
+}
 
 
 def _periods_for_keys(rows: list[dict], statement: str, keys: set[str]) -> set[str]:
@@ -38,6 +83,8 @@ def _periods_for_keys(rows: list[dict], statement: str, keys: set[str]) -> set[s
             continue
         key = str(row.get("row_key") or row.get("canonical_key") or "").lower()
         if key not in keys:
+            continue
+        if "value" in row and row.get("value") in (None, ""):
             continue
         period = str(row.get("period") or "").strip()
         if period:
@@ -61,8 +108,15 @@ def assess_credit_financial_readiness(rows: list[dict]) -> dict:
         if str(row.get("statement") or "").lower() == "bs"
         and str(row.get("period") or "").strip()
     }
+    usable_balance_sheet_periods = _periods_for_keys(
+        rows,
+        "bs",
+        _BALANCE_SHEET_EVIDENCE_KEYS,
+    )
     cash_periods = _periods_for_keys(rows, "bs", _CASH_KEYS)
     debt_periods = _periods_for_keys(rows, "bs", _DEBT_KEYS)
+    working_capital_periods = _periods_for_keys(rows, "bs", _WORKING_CAPITAL_KEYS)
+    fixed_asset_periods = _periods_for_keys(rows, "bs", _FIXED_ASSET_KEYS)
 
     issues: list[str] = []
     warnings: list[str] = []
@@ -70,12 +124,23 @@ def assess_credit_financial_readiness(rows: list[dict]) -> dict:
         issues.append("revenue")
     if not earnings_periods:
         issues.append("EBITDA or profit")
-    if not balance_sheet_periods:
-        issues.append("a balance sheet")
+    if not usable_balance_sheet_periods:
+        if balance_sheet_periods:
+            issues.append("usable balance-sheet lines")
+        else:
+            issues.append("a balance sheet")
     if not cash_periods:
         warnings.append("No cash balance was extracted; liquidity analysis will be limited.")
     if not debt_periods:
         warnings.append("No borrowings were extracted; existing-debt and leverage analysis will be limited.")
+    if not working_capital_periods:
+        warnings.append(
+            "No receivables, inventory or payables were extracted; working-capital and NTOA analysis will be limited."
+        )
+    if not fixed_asset_periods:
+        warnings.append(
+            "No fixed-asset line was extracted; asset-security analysis will rely on supplied collateral evidence."
+        )
     if len(revenue_periods) == 1 or len(earnings_periods) == 1:
         warnings.append("Only one P&L period was extracted; trend and downside analysis will be limited.")
 
