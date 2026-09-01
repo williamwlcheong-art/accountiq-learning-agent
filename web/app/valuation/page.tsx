@@ -95,7 +95,7 @@ export default function ValuationPage() {
             <Link className="marketing-text-link" href="/login">
               Sign in
             </Link>
-            <Link className="marketing-cta marketing-cta-small" href="/login">
+            <Link className="marketing-cta marketing-cta-small" href="/login?mode=register">
               Get a valuation
             </Link>
           </div>
@@ -113,7 +113,7 @@ export default function ValuationPage() {
                 software and reviewed before delivery.
               </p>
               <div className="marketing-actions">
-                <Link className="marketing-cta" href="/login">
+                <Link className="marketing-cta" href="/login?mode=register">
                   Get a Business Valuation
                 </Link>
                 <Link className="marketing-secondary-cta" href="/login">
@@ -233,7 +233,7 @@ export default function ValuationPage() {
               <h2>Early-access fixed-fee offer</h2>
               <p>Your fixed fee is shown before payment.</p>
             </div>
-            <Link className="marketing-cta" href="/login">
+            <Link className="marketing-cta" href="/login?mode=register">
               Get a Business Valuation
             </Link>
           </div>
@@ -260,7 +260,7 @@ export default function ValuationPage() {
           <div className="marketing-container">
             <p className="marketing-eyebrow">Start with a clearer reference point</p>
             <h2>Understand what your business may be worth</h2>
-            <Link className="marketing-cta" href="/login">
+            <Link className="marketing-cta" href="/login?mode=register">
               Get a Business Valuation
             </Link>
             <p>

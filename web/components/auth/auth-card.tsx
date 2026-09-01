@@ -8,20 +8,28 @@ import { ApiError, postForm } from "@/lib/api-client";
 
 type Mode = "login" | "register";
 
-export function AuthCard() {
+type AuthCardProps = {
+  initialMode?: Mode;
+};
+
+export function AuthCard({ initialMode = "login" }: AuthCardProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showResetHelp, setShowResetHelp] = useState(false);
 
   function switchMode(nextMode: Mode) {
     setMode(nextMode);
     setError("");
     setPassword("");
     setConfirm("");
+    setShowResetHelp(false);
+    // Keep the mode in the URL so a refresh or shared link lands on the same form.
+    window.history.replaceState(null, "", nextMode === "register" ? "/login?mode=register" : "/login");
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -73,8 +81,11 @@ export function AuthCard() {
 
   return (
     <section className="auth-card" aria-label="AccountIQ authentication">
+      <p className="auth-wordmark" aria-hidden="true">
+        AccountIQ
+      </p>
       <div className="auth-brand">
-        <h1>{isRegister ? "Create your AccountIQ account" : "Sign in to AccountIQ"}</h1>
+        <h1>{isRegister ? "Create your account" : "Sign in"}</h1>
         <p>{isRegister ? "Start your valuation with a secure account." : "Access your valuations and report delivery."}</p>
       </div>
 
@@ -95,7 +106,19 @@ export function AuthCard() {
           autoComplete="username"
         />
 
-        <label htmlFor="auth-password">Password</label>
+        <div className="auth-label-row">
+          <label htmlFor="auth-password">Password</label>
+          {!isRegister ? (
+            <button
+              type="button"
+              className="auth-forgot-link"
+              aria-expanded={showResetHelp}
+              onClick={() => setShowResetHelp((open) => !open)}
+            >
+              Forgot password?
+            </button>
+          ) : null}
+        </div>
         <input
           id="auth-password"
           type="password"
@@ -103,7 +126,19 @@ export function AuthCard() {
           onChange={(event) => setPassword(event.target.value)}
           required
           autoComplete={isRegister ? "new-password" : "current-password"}
+          aria-describedby={isRegister ? "auth-password-note" : undefined}
         />
+        {isRegister ? (
+          <p className="field-note" id="auth-password-note">
+            Minimum 8 characters
+          </p>
+        ) : null}
+        {showResetHelp ? (
+          <p className="auth-reset-note">
+            During early access our team resets passwords manually. Reply to any AccountIQ email you have received and
+            we will sort it out for you.
+          </p>
+        ) : null}
 
         {isRegister ? (
           <>
@@ -116,28 +151,35 @@ export function AuthCard() {
               required
               autoComplete="new-password"
             />
-            <p className="field-note">Minimum 8 characters</p>
           </>
         ) : null}
 
         <button type="submit" className="button button-primary" disabled={loading}>
-          {loading ? "Working..." : isRegister ? "Create account" : "Sign in"}
+          {loading ? (isRegister ? "Creating account..." : "Signing in...") : isRegister ? "Create account" : "Sign in"}
         </button>
       </form>
+
+      <p className="auth-switch">
+        {isRegister ? (
+          <>
+            Already have an account?{" "}
+            <button type="button" className="auth-switch-link" onClick={() => switchMode("login")}>
+              Sign in
+            </button>
+          </>
+        ) : (
+          <>
+            New to AccountIQ?{" "}
+            <button type="button" className="auth-switch-link" onClick={() => switchMode("register")}>
+              Create account
+            </button>
+          </>
+        )}
+      </p>
 
       <Link className="auth-valuation-link" href="/valuation">
         Learn about the valuation advisory
       </Link>
-
-      {isRegister ? (
-        <button type="button" className="button button-link" onClick={() => switchMode("login")}>
-          Sign in instead
-        </button>
-      ) : (
-        <button type="button" className="button button-link" onClick={() => switchMode("register")}>
-          Create account
-        </button>
-      )}
     </section>
   );
 }

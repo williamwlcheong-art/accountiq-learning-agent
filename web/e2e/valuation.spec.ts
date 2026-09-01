@@ -29,7 +29,7 @@ test("public valuation page explains the bounded early-access offer", async ({ p
   }
 
   const primaryCta = page.getByRole("link", { name: "Get a Business Valuation" }).first();
-  await expect(primaryCta).toHaveAttribute("href", "/login");
+  await expect(primaryCta).toHaveAttribute("href", "/login?mode=register");
   await expect(page.getByRole("link", { name: "Sign in" }).first()).toHaveAttribute("href", "/login");
 
   const externalPaymentLinks = page.locator('a[href*="stripe"], a[href*="checkout"]');
