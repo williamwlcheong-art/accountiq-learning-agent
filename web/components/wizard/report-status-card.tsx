@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { PdfDownloadLink } from "@/components/pdf-download-link";
 import { StatusPill } from "@/components/status-pill";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { ReportStatus } from "@/types/domain";
@@ -12,9 +13,10 @@ type ReportStatusCardProps = {
   reportId: number;
   userEmail: string;
   onRestartRequired: (status: ReportStatus) => void;
+  onMissing?: () => void;
 };
 
-export function ReportStatusCard({ reportId, userEmail, onRestartRequired }: ReportStatusCardProps) {
+export function ReportStatusCard({ reportId, userEmail, onRestartRequired, onMissing }: ReportStatusCardProps) {
   const router = useRouter();
   const [status, setStatus] = useState<ReportStatus | null>(null);
   const [error, setError] = useState("");
@@ -38,6 +40,10 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired }: Rep
           router.replace("/login");
           return;
         }
+        if (err instanceof ApiError && err.status === 404) {
+          window.clearInterval(interval);
+          onMissing?.();
+        }
       }
     }
 
@@ -51,7 +57,7 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired }: Rep
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [reportId, router, pollRestart]);
+  }, [reportId, router, pollRestart, onMissing]);
 
   async function retry() {
     setRetrying(true);
@@ -90,7 +96,7 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired }: Rep
 
   return (
     <section className="wizard-card">
-      <h2>{heading}</h2>
+      <h1>{heading}</h1>
 
       {error ? (
         <div role="alert" className="alert alert-error">
@@ -98,7 +104,7 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired }: Rep
         </div>
       ) : null}
 
-      {!isFailed && !isPaymentTerminal ? (
+      {!isFailed && !isPaymentTerminal && !isDone ? (
         <p>
           We will email <strong>{userEmail}</strong> when your report is ready.
         </p>
@@ -134,19 +140,18 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired }: Rep
       {isAwaitingReview ? (
         <p className="wizard-note">
           A reviewer is checking the draft before release. We will keep this page updated and email you when it is ready.
+          You can close this page and come back to it from your valuations at any time.
         </p>
       ) : null}
 
       {isDone ? (
         <div className="wizard-done">
-          <p>Your report is ready.</p>
+          <p>Open it online or download the PDF. It also stays available from your valuations.</p>
           <div className="report-actions">
             <a className="button button-primary" href={`/api/backend/wizard/report/${reportId}/view`} target="_blank" rel="noreferrer">
               Open report
             </a>
-            <a className="button button-secondary" href={`/api/backend/wizard/report/${reportId}/pdf`}>
-              Download PDF
-            </a>
+            <PdfDownloadLink reportId={reportId} />
           </div>
         </div>
       ) : null}

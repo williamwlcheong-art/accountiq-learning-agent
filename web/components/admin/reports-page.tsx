@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { StatusPill } from "@/components/status-pill";
-import { formatMoney, reportTypeLabel } from "@/lib/presentation";
+import { formatMoney, formatNzDate, reportTypeLabel } from "@/lib/presentation";
 import type { AdminPendingReport } from "@/types/domain";
 
 type ApproveResponse = {
@@ -109,7 +109,7 @@ export function ReportsPage() {
                     <td>
                       <StatusPill status={report.status} />
                     </td>
-                    <td>{new Date(report.created_at).toLocaleString()}</td>
+                    <td>{formatNzDate(report.created_at, "datetime")}</td>
                     <td>
                       <div className="action-cell">
                         <a

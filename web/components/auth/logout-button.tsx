@@ -2,7 +2,11 @@
 
 import { useRouter } from "next/navigation";
 
-export function LogoutButton() {
+type LogoutButtonProps = {
+  className?: string;
+};
+
+export function LogoutButton({ className = "button button-secondary" }: LogoutButtonProps) {
   const router = useRouter();
 
   async function logout() {
@@ -15,7 +19,7 @@ export function LogoutButton() {
   }
 
   return (
-    <button className="button button-secondary" onClick={logout}>
+    <button type="button" className={className} onClick={logout}>
       Sign out
     </button>
   );

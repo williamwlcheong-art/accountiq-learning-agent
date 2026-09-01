@@ -1,31 +1,36 @@
 import Link from "next/link";
 
-import { LogoutButton } from "@/components/auth/logout-button";
+import { ProfileMenu } from "@/components/profile-menu";
+
+export type CustomerPage = "reports" | "wizard" | "account";
 
 type CustomerHeaderProps = {
   email: string;
-  activePage: "wizard" | "account";
+  isAdmin?: boolean;
+  activePage: CustomerPage;
 };
 
-export function CustomerHeader({ email, activePage }: CustomerHeaderProps) {
+const LINKS: Array<{ href: string; label: string; page: CustomerPage }> = [
+  { href: "/reports", label: "Your valuations", page: "reports" },
+  { href: "/wizard", label: "New valuation", page: "wizard" },
+];
+
+export function CustomerHeader({ email, isAdmin = false, activePage }: CustomerHeaderProps) {
   return (
-    <nav className="top-nav customer-nav" aria-label="Customer navigation">
-      <Link className="nav-brand nav-brand-link" href="/wizard">
-        <strong>AccountIQ</strong>
-        <span>Financial intelligence</span>
-      </Link>
-      <div className="customer-nav-links">
-        <Link href="/wizard" aria-current={activePage === "wizard" ? "page" : undefined}>
-          New valuation
+    <header className="portal-header">
+      <div className="portal-header-inner">
+        <Link className="portal-wordmark" href="/reports">
+          AccountIQ
         </Link>
-        <Link href="/account" aria-current={activePage === "account" ? "page" : undefined}>
-          Account
-        </Link>
+        <nav className="portal-nav" aria-label="Customer navigation">
+          {LINKS.map((link) => (
+            <Link key={link.href} href={link.href} aria-current={activePage === link.page ? "page" : undefined}>
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+        <ProfileMenu email={email} isAdmin={isAdmin} />
       </div>
-      <div className="nav-user">
-        <span className="customer-email">{email}</span>
-        <LogoutButton />
-      </div>
-    </nav>
+    </header>
   );
 }

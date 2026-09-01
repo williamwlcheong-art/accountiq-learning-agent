@@ -24,7 +24,7 @@ export async function generateMetadata({
 
 export default async function LoginPage({ searchParams }: { searchParams: LoginSearchParams }) {
   const user = await getCurrentUser();
-  if (user) redirect(user.is_admin ? "/admin" : "/wizard");
+  if (user) redirect(user.is_admin ? "/admin" : "/reports");
 
   const mode = resolveMode((await searchParams).mode);
 

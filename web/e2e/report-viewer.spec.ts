@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
 
-import { approvePendingReport, completeValuationIntake, continueFromUploadWhenReady, loginOrRegisterAdmin, register, regularEmail, submitValuationCheckout } from "./helpers";
+import { approvePendingReport, completeValuationIntake, continueFromUploadWhenReady, loginOrRegisterAdmin, registerAndStartValuation, regularEmail, submitValuationCheckout } from "./helpers";
 
 test("completed report viewer escapes script payloads", async ({ page, context, browser }) => {
-  await register(page, regularEmail());
+  await registerAndStartValuation(page, regularEmail());
   await page.getByLabel(/business name/i).fill("Viewer E2E Ltd");
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await page.getByRole("button", { name: /continue/i }).click();

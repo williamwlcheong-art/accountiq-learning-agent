@@ -50,7 +50,7 @@ const REPORT_STATUS_TONES: Record<string, StatusTone> = {
   generating: "info",
   processing: "info",
   extracting: "info",
-  awaiting_review: "warning",
+  awaiting_review: "info",
   done: "success",
   failed: "danger",
 };
@@ -135,4 +135,36 @@ export function purchaseStatusLabel(value: string) {
 
 export function clarificationReasonLabel(value: string) {
   return CLARIFICATION_REASON_LABELS[value] ?? "Please upload a clearer or more complete set of financial statements.";
+}
+
+const NZ_TIME_ZONE = "Pacific/Auckland";
+
+/** Parse a backend timestamp. SQLite stores `datetime('now')` as UTC without a zone marker. */
+export function parseBackendDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(trimmed);
+  const isoLike = trimmed.includes("T") ? trimmed : trimmed.replace(" ", "T");
+  const date = new Date(hasZone ? isoLike : `${isoLike}Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function formatNzDate(
+  value: string | null | undefined,
+  style: "short" | "long" | "datetime" = "short",
+): string {
+  const date = parseBackendDate(value);
+  if (!date) return "Unknown";
+  const options: Intl.DateTimeFormatOptions =
+    style === "long"
+      ? { day: "numeric", month: "long", year: "numeric" }
+      : style === "datetime"
+        ? { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }
+        : { day: "numeric", month: "short", year: "numeric" };
+  return new Intl.DateTimeFormat("en-NZ", { ...options, timeZone: NZ_TIME_ZONE }).format(date);
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }

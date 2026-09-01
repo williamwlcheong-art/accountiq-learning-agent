@@ -9,7 +9,8 @@ import asyncio
 import hashlib
 import uuid
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Optional
@@ -42,7 +43,7 @@ from payments import (
     stripe_enabled,
 )
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
-from report_rendering import render_report_html, report_pdf_path, write_pdf
+from report_rendering import render_report_html, report_pdf_path, section_heading, write_pdf
 from report_snapshots import (
     LegacySnapshotRestartRequired,
     SnapshotIntegrityError,
@@ -134,7 +135,7 @@ def _e2e_report_content(report_type: str) -> dict:
     sections = SECTION_SCHEMAS.get(report_type, ["executive_summary", "disclaimer"])
     content = {}
     for section in sections:
-        title = section.replace("_", " ").title()
+        title = section_heading(section)
         if section == "disclaimer":
             content[section] = (
                 "This report is indicative only, is not financial advice, "
@@ -2625,7 +2626,7 @@ def _render_report_sections_html(sections: dict, section_order: list) -> str:
     section_html = ""
     for key in section_order:
         content = sections.get(key, "")
-        heading = key.replace("_", " ").title()
+        heading = section_heading(key)
 
         if isinstance(content, dict):
             narrative = str(content.get("narrative", "") or "")
@@ -2649,6 +2650,21 @@ def _render_report_sections_html(sections: dict, section_order: list) -> str:
         </section>"""
 
     return section_html
+
+
+def _format_nz_datetime(value) -> str:
+    """Render a stored UTC timestamp as a readable New Zealand date and time."""
+    if not value:
+        return ""
+    text = str(value).strip()
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return text
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    local = parsed.astimezone(ZoneInfo("Pacific/Auckland"))
+    return local.strftime("%-d %b %Y, %-I:%M %p").replace("AM", "am").replace("PM", "pm")
 
 
 def _render_report_html(row, sections: dict, back_url: str) -> str:
@@ -2708,7 +2724,7 @@ def _render_report_html(row, sections: dict, back_url: str) -> str:
     <header>
       <h1>{_html_lib.escape(label)}</h1>
       <p>{_html_lib.escape(row['name'])}</p>
-      <p class="meta">Report #{row['id']} &middot; Generated {_html_lib.escape(str(generated_label))}</p>
+      <p class="meta">Report #{row['id']} &middot; Generated {_html_lib.escape(_format_nz_datetime(generated_label) or str(generated_label))}</p>
     </header>
     {section_html}
   </main>
@@ -2743,7 +2759,7 @@ async def wizard_report_view(
     except Exception:
         raise HTTPException(500, "Report content could not be parsed")
 
-    back_url = f"{os.getenv('APP_BASE_URL', 'http://localhost:3000').rstrip('/')}/wizard"
+    back_url = f"{os.getenv('APP_BASE_URL', 'http://localhost:3000').rstrip('/')}/reports"
     html = _render_report_html(row, sections, back_url)
     return HTMLResponse(content=html)
 
@@ -2784,12 +2800,20 @@ async def wizard_report_pdf(
             report["completed_at"],
             SECTION_SCHEMAS.get(report["report_type"]),
         )
-        await asyncio.get_running_loop().run_in_executor(
-            None,
-            write_pdf,
-            html_text,
-            output_path,
-        )
+        try:
+            await asyncio.get_running_loop().run_in_executor(
+                None,
+                write_pdf,
+                html_text,
+                output_path,
+            )
+        except Exception as exc:  # noqa: BLE001 - surface a readable failure to the customer
+            print(f"[pdf] report {report_id} render failed: {exc!r}")
+            raise HTTPException(
+                503,
+                "We could not build the PDF right now. You can still open the report online. "
+                "Reply to your confirmation email and we will send the PDF to you.",
+            )
 
     return FileResponse(
         path=output_path,

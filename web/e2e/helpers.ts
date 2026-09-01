@@ -11,7 +11,13 @@ export async function register(page: Page, email: string) {
   await page.getByLabel(/^password$/i).fill(password);
   await page.getByLabel(/confirm password/i).fill(password);
   await page.getByRole("button", { name: /^create account$/i }).click();
-  await expect(page).toHaveURL(/\/(admin|wizard)$/);
+  await expect(page).toHaveURL(/\/(admin|reports)$/);
+}
+
+export async function registerAndStartValuation(page: Page, email: string) {
+  await register(page, email);
+  await page.goto("/wizard");
+  await expect(page.getByLabel(/business name/i)).toBeVisible();
 }
 
 export async function login(page: Page, email: string) {

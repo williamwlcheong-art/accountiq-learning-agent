@@ -12,7 +12,7 @@ const links = [
   { href: "/admin/patterns", label: "Patterns" },
   { href: "/admin/financials", label: "Financials" },
   { href: "/admin/wacc-assumptions", label: "WACC assumptions" },
-  { href: "/account", label: "Account" },
+  { href: "/admin/account", label: "Account" },
   { href: "/admin/settings", label: "Settings" },
 ];
 

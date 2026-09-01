@@ -6,14 +6,14 @@ import {
   completeValuationIntake,
   continueFromUploadWhenReady,
   loginOrRegisterAdmin,
-  register,
+  registerAndStartValuation,
   regularEmail,
   submitValuationCheckout,
 } from "./helpers";
 
 test("customer account shows purchase delivery status and released report actions", async ({ page, browser }) => {
   const companyName = `History E2E Ltd ${Date.now()}`;
-  await register(page, regularEmail());
+  await registerAndStartValuation(page, regularEmail());
   await page.getByLabel(/business name/i).fill(companyName);
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await page.getByRole("button", { name: /continue/i }).click();
@@ -24,7 +24,7 @@ test("customer account shows purchase delivery status and released report action
   await submitValuationCheckout(page);
   await expect(page.getByText(/your report is under review/i)).toBeVisible({ timeout: 15_000 });
 
-  await page.goto("/account");
+  await page.goto("/reports");
   const purchase = page.locator("tr").filter({ hasText: companyName });
   await expect(purchase).toBeVisible();
   await expect(purchase).toContainText("$495.00");

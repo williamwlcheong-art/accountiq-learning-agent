@@ -46,3 +46,8 @@ data/accountiq_e2e.db-shm
 
 # Local browser automation artefacts
 .playwright-mcp/
+
+# Runtime SQLite databases
+data/*.db
+data/*.db-wal
+data/*.db-shm

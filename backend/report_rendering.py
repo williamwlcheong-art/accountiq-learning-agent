@@ -132,8 +132,30 @@ def _market_payload_html(content: dict) -> str:
     return "".join(chunks)
 
 
+_HEADING_ACRONYMS = {
+    "wacc": "WACC",
+    "dcf": "DCF",
+    "ebitda": "EBITDA",
+    "ebit": "EBIT",
+    "fcff": "FCFF",
+    "nwc": "NWC",
+    "nz": "NZ",
+    "pe": "P/E",
+    "ev": "EV",
+}
+
+
+def section_heading(key: str) -> str:
+    """Human heading for a section key: title case with finance acronyms kept upper case."""
+    words = []
+    for word in str(key).replace("_", " ").split():
+        lowered = word.lower()
+        words.append(_HEADING_ACRONYMS.get(lowered, word.capitalize()))
+    return " ".join(words)
+
+
 def _section_html(key: str, content) -> str:
-    heading = html.escape(key.replace("_", " ").title())
+    heading = html.escape(section_heading(key))
     if isinstance(content, dict):
         narrative = str(content.get("narrative", "") or "")
         table_data = content.get("table") if isinstance(content.get("table"), dict) else None

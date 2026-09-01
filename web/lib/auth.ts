@@ -19,6 +19,6 @@ export async function requireUser(): Promise<CurrentUser> {
 
 export async function requireAdmin(): Promise<CurrentUser> {
   const user = await requireUser();
-  if (!user.is_admin) redirect("/wizard");
+  if (!user.is_admin) redirect("/reports");
   return user;
 }
