@@ -1,0 +1,210 @@
+{
+  "schema_version": "1.0",
+  "sector_id": "early_childhood_education_and_care",
+  "sector_name": "Early Childhood Education and Care",
+  "geography": "New Zealand",
+  "as_of_date": "2026-07-26",
+  "next_review_date": "2027-01-26",
+  "aliases": ["early learning", "early childhood education", "ece centre", "childcare", "home based early learning"],
+  "overview": {
+    "summary": "New Zealand early childhood education and care includes teacher-led education and care centres, kindergartens, home-based services, playcentres, kōhanga reo and hospital-based services. Private operators generally combine Ministry funding with parent fees. Economics depend on licensed capacity, attendance, funded child hours, age mix, fee collection, qualified staffing, ratios, property cost and consistent regulatory quality. A centre's local catchment and reputation are more relevant than national participation alone.",
+    "business_models": [
+      "Centre-based education and care charging parent fees and receiving government funding",
+      "Kindergarten or community-led services with different governance and funding characteristics",
+      "Home-based networks coordinating educators and families under a licensed service",
+      "Multi-site private groups sharing management, curriculum, systems and marketing",
+      "Property-owning or related-party property structures separated from the operating service"
+    ],
+    "industry_structure": [
+      "Single-centre and regional owners coexist with larger groups and community-based providers.",
+      "Services compete within local catchments on trust, quality, hours, philosophy, convenience, fees and reputation.",
+      "Licensing, funding, staffing and premises requirements limit capacity and shape operating leverage."
+    ],
+    "demand_drivers": [
+      "Local population of children by age, household employment and commuting patterns",
+      "Participation, funded hours, affordability and government funding settings",
+      "Service reputation, education philosophy, opening hours and location",
+      "Housing development, competing licensed capacity and family movement"
+    ],
+    "margin_and_cost_drivers": [
+      "Occupancy or attendance by age and day, funded hours and parent-fee yield",
+      "Qualified teacher mix, ratios, roster efficiency, relief staff and wage rates",
+      "Rent, rates, food, resources, insurance and premises maintenance",
+      "Funding accuracy, fee arrears, compliance, professional development and administration"
+    ],
+    "cyclicality_and_seasonality": [
+      "Demand is relatively recurring but affected by births, local demographics, school transitions and family employment.",
+      "Attendance varies through school holidays, illness periods and annual age transitions.",
+      "A local oversupply of licensed places can create sustained occupancy and fee pressure."
+    ],
+    "working_capital_profile": "Government funding and parent-fee timing can produce a relatively recurring receipt profile, while wages are the dominant frequent cost. Funding adjustments, fee arrears, subsidies, holiday staffing and tax obligations require reconciliation. Enrolment or licensed capacity should not be substituted for actual attendance and billable or funded hours.",
+    "asset_intensity": "Centre operations require suitable licensed premises, fit-out, outdoor areas, furniture, learning equipment and maintenance. Property may be leased, owned in the operating entity or held by a related party. Leasehold fit-out has limited alternative-use value; freehold property needs a separate appraisal and market rent.",
+    "regulatory_and_compliance": [
+      "Education and Training Act, Early Childhood Services Regulations and current licensing criteria",
+      "Qualified staff, person-responsible, ratio, first-aid and police-vetting requirements",
+      "Curriculum, health and safety, premises, governance, child-protection and record obligations",
+      "Funding Handbook, attendance and enrolment records, financial reporting and audit requirements where applicable"
+    ]
+  },
+  "subsectors": [
+    {
+      "id": "centre_based_private",
+      "name": "Private centre-based education and care",
+      "aliases": ["ece centre", "childcare centre", "daycare", "education and care centre"],
+      "business_model": "Licensed centre places generate government funding and parent fees based on attendance, hours and age mix.",
+      "revenue_drivers": ["Licensed places", "Occupancy", "Funded child hours", "Parent fees and age mix"],
+      "cost_base": ["Teachers and relief staff", "Rent", "Food and resources", "Compliance and administration"],
+      "working_capital": "Funding and fees recur, but arrears, funding wash-ups and payroll need tight controls.",
+      "asset_intensity": "Premises and fit-out intensive, with property structure central.",
+      "credit_watchpoints": ["Occupancy by day and age", "Staff ratios", "Licence status", "Funding reconciliation"],
+      "valuation_watchpoints": ["Normal occupancy", "Market rent", "Teacher wage base", "Goodwill and licence transfer process"]
+    },
+    {
+      "id": "home_based",
+      "name": "Home-based early learning",
+      "aliases": ["home based childcare", "home based early learning", "home based ece"],
+      "business_model": "A licensed service coordinates educators providing care in homes with qualified oversight.",
+      "revenue_drivers": ["Educators", "Children and hours", "Funding", "Parent fees"],
+      "cost_base": ["Educator payments", "Qualified coordinators", "Resources", "Administration and travel"],
+      "working_capital": "Funding and parent receipts must be matched to educator payments and accurate attendance.",
+      "asset_intensity": "Lower premises intensity but higher network, supervision and educator-continuity dependence.",
+      "credit_watchpoints": ["Educator concentration", "Coordinator capacity", "Attendance records", "Licence compliance"],
+      "valuation_watchpoints": ["Educator and family retention", "Coordinator depth", "Network density", "Transferability"]
+    },
+    {
+      "id": "kindergarten_community",
+      "name": "Kindergarten and community-led services",
+      "aliases": ["kindergarten", "playcentre", "community childcare", "not for profit ece"],
+      "business_model": "Community or association governance combines public funding, fees where applicable and mission-led delivery.",
+      "revenue_drivers": ["Participation", "Funding", "Community demand", "Service hours"],
+      "cost_base": ["Teaching staff", "Premises", "Resources", "Governance and support"],
+      "working_capital": "Funding is central; reserves and restricted funds require interpretation.",
+      "asset_intensity": "Premises may be owned, leased or community-provided.",
+      "credit_watchpoints": ["Governance", "Funding dependence", "Restricted assets", "Occupancy"],
+      "valuation_watchpoints": ["Commercial valuation may be inappropriate or constrained", "Governance rights", "Property and charitable restrictions", "Sustainable service economics"]
+    },
+    {
+      "id": "multi_site_group",
+      "name": "Multi-site early learning group",
+      "aliases": ["childcare group", "ece group", "multi site childcare", "early learning group"],
+      "business_model": "Multiple licensed centres share central management, curriculum, finance, recruitment and marketing.",
+      "revenue_drivers": ["Centres", "Places", "Occupancy and fee yield", "Acquisitions or new capacity"],
+      "cost_base": ["Centre staff", "Property", "Central overhead", "Recruitment and compliance"],
+      "working_capital": "Group cash can conceal weak centres; funding, tax and payroll should be reconciled by site.",
+      "asset_intensity": "Multiple leases or properties and centre fit-outs create portfolio obligations.",
+      "credit_watchpoints": ["Site-level performance", "Central overhead", "Lease concentration", "Licence issues"],
+      "valuation_watchpoints": ["Mature versus ramp-up centres", "Central synergies", "Like-for-like occupancy", "Property separation"]
+    }
+  ],
+  "credit_analysis": {
+    "primary_risks": [
+      {
+        "risk": "Occupancy, catchment and local capacity",
+        "mechanism": "Lower attendance or new competing places reduces funding and fees while staffing and property costs remain.",
+        "financial_signals": ["Occupancy by day and age", "Waitlist conversion", "Licensed capacity nearby", "Fee yield"],
+        "mitigants": ["Strong local demand", "Reputation and differentiated offer", "Flexible rosters", "Conservative break-even"]
+      },
+      {
+        "risk": "Staffing, ratios and wage pressure",
+        "mechanism": "Qualified-staff shortages or absence can increase relief cost, constrain licensed operation or create compliance risk.",
+        "financial_signals": ["Qualified percentage", "Child-to-staff ratios", "Relief cost", "Turnover and vacancies"],
+        "mitigants": ["Stable qualified team", "Roster headroom", "Recruitment pipeline", "Professional development"]
+      },
+      {
+        "risk": "Licensing, funding and quality",
+        "mechanism": "Licence conditions, poor records or funding errors can reduce receipts, require repayment or interrupt service.",
+        "financial_signals": ["Licence status", "Review findings", "Funding adjustments", "Attendance exceptions"],
+        "mitigants": ["Current compliance systems", "Internal audits", "Accurate records", "Experienced governance"]
+      },
+      {
+        "risk": "Property and centre concentration",
+        "mechanism": "Loss of premises, onerous rent or one underperforming centre can impair the business.",
+        "financial_signals": ["Lease maturity", "Rent-to-revenue", "Site EBITDA", "Maintenance backlog"],
+        "mitigants": ["Long suitable tenure", "Market rent", "Property condition plan", "Site diversity"]
+      }
+    ],
+    "cash_conversion_and_working_capital": [
+      "Reconcile licensed capacity, enrolment, attendance, funded hours and parent billing.",
+      "Review funding wash-ups, fee arrears, subsidies and holiday attendance.",
+      "Confirm payroll, PAYE, holiday pay and relief staffing are fully recorded.",
+      "Model occupancy at daily and age-group level through the school transition cycle."
+    ],
+    "collateral_considerations": [
+      "Leasehold fit-out and learning equipment usually have limited recovery.",
+      "Freehold premises require an independent valuation and market-rent separation.",
+      "Funding receivables depend on compliant records and may be subject to adjustment.",
+      "Licence, goodwill, families and staff are operating assets rather than reliable standalone collateral."
+    ],
+    "downside_stresses": ["Occupancy fall with only partial staff reduction", "Qualified-staff wage and relief-cost increase", "Funding adjustment or fee arrears", "Lease renewal at higher rent plus maintenance spend"],
+    "monitoring_kpis": ["Occupancy and attendance by centre, day and age", "Revenue per licensed place", "Qualified staffing, ratios, turnover and relief cost", "Wages and rent as percentages of revenue", "Licence and review status", "Cash, DSCR, tax and funding adjustments"],
+    "covenant_considerations": ["Minimum DSCR and liquidity", "Maximum leverage", "Restrictions on distributions while tax, funding or licence issues exist", "Prompt notice of licence conditions, material review findings, centre closure or key lease event"],
+    "diligence_questions": [
+      "What are licensed places, actual attendance and break-even occupancy by centre, day and age?",
+      "How do government funding and parent fees reconcile to attendance records?",
+      "Are qualification, person-responsible, ratio, first-aid and police-vetting requirements consistently met?",
+      "What are staff turnover, relief usage, wage commitments and recruitment needs?",
+      "Are premises suitable, leases transferable and maintenance funded over the debt term?"
+    ]
+  },
+  "valuation_analysis": {
+    "value_drivers": ["Stable occupancy supported by local catchment and reputation", "Accurate funding and fee collection", "Qualified, stable leadership and teaching team", "Transferable suitable premises and clean licensing history", "Scalable multi-site systems with transparent site economics"],
+    "multiple_influences": ["Mature centres with stable occupancy and management depth are more predictable than ramp-up or owner-dependent sites.", "Property ownership must be separated through market rent and an independent appraisal.", "Licence issues, staff shortages, local oversupply and short leases reduce value."],
+    "normalisation_focus": ["Normal occupancy rather than a short peak or ramp-up period", "Market owner-manager and pedagogical leadership remuneration", "Compliant wage, relief and holiday-pay cost", "Market rent and ongoing premises maintenance", "Funding adjustments and one-off opening costs"],
+    "peer_selection": ["Match centre-based, home-based and multi-site models.", "Compare age mix, occupancy, local market, property structure, funding, staffing and maturity.", "Do not treat community or restricted providers as ordinary commercial peers without adjustment."],
+    "preferred_metrics": ["EV/EBITDA after market rent and management remuneration", "EV per licensed place only as a secondary check after occupancy, quality and location alignment", "DCF for ramp-up or changing funding and lease economics", "Free cash flow after premises maintenance"],
+    "discount_and_premium_factors": ["Premium indicators include stable mature occupancy, strong reputation, clean compliance, staff depth and good tenure.", "Discount indicators include local oversupply, licence conditions, wage pressure, staff dependence, short lease and funding-record issues."],
+    "diligence_questions": ["What occupancy and fee yield are maintainable after school transitions and local competition?", "What staff and rent costs are required on a standalone basis?", "Will licence, premises, families and key staff remain through a change of control?", "How should freehold or related-party property be separated from operating value?"]
+  },
+  "market_research_sections": {
+    "credit_paper": "Early childhood education and care combines recurring family demand with government funding and a detailed licensing and staffing framework. Education Counts publishes participation, service and staffing data that can frame national and regional conditions, while Ministry of Education guidance defines current licensing, qualified-staff and person-responsible requirements. These sources do not establish a centre's local demand, quality or compliance; credit analysis must use centre-level attendance, staffing, funding and property evidence.\n\nLicensed capacity is not revenue. The lender should reconcile places, enrolment, actual attendance, funded child hours, age mix and parent billing by day and centre. Wages and property are major semi-fixed costs, so lower occupancy, relief staffing or wage pressure can reduce coverage quickly. Funding adjustments, fee arrears, payroll, holiday pay and tax should be tested. Leasehold fit-out provides limited recovery, while freehold property requires a separate appraisal and market rent.\n\nLicence status, review findings, accurate attendance records, qualified staffing, ratios, child protection and suitable premises are continuity risks as well as compliance matters. The paper should assess break-even occupancy, local competing capacity, staff retention, lease tenure and maintenance. For groups, weak sites should not be hidden by consolidated averages. Covenants and conditions should focus on liquidity, licence events, funding adjustments and transparent centre-level reporting.",
+    "valuation_report": "An early learning service's value is determined primarily by maintainable attendance and fee yield within its local catchment, delivered by a stable qualified team in suitable, transferable premises with clean licensing and funding records. Education Counts participation data provides useful national and regional context, but valuation requires centre-level occupancy by day and age, local competing capacity, waitlists, staff ratios, fees, funding and reputation.\n\nNormalised earnings should use sustainable rather than peak or short ramp-up occupancy, replacement remuneration for owner-management and pedagogical roles, compliant wages and relief cover, market rent and normal premises maintenance. Government funding and parent fees must reconcile to attendance. Freehold or related-party property should be separately appraised and charged a market rent; leasehold fit-out should not be assumed to recover at book value.\n\nTransferable value is stronger where occupancy is mature and diversified across cohorts, the licence and review history are clean, staffing is stable, systems are documented, and the lease or property position supports continuity. Local oversupply, licence conditions, funding-record issues, teacher shortages, short tenure and owner or centre-manager dependence reduce forecast confidence. EV per licensed place can only be a secondary cross-check after these differences are reconciled; this pack does not provide a current sector multiple."
+  },
+  "sources": [
+    {
+      "id": "education-counts-participation",
+      "title": "Early learning participation",
+      "publisher": "Education Counts, Ministry of Education",
+      "url": "https://www.educationcounts.govt.nz/statistics/participation",
+      "published_date": "2026-03-01",
+      "accessed_date": "2026-07-26",
+      "source_type": "official_statistics",
+      "supports": ["Participation, attendance hours and service types", "National and regional demand context"]
+    },
+    {
+      "id": "education-ece-licences",
+      "title": "Licences to operate in early childhood education and care",
+      "publisher": "Ministry of Education",
+      "url": "https://www.education.govt.nz/education-professionals/early-learning/starting-early-learning-service/licences-operate-early-childhood-education-and-care",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Service types", "Licensing and operating standards"]
+    },
+    {
+      "id": "education-ece-qualifications",
+      "title": "Qualification requirements and the person responsible role",
+      "publisher": "Ministry of Education",
+      "url": "https://www.education.govt.nz/education-professionals/early-learning/people-and-employment/qualification-requirements-and-persons-responsible-role",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Qualified staffing", "Person responsible and first-aid requirements"]
+    },
+    {
+      "id": "education-licensing-criteria",
+      "title": "Licensing Criteria for Early Childhood Education and Care Services",
+      "publisher": "Ministry of Education",
+      "url": "https://www.education.govt.nz/our-work/legislation/secondary-legislation/licensing-criteria-early-childhood-education-and-care-services",
+      "published_date": "2025-10-01",
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Current licensing criteria and 2026 amendments", "Compliance refresh trigger"]
+    }
+  ],
+  "limitations": [
+    "National participation does not establish demand or occupancy in the subject centre's catchment.",
+    "Funding settings, licensing criteria and staff requirements are time-sensitive and must be checked at the report date.",
+    "Attendance, funding, staffing, licence, review, lease and property evidence must be obtained for the subject service.",
+    "No property value, fit-out recovery value, EV per place or current transaction multiple is supplied."
+  ]
+}

@@ -198,6 +198,16 @@ export function Wizard({ user }: WizardProps) {
           && err.detail
           && typeof err.detail === "object"
           && "state" in err.detail
+          && err.detail.state === "payment_retry_required"
+        ) {
+          setCheckoutIdempotencyKey(crypto.randomUUID());
+          setError(`${err.message} Click “Pay and generate” again to continue.`);
+        } else if (
+          err instanceof ApiError
+          && err.status === 409
+          && err.detail
+          && typeof err.detail === "object"
+          && "state" in err.detail
           && err.detail.state === "needs_clarification"
         ) {
           setClarification(err.detail);

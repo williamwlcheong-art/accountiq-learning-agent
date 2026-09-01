@@ -7,6 +7,13 @@
       "runtimeArgs": ["-c", "source ../venv/bin/activate && uvicorn main:app --reload --port ${PORT:-8765}"],
       "cwd": "${workspaceRoot}/backend",
       "port": 8765
+    },
+    {
+      "name": "accountiq-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev"],
+      "cwd": "${workspaceRoot}/web",
+      "port": 3000
     }
   ]
 }

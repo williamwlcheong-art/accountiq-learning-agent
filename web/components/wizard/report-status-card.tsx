@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { StatusPill } from "@/components/status-pill";
@@ -29,7 +30,7 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired }: Rep
         if (cancelled) return;
         setStatus(nextStatus);
         setError("");
-        if (nextStatus.status === "done" || nextStatus.status === "failed") {
+        if (["done", "failed", "payment_failed", "payment_expired", "refunded"].includes(nextStatus.status)) {
           window.clearInterval(interval);
         }
       } catch (err) {
@@ -73,16 +74,19 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired }: Rep
   const currentStatus = status?.status ?? "queued";
   const isDone = currentStatus === "done";
   const isFailed = currentStatus === "failed";
+  const isPaymentFailed = currentStatus === "payment_failed";
+  const isPaymentExpired = currentStatus === "payment_expired";
+  const isRefunded = currentStatus === "refunded";
+  const isPaymentTerminal = isPaymentFailed || isPaymentExpired || isRefunded;
   const isAwaitingReview = currentStatus === "awaiting_review";
-  const heading = currentStatus === "pending_payment"
-    ? "Complete payment to start your report"
-    : isDone
-      ? "Your report is ready"
-      : isFailed
-        ? "Your report needs attention"
-        : isAwaitingReview
-          ? "Your report is under review"
-          : "Your report is being prepared";
+  let heading = "Your report is being prepared";
+  if (currentStatus === "pending_payment") heading = "Complete payment to start your report";
+  if (isPaymentFailed) heading = "Your payment was not completed";
+  if (isPaymentExpired) heading = "Your payment link expired";
+  if (isRefunded) heading = "This payment was refunded";
+  if (isDone) heading = "Your report is ready";
+  if (isFailed) heading = "Your report needs attention";
+  if (isAwaitingReview) heading = "Your report is under review";
 
   return (
     <section className="wizard-card">
@@ -94,7 +98,7 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired }: Rep
         </div>
       ) : null}
 
-      {!isFailed ? (
+      {!isFailed && !isPaymentTerminal ? (
         <p>
           We will email <strong>{userEmail}</strong> when your report is ready.
         </p>
@@ -106,6 +110,19 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired }: Rep
         <p className="wizard-note">
           We are waiting for payment confirmation before starting report generation.
         </p>
+      ) : null}
+
+      {isPaymentTerminal ? (
+        <div className="wizard-failed">
+          <p>
+            {isRefunded
+              ? "Report access has been withdrawn because the payment was refunded."
+              : "No report generation was started. Please begin a new checkout when you are ready."}
+          </p>
+          {!isRefunded ? (
+            <Link className="button button-primary" href="/wizard">Start a new checkout</Link>
+          ) : null}
+        </div>
       ) : null}
 
       {currentStatus === "researching" ? (

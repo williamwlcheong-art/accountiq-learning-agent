@@ -16,6 +16,9 @@ const FINANCIAL_STATEMENT_LABELS: Record<string, string> = {
 
 const REPORT_STATUS_LABELS: Record<string, string> = {
   pending_payment: "Payment pending",
+  payment_failed: "Payment failed",
+  payment_expired: "Payment expired",
+  refunded: "Refunded",
   queued: "Preparing your report",
   researching: "Preparing your report",
   generating: "Preparing your report",
@@ -31,12 +34,17 @@ const PURCHASE_STATUS_LABELS: Record<string, string> = {
   pending: "Payment pending",
   pending_payment: "Payment pending",
   failed: "Payment needs attention",
+  expired: "Expired",
+  refunded: "Refunded",
 };
 
 export type StatusTone = "success" | "info" | "warning" | "danger" | "neutral";
 
 const REPORT_STATUS_TONES: Record<string, StatusTone> = {
   pending_payment: "warning",
+  payment_failed: "danger",
+  payment_expired: "warning",
+  refunded: "neutral",
   queued: "info",
   researching: "info",
   generating: "info",

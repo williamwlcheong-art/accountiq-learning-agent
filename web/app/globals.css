@@ -697,12 +697,15 @@ th {
   }
 }
 
-/* Public valuation offer */
-.marketing-page {
+/* Public valuation offer. Tokens live on :root so the auth surface shares the same brand. */
+:root {
   --marketing-navy: #1b1464;
   --marketing-ink: #172033;
   --marketing-muted: #5e6878;
   --marketing-line: #dfe3ea;
+}
+
+.marketing-page {
   min-height: 100vh;
   background: #ffffff;
   color: var(--marketing-ink);
@@ -2408,4 +2411,106 @@ button,
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+/* Auth surface in the marketing palette so the landing-to-signin handoff keeps one brand. */
+.auth-page {
+  background: #ffffff;
+}
+
+.auth-card {
+  border: 1px solid var(--marketing-line);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(23, 32, 51, 0.08);
+}
+
+.auth-wordmark {
+  margin: 0 0 20px;
+  color: var(--marketing-navy);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.auth-card .auth-brand h1 {
+  color: var(--marketing-navy);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.auth-card .auth-brand p {
+  color: var(--marketing-muted);
+  font-size: 0.9rem;
+}
+
+.auth-card .auth-form label {
+  color: var(--marketing-ink);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.auth-card .auth-form input:focus {
+  outline: 2px solid rgba(27, 20, 100, 0.28);
+  border-color: var(--marketing-navy);
+}
+
+.auth-card .auth-form .button-primary {
+  min-height: 48px;
+  border-radius: 7px;
+  background: var(--marketing-navy);
+  font-weight: 800;
+}
+
+.auth-card .auth-form .button-primary:hover {
+  background: #141052;
+}
+
+.auth-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-forgot-link,
+.auth-switch-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--marketing-navy);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.auth-forgot-link {
+  font-size: 0.8rem;
+}
+
+.auth-reset-note {
+  margin: 0;
+  border: 1px solid var(--marketing-line);
+  border-radius: 7px;
+  padding: 10px 12px;
+  background: #f7f8fb;
+  color: var(--marketing-muted);
+  font-size: 0.85rem;
+}
+
+.auth-switch {
+  margin: 20px 0 0;
+  text-align: center;
+  color: var(--marketing-ink);
+  font-size: 0.9rem;
+}
+
+.auth-card .auth-valuation-link {
+  color: var(--marketing-muted);
+}
+
+.auth-card :is(a, button):focus-visible {
+  outline: 3px solid var(--marketing-navy);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px #ffffff;
 }

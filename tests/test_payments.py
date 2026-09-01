@@ -13,6 +13,7 @@ from report_snapshots import (
     load_report_input_snapshot,
 )
 import main as main_module
+from account_helpers import provision_test_admin
 
 
 @pytest.mark.asyncio
@@ -133,6 +134,32 @@ async def _register_and_upload(client, email="buyer@example.com"):
     )
     assert upload.status_code == 201, upload.text
     return upload.json()["company_id"]
+
+
+async def _create_pending_stripe_checkout(client, monkeypatch, *, email: str, session_id: str):
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+    company_id = await _register_and_upload(client, email=email)
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.setattr(main_module, "stripe_enabled", lambda: True)
+    monkeypatch.setattr(
+        main_module,
+        "create_checkout_session",
+        lambda **_kwargs: CheckoutSession(
+            session_id,
+            f"https://checkout.stripe.test/{session_id}",
+        ),
+    )
+    response = await client.post(
+        "/wizard/report/checkout",
+        json={
+            "company_id": company_id,
+            "report_type": "valuation_advisory",
+            "intake_answers": _valuation_answers(),
+            "idempotency_key": f"checkout-{session_id}",
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["report_id"]
 
 
 async def _create_failed_pre_decimal_paid_report(client, monkeypatch, email):
@@ -812,6 +839,8 @@ async def test_duplicate_webhook_schedules_generation_once(
             "id": "cs_webhook_once",
             "payment_intent": "pi_once",
             "payment_status": "paid",
+            "amount_total": 49500,
+            "currency": "nzd",
         }},
     }
     monkeypatch.setattr(main_module, "construct_webhook_event", lambda *_args: event)
@@ -907,7 +936,12 @@ async def test_paid_webhook_reconciles_missing_local_session_mapping(
             "id": "cs_reconciled",
             "payment_intent": "pi_reconciled",
             "payment_status": "paid",
-            "metadata": {"purchase_id": str(purchase_id)},
+            "amount_total": 49500,
+            "currency": "nzd",
+            "metadata": {
+                "purchase_id": str(purchase_id),
+                "report_id": str(report_id),
+            },
         }},
     }
     async def record_generation(_report_id):
@@ -930,6 +964,236 @@ async def test_paid_webhook_reconciles_missing_local_session_mapping(
         )).fetchone()
     assert purchase == ("paid", "cs_reconciled")
     assert report[0] in {"queued", "generating", "awaiting_review"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("event_type", "purchase_status", "report_status"),
+    [
+        ("checkout.session.async_payment_failed", "failed", "payment_failed"),
+        ("checkout.session.expired", "expired", "payment_expired"),
+    ],
+)
+async def test_checkout_failure_events_update_purchase_and_report(
+    client,
+    fresh_all_db,
+    monkeypatch,
+    event_type,
+    purchase_status,
+    report_status,
+):
+    session_id = f"cs_{purchase_status}"
+    report_id = await _create_pending_stripe_checkout(
+        client,
+        monkeypatch,
+        email=f"{purchase_status}@example.com",
+        session_id=session_id,
+    )
+    event = {
+        "type": event_type,
+        "data": {"object": {"id": session_id}},
+    }
+    monkeypatch.setattr(main_module, "construct_webhook_event", lambda *_args: event)
+
+    response = await client.post(
+        "/payments/stripe/webhook",
+        content=b"event",
+        headers={"stripe-signature": "sig"},
+    )
+
+    assert response.status_code == 200, response.text
+    async with aiosqlite.connect(DB_PATH) as db:
+        row = await (
+            await db.execute(
+                """
+                SELECT p.status, r.status, r.company_id
+                FROM purchases p JOIN reports r ON r.id=p.report_id
+                WHERE r.id=?
+                """,
+                (report_id,),
+            )
+        ).fetchone()
+    assert row[:2] == (purchase_status, report_status)
+
+    retry = await client.post(
+        "/wizard/report/checkout",
+        json={
+            "company_id": row[2],
+            "report_type": "valuation_advisory",
+            "intake_answers": _valuation_answers(),
+            "idempotency_key": f"checkout-{session_id}",
+        },
+    )
+    assert retry.status_code == 409, retry.text
+    assert retry.json()["detail"]["code"] == "checkout_session_terminal"
+
+
+@pytest.mark.asyncio
+async def test_paid_webhook_rejects_amount_or_currency_mismatch(
+    client, fresh_all_db, monkeypatch
+):
+    session_id = "cs_wrong_amount"
+    report_id = await _create_pending_stripe_checkout(
+        client,
+        monkeypatch,
+        email="wrong-amount@example.com",
+        session_id=session_id,
+    )
+    event = {
+        "type": "checkout.session.completed",
+        "data": {"object": {
+            "id": session_id,
+            "payment_intent": "pi_wrong_amount",
+            "payment_status": "paid",
+            "amount_total": 1,
+            "currency": "nzd",
+        }},
+    }
+    monkeypatch.setattr(main_module, "construct_webhook_event", lambda *_args: event)
+
+    response = await client.post(
+        "/payments/stripe/webhook",
+        content=b"event",
+        headers={"stripe-signature": "sig"},
+    )
+
+    assert response.status_code == 409, response.text
+    async with aiosqlite.connect(DB_PATH) as db:
+        row = await (
+            await db.execute(
+                """
+                SELECT p.status, r.status
+                FROM purchases p JOIN reports r ON r.id=p.report_id
+                WHERE r.id=?
+                """,
+                (report_id,),
+            )
+        ).fetchone()
+    assert row == ("pending", "pending_payment")
+
+
+@pytest.mark.asyncio
+async def test_full_refund_revokes_report_access_state(
+    client, fresh_all_db, monkeypatch
+):
+    session_id = "cs_refunded"
+    report_id = await _create_pending_stripe_checkout(
+        client,
+        monkeypatch,
+        email="refunded@example.com",
+        session_id=session_id,
+    )
+
+    async def record_generation(_report_id):
+        return None
+
+    monkeypatch.setattr(main_module, "_generate_report", record_generation)
+    paid_event = {
+        "type": "checkout.session.completed",
+        "data": {"object": {
+            "id": session_id,
+            "payment_intent": "pi_refunded",
+            "payment_status": "paid",
+            "amount_total": 49500,
+            "currency": "nzd",
+        }},
+    }
+    monkeypatch.setattr(main_module, "construct_webhook_event", lambda *_args: paid_event)
+    paid_response = await client.post(
+        "/payments/stripe/webhook",
+        content=b"paid",
+        headers={"stripe-signature": "sig"},
+    )
+    assert paid_response.status_code == 200, paid_response.text
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        company_id = (await (
+            await db.execute("SELECT company_id FROM reports WHERE id=?", (report_id,))
+        ).fetchone())[0]
+    paid_retry = await client.post(
+        "/wizard/report/checkout",
+        json={
+            "company_id": company_id,
+            "report_type": "valuation_advisory",
+            "intake_answers": _valuation_answers(),
+            "idempotency_key": f"checkout-{session_id}",
+        },
+    )
+    assert paid_retry.status_code == 201, paid_retry.text
+    assert paid_retry.json()["report_id"] == report_id
+    assert paid_retry.json()["checkout_url"] is None
+
+    refund_event = {
+        "type": "charge.refunded",
+        "data": {"object": {
+            "payment_intent": "pi_refunded",
+            "amount": 49500,
+            "amount_refunded": 49500,
+            "refunded": True,
+        }},
+    }
+    monkeypatch.setattr(main_module, "construct_webhook_event", lambda *_args: refund_event)
+    refund_response = await client.post(
+        "/payments/stripe/webhook",
+        content=b"refunded",
+        headers={"stripe-signature": "sig"},
+    )
+
+    assert refund_response.status_code == 200, refund_response.text
+    async with aiosqlite.connect(DB_PATH) as db:
+        row = await (
+            await db.execute(
+                """
+                SELECT p.status, r.status
+                FROM purchases p JOIN reports r ON r.id=p.report_id
+                WHERE r.id=?
+                """,
+                (report_id,),
+            )
+        ).fetchone()
+    assert row == ("refunded", "refunded")
+
+    view_response = await client.get(f"/wizard/report/{report_id}/view")
+    assert view_response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_generation_failure_does_not_overwrite_concurrent_refund(
+    client, fresh_all_db, monkeypatch
+):
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+    company_id = await _register_and_upload(client, email="refund-race@example.com")
+    async with aiosqlite.connect(DB_PATH) as db:
+        user_id = (await (
+            await db.execute("SELECT id FROM users WHERE email='refund-race@example.com'")
+        ).fetchone())[0]
+        async with db.execute(
+            """
+            INSERT INTO reports (company_id, user_id, report_type, status)
+            VALUES (?, ?, 'valuation_advisory', 'queued')
+            """,
+            (company_id, user_id),
+        ) as cur:
+            report_id = cur.lastrowid
+        await db.commit()
+
+    async def refund_then_fail(db, _report_id):
+        await db.execute(
+            "UPDATE reports SET status='refunded' WHERE id=?",
+            (_report_id,),
+        )
+        await db.commit()
+        raise RuntimeError("simulated failure after refund")
+
+    monkeypatch.setattr(main_module, "load_report_input_snapshot", refund_then_fail)
+
+    await main_module._generate_report(report_id)
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        status = (await (
+            await db.execute("SELECT status FROM reports WHERE id=?", (report_id,))
+        ).fetchone())[0]
+    assert status == "refunded"
 
 
 @pytest.mark.asyncio
@@ -1039,6 +1303,76 @@ async def test_checkout_revalidates_readiness_and_returns_structured_conflict(
 
 
 @pytest.mark.asyncio
+async def test_checkout_rejects_stale_market_intelligence_before_payment(
+    client, fresh_all_db, monkeypatch
+):
+    monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+    company_id = await _register_and_upload(client, email="stale-market@example.com")
+
+    def stale_market_intelligence():
+        raise main_module.MarketIntelligenceStaleError("Quarterly data needs refresh")
+
+    monkeypatch.setattr(
+        main_module,
+        "load_current_market_intelligence",
+        stale_market_intelligence,
+    )
+    response = await client.post(
+        "/wizard/report/checkout",
+        json={
+            "company_id": company_id,
+            "report_type": "valuation_advisory",
+            "intake_answers": _valuation_answers(),
+            "idempotency_key": "stale-market-checkout",
+        },
+    )
+
+    assert response.status_code == 503, response.text
+    assert response.json()["detail"]["code"] == "market_intelligence_refresh_required"
+    async with aiosqlite.connect(DB_PATH) as db:
+        assert (await (await db.execute("SELECT COUNT(*) FROM reports")).fetchone())[0] == 0
+        assert (await (await db.execute("SELECT COUNT(*) FROM purchases")).fetchone())[0] == 0
+
+
+@pytest.mark.asyncio
+async def test_checkout_idempotent_retry_resolves_before_mutable_readiness(
+    client, fresh_all_db, monkeypatch
+):
+    monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+
+    async def record_generation(_report_id):
+        return None
+
+    monkeypatch.setattr(main_module, "_generate_report", record_generation)
+    company_id = await _register_and_upload(client, email="idempotent-ready@example.com")
+    payload = {
+        "company_id": company_id,
+        "report_type": "valuation_advisory",
+        "intake_answers": _valuation_answers(),
+        "idempotency_key": "idempotent-before-readiness",
+    }
+    first = await client.post("/wizard/report/checkout", json=payload)
+    assert first.status_code == 201, first.text
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE documents SET extraction_status='failed' WHERE company_id=?",
+            (company_id,),
+        )
+        await db.commit()
+
+    retry = await client.post("/wizard/report/checkout", json=payload)
+
+    assert retry.status_code == 201, retry.text
+    assert retry.json()["report_id"] == first.json()["report_id"]
+    async with aiosqlite.connect(DB_PATH) as db:
+        assert (await (await db.execute("SELECT COUNT(*) FROM reports")).fetchone())[0] == 1
+        assert (await (await db.execute("SELECT COUNT(*) FROM purchases")).fetchone())[0] == 1
+
+
+@pytest.mark.asyncio
 async def test_snapshot_missing_retained_file_returns_serviceability_conflict(
     client, fresh_all_db, monkeypatch
 ):
@@ -1074,6 +1408,7 @@ async def test_non_valuation_generate_does_not_require_retained_file(
     monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
     monkeypatch.setattr(main_module, "E2E_MODE", True)
     company_id = await _register_and_upload(client, email="internal-report@example.com")
+    await provision_test_admin("internal-report@example.com")
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             "UPDATE documents SET file_hash=NULL, filepath='/tmp/accountiq-missing-internal-file.pdf' WHERE company_id=?",
@@ -1092,6 +1427,27 @@ async def test_non_valuation_generate_does_not_require_retained_file(
 
     assert response.status_code == 201, response.text
     assert response.json()["status"] == "queued"
+
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_generate_internal_report(
+    client, fresh_all_db, monkeypatch
+):
+    monkeypatch.setenv("ACCOUNTIQ_E2E_MODE", "true")
+    monkeypatch.setattr(main_module, "E2E_MODE", True)
+    company_id = await _register_and_upload(client, email="customer-report@example.com")
+
+    response = await client.post(
+        "/wizard/report/generate",
+        json={
+            "company_id": company_id,
+            "report_type": "financial_forecast",
+            "intake_answers": {},
+        },
+    )
+
+    assert response.status_code == 403, response.text
+    assert response.json()["detail"] == "Admin access required"
 
 
 @pytest.mark.asyncio
@@ -1119,6 +1475,7 @@ async def test_valuation_generate_requires_checkout(client, fresh_all_db, monkey
     monkeypatch.setattr(main_module, "E2E_MODE", True)
 
     company_id = await _register_and_upload(client, email="direct-buyer@example.com")
+    await provision_test_admin("direct-buyer@example.com")
     res = await client.post(
         "/wizard/report/generate",
         json={
