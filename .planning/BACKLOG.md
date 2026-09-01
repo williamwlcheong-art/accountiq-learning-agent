@@ -1,6 +1,6 @@
 # AccountIQ Backlog
 
-Last updated: 2026-07-22
+Last updated: 2026-09-01
 
 This is the lightweight working backlog for the paid Valuation Advisory MVP. Keep the detailed implementation instructions in `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`; keep this file as the current source of truth for what is done, in progress, next, and waiting on domain review.
 
@@ -31,6 +31,7 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-06 | Add account purchase history | Done | #11 | Technical | Owner-filtered purchase API and account table show payment/delivery status; released reports expose viewer and PDF actions. Backend, build, and full browser regression gates pass. |
 | PVM-07 | Add public valuation offer page | Done | #12 | Product + Technical | Static public offer uses early-access fixed-fee language without a numeric amount and routes conversion links through `/login`; all frontend gates pass. |
 | PVM-08 | Live report UAT and valuation launch readiness | In progress | #15 to #24 merged | William + Technical | PR #24 added the no-network rehearsal runner. The synthetic rehearsal passed with schema 2, Decimal FCFF reconciliation, six Python-owned tables, private rendering, and immutable evidence. Live Anthropic UAT still requires explicit approval. |
+| PVM-09 | Quarterly NZ market intelligence, payment failure/refund handling, and auth conversion fixes | In review | #26 open | Technical | Checkout fails closed on a stale quarterly snapshot; webhook handles failed/expired/refunded payments with amount and metadata verification; acquisition CTAs land on registration; auth surface shares the marketing brand; unauthenticated `/` shows the public offer page. Pricing copy and footer identity remain with William. |
 
 ## Next Three PRs
 
