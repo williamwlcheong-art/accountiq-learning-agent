@@ -116,8 +116,14 @@ export type ApiConflict = {
   message: string;
 };
 
+export type ApiPaymentRetry = {
+  state: "payment_retry_required";
+  code: string;
+  message: string;
+};
+
 export type ApiErrorBody = {
-  detail?: string | CheckoutClarification | ApiConflict;
+  detail?: string | CheckoutClarification | ApiConflict | ApiPaymentRetry;
 };
 
 export type DerivedRevenueRatio = {

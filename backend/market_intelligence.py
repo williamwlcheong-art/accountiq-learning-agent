@@ -10,8 +10,10 @@ from __future__ import annotations
 import copy
 import json
 import os
+from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 
 SCHEMA_VERSION = "1.0"
@@ -22,6 +24,14 @@ MARKET_SECTION_BY_REPORT_TYPE = {
     "valuation_advisory": "market_position",
     "bank_credit_paper": "industry_and_competitive_landscape",
 }
+
+
+class MarketIntelligenceStaleError(ValueError):
+    """Raised when the registered quarterly snapshot is past its review date."""
+
+
+def _new_zealand_today() -> date:
+    return datetime.now(ZoneInfo("Pacific/Auckland")).date()
 
 
 def market_intelligence_dir() -> Path:
@@ -61,6 +71,17 @@ def _validate_snapshot(snapshot: dict, path: Path) -> None:
         raise ValueError(
             f"Unsupported market intelligence schema {snapshot.get('schema_version')} "
             f"in {path.name}; expected {SCHEMA_VERSION}"
+        )
+    try:
+        snapshot_date = date.fromisoformat(str(snapshot.get("as_of_date") or ""))
+        review_date = date.fromisoformat(str(snapshot.get("next_review_date") or ""))
+    except ValueError as exc:
+        raise ValueError(
+            f"Market intelligence snapshot {path.name} has invalid ISO review dates"
+        ) from exc
+    if review_date <= snapshot_date:
+        raise ValueError(
+            f"Market intelligence snapshot {path.name} review date must follow its as-of date"
         )
     source_ids = {
         str(source.get("id") or "")
@@ -113,12 +134,24 @@ def _load_current_cached(directory_value: str) -> tuple[dict, dict]:
     )
     if not indexed or indexed.get("snapshot_id") != snapshot.get("snapshot_id"):
         raise ValueError("Current market intelligence snapshot is not registered correctly")
+    if any(
+        indexed.get(field) != snapshot.get(field)
+        for field in ("as_of_date", "next_review_date")
+    ):
+        raise ValueError("Current market intelligence index dates do not match its snapshot")
     return index, snapshot
 
 
 def load_current_market_intelligence() -> tuple[dict, dict]:
-    """Load and validate the registered current quarterly snapshot."""
-    return _load_current_cached(str(market_intelligence_dir().resolve()))
+    """Load the registered snapshot and fail closed once its review is overdue."""
+    index, snapshot = _load_current_cached(str(market_intelligence_dir().resolve()))
+    review_date = date.fromisoformat(str(snapshot["next_review_date"]))
+    if _new_zealand_today() > review_date:
+        raise MarketIntelligenceStaleError(
+            "New Zealand market intelligence is past its quarterly review date "
+            f"({review_date.isoformat()}); register a refreshed snapshot before generating reports."
+        )
+    return index, snapshot
 
 
 def clear_market_intelligence_cache() -> None:

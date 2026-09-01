@@ -1,12 +1,17 @@
 import sys
+from datetime import date
 from pathlib import Path
+
+import pytest
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent / "backend"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from main import _e2e_report_content, _render_report_sections_html
+import market_intelligence as market_intelligence_module
 from market_intelligence import (
+    MarketIntelligenceStaleError,
     apply_market_intelligence_to_report_content,
     enrich_research_brief_with_market_intelligence,
     load_current_market_intelligence,
@@ -35,6 +40,17 @@ def test_current_quarterly_snapshot_has_macro_sources_and_every_sector():
         for chart in snapshot["charts"]
         for series in chart["series"]
     )
+
+
+def test_current_snapshot_fails_closed_after_review_date(monkeypatch):
+    monkeypatch.setattr(
+        market_intelligence_module,
+        "_new_zealand_today",
+        lambda: date(2026, 10, 27),
+    )
+
+    with pytest.raises(MarketIntelligenceStaleError, match="2026-10-26"):
+        load_current_market_intelligence()
 
 
 def test_private_sector_scale_is_not_described_as_market_capitalisation():
