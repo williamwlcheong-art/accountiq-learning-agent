@@ -208,6 +208,69 @@ test("regular user can complete bank credit paper intake", async ({ page }) => {
   await expect(page.getByText(/add lender evidence before preparing the paper/i)).toBeVisible();
 });
 
+test("evidence-mode credit intake asks for a source before lending questions", async ({ page }) => {
+  await page.route("**/api/backend/wizard/upload", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        company_id: 901,
+        document_id: 902,
+        document_ids: [902],
+        filenames: ["evidence-mode.pdf"],
+        status: "done",
+        demo_mode: false,
+      }),
+    });
+  });
+  await page.route("**/api/backend/wizard/document/*/status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: 902,
+        extraction_status: "done",
+        message: "Your financial statements are ready.",
+        demo_mode: false,
+      }),
+    });
+  });
+  await page.route("**/api/backend/wizard/financial-review", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "ready",
+        generation_mode: "evidence",
+        document_ids: [902],
+        conflicts: [],
+        unresolved_conflict_ids: [],
+        invalid_override_ids: [],
+        warnings: [],
+        balance_sheet: { ready: true, warnings: [], issues: [], periods: [] },
+        readiness: {
+          valuation_advisory: { ready: true, issues: [], warnings: [], follow_up_items: [] },
+          bank_credit_paper: { ready: true, issues: [], warnings: [], follow_up_items: [] },
+        },
+      }),
+    });
+  });
+
+  await register(page, regularEmail());
+  await page.getByLabel(/business name/i).fill("Evidence Credit E2E Ltd");
+  await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
+  await page.getByRole("button", { name: /continue/i }).click();
+  await expect(page.getByRole("heading", { name: /choose your report/i })).toBeVisible();
+  await page.getByRole("button", { name: /bank credit paper/i }).click();
+  await page.getByRole("button", { name: /continue/i }).click();
+
+  await expect(page.getByText("Public-source scope", { exact: true })).toBeVisible();
+  await expect(page.getByLabel(/business website or public link/i)).toHaveAttribute("required", "");
+  await page.getByRole("button", { name: /continue to lending questions/i }).click();
+  await expect(page.getByRole("alert").filter({ hasText: /add the business website or at least one public source url/i })).toBeVisible();
+  await expect(page.getByText("Client research setup", { exact: true })).toBeVisible();
+});
+
 test("failed financial extraction explains what to upload before valuation questions", async ({ page }) => {
   await page.route("**/api/backend/wizard/document/*/status", async (route) => {
     await route.fulfill({
@@ -248,22 +311,26 @@ test("regular user can complete valuation-specific intake", async ({ page, conte
   await page.getByRole("button", { name: /continue/i }).click();
   await expect(page.getByRole("heading", { name: /valuation can be prepared from this upload/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /add supporting files/i })).toBeVisible();
-  await expect(page.getByText(/we will simulate the desk work/i)).toBeVisible();
+  await expect(page.getByText(/we will simulate the desk work/i)).toBeHidden();
   await expect(page.getByRole("heading", { name: /only five answers are required/i })).toBeVisible();
   await expect(page.getByText(/optional links and private context can be skipped/i)).toBeVisible();
   await expect(page.getByText(/wacc, terminal growth and forecast period/i)).toBeVisible();
   await expect(page.getByText(/private facts only you know/i)).toBeVisible();
   await expect(page.getByText(/0 of 5 required answers complete/i)).toBeVisible();
   await expect(page.getByText(/optional research clues stay optional/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /not sure is an acceptable answer/i })).toBeHidden();
+  await page.getByText(/what to do if you are not sure/i).click();
   await expect(page.getByRole("heading", { name: /not sure is an acceptable answer/i })).toBeVisible();
   await expect(page.getByText(/use uploaded financial history or flag the item as a diligence point/i)).toBeVisible();
   await expect(page.getByText(/purpose is the only answer that needs your closest reason/i)).toBeVisible();
+  await page.getByText(/how accountiq prepares the report/i).click();
   await expect(page.getByText(/sample business research, sample market evidence and simulated valuation assumptions/i)).toBeVisible();
   await expect(page.getByText(/source trail demonstrated/i)).toBeVisible();
   await expect(page.getByText(/sample public evidence and labelled demo urls appear in the finished pack/i)).toBeVisible();
   await expect(page.getByText(/optional: strengthen the report evidence/i)).toBeVisible();
   await expect(page.getByLabel("Forecast / pipeline support")).toHaveCount(1);
   await expect(page.getByText(/valuation inputs/i)).toHaveCount(0);
+  await page.getByText(/why these five answers matter/i).click();
   await expect(page.getByText(/five required answers, each used in the report/i)).toBeVisible();
   await expect(page.getByText(/we keep this to five required answers/i)).toBeVisible();
   await expect(
@@ -347,12 +414,16 @@ test("regular user can complete valuation-specific intake", async ({ page, conte
   await expect(page.getByText(/auckland, new zealand/i)).toBeVisible();
   await expect(page.getByText(/linkedin\.com\/company\/valuation-e2e/i)).toBeVisible();
   await expect(page.getByText(/a key contract renews next year/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /no more required answers after this check/i })).toBeHidden();
+  await page.getByText(/what is included when you prepare the report/i).click();
   await expect(page.getByText(/no more required answers after this check/i)).toBeVisible();
   await expect(page.getByText(/calculation trail/i)).toBeVisible();
   await expect(page.getByText(/research trail/i)).toBeVisible();
   await expect(page.getByText(/source urls retained for review/i)).toBeVisible();
   await expect(page.getByText(/dcf, multiples cross-check, sensitivity analysis and risk factors/i)).toBeVisible();
   await expect(page.getByText(/browser report plus downloadable pdf/i)).toBeVisible();
+  await expect(page.getByText(/this is a review, not a finance test/i)).toBeHidden();
+  await page.getByText(/how to review an earnings adjustment/i).click();
   await expect(page.getByText(/this is a review, not a finance test/i)).toBeVisible();
   await expect(page.getByText(/remove it, leave it blank or do nothing if you are unsure/i)).toBeVisible();
   await expect(page.getByText(/do not forecast here/i)).toBeVisible();
@@ -363,6 +434,7 @@ test("regular user can complete valuation-specific intake", async ({ page, conte
   await page.getByRole("button", { name: /review earnings adjustments/i }).click();
   await expect(page.getByRole("heading", { name: /your five valuation answers/i })).toBeVisible();
   await expect(page.getByText(/research and private context to use/i)).toBeVisible();
+  await page.getByText(/how to review an earnings adjustment/i).click();
   await expect(page.getByText(/usually worth adjusting/i)).toBeVisible();
   await expect(page.getByText(/usually leave alone/i)).toBeVisible();
   await expect(page.getByText(/treat any pre-filled items as candidates/i)).toBeVisible();

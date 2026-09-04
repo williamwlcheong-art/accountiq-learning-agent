@@ -80,6 +80,7 @@ type BalanceSheetReview = {
 
 type FinancialReview = {
   status: "ready" | "needs_review";
+  generation_mode?: "demo" | "provider" | "evidence";
   document_ids: number[];
   conflicts: FinancialReviewConflict[];
   unresolved_conflict_ids: string[];
@@ -778,6 +779,7 @@ export function Wizard({ user }: WizardProps) {
               reportType={reportType}
               companyId={upload.company_id}
               demoMode={upload.demo_mode}
+              sourceHintsRequired={financialReview?.generation_mode === "evidence" && !upload.demo_mode}
               reportReadiness={selectedReportReadiness}
               initialDraft={intakeDrafts[reportType]}
               onDraftChange={(draft) =>

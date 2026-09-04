@@ -43,6 +43,7 @@ type IntakeFormProps = {
   reportType: WizardReportType;
   companyId: number;
   demoMode?: boolean;
+  sourceHintsRequired?: boolean;
   reportReadiness?: ReportReadiness;
   initialDraft?: IntakeDraft;
   onDraftChange?: (draft: IntakeDraft) => void;
@@ -599,6 +600,7 @@ export function IntakeForm({
   reportType,
   companyId,
   demoMode = false,
+  sourceHintsRequired = false,
   reportReadiness,
   initialDraft,
   onDraftChange,
@@ -840,6 +842,14 @@ export function IntakeForm({
       answers = sourceHintResult.answers;
 
       if (creditStage === "research-hints") {
+        const hasApprovedSource = Boolean(
+          String(answers.company_website ?? "").trim()
+          || (Array.isArray(answers.public_source_urls) && answers.public_source_urls.length),
+        );
+        if (sourceHintsRequired && !hasApprovedSource) {
+          setError("Add the business website or at least one public source URL so AccountIQ can collect source-backed business context without an AI provider.");
+          return;
+        }
         setCreditAnswers(answers);
         persistDraft({
           creditStage: "facility-questions",
@@ -1075,13 +1085,14 @@ export function IntakeForm({
             </section>
 
             <fieldset>
-              <legend>Optional public-source hints</legend>
+              <legend>{sourceHintsRequired ? "Public-source scope" : "Optional public-source hints"}</legend>
               <label htmlFor="credit-company-website">
-                Business website or public link
+                Business website or public link {sourceHintsRequired ? <span className="required" aria-hidden="true">*</span> : null}
                 <input
                   id="credit-company-website"
                   name="company_website"
                   type="url"
+                  required={sourceHintsRequired}
                   placeholder="https://example.co.nz"
                   defaultValue={String(creditAnswers.company_website ?? "")}
                 />
@@ -1740,83 +1751,92 @@ export function IntakeForm({
             </ul>
           </section>
 
-          <section className="valuation-uncertainty-panel" aria-labelledby="valuation-uncertainty-title">
-            <div>
-              <span className="eyebrow">No guessing required</span>
-              <h3 id="valuation-uncertainty-title">Not sure is an acceptable answer</h3>
-              <p>
-                If you do not know an exact customer percentage, contract mix or forecast, choose
-                Not sure. AccountIQ will either use uploaded financial history or flag the item as
-                a diligence point in the report.
-              </p>
-            </div>
-            <ul>
-              <li>Use Not sure for uncertain private facts.</li>
-              <li>Purpose is the only answer that needs your closest reason.</li>
-              <li>No discount-rate, WACC or terminal-growth choices are required.</li>
-            </ul>
-          </section>
+          <details className="optional-research-details valuation-guidance-details">
+            <summary>What to do if you are not sure</summary>
+            <section className="valuation-uncertainty-panel" aria-labelledby="valuation-uncertainty-title">
+              <div>
+                <span className="eyebrow">No guessing required</span>
+                <h3 id="valuation-uncertainty-title">Not sure is an acceptable answer</h3>
+                <p>
+                  If you do not know an exact customer percentage, contract mix or forecast, choose
+                  Not sure. AccountIQ will either use uploaded financial history or flag the item as
+                  a diligence point in the report.
+                </p>
+              </div>
+              <ul>
+                <li>Use Not sure for uncertain private facts.</li>
+                <li>Purpose is the only answer that needs your closest reason.</li>
+                <li>No discount-rate, WACC or terminal-growth choices are required.</li>
+              </ul>
+            </section>
+          </details>
 
-          <section className="research-first-panel" aria-labelledby="research-first-title">
-            <div>
-              <span className="eyebrow">{demoMode ? "Demo journey" : "Research first"}</span>
-              <h2 id="research-first-title">
-                {demoMode ? "We will simulate the desk work" : "We will do the desk work"}
-              </h2>
-              <p>
-                {demoMode
-                  ? "AccountIQ will use sample business research, sample market evidence and simulated valuation assumptions so you can test the finished journey without an API key. You only need to answer the same private facts a live valuation would require."
-                  : "AccountIQ will use the business website or public links you approve to assemble a retained evidence trail. If a live provider is configured it can broaden that research; otherwise the report labels its documented market conventions rather than presenting them as independently researched facts."}
-              </p>
-            </div>
-            <ul>
-              <li>{demoMode ? "Sample company background" : "Approved company website and public-source context"}</li>
-              <li>{demoMode ? "Sample market and competitor context" : "Evidence boundaries and retained source URLs"}</li>
-              <li>{demoMode ? "Sample discount-rate and inflation assumptions" : "Transparent model conventions where independent market evidence is unavailable"}</li>
-              <li>{demoMode ? "Sample comparable evidence" : "Comparable evidence only when it is independently sourced"}</li>
-            </ul>
-            <aside className="source-trail-note" aria-label="Source trail reassurance">
-              <strong>{demoMode ? "Source trail demonstrated" : "Source trail retained"}</strong>
-              <span>
-                {demoMode
-                  ? "The sample report demonstrates how sample public evidence and labelled demo URLs appear in the finished pack."
-                  : "Public evidence and URLs are kept in the report so a reader can see what supported the company context and where documented model conventions were used."}
-              </span>
-            </aside>
-          </section>
+          <details className="optional-research-details valuation-guidance-details">
+            <summary>How AccountIQ prepares the report</summary>
+            <section className="research-first-panel" aria-labelledby="research-first-title">
+              <div>
+                <span className="eyebrow">{demoMode ? "Demo journey" : "Research first"}</span>
+                <h2 id="research-first-title">
+                  {demoMode ? "We will simulate the desk work" : "We will do the desk work"}
+                </h2>
+                <p>
+                  {demoMode
+                    ? "AccountIQ will use sample business research, sample market evidence and simulated valuation assumptions so you can test the finished journey without an API key. You only need to answer the same private facts a live valuation would require."
+                    : "AccountIQ will use the business website or public links you approve to assemble a retained evidence trail. If a live provider is configured it can broaden that research; otherwise the report labels its documented market conventions rather than presenting them as independently researched facts."}
+                </p>
+              </div>
+              <ul>
+                <li>{demoMode ? "Sample company background" : "Approved company website and public-source context"}</li>
+                <li>{demoMode ? "Sample market and competitor context" : "Evidence boundaries and retained source URLs"}</li>
+                <li>{demoMode ? "Sample discount-rate and inflation assumptions" : "Transparent model conventions where independent market evidence is unavailable"}</li>
+                <li>{demoMode ? "Sample comparable evidence" : "Comparable evidence only when it is independently sourced"}</li>
+              </ul>
+              <aside className="source-trail-note" aria-label="Source trail reassurance">
+                <strong>{demoMode ? "Source trail demonstrated" : "Source trail retained"}</strong>
+                <span>
+                  {demoMode
+                    ? "The sample report demonstrates how sample public evidence and labelled demo URLs appear in the finished pack."
+                    : "Public evidence and URLs are kept in the report so a reader can see what supported the company context and where documented model conventions were used."}
+                </span>
+              </aside>
+            </section>
+          </details>
 
-          <section className="valuation-answer-map" aria-labelledby="valuation-answer-map-title">
-            <div>
-              <span className="eyebrow">Why we ask</span>
-              <h3 id="valuation-answer-map-title">Five required answers, each used in the report</h3>
-              <p>
-                We keep this to five required answers by using your financial upload and public research for everything else.
-                These answers cover private facts that usually are not visible in accounts or online searches.
-              </p>
-            </div>
-            <dl>
+          <details className="optional-research-details valuation-guidance-details">
+            <summary>Why these five answers matter</summary>
+            <section className="valuation-answer-map" aria-labelledby="valuation-answer-map-title">
               <div>
-                <dt>Purpose</dt>
-                <dd>Sets the report scope and how the conclusion is framed.</dd>
+                <span className="eyebrow">Why we ask</span>
+                <h3 id="valuation-answer-map-title">Five required answers, each used in the report</h3>
+                <p>
+                  We keep this to five required answers by using your financial upload and public research for everything else.
+                  These answers cover private facts that usually are not visible in accounts or online searches.
+                </p>
               </div>
-              <div>
-                <dt>Owner or key-person dependency</dt>
-                <dd>Feeds the continuity, handover and transition-risk discussion.</dd>
-              </div>
-              <div>
-                <dt>Customer concentration</dt>
-                <dd>Highlights earnings risk and revenue-retention sensitivity.</dd>
-              </div>
-              <div>
-                <dt>Revenue predictability</dt>
-                <dd>Helps explain cash-flow reliability and recurring revenue quality.</dd>
-              </div>
-              <div>
-                <dt>Revenue outlook</dt>
-                <dd>Guides the growth assumption or lets us use uploaded financial history.</dd>
-              </div>
-            </dl>
-          </section>
+              <dl>
+                <div>
+                  <dt>Purpose</dt>
+                  <dd>Sets the report scope and how the conclusion is framed.</dd>
+                </div>
+                <div>
+                  <dt>Owner or key-person dependency</dt>
+                  <dd>Feeds the continuity, handover and transition-risk discussion.</dd>
+                </div>
+                <div>
+                  <dt>Customer concentration</dt>
+                  <dd>Highlights earnings risk and revenue-retention sensitivity.</dd>
+                </div>
+                <div>
+                  <dt>Revenue predictability</dt>
+                  <dd>Helps explain cash-flow reliability and recurring revenue quality.</dd>
+                </div>
+                <div>
+                  <dt>Revenue outlook</dt>
+                  <dd>Guides the growth assumption or lets us use uploaded financial history.</dd>
+                </div>
+              </dl>
+            </section>
+          </details>
 
           <fieldset>
             <legend>First, what is this valuation for?</legend>
@@ -2142,29 +2162,32 @@ export function IntakeForm({
                 </p>
               </section>
 
-              <section className="earnings-review-reassurance" aria-label="Earnings review reassurance">
-                <div>
-                  <strong>This is a review, not a finance test</strong>
-                  <span>
-                    Keep a suggested adjustment only if it genuinely applies to this upload. Remove it,
-                    leave it blank or do nothing if you are unsure.
-                  </span>
-                </div>
-                <div>
-                  <strong>Do not forecast here</strong>
-                  <span>
-                    Future growth, pipeline upside and normal trading costs stay out of this check.
-                    AccountIQ handles forecast assumptions separately.
-                  </span>
-                </div>
-                <div>
-                  <strong>No extra required answers</strong>
-                  <span>
-                    The five private answers are already captured. This step only confirms whether
-                    the uploaded earnings need obvious one-off adjustments.
-                  </span>
-                </div>
-              </section>
+              <details className="optional-research-details valuation-guidance-details">
+                <summary>How to review an earnings adjustment</summary>
+                <section className="earnings-review-reassurance" aria-label="Earnings review reassurance">
+                  <div>
+                    <strong>This is a review, not a finance test</strong>
+                    <span>
+                      Keep a suggested adjustment only if it genuinely applies to this upload. Remove it,
+                      leave it blank or do nothing if you are unsure.
+                    </span>
+                  </div>
+                  <div>
+                    <strong>Do not forecast here</strong>
+                    <span>
+                      Future growth, pipeline upside and normal trading costs stay out of this check.
+                      AccountIQ handles forecast assumptions separately.
+                    </span>
+                  </div>
+                  <div>
+                    <strong>No extra required answers</strong>
+                    <span>
+                      The five private answers are already captured. This step only confirms whether
+                      the uploaded earnings need obvious one-off adjustments.
+                    </span>
+                  </div>
+                </section>
+              </details>
 
               <section className="valuation-answer-summary" aria-labelledby="valuation-answer-summary-title">
                 <div className="valuation-answer-summary-header">
@@ -2214,30 +2237,33 @@ export function IntakeForm({
                 ) : null}
               </section>
 
-              <section className="valuation-delivery-preview" aria-labelledby="valuation-delivery-preview-title">
-                <div>
-                  <span className="eyebrow">When you click prepare</span>
-                  <h3 id="valuation-delivery-preview-title">No more required answers after this check</h3>
-                  <p>
-                    AccountIQ will turn your upload, five private answers and public-source research
-                    into a professional valuation pack that explains the calculation trail.
-                  </p>
-                </div>
-                <ul>
-                  <li>
-                    <strong>Research trail</strong>
-                    <span>Business context, market evidence and source URLs retained for review.</span>
-                  </li>
-                  <li>
-                    <strong>Valuation model</strong>
-                    <span>DCF, multiples cross-check, sensitivity analysis and risk factors.</span>
-                  </li>
-                  <li>
-                    <strong>Report pack</strong>
-                    <span>Browser report plus downloadable PDF with cover, contents, report letter, prepared-by identity and basis of preparation.</span>
-                  </li>
-                </ul>
-              </section>
+              <details className="optional-research-details valuation-guidance-details">
+                <summary>What is included when you prepare the report</summary>
+                <section className="valuation-delivery-preview" aria-labelledby="valuation-delivery-preview-title">
+                  <div>
+                    <span className="eyebrow">When you click prepare</span>
+                    <h3 id="valuation-delivery-preview-title">No more required answers after this check</h3>
+                    <p>
+                      AccountIQ will turn your upload, five private answers and public-source research
+                      into a professional valuation pack that explains the calculation trail.
+                    </p>
+                  </div>
+                  <ul>
+                    <li>
+                      <strong>Research trail</strong>
+                      <span>Business context, market evidence and source URLs retained for review.</span>
+                    </li>
+                    <li>
+                      <strong>Valuation model</strong>
+                      <span>DCF, multiples cross-check, sensitivity analysis and risk factors.</span>
+                    </li>
+                    <li>
+                      <strong>Report pack</strong>
+                      <span>Browser report plus downloadable PDF with cover, contents, report letter, prepared-by identity and basis of preparation.</span>
+                    </li>
+                  </ul>
+                </section>
+              </details>
 
               <fieldset>
                 <legend>Check the earnings adjustments</legend>

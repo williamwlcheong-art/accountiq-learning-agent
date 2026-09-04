@@ -1225,6 +1225,26 @@ a {
   line-height: 1.5;
 }
 
+.valuation-guidance-details {
+  margin: 0;
+}
+
+.valuation-guidance-details > section {
+  margin-top: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.valuation-guidance-details > .research-first-panel,
+.valuation-guidance-details > .valuation-uncertainty-panel,
+.valuation-guidance-details > .valuation-answer-map,
+.valuation-guidance-details > .valuation-delivery-preview {
+  display: grid;
+}
+
 .normalisation-row {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(120px, 0.7fr) minmax(0, 1.4fr) auto;

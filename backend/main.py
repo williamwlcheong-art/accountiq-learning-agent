@@ -2084,6 +2084,7 @@ async def wizard_financial_review(
     credit_readiness = assess_credit_financial_readiness(reconciliation["rows"])
     return {
         "document_ids": resolved_document_ids,
+        "generation_mode": _report_generation_mode(),
         **reconciliation,
         "readiness": {
             "valuation_advisory": {

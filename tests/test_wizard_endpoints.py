@@ -372,6 +372,30 @@ async def test_wizard_financial_review_flags_conflicting_duplicate_years_and_acc
 
 
 @pytest.mark.asyncio
+async def test_wizard_financial_review_exposes_generation_mode_for_intake_guidance(
+    client,
+    fresh_all_db,
+    monkeypatch,
+):
+    company_id = await _register_and_create_company(client, email="financial-review-mode@example.com")
+    document_id = await _seed_source_document(
+        company_id,
+        email="financial-review-mode@example.com",
+        label="source",
+    )
+    monkeypatch.setattr(main_module, "E2E_MODE", False)
+    monkeypatch.setenv("ACCOUNTIQ_REPORT_GENERATION_MODE", "evidence")
+
+    review = await client.post(
+        "/wizard/financial-review",
+        json={"company_id": company_id, "source_document_ids": [document_id]},
+    )
+
+    assert review.status_code == 200, review.text
+    assert review.json()["generation_mode"] == "evidence"
+
+
+@pytest.mark.asyncio
 async def test_report_generation_requires_resolution_of_conflicting_duplicate_years(
     client,
     fresh_all_db,
