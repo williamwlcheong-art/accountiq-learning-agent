@@ -388,6 +388,16 @@ export function Wizard({ user }: WizardProps) {
   const selectedReportReadiness = reportType
     ? financialReview?.readiness?.[reportType]
     : undefined;
+  const workflowStep = step === "upload" || step === "processing" || step === "financial-review"
+    ? 1
+    : step === "status"
+      ? 3
+      : 2;
+  const workflowSteps = [
+    { number: 1, label: "Upload financials" },
+    { number: 2, label: "Set report details" },
+    { number: 3, label: "Review output" },
+  ];
 
   return (
     <>
@@ -403,6 +413,18 @@ export function Wizard({ user }: WizardProps) {
       </nav>
 
       <main className="wizard-shell">
+        <ol className="wizard-progress" aria-label="Report preparation progress">
+          {workflowSteps.map(({ number, label }) => (
+            <li
+              key={number}
+              className={number < workflowStep ? "complete" : number === workflowStep ? "current" : ""}
+              aria-current={number === workflowStep ? "step" : undefined}
+            >
+              <span>{number}</span>
+              <strong>{label}</strong>
+            </li>
+          ))}
+        </ol>
         {error ? (
           <div role="alert" className="alert alert-error">
             <p>{error}</p>

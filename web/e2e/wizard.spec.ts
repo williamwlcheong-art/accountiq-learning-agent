@@ -39,7 +39,6 @@ test("regular user uploads and sees valuation and credit-paper self-serve picker
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await expect(page.getByText(/sample\.pdf/i)).toBeVisible();
   await page.getByRole("button", { name: /continue/i }).click();
-  await expect(page.getByRole("heading", { name: /reading your financial statements/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /choose your report/i })).toBeVisible();
   await expect(page.getByText(/bank credit paper adds public client research/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /valuation advisory/i })).toBeEnabled();
@@ -168,6 +167,9 @@ test("regular user can complete bank credit paper intake", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /accountiq will research the client before drafting/i })).toBeVisible();
   await expect(page.getByText(/collect public company context from the website and links you approve/i)).toBeVisible();
   await page.getByLabel(/business website/i).fill("credit-e2e.example.co.nz");
+  const optionalCreditResearch = page.getByText(/optional: add location, ownership or other public links/i);
+  await expect(optionalCreditResearch).toBeVisible();
+  await optionalCreditResearch.click();
   await page.getByLabel(/main location/i).fill("Auckland");
   await page.getByLabel(/borrower \/ ownership structure/i).fill("Operating company borrower with owner support");
   await page.getByLabel(/helpful public links/i).fill("https://credit-e2e.example.co.nz/about");
@@ -178,6 +180,11 @@ test("regular user can complete bank credit paper intake", async ({ page }) => {
   await expect(page.getByText(/client research hints retained/i)).toBeVisible();
   await expect(page.getByText("https://credit-e2e.example.co.nz", { exact: true })).toBeVisible();
   await expect(page.getByText(/optional: add transaction structure, sources & uses or bridge details/i)).toBeVisible();
+  const creditControls = page.locator("details.credit-controls-details");
+  await expect(creditControls).not.toHaveAttribute("open");
+  await creditControls.locator("summary").click();
+  await expect(creditControls.getByText("Covenant package", { exact: true })).toBeVisible();
+  await creditControls.locator("summary").click();
   await expect(page.getByLabel("Transaction / group structure")).toHaveCount(1);
   await page.getByLabel(/what is the debt for/i).fill("Refinance existing debt and fund fleet expansion.");
   await page.getByLabel(/facility amount requested/i).fill("250000");

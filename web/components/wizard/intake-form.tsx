@@ -553,17 +553,36 @@ function IntakeEvidencePanel({
         </div>
       ) : null}
       {readiness.follow_up_items.length ? (
-        <div className="report-readiness-follow-up">
-          <strong>{isCredit ? "Evidence to obtain for a stronger lender paper" : "Information that strengthens the valuation"}</strong>
-          <ul>
-            {readiness.follow_up_items.map((item) => (
-              <li key={item.label}>
-                <span>{item.label}</span>
-                <small>{item.impact}</small>
-              </li>
-            ))}
-          </ul>
-        </div>
+        readiness.ready ? (
+          <details className="intake-follow-up-details">
+            <summary>
+              See what would strengthen this {isCredit ? "credit paper" : "valuation"} ({readiness.follow_up_items.length})
+            </summary>
+            <div className="report-readiness-follow-up">
+              <strong>{isCredit ? "Evidence to obtain for a stronger lender paper" : "Information that strengthens the valuation"}</strong>
+              <ul>
+                {readiness.follow_up_items.map((item) => (
+                  <li key={item.label}>
+                    <span>{item.label}</span>
+                    <small>{item.impact}</small>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
+        ) : (
+          <div className="report-readiness-follow-up">
+            <strong>{isCredit ? "Evidence to obtain for a stronger lender paper" : "Information that strengthens the valuation"}</strong>
+            <ul>
+              {readiness.follow_up_items.map((item) => (
+                <li key={item.label}>
+                  <span>{item.label}</span>
+                  <small>{item.impact}</small>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
       ) : null}
       {onAddDocuments ? (
         <div className="wizard-actions">
@@ -1057,54 +1076,58 @@ export function IntakeForm({
 
             <fieldset>
               <legend>Optional public-source hints</legend>
-              <div className="valuation-question-grid">
-                <label htmlFor="credit-company-website">
-                  Business website
-                  <input
-                    id="credit-company-website"
-                    name="company_website"
-                    type="url"
-                    placeholder="https://example.co.nz"
-                    defaultValue={String(creditAnswers.company_website ?? "")}
-                  />
-                  <span className="field-help">Recommended for evidence-mode research. AccountIQ can read this site and a small number of relevant pages on the same domain.</span>
-                </label>
-                <label htmlFor="credit-company-location">
-                  Main location
-                  <input
-                    id="credit-company-location"
-                    name="company_location"
-                    placeholder="e.g. Henderson, Auckland"
-                    defaultValue={String(creditAnswers.company_location ?? "")}
-                  />
-                  <span className="field-help">Useful for local competitors, branch network and sector context.</span>
-                </label>
-                <label htmlFor="credit-borrower-structure" className="valuation-wide-field">
-                  Borrower / ownership structure
-                  <input
-                    id="credit-borrower-structure"
-                    name="borrower_structure"
-                    placeholder="e.g. HoldCo borrower; operating companies; owner-operator; guarantors and ownership percentages"
-                    defaultValue={String(creditAnswers.borrower_structure ?? "")}
-                  />
-                  <span className="field-help">Optional. Add anything the accounts and public research may not show.</span>
-                </label>
-                <label htmlFor="credit-public-source-urls" className="valuation-wide-field">
-                  Helpful public links
-                  <textarea
-                    id="credit-public-source-urls"
-                    name="public_source_urls"
-                    rows={3}
-                    placeholder="Companies Office profile, business website, LinkedIn, media article, industry page..."
-                    defaultValue={
-                      Array.isArray(creditAnswers.public_source_urls)
-                        ? creditAnswers.public_source_urls.join("\n")
-                        : String(creditAnswers.public_source_urls ?? "")
-                    }
-                  />
-                  <span className="field-help">Add one or more public URLs if there is no official site. Up to 10 links; AccountIQ records what it retrieved and does not use unreadable pages for factual claims.</span>
-                </label>
-              </div>
+              <label htmlFor="credit-company-website">
+                Business website or public link
+                <input
+                  id="credit-company-website"
+                  name="company_website"
+                  type="url"
+                  placeholder="https://example.co.nz"
+                  defaultValue={String(creditAnswers.company_website ?? "")}
+                />
+                <span className="field-help">Recommended for evidence-mode research. AccountIQ can read this site and a small number of relevant pages on the same domain.</span>
+              </label>
+              <details className="optional-research-details">
+                <summary>Optional: add location, ownership or other public links</summary>
+                <p>Leave these blank if you do not have them handy. The uploaded financials remain the source for the credit calculations.</p>
+                <div className="valuation-question-grid">
+                  <label htmlFor="credit-company-location">
+                    Main location
+                    <input
+                      id="credit-company-location"
+                      name="company_location"
+                      placeholder="e.g. Henderson, Auckland"
+                      defaultValue={String(creditAnswers.company_location ?? "")}
+                    />
+                    <span className="field-help">Useful for local competitors, branch network and sector context.</span>
+                  </label>
+                  <label htmlFor="credit-borrower-structure">
+                    Borrower / ownership structure
+                    <input
+                      id="credit-borrower-structure"
+                      name="borrower_structure"
+                      placeholder="e.g. HoldCo borrower; operating company; owner support"
+                      defaultValue={String(creditAnswers.borrower_structure ?? "")}
+                    />
+                    <span className="field-help">Add anything the accounts and public research may not show.</span>
+                  </label>
+                  <label htmlFor="credit-public-source-urls" className="valuation-wide-field">
+                    Helpful public links
+                    <textarea
+                      id="credit-public-source-urls"
+                      name="public_source_urls"
+                      rows={3}
+                      placeholder="Companies Office profile, LinkedIn, media article or industry page"
+                      defaultValue={
+                        Array.isArray(creditAnswers.public_source_urls)
+                          ? creditAnswers.public_source_urls.join("\n")
+                          : String(creditAnswers.public_source_urls ?? "")
+                      }
+                    />
+                    <span className="field-help">Add one or more public URLs if there is no official site. AccountIQ records what it retrieved and does not use unreadable pages for factual claims.</span>
+                  </label>
+                </div>
+              </details>
             </fieldset>
 
             <section className="valuation-next-step-note" aria-labelledby="credit-next-step-title">
@@ -1280,60 +1303,62 @@ export function IntakeForm({
               </div>
             </fieldset>
 
-            <fieldset>
-              <legend>Covenant package</legend>
+            <details className="advanced-valuation-details credit-controls-details">
+              <summary>Optional: customise lender controls (balanced defaults already applied)</summary>
               <p className="field-help">
-                Choose how much lender control you want the paper to propose. The preset ticks the usual controls;
-                you can then add or remove specific covenants before generating the paper.
+                The balanced preset is submitted automatically. Open this only if the lender needs a lighter or more protective package.
               </p>
-              <div className="valuation-question-grid">
-                {Object.entries(creditCovenantPackageLabels).map(([value, label]) => (
-                  <label key={value} htmlFor={`credit-covenant-package-${value}`}>
-                    <input
-                      id={`credit-covenant-package-${value}`}
-                      name="covenant_package_level"
-                      type="radio"
-                      value={value}
-                      checked={creditCovenantPackageLevel === value}
-                      onChange={(event) => updateCreditCovenantPackage(event.currentTarget.value)}
-                    />
-                    {label}
-                    <span className="field-help">{creditCovenantPackageDescriptions[value]}</span>
-                  </label>
-                ))}
-              </div>
+              <fieldset>
+                <legend>Covenant package</legend>
+                <div className="valuation-question-grid">
+                  {Object.entries(creditCovenantPackageLabels).map(([value, label]) => (
+                    <label key={value} htmlFor={`credit-covenant-package-${value}`}>
+                      <input
+                        id={`credit-covenant-package-${value}`}
+                        name="covenant_package_level"
+                        type="radio"
+                        value={value}
+                        checked={creditCovenantPackageLevel === value}
+                        onChange={(event) => updateCreditCovenantPackage(event.currentTarget.value)}
+                      />
+                      {label}
+                      <span className="field-help">{creditCovenantPackageDescriptions[value]}</span>
+                    </label>
+                  ))}
+                </div>
 
-              <div className="valuation-question-grid">
-                {creditCovenantOptions.map((option) => (
-                  <label key={option.value} htmlFor={`credit-covenant-${option.value}`}>
-                    <input
-                      id={`credit-covenant-${option.value}`}
-                      name="selected_covenants"
-                      type="checkbox"
-                      value={option.value}
-                      checked={selectedCreditCovenants.includes(option.value)}
-                      onChange={(event) => toggleCreditCovenant(option.value, event.currentTarget.checked)}
-                    />
-                    {option.label}
-                    <span className="field-help">{option.help}</span>
-                  </label>
-                ))}
-              </div>
+                <div className="valuation-question-grid">
+                  {creditCovenantOptions.map((option) => (
+                    <label key={option.value} htmlFor={`credit-covenant-${option.value}`}>
+                      <input
+                        id={`credit-covenant-${option.value}`}
+                        name="selected_covenants"
+                        type="checkbox"
+                        value={option.value}
+                        checked={selectedCreditCovenants.includes(option.value)}
+                        onChange={(event) => toggleCreditCovenant(option.value, event.currentTarget.checked)}
+                      />
+                      {option.label}
+                      <span className="field-help">{option.help}</span>
+                    </label>
+                  ))}
+                </div>
 
-              <label htmlFor="credit-covenant-notes" className="valuation-wide-field">
-                Covenant notes
-                <textarea
-                  id="credit-covenant-notes"
-                  name="covenant_package_notes"
-                  rows={3}
-                  placeholder="Optional. e.g. Keep covenants light because existing leverage is low; add tighter controls until collateral values are confirmed."
-                  defaultValue={String(creditAnswers.covenant_package_notes ?? "")}
-                />
-                <span className="field-help">
-                  These notes will flow into the proposed covenants section as drafting context.
-                </span>
-              </label>
-            </fieldset>
+                <label htmlFor="credit-covenant-notes" className="valuation-wide-field">
+                  Covenant notes
+                  <textarea
+                    id="credit-covenant-notes"
+                    name="covenant_package_notes"
+                    rows={3}
+                    placeholder="Optional. e.g. Keep covenants light because existing leverage is low; add tighter controls until collateral values are confirmed."
+                    defaultValue={String(creditAnswers.covenant_package_notes ?? "")}
+                  />
+                  <span className="field-help">
+                    These notes will flow into the proposed covenants section as drafting context.
+                  </span>
+                </label>
+              </fieldset>
+            </details>
 
             <details className="advanced-valuation-details">
               <summary>Optional: add transaction structure, sources & uses or bridge details</summary>

@@ -1180,6 +1180,24 @@ a {
   cursor: pointer;
 }
 
+.intake-follow-up-details {
+  padding: 10px 12px;
+  border: 1px dashed #bfdbfe;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.intake-follow-up-details summary {
+  color: var(--navy);
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.intake-follow-up-details .report-readiness-follow-up {
+  margin-top: 12px;
+}
+
 .advanced-valuation-details > p {
   margin: 10px 0 14px;
   color: var(--muted);
@@ -1898,6 +1916,60 @@ a {
 .wizard-shell {
   width: min(760px, calc(100vw - 32px));
   margin: 2rem auto;
+}
+
+.wizard-progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.wizard-progress li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--border);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.wizard-progress li > span {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.wizard-progress strong {
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.wizard-progress li.current {
+  border-bottom-color: var(--blue);
+  color: var(--navy);
+}
+
+.wizard-progress li.current > span,
+.wizard-progress li.complete > span {
+  border-color: var(--blue);
+  background: #e3f2fd;
+  color: var(--blue);
+}
+
+.wizard-progress li.complete {
+  border-bottom-color: #90caf9;
 }
 
 .admin-page {
