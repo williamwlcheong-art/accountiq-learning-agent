@@ -424,6 +424,16 @@ def test_page_has_text_threshold():
     )
 
 
+def test_page_has_text_rejects_cid_encoded_pdf_text():
+    """CID glyph output must trigger OCR instead of being treated as readable text."""
+    from ingestion import _page_has_text
+
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = "(cid:1)" * 40
+
+    assert _page_has_text(mock_page) is False
+
+
 def test_ocr_dpi_is_300():
     """OCR_DPI must be 300 (D-16: raised from 200)."""
     from ingestion import OCR_DPI

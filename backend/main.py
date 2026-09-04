@@ -5530,6 +5530,7 @@ def _demo_report_content_from_inputs(
                 "uses the figures extracted from the uploaded financial statements. Public research and "
                 "narrative drafting are simulated because demo mode is active.\n\n"
                 f"## Supplied report context\n{valuation_context}\n\n"
+                "## Valuation date and basis of value\nThis indicative view is prepared as at the date shown in the report and considers a willing buyer and willing seller on a going-concern fair-market basis, before buyer-specific synergies or transaction adjustments.\n\n"
                 "## Reliance limitation\nThis is a test draft only and should not be relied on for lending, "
                 "sale, investment or tax decisions."
             ),
@@ -5557,12 +5558,15 @@ def _demo_report_content_from_inputs(
             "about_business_valuations": (
                 "A business valuation distinguishes enterprise value from equity value. Enterprise value is the "
                 "value of the operating business before debt and surplus cash; equity value is the amount left for "
-                "shareholders after the debt/cash bridge."
+                "shareholders after the debt/cash bridge. The analysis assumes a going-concern business and focuses "
+                "on maintainable earnings rather than a one-off result. A valuation range communicates risk and "
+                "uncertainty more honestly than a single point estimate."
             ),
             "valuation_methodology": (
                 "The demo draft applies a DCF as the primary method and an EV/EBITDA range as a cross-check. "
-                "The calculation uses uploaded EBITDA, working-capital inputs where extracted, and conservative "
-                "demo discount-rate assumptions."
+                "The calculation discounts future cash flows at a conservative discount rate using uploaded EBITDA "
+                "and working-capital inputs where extracted. The market multiples cross-check is broad and not "
+                "directly comparable on scale, growth, customer mix or contract profile."
             ),
             "financial_performance": _section_with_table(
                 "Summary P&L extracted from the uploaded financial statements. This table should reconcile to "
@@ -5611,7 +5615,7 @@ def _demo_report_content_from_inputs(
                 specific_risk_factors=valuation_result.get("specific_risk_factors") or {},
             ),
             "comparable_evidence": _section_with_table(
-                "No live comparable evidence was researched in demo mode. Treat this section as a placeholder until live research is enabled.",
+                "No live comparable evidence was researched in demo mode. Treat this section as unverified broad-market context until live research is enabled.",
                 valuation_result.get("comparable_evidence_table") or {},
             ),
             "sources": _section_with_table(
@@ -5622,11 +5626,11 @@ def _demo_report_content_from_inputs(
             "disclaimer": (
                 "This demo indicative valuation does not constitute financial advice under the FMCA or "
                 "Financial Markets Conduct regime and should not be relied on for any transaction, lending "
-                "or investment decision."
+                "or investment decision without independent professional advice."
             ),
             "general_principles": (
                 "The valuation assumes a willing buyer and willing seller, an arm's-length transaction, "
-                "reasonable knowledge, no compulsion and going-concern operation at the valuation date."
+                "reasonable knowledge, no compulsion and a going concern operating at the valuation date."
             ),
             "glossary": (
                 "DCF means discounted cash flow: a method that estimates business value from future cash flows. "

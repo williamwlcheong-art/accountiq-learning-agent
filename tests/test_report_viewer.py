@@ -8,6 +8,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from main import (
+    _e2e_report_content,
     _evidence_mode_report_content_from_inputs,
     _demo_report_content_from_inputs,
     _inline_report_html,
@@ -228,6 +229,44 @@ def test_demo_valuation_content_carries_reference_level_context_into_report_sect
     assert "139 Ridgway Street, Whanganui" in content["introduction"]
     assert "Signed FY2025 accounts" in content["sources"]["narrative"]
     assert "Current management remains" in content["valuation_assumptions"]["narrative"]
+
+
+def test_demo_valuation_content_passes_report_validation_without_placeholder_language():
+    sample = _e2e_report_content("valuation_advisory", demo_mode=True)
+    valuation_result = {
+        "executive_summary_table": sample["executive_summary"]["table"],
+        "financial_performance_table": sample["financial_performance"]["table"],
+        "financial_ratio_table": sample["financial_ratio_analysis"]["table"],
+        "normalisation_schedule": sample["normalisations_schedule"]["table"],
+        "balance_sheet_summary_table": sample["balance_sheet_summary"]["table"],
+        "assumption_source_trail": sample["valuation_assumptions"]["table"],
+        "wacc_assumptions_table": sample["wacc_assumptions"]["table"],
+        "dcf_analysis_table": sample["dcf_analysis"]["table"],
+        "forecast_cash_flow_schedule": sample["dcf_analysis"]["cash_flow_schedule"],
+        "valuation_summary_table": sample["valuation_summary"]["table"],
+        "multiples_crosscheck_table": sample["multiples_crosscheck"]["table"],
+        "sensitivity_table": sample["sensitivity_and_risks"]["table"],
+        "specific_risk_factors": sample["sensitivity_and_risks"]["specific_risk_factors"],
+        "comparable_evidence_table": sample["comparable_evidence"]["table"],
+        "sources_table": sample["sources"]["table"],
+    }
+
+    content = _demo_report_content_from_inputs(
+        report_type="valuation_advisory",
+        company_name="Barakat Contractors Limited",
+        financial_rows=[],
+        valuation_result=valuation_result,
+        bank_credit_figures=None,
+        credit_research_brief=None,
+        intake_answers={
+            "instructing_party": "AccountIQ test reviewer",
+            "valuation_date": "2026-09-05",
+            "source_information": "Uploaded financial statements",
+        },
+    )
+
+    _validate_generated_report_content(content, "valuation_advisory")
+    assert "placeholder" not in json.dumps(content).lower()
 
 
 def test_evidence_mode_bank_credit_content_is_not_a_demo_or_ai_report():

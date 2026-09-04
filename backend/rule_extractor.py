@@ -322,9 +322,28 @@ def _score_page(page_text: str, syns: dict) -> int:
 # Core extraction
 # ---------------------------------------------------------------------------
 
+def _statement_headings(syns: dict[str, list[str]]) -> tuple[str, ...]:
+    """Return headings that identify pages belonging to a statement."""
+    if syns is PNL_SYNS:
+        return (
+            "statement of profit or loss",
+            "statement of profit and loss",
+            "profit and loss",
+            "income statement",
+            "statement of operations",
+        )
+    if syns is BS_SYNS:
+        return (
+            "balance sheet",
+            "statement of financial position",
+            "financial position",
+        )
+    return ()
+
+
 def _extract_statement(pages: list[str], syns: dict[str, list[str]]) -> dict:
     """
-    Find the best page for a statement, extract values, return:
+    Find statement pages, extract values, return:
     { canonical_key: { period: value } }
     """
     # Score all pages
@@ -334,58 +353,65 @@ def _extract_statement(pages: list[str], syns: dict[str, list[str]]) -> dict:
     if scores[best_idx] < 2:
         return {}
 
-    best_page = pages[best_idx]
-    periods = _detect_periods(best_page)
+    headings = _statement_headings(syns)
+    heading_pages = [
+        i
+        for i, page in enumerate(pages)
+        if scores[i] > 0 and any(_norm(heading) in _norm(page) for heading in headings)
+    ]
+    selected_pages = [pages[i] for i in heading_pages] or [pages[best_idx]]
+
+    periods = _detect_periods("\n".join(selected_pages))
     if not periods:
         return {}
 
     n_cols = len(periods)
     rows: dict[str, dict[str, Optional[float]]] = {k: {} for k in syns}
 
-    lines = best_page.split('\n')
-    for line in lines:
-        clean = line.strip()
-        if not clean:
-            continue
-        # Strip trailing numbers to get label
-        label_only = re.sub(r'[\d,.()\-\u2013\u2014\s]+$', '', clean).strip()
-        label_norm = _norm(label_only or clean)
-        if not label_norm:
-            continue
+    for page in selected_pages:
+        for line in page.split('\n'):
+            clean = line.strip()
+            if not clean:
+                continue
+            # Strip trailing numbers to get label
+            label_only = re.sub(r'[\d,.()\-\u2013\u2014\s]+$', '', clean).strip()
+            label_norm = _norm(label_only or clean)
+            if not label_norm:
+                continue
 
-        key = _match_row(label_norm, syns)
-        if not key:
-            continue
+            key = _match_row(label_norm, syns)
+            if not key:
+                continue
 
-        nums = _extract_numbers(clean)
-        if not nums:
-            continue
+            nums = _extract_numbers(clean)
+            if not nums:
+                continue
 
-        # Take the last N columns
-        cols = nums[-n_cols:] if len(nums) >= n_cols else nums
+            # Take the last N columns
+            cols = nums[-n_cols:] if len(nums) >= n_cols else nums
 
-        # Pad left with None if fewer cols than periods
-        while len(cols) < n_cols:
-            cols = [None] + cols
+            # Pad left with None if fewer cols than periods
+            while len(cols) < n_cols:
+                cols = [None] + cols
 
-        # Must have at least one real value ≥ 100
-        real_vals = [v for v in cols if v is not None and abs(v) >= 100]
-        if not real_vals:
-            continue
+            # Must have at least one real value ≥ 100
+            real_vals = [v for v in cols if v is not None and abs(v) >= 100]
+            if not real_vals:
+                continue
 
-        if key in SUM_KEYS:
-            # Accumulate
-            for i, period in enumerate(periods):
-                if i < len(cols) and cols[i] is not None:
-                    rows[key][period] = (rows[key].get(period) or 0) + cols[i]
-        else:
-            # Last-match for totals, first-match otherwise
-            is_total = label_norm.startswith('total')
-            existing = rows[key]
-            if is_total or not existing:
+            if key in SUM_KEYS:
+                # Accumulate
                 for i, period in enumerate(periods):
-                    if i < len(cols):
-                        rows[key][period] = cols[i]
+                    if i < len(cols) and cols[i] is not None:
+                        rows[key][period] = (rows[key].get(period) or 0) + cols[i]
+            else:
+                # Last-match for totals, first-match otherwise
+                is_total = label_norm.startswith('total')
+                existing = rows[key]
+                if is_total or not existing:
+                    for i, period in enumerate(periods):
+                        if i < len(cols):
+                            rows[key][period] = cols[i]
 
     return {k: v for k, v in rows.items() if v}
 

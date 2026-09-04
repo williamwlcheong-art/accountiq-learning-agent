@@ -212,7 +212,15 @@ EXTRACT_RESPONSE_SCHEMA = {
 
 def _page_has_text(page) -> bool:
     text = page.extract_text() or ""
-    return len(text.strip()) > 100
+    if len(text.strip()) <= 100:
+        return False
+
+    # Some accounting PDFs expose glyph IDs rather than readable text. Treat
+    # repeated CID markers as an extraction failure so the page goes through OCR.
+    if text.count("(cid:") >= 3:
+        return False
+
+    return True
 
 
 def _ocr_page(page) -> str:

@@ -62,3 +62,29 @@ def test_balance_sheet_total_categories_are_not_misclassified_as_fixed_assets_or
     assert "total non current assets" in BS_SYNS["other_noncurrent_assets"]
     assert "total noncurrent liabilities" not in BS_SYNS["long_term_debt"]
     assert "total noncurrent liabilities" in BS_SYNS["other_noncurrent_liab"]
+
+
+def test_rule_based_extract_combines_multi_page_profit_and_loss_statements():
+    pages = [
+        """
+        Statement of Profit or Loss
+        2025 2024
+        Revenue 1,000,000 900,000
+        EBITDA 220,000 180,000
+        """,
+        """
+        Statement of Profit or Loss
+        2025 2024
+        Net Profit (Loss) for the Year 145,000 110,000
+        """,
+        """
+        Notes to the Financial Statements
+        Revenue 9,999,999 9,999,999
+        """,
+    ]
+
+    parsed = rule_based_extract(pages)
+
+    assert _row(parsed, "revenue")["values"] == {"2025": 1_000_000.0, "2024": 900_000.0}
+    assert _row(parsed, "ebitda")["values"] == {"2025": 220_000.0, "2024": 180_000.0}
+    assert _row(parsed, "net_profit")["values"] == {"2025": 145_000.0, "2024": 110_000.0}
