@@ -90,6 +90,7 @@ function percentageToRatio(value: unknown): number {
   return Number((Number(value) / 100).toFixed(10));
 }
 
+// Display only: confirmed calculated rates are submitted unrounded from fcffReadiness.
 function formatRatioPercent(rate: number) {
   return String(Number((rate * 100).toFixed(2)));
 }
@@ -314,7 +315,9 @@ export function IntakeForm({
           confirmed: true,
         },
         depreciation: {
-          rate: percentageToRatio(answers.depreciation_ratio),
+          rate: answers.depreciation_confirmation === "override"
+            ? percentageToRatio(answers.depreciation_ratio)
+            : fcffReadiness?.depreciation.rate ?? percentageToRatio(answers.depreciation_ratio),
           confirmed: true,
           rationale: answers.depreciation_confirmation === "override"
             ? String(answers.depreciation_override_rationale ?? "")
@@ -331,7 +334,9 @@ export function IntakeForm({
           confirmation_source: "customer",
         },
         operating_nwc: {
-          rate: percentageToRatio(answers.operating_nwc_ratio),
+          rate: answers.operating_nwc_confirmation === "override"
+            ? percentageToRatio(answers.operating_nwc_ratio)
+            : fcffReadiness?.operating_nwc.rate ?? percentageToRatio(answers.operating_nwc_ratio),
           confirmed: true,
           rationale: answers.operating_nwc_confirmation === "override"
             ? String(answers.operating_nwc_override_rationale ?? "")

@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const frontendCommand = process.env.PLAYWRIGHT_FRONTEND_COMMAND ?? "pnpm dev";
+const port = process.env.PLAYWRIGHT_PORT ?? "3000";
+const frontendCommand = process.env.PLAYWRIGHT_FRONTEND_COMMAND ?? `pnpm dev --port ${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -9,7 +10,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: `http://localhost:${port}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -26,7 +27,7 @@ export default defineConfig({
     },
     {
       command: frontendCommand,
-      url: "http://localhost:3000",
+      url: `http://localhost:${port}`,
       reuseExistingServer: false,
       timeout: 60_000,
     },
