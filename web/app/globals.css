@@ -812,21 +812,11 @@ th {
 }
 
 .marketing-hero-grid,
-.marketing-two-column,
-.marketing-faq-layout {
+.marketing-two-column {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
   gap: clamp(40px, 7vw, 88px);
   align-items: center;
-}
-
-.marketing-eyebrow {
-  margin: 0 0 14px;
-  color: var(--marketing-navy);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .marketing-hero h1 {
@@ -853,65 +843,30 @@ th {
   font-weight: 700;
 }
 
-.marketing-report-preview {
+.marketing-report-contents {
   border: 1px solid var(--marketing-line);
-  border-top: 8px solid var(--marketing-navy);
   border-radius: 8px;
-  padding: 30px;
+  padding: 28px 30px;
   background: #ffffff;
   box-shadow: 0 24px 60px rgba(27, 20, 100, 0.13);
 }
 
-.marketing-preview-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
+.marketing-report-contents h2 {
+  margin: 0 0 16px;
   color: var(--marketing-navy);
-  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
 }
 
-.marketing-preview-header small {
-  color: var(--marketing-muted);
-  font-weight: 600;
-}
-
-.marketing-preview-title {
-  margin: 32px 0 20px;
-  color: var(--marketing-navy);
-  font-size: 1.5rem;
-  font-weight: 800;
-}
-
-.marketing-report-preview dl,
-.marketing-report-preview dl div {
+.marketing-report-contents ol {
   display: grid;
-  gap: 8px;
-}
-
-.marketing-report-preview dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 24px;
   margin: 0;
-}
-
-.marketing-report-preview dl div {
-  grid-template-columns: 1fr auto;
-  padding: 13px 0;
-  border-bottom: 1px solid var(--marketing-line);
-}
-
-.marketing-report-preview dt {
-  font-weight: 800;
-}
-
-.marketing-report-preview dd {
-  margin: 0;
-  color: var(--marketing-muted);
-  text-align: right;
-}
-
-.marketing-report-preview > p {
-  margin: 22px 0 0;
-  color: var(--marketing-navy);
-  font-weight: 800;
+  padding-left: 1.4em;
+  color: var(--marketing-ink);
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .marketing-trust {
@@ -963,23 +918,20 @@ th {
   line-height: 1.7;
 }
 
-.marketing-card-grid {
+.marketing-use-cases {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 28px;
+  max-width: 720px;
   margin-top: 34px;
 }
 
-.marketing-card {
-  border: 1px solid var(--marketing-line);
-  border-radius: 8px;
-  padding: 28px;
-  background: #ffffff;
+.marketing-use-cases h3 {
+  margin: 0 0 8px;
+  color: var(--marketing-navy);
 }
 
-.marketing-card h3 {
-  margin: 0 0 12px;
-  color: var(--marketing-navy);
+.marketing-use-cases p {
+  margin: 0;
 }
 
 .marketing-check-list {
@@ -1009,17 +961,18 @@ th {
 
 .marketing-steps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: 18px;
+  max-width: 720px;
   margin: 34px 0 0;
   padding: 0;
   list-style: none;
 }
 
 .marketing-steps li {
-  min-height: 156px;
-  border-top: 3px solid var(--marketing-navy);
-  padding: 20px 4px 0;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 16px;
+  align-items: center;
 }
 
 .marketing-steps span {
@@ -1034,6 +987,7 @@ th {
 }
 
 .marketing-steps p {
+  margin: 0;
   color: var(--marketing-ink);
   font-weight: 700;
 }
@@ -1043,7 +997,6 @@ th {
   color: #ffffff;
 }
 
-.marketing-review-section .marketing-eyebrow,
 .marketing-review-section h2,
 .marketing-review-section p {
   color: #ffffff;
@@ -1068,8 +1021,12 @@ th {
   margin-bottom: 0;
 }
 
-.marketing-faq-layout {
-  align-items: start;
+.marketing-faq-layout h2 {
+  margin-bottom: 32px;
+}
+
+.marketing-review-copy {
+  max-width: 720px;
 }
 
 .marketing-faq-list details {
@@ -1129,14 +1086,11 @@ th {
   }
 
   .marketing-hero-grid,
-  .marketing-two-column,
-  .marketing-faq-layout {
+  .marketing-two-column {
     grid-template-columns: 1fr;
   }
 
-  .marketing-trust-grid,
-  .marketing-card-grid,
-  .marketing-steps {
+  .marketing-trust-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1184,21 +1138,12 @@ th {
     width: 100%;
   }
 
-  .marketing-report-preview {
+  .marketing-report-contents {
     padding: 22px;
   }
 
-  .marketing-report-preview dl div {
-    grid-template-columns: 1fr;
-  }
-
-  .marketing-report-preview dd {
-    text-align: left;
-  }
-
-  .marketing-trust-grid,
-  .marketing-card-grid,
-  .marketing-steps {
+  .marketing-report-contents ol,
+  .marketing-trust-grid {
     grid-template-columns: 1fr;
   }
 

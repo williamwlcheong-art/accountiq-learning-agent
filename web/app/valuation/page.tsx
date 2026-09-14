@@ -39,14 +39,25 @@ const inclusions = [
   "Web report and PDF delivery",
 ];
 
+const reportSections = [
+  "Business overview",
+  "Market position",
+  "Financial performance",
+  "Normalisations schedule",
+  "Balance sheet summary",
+  "Valuation methodology",
+  "WACC assumptions",
+  "DCF analysis",
+  "Valuation summary",
+  "Multiples cross-check",
+];
+
 const steps = [
-  "Create your AccountIQ account",
-  "Upload recent financial statements",
+  "Create your account and upload recent financial statements",
   "Complete the valuation questions",
   "See the fixed fee and pay securely",
-  "AccountIQ prepares the report",
-  "A reviewer checks the report before release",
-  "Access the reviewed report from your account",
+  "AccountIQ prepares the report and a reviewer checks it before release",
+  "Open the reviewed report from your account",
 ];
 
 const faqs = [
@@ -96,7 +107,7 @@ export default function ValuationPage() {
               Sign in
             </Link>
             <Link className="marketing-cta marketing-cta-small" href="/login?mode=register">
-              Get a valuation
+              Get a business valuation
             </Link>
           </div>
         </div>
@@ -106,15 +117,14 @@ export default function ValuationPage() {
         <section className="marketing-hero">
           <div className="marketing-container marketing-hero-grid">
             <div>
-              <p className="marketing-eyebrow">Fixed-fee business valuation reports</p>
-              <h1>Know what your business may be worth</h1>
+                      <h1>Know what your business may be worth</h1>
               <p className="marketing-hero-copy">
-                Upload recent financial statements and receive an indicative business valuation report prepared with
-                software and reviewed before delivery.
+                Upload recent financial statements and receive an indicative valuation report for one fixed fee,
+                reviewed before delivery.
               </p>
               <div className="marketing-actions">
                 <Link className="marketing-cta" href="/login?mode=register">
-                  Get a Business Valuation
+                  Get a business valuation
                 </Link>
                 <Link className="marketing-secondary-cta" href="/login">
                   Sign in
@@ -123,31 +133,13 @@ export default function ValuationPage() {
               <p className="marketing-boundary">Indicative only. Not financial advice. Reviewed before delivery.</p>
             </div>
 
-            <aside className="marketing-report-preview" aria-hidden="true">
-              <div className="marketing-preview-header">
-                <span>AccountIQ</span>
-                <small>Report structure preview</small>
-              </div>
-              <p className="marketing-preview-title">Business Valuation Report</p>
-              <dl>
-                <div>
-                  <dt>Valuation range</dt>
-                  <dd>Key assumptions shown</dd>
-                </div>
-                <div>
-                  <dt>Financial performance</dt>
-                  <dd>Historical summary</dd>
-                </div>
-                <div>
-                  <dt>Normalised earnings</dt>
-                  <dd>Adjustments explained</dd>
-                </div>
-                <div>
-                  <dt>Key risks</dt>
-                  <dd>Matters to consider</dd>
-                </div>
-              </dl>
-              <p>Reviewed before delivery</p>
+            <aside className="marketing-report-contents" aria-labelledby="report-contents-heading">
+              <h2 id="report-contents-heading">Inside the report</h2>
+              <ol>
+                {reportSections.map((section) => (
+                  <li key={section}>{section}</li>
+                ))}
+              </ol>
             </aside>
           </div>
         </section>
@@ -162,14 +154,13 @@ export default function ValuationPage() {
 
         <section className="marketing-section">
           <div className="marketing-container">
-            <p className="marketing-eyebrow">A practical first step</p>
             <h2>Valuation clarity before the bigger decision</h2>
-            <div className="marketing-card-grid">
+            <div className="marketing-use-cases">
               {useCases.map((useCase) => (
-                <article className="marketing-card" key={useCase.title}>
+                <div key={useCase.title}>
                   <h3>{useCase.title}</h3>
                   <p>{useCase.body}</p>
-                </article>
+                </div>
               ))}
             </div>
           </div>
@@ -178,7 +169,6 @@ export default function ValuationPage() {
         <section className="marketing-section marketing-section-muted" id="inclusions">
           <div className="marketing-container marketing-two-column">
             <div>
-              <p className="marketing-eyebrow">What you get</p>
               <h2>A clear report, with its assumptions visible</h2>
               <p>
                 Use the report as an indicative reference point for planning and decide whether deeper professional
@@ -195,7 +185,6 @@ export default function ValuationPage() {
 
         <section className="marketing-section" id="process">
           <div className="marketing-container">
-            <p className="marketing-eyebrow">How it works</p>
             <h2>From financial statements to reviewed report</h2>
             <ol className="marketing-steps">
               {steps.map((step, index) => (
@@ -209,11 +198,8 @@ export default function ValuationPage() {
         </section>
 
         <section className="marketing-section marketing-review-section">
-          <div className="marketing-container marketing-two-column">
-            <div>
-              <p className="marketing-eyebrow">Human review before release</p>
-              <h2>Software speed, with a review checkpoint</h2>
-            </div>
+          <div className="marketing-container marketing-review-copy">
+            <h2>Software speed, with a review checkpoint</h2>
             <div>
               <p>
                 AccountIQ prepares the first draft from the information supplied. A human reviewer checks the report
@@ -234,17 +220,14 @@ export default function ValuationPage() {
               <p>Your fixed fee is shown before payment.</p>
             </div>
             <Link className="marketing-cta" href="/login?mode=register">
-              Get a Business Valuation
+              Get a business valuation
             </Link>
           </div>
         </section>
 
         <section className="marketing-section marketing-section-muted" id="faq">
           <div className="marketing-container marketing-faq-layout">
-            <div>
-              <p className="marketing-eyebrow">FAQ</p>
-              <h2>Important questions before you begin</h2>
-            </div>
+            <h2>Important questions before you begin</h2>
             <div className="marketing-faq-list">
               {faqs.map((faq) => (
                 <details key={faq.question}>
@@ -258,10 +241,9 @@ export default function ValuationPage() {
 
         <section className="marketing-final-cta">
           <div className="marketing-container">
-            <p className="marketing-eyebrow">Start with a clearer reference point</p>
             <h2>Understand what your business may be worth</h2>
             <Link className="marketing-cta" href="/login?mode=register">
-              Get a Business Valuation
+              Get a business valuation
             </Link>
             <p>
               Already have an account? <Link href="/login">Sign in</Link>

@@ -28,7 +28,7 @@ test("public valuation page explains the bounded early-access offer", async ({ p
     expect(headingLevels[index]).toBeLessThanOrEqual(headingLevels[index - 1] + 1);
   }
 
-  const primaryCta = page.getByRole("link", { name: "Get a Business Valuation" }).first();
+  const primaryCta = page.getByRole("link", { name: "Get a business valuation" }).first();
   await expect(primaryCta).toHaveAttribute("href", "/login?mode=register");
   await expect(page.getByRole("link", { name: "Sign in" }).first()).toHaveAttribute("href", "/login");
 
@@ -61,7 +61,7 @@ test("public valuation page remains usable at 320px", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   const mobileHeader = page.getByRole("banner");
   await expect(mobileHeader.getByRole("link", { name: "Sign in" })).toBeVisible();
-  await expect(mobileHeader.getByRole("link", { name: "Get a valuation" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Get a Business Valuation" }).first()).toBeVisible();
+  await expect(mobileHeader.getByRole("link", { name: "Get a business valuation" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Get a business valuation" }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
