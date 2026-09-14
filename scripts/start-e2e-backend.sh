@@ -52,4 +52,4 @@ if [[ "$(uname -s)" == "Darwin" && -d /opt/homebrew/lib ]]; then
 fi
 
 cd "$ROOT/backend"
-exec "$UVICORN" main:app --port 8765
+exec "$UVICORN" main:app --port "${PORT:-8765}"
