@@ -294,7 +294,7 @@ def _extract_statement(pages: list[str], syns: dict[str, list[str]]) -> dict:
     scores = [_score_page(p, syns) for p in pages]
     best_idx = max(range(len(scores)), key=lambda i: scores[i]) if scores else 0
 
-    if scores[best_idx] < 2:
+    if not scores or scores[best_idx] < 2:
         return {}
 
     best_page = pages[best_idx]

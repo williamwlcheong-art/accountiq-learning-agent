@@ -438,3 +438,9 @@ def test_ocr_dpi_is_300():
     """OCR_DPI must be 300 (D-16: raised from 200)."""
     from ingestion import OCR_DPI
     assert OCR_DPI == 300, f"Expected OCR_DPI == 300, got {OCR_DPI}"
+
+
+def test_extract_statement_with_no_pages_returns_empty():
+    from rule_extractor import _extract_statement
+
+    assert _extract_statement([], {"revenue": ["revenue"]}) == {}

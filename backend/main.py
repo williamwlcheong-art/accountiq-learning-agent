@@ -83,6 +83,8 @@ from valuation_tables import attach_valuation_tables, build_valuation_tables
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    if not os.environ.get("SECRET_KEY"):
+        raise RuntimeError("SECRET_KEY is not set; refusing to start without a session signing key.")
     init_db()
     print("[STARTUP] AccountIQ Learning Agent ready.")
     yield
@@ -656,6 +658,8 @@ async def upload_document(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
+    if not file.filename:
+        raise HTTPException(400, "Choose a file to upload.")
     suffix = Path(file.filename).suffix.lower()
     allowed = {".pdf", ".xlsx", ".xls", ".xlsm", ".docx"}
     if suffix not in allowed:
@@ -1308,7 +1312,6 @@ async def get_settings(current_user: dict = Depends(require_admin)):
         "api_key_set": bool(key and not key.startswith("sk-ant-YOUR")),
         "api_key_preview": (key[:12] + "…" + key[-4:]) if len(key) > 20 else ("" if not key else "set"),
         "claude_model": os.environ.get("CLAUDE_MODEL") or ing.CLAUDE_MODEL,
-        "env_file": str(ENV_PATH),
     }
 
 
@@ -1406,6 +1409,8 @@ async def wizard_upload(
     if not name:
         raise HTTPException(400, "Business name is required")
 
+    if not file.filename:
+        raise HTTPException(400, "Choose a file to upload.")
     suffix = Path(file.filename).suffix.lower()
     allowed = {".pdf", ".xlsx", ".xls", ".xlsm", ".docx"}
     if suffix not in allowed:
