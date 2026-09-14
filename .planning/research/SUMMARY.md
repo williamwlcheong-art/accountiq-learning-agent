@@ -1,3 +1,5 @@
+> Archived 2026-09-14. This research predates the Next.js frontend and the pyjwt and pwdlib auth stack. See `.planning/codebase/` for the current picture and `NEXT_BACKEND_SPLIT.md` for the frontend decision.
+
 # Research Summary — AccountIQ
 
 *Synthesised: 2026-05-04*

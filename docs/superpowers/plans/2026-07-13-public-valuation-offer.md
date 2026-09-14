@@ -1,3 +1,5 @@
+> Archived 2026-09-14. Every step here shipped as PR #12 (PVM-07).
+
 # Public Valuation Offer Page Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

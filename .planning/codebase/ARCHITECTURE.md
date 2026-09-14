@@ -113,7 +113,7 @@ GET /wizard/report/{id}/view
 ## Entry Points
 
 - **FastAPI dev:** `source venv/bin/activate && cd backend && uvicorn main:app --reload --port 8765`
-- **Next.js dev:** `cd web && npm run dev`
+- **Next.js dev:** `cd web && pnpm dev`
 - **Next.js app:** `http://localhost:3000`
 - **FastAPI health:** `GET http://127.0.0.1:8765/health`
 - **Legacy UI fallback:** `ACCOUNTIQ_SERVE_LEGACY_FRONTEND=true` then `http://localhost:8765/app`

@@ -19,6 +19,8 @@ findings:
   total: 12
 status: issues_found
 ---
+> Update 2026-09-14: CR-01 and CR-03 were fixed in later phases (`report_email.py` uses `run_in_executor`; `main.py` has the isinstance check). Phase 05.1 replaced this phase.
+
 
 # Phase 5: Code Review Report
 

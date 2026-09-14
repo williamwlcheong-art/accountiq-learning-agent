@@ -22,6 +22,8 @@ findings:
   total: 12
 status: issues_found
 ---
+> Update 2026-09-14: the startup now refuses to boot without `SECRET_KEY` (`backend/main.py` lifespan) and the settings endpoint no longer returns the env file path. Remaining findings were accepted when the phase closed.
+
 
 # Phase 1: Code Review Report
 

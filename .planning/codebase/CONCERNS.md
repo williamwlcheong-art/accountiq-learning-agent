@@ -55,9 +55,6 @@ SQLite is fine for local/single-instance prototype use. Multi-instance deploymen
 
 ## Missing Features / Gaps
 
-- Stripe pay-per-report purchase gating
-- Professional PDF rendering and download
-- Report history/account management
 - Document deletion and deduplication
 - Pagination for unbounded list endpoints
 - Production deployment configuration

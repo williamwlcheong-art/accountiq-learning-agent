@@ -4,7 +4,7 @@
 
 ## Languages
 
-- **Python 3.13:** FastAPI backend, ingestion, valuation, report generation, SQLite access
+- **Python 3.12:** FastAPI backend, ingestion, valuation, report generation, SQLite access
 - **TypeScript:** Next.js frontend, React components, typed API helpers, Playwright tests
 - **HTML/CSS/JavaScript:** Legacy `frontend/index.html` fallback only
 
@@ -14,6 +14,9 @@
 - **Uvicorn 0.44.0:** ASGI dev server
 - **SQLite + aiosqlite 0.22.1:** Local database with WAL mode and foreign keys
 - **python-dotenv 1.2.2:** Loads `.env`; settings endpoint can persist selected values
+- **pyjwt 2.12.1 + pwdlib[argon2] 0.3.0:** Session cookies signed with `SECRET_KEY`; Argon2 password hashing
+- **stripe 12.5.0:** Checkout sessions and webhook verification for paid valuations (`backend/payments.py`)
+- **weasyprint 69.0:** Branded A4 PDF export of released reports (`backend/report_rendering.py`); needs Pango and GLib from Homebrew on macOS
 
 Dev command:
 
@@ -35,15 +38,15 @@ Dev command:
 
 ```bash
 cd web
-npm run dev
+pnpm dev
 ```
 
 Production smoke command:
 
 ```bash
 cd web
-npm run build
-npm run start
+pnpm build
+pnpm start
 ```
 
 ## AI And Document Processing
@@ -64,11 +67,11 @@ Core commands:
 
 ```bash
 source venv/bin/activate && python -m pytest tests/ -q
-cd web && npm run typecheck
-cd web && npm run lint
-cd web && npm run build
-cd web && npm run test:e2e
-cd web && npm run test:e2e:prod
+cd web && pnpm typecheck
+cd web && pnpm lint
+cd web && pnpm build
+cd web && pnpm test:e2e
+cd web && pnpm test:e2e:prod
 ```
 
 ## Configuration

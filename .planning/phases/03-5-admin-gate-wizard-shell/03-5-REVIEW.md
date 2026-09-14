@@ -20,6 +20,8 @@ findings:
   total: 12
 status: issues_found
 ---
+> Update 2026-09-14: CR-02 (no `SECRET_KEY` guard) and CR-04 (`file.filename` may be None) are fixed; both upload routes now return 400 for a missing filename.
+
 
 # Phase 03-5: Code Review Report
 

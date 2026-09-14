@@ -6,6 +6,8 @@ shadcn_initialized: false
 preset: none
 created: 2026-05-07
 ---
+> Archived 2026-09-14. Spec for the legacy `frontend/index.html` UI; the current wizard lives in `web/components/wizard/`.
+
 
 # Phase 3 — UI Design Contract: Business Profile Intake
 

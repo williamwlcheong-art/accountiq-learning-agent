@@ -1,6 +1,6 @@
 # External Integrations
 
-**Analysis Date:** 2026-05-04
+**Analysis Date:** 2026-05-04, auth, payments and env sections refreshed 2026-09-14
 
 ## APIs & External Services
 
@@ -47,9 +47,10 @@
 ## Authentication & Identity
 
 **Auth Provider:**
-- None — no user authentication or session management
-- The application is single-user/local-only with no login system
-- API key management is handled as a settings concern, not auth: `POST /settings` endpoint writes the Anthropic key to `.env` (`backend/main.py:368-392`)
+- Built in (`backend/auth.py`): email and password registration, Argon2 hashing via `pwdlib`, JWT session cookie signed with `SECRET_KEY` via `pyjwt`
+- Roles: `admin` and regular user. Admin routes use `require_admin`; regular users see only their own companies, documents, reports and purchases
+- The server refuses to start without `SECRET_KEY`
+- Settings: `POST /settings` (admin only) writes the Anthropic key to `.env`
 
 ## Monitoring & Observability
 
@@ -73,18 +74,24 @@
 ## Webhooks & Callbacks
 
 **Incoming:**
-- None
+- Stripe webhook `POST /payments/webhook`: signature verified with `STRIPE_WEBHOOK_SECRET`; handles completed, failed, expired and refunded payments with amount and metadata checks (`backend/main.py`, `backend/payments.py`)
 
 **Outgoing:**
-- None
+- Stripe Checkout session creation (`backend/payments.py`)
+- Report notification email over SMTP (`backend/report_email.py`)
 
 ## Environment Configuration
 
 **Required env vars:**
+- `SECRET_KEY` - session signing key; startup fails without it
 - `ANTHROPIC_API_KEY` - Anthropic API key beginning with `sk-ant-`; ingestion degrades to rule-based if absent
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` - required for paid checkout outside E2E mode
 
 **Optional env vars:**
 - `CLAUDE_MODEL` - Override Claude model; defaults to `claude-sonnet-4-6`
+- `APP_BASE_URL` - public web origin used in report viewer links and emails
+- `ACCOUNTIQ_E2E_MODE` - stubs Stripe and AI calls for Playwright
+- `SMTP_*` - see `backend/report_email.py`
 
 **Secrets location:**
 - `.env` file at project root (gitignored; created manually or via `POST /settings`)

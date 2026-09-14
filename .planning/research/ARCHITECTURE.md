@@ -1,3 +1,5 @@
+> Archived 2026-09-14. Diagram shows the pre-Next.js architecture. Current architecture: `.planning/codebase/ARCHITECTURE.md`.
+
 # Architecture Research
 
 ## New Component Map

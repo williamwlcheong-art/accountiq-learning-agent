@@ -13,9 +13,9 @@ The project has two active automated test layers:
 
 The Next.js app also has static verification:
 
-- `npm run typecheck`
-- `npm run lint`
-- `npm run build`
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm build`
 
 ## Backend Test Commands
 
@@ -39,9 +39,9 @@ python -m pytest tests/test_e2e_mode.py -q
 Run from `web/`:
 
 ```bash
-npm run typecheck
-npm run lint
-npm run build
+pnpm typecheck
+pnpm lint
+pnpm build
 ```
 
 ## Browser E2E
@@ -49,13 +49,13 @@ npm run build
 Run from `web/`:
 
 ```bash
-npm run test:e2e
+pnpm test:e2e
 ```
 
 Playwright starts two web servers:
 
 1. `../scripts/start-e2e-backend.sh`
-2. `npm run dev`
+2. `pnpm dev`
 
 The backend launcher:
 
@@ -72,10 +72,10 @@ This keeps E2E deterministic and independent from local development data, Anthro
 Run from `web/`:
 
 ```bash
-npm run test:e2e:prod
+pnpm test:e2e:prod
 ```
 
-This builds Next.js first, then runs Playwright with `PLAYWRIGHT_FRONTEND_COMMAND="npm run start"` so the browser suite exercises the standalone production server rather than the dev server.
+This builds Next.js first, then runs Playwright with `PLAYWRIGHT_FRONTEND_COMMAND="pnpm start"` so the browser suite exercises the standalone production server rather than the dev server.
 
 ## E2E Coverage Map
 
@@ -96,7 +96,7 @@ This builds Next.js first, then runs Playwright with `PLAYWRIGHT_FRONTEND_COMMAN
 
 ```bash
 source venv/bin/activate && python -m pytest tests/ -q
-cd web && npm run typecheck && npm run lint && npm run build
-cd web && npm run test:e2e
-cd web && npm run test:e2e:prod
+cd web && pnpm typecheck && pnpm lint && pnpm build
+cd web && pnpm test:e2e
+cd web && pnpm test:e2e:prod
 ```

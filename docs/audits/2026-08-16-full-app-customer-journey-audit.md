@@ -1,3 +1,5 @@
+> Archived 2026-09-14. The P0 checkout finding was fixed by the idempotency key work in PR #26 and the dashboard gap by the customer portal at `/reports`. Still open: the four "coming later" products in the report type picker and the single-screen intake form, both tracked in `.planning/BACKLOG.md` under PVM-10.
+
 # AccountIQ full-app customer journey audit
 
 Date: 16 August 2026  

@@ -1,6 +1,6 @@
 # AccountIQ Backlog
 
-Last updated: 2026-09-01
+Last updated: 2026-09-14
 
 This is the lightweight working backlog for the paid Valuation Advisory MVP. Keep the detailed implementation instructions in `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`; keep this file as the current source of truth for what is done, in progress, next, and waiting on domain review.
 

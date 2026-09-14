@@ -84,9 +84,9 @@ Read `.planning/codebase/CONVENTIONS.md` before larger backend/frontend changes.
 
 ## Current Status
 
-As of 2026-07-02, the Next.js refactor has been merged into `main` via PR #2. The primary app is the Next.js frontend in `web/`; `frontend/index.html` is legacy rollback/reference only.
+As of 2026-09-14, the paid Valuation Advisory MVP is built end to end: valuation-only picker, Stripe checkout gating, webhook handling for failed, expired and refunded payments, admin review before release, WeasyPrint PDF export, purchase history, the public offer page, quarterly NZ market intelligence, and a customer portal at `/reports` with a shared shell and profile menu. The primary app is the Next.js frontend in `web/`; `frontend/index.html` is legacy rollback/reference only.
 
-The current commercial workstream is the paid Valuation Advisory MVP. Track active work in `.planning/BACKLOG.md`; use `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md` for detailed implementation context. Payment scaffolding and checkout-gated generation are implemented; admin review, PDF delivery, purchase history, and full failure/refund handling remain.
+Track active work in `.planning/BACKLOG.md` (status board with PR numbers); `.planning/commercial/LAUNCH-GATES.md` lists what still blocks a live launch. `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md` is the original implementation plan and is kept for context only.
 
 Preferred workflow for the commercial MVP:
 
@@ -96,11 +96,8 @@ Preferred workflow for the commercial MVP:
 - Update `.planning/BACKLOG.md` when a PR opens, merges, or changes scope.
 - Rebase or merge latest `main` before starting a new slice if another contributor has landed changes.
 
-Latest verified checks from the merged refactor:
+Latest verified checks (2026-09-14, branch `codex/nz-market-intelligence-review-fixes`):
 
-- Backend pytest: 116 passed, 1 skipped, 1 xpassed
-- `pnpm lint`
-- `pnpm typecheck`
-- `pnpm build`
-- Dev Playwright: 10 passed
-- Standalone production Playwright: 10 passed
+- Backend pytest: 331 passed, 1 skipped
+- `pnpm lint`, `pnpm typecheck`
+- Dev Playwright: 17 passed

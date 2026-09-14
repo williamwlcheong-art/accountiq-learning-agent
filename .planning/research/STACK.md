@@ -1,3 +1,5 @@
+> Archived 2026-09-14. Recommends a vanilla JS frontend, python-jose and passlib; the app uses Next.js, pyjwt and pwdlib. Current stack: `.planning/codebase/STACK.md`.
+
 # Stack Research
 
 ## Context

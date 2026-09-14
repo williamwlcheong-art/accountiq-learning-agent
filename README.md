@@ -13,11 +13,11 @@ FastAPI remains the backend of record. The Next.js frontend calls `/api/backend/
 
 ## Current Development Status
 
-As of 2026-07-02, the Next.js refactor has been merged into `main`. The primary app UI is `web/`; `frontend/` is kept only as a legacy rollback/reference surface.
+As of 2026-09-14, the paid Valuation Advisory MVP is built: checkout, admin review, PDF delivery, purchase history, the public offer page and a customer portal. The primary app UI is `web/`; `frontend/` is kept only as a legacy rollback/reference surface.
 
-The next commercial workstream is the paid Valuation Advisory MVP. The working backlog lives at `.planning/BACKLOG.md`; the detailed implementation plan lives at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`. Keep `main` deployable and land new feature work through small PRs rather than one large long-lived branch.
+The working backlog and PR status board live at `.planning/BACKLOG.md`; the original implementation plan at `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md` is kept for context. Keep `main` deployable and land new feature work through small PRs rather than one large long-lived branch.
 
-Commercial launch gates and production architecture decisions live in `.planning/commercial/`. The public valuation-offer plan is `docs/superpowers/plans/2026-07-01-marketing-site-offer.md`.
+Commercial launch gates and production architecture decisions live in `.planning/commercial/`. The shipped public offer page is described in `docs/superpowers/specs/2026-07-12-public-valuation-offer-design.md`.
 
 ## Local Development
 
