@@ -390,7 +390,7 @@ a {
 
 .rating-option:has(input:checked) {
   border-color: var(--blue);
-  background: #e3f2fd;
+  background: var(--tint);
   color: var(--navy);
 }
 
@@ -1169,9 +1169,9 @@ th {
    The Next refactor keeps React routing/state, but the product should still
    feel like the original AccountIQ app. */
 :root {
-  --navy: #0d1b2a;
-  --blue: #1565c0;
-  --accent: #2196f3;
+  --navy: var(--marketing-navy);
+  --blue: var(--marketing-navy);
+  --accent: var(--marketing-navy);
   --green: #2e7d32;
   --amber: #f57c00;
   --red: #c62828;
@@ -1179,9 +1179,11 @@ th {
   --card: #ffffff;
   --page: #f5f7fa;
   --bg: #f5f7fa;
-  --border: #e0e4ea;
-  --text: #1a1a2e;
-  --muted: #607080;
+  --border: var(--marketing-line);
+  --text: var(--marketing-ink);
+  --muted: var(--marketing-muted);
+  --tint: #eeecfa;
+  --tint-soft: #f5f4fb;
 }
 
 html,
@@ -1426,14 +1428,23 @@ a {
   color: #fff;
 }
 
+.button-primary {
+  font-weight: 800;
+}
+
 .button-primary:hover {
-  background: #1976d2;
+  background: #141052;
 }
 
 .button-secondary {
-  background: #eeeeee;
-  border-color: transparent;
+  background: #ffffff;
+  border-color: var(--border);
   color: var(--navy);
+  font-weight: 700;
+}
+
+.button-secondary:hover {
+  background: var(--tint-soft);
 }
 
 .button-danger {
@@ -1697,7 +1708,7 @@ label,
 .drop-zone:hover,
 .drop-zone:focus-within {
   border-color: var(--accent);
-  background: #e3f2fd;
+  background: var(--tint-soft);
 }
 
 .drop-zone strong {
@@ -1715,7 +1726,7 @@ label,
   width: 2.4rem;
   height: 2.4rem;
   border-radius: 50%;
-  background: #f0f4f8;
+  background: var(--tint);
   color: var(--blue);
   font-size: 0.75rem;
   font-weight: 800;
@@ -1787,9 +1798,9 @@ tr:hover td {
 }
 
 .alert-info {
-  background: #e3f2fd;
+  background: var(--tint-soft);
   color: var(--blue);
-  border: 1px solid #90caf9;
+  border: 1px solid #cfcae9;
 }
 
 .alert-warning {
@@ -1816,13 +1827,13 @@ tr:hover td {
 }
 
 .status-info {
-  background: #e3f2fd;
+  background: var(--tint);
   color: var(--blue);
 }
 
 .status-warning {
   background: #fff8e1;
-  color: var(--amber);
+  color: #8a4300;
 }
 
 .status-danger {
@@ -1960,7 +1971,7 @@ tr:hover td {
 
 .report-type-card.selected {
   border-color: var(--blue);
-  background: #e3f2fd;
+  background: var(--tint);
 }
 
 .simple-list {
@@ -2031,7 +2042,7 @@ input[type="file"] {
 
 /* Shared product polish. Marketing styles above remain scoped to .marketing-page. */
 :root {
-  --focus-ring: #0b63ce;
+  --focus-ring: var(--marketing-navy);
   --control-height: 44px;
   --radius: 10px;
   --shadow: 0 10px 28px rgba(13, 27, 42, 0.06);
@@ -2459,18 +2470,7 @@ button,
   box-shadow: 0 0 0 6px #ffffff;
 }
 
-/* Customer portal. One brand from the landing page through sign-in to the signed-in app. */
-:root {
-  --navy: var(--marketing-navy);
-  --blue: var(--marketing-navy);
-  --accent: var(--marketing-navy);
-  --border: var(--marketing-line);
-  --muted: var(--marketing-muted);
-  --text: var(--marketing-ink);
-  --tint: #eeecfa;
-  --tint-soft: #f5f4fb;
-  --focus-ring: var(--marketing-navy);
-}
+/* Customer portal. Brand tokens live in the shell :root block above; only portal-specific rules here. */
 
 .sr-only {
   position: absolute;
@@ -2484,25 +2484,6 @@ button,
   border: 0;
 }
 
-.button-primary:hover {
-  background: #141052;
-}
-
-.button-primary {
-  font-weight: 800;
-}
-
-.button-secondary {
-  border: 1px solid var(--marketing-line);
-  background: #ffffff;
-  color: var(--marketing-navy);
-  font-weight: 700;
-}
-
-.button-secondary:hover {
-  background: var(--tint-soft);
-}
-
 .button:focus-visible,
 .portal-avatar:focus-visible,
 .portal-nav a:focus-visible,
@@ -2510,34 +2491,6 @@ button,
   outline: 3px solid var(--marketing-navy);
   outline-offset: 3px;
   box-shadow: 0 0 0 6px #ffffff;
-}
-
-.alert-info {
-  border-color: #cfcae9;
-  background: var(--tint-soft);
-  color: var(--marketing-navy);
-}
-
-.status-info {
-  background: var(--tint);
-  color: var(--marketing-navy);
-}
-
-.drop-zone:hover,
-.drop-zone:focus-within {
-  border-color: var(--marketing-navy);
-  background: var(--tint-soft);
-}
-
-.drop-zone-icon {
-  background: var(--tint);
-  color: var(--marketing-navy);
-}
-
-.rating-option:has(input:checked),
-.report-type-card.selected {
-  border-color: var(--marketing-navy);
-  background: var(--tint);
 }
 
 /* Shell */
@@ -3051,10 +3004,6 @@ button,
 }
 
 /* Follow-ups from the customer-journey review */
-.status-warning {
-  color: #8a4300;
-}
-
 .field-hint {
   display: block;
   color: var(--marketing-muted);

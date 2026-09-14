@@ -307,6 +307,8 @@ export function IntakeForm({
         }
       }
       const forecastHorizon = Number(answers.forecast_horizon);
+      const depreciationOverride = answers.depreciation_confirmation === "override";
+      const nwcOverride = answers.operating_nwc_confirmation === "override";
       const fcffAssumptions: FcffAssumptionsInput = {
         forecast: {
           horizon_years: forecastHorizon,
@@ -315,16 +317,16 @@ export function IntakeForm({
           confirmed: true,
         },
         depreciation: {
-          rate: answers.depreciation_confirmation === "override"
+          rate: depreciationOverride
             ? percentageToRatio(answers.depreciation_ratio)
             : fcffReadiness?.depreciation.rate ?? percentageToRatio(answers.depreciation_ratio),
           confirmed: true,
-          rationale: answers.depreciation_confirmation === "override"
+          rationale: depreciationOverride
             ? String(answers.depreciation_override_rationale ?? "")
             : String(answers.depreciation_zero_rationale ?? ""),
-          confirmation_method: answers.depreciation_confirmation === "override" ? "override" : "calculated",
-          confirmation_source: answers.depreciation_confirmation === "override" ? "customer" : "financial_statements",
-          source_period: answers.depreciation_confirmation === "override" ? undefined : fcffReadiness?.depreciation.source_period ?? undefined,
+          confirmation_method: depreciationOverride ? "override" : "calculated",
+          confirmation_source: depreciationOverride ? "customer" : "financial_statements",
+          source_period: depreciationOverride ? undefined : fcffReadiness?.depreciation.source_period ?? undefined,
         },
         capex: {
           rate: percentageToRatio(answers.capex_ratio),
@@ -334,16 +336,16 @@ export function IntakeForm({
           confirmation_source: "customer",
         },
         operating_nwc: {
-          rate: answers.operating_nwc_confirmation === "override"
+          rate: nwcOverride
             ? percentageToRatio(answers.operating_nwc_ratio)
             : fcffReadiness?.operating_nwc.rate ?? percentageToRatio(answers.operating_nwc_ratio),
           confirmed: true,
-          rationale: answers.operating_nwc_confirmation === "override"
+          rationale: nwcOverride
             ? String(answers.operating_nwc_override_rationale ?? "")
             : String(answers.operating_nwc_zero_rationale ?? ""),
-          confirmation_method: answers.operating_nwc_confirmation === "override" ? "override" : "calculated",
-          confirmation_source: answers.operating_nwc_confirmation === "override" ? "customer" : "financial_statements",
-          source_period: answers.operating_nwc_confirmation === "override" ? undefined : fcffReadiness?.operating_nwc.source_period ?? undefined,
+          confirmation_method: nwcOverride ? "override" : "calculated",
+          confirmation_source: nwcOverride ? "customer" : "financial_statements",
+          source_period: nwcOverride ? undefined : fcffReadiness?.operating_nwc.source_period ?? undefined,
         },
       };
       answers.fcff_assumptions = fcffAssumptions;

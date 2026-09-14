@@ -149,19 +149,21 @@ export function parseBackendDate(value: string | null | undefined): Date | null 
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+const NZ_DATE_FORMATTERS = {
+  short: new Intl.DateTimeFormat("en-NZ", { day: "numeric", month: "short", year: "numeric", timeZone: NZ_TIME_ZONE }),
+  long: new Intl.DateTimeFormat("en-NZ", { day: "numeric", month: "long", year: "numeric", timeZone: NZ_TIME_ZONE }),
+  datetime: new Intl.DateTimeFormat("en-NZ", {
+    day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: NZ_TIME_ZONE,
+  }),
+};
+
 export function formatNzDate(
   value: string | null | undefined,
   style: "short" | "long" | "datetime" = "short",
 ): string {
   const date = parseBackendDate(value);
   if (!date) return "Unknown";
-  const options: Intl.DateTimeFormatOptions =
-    style === "long"
-      ? { day: "numeric", month: "long", year: "numeric" }
-      : style === "datetime"
-        ? { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }
-        : { day: "numeric", month: "short", year: "numeric" };
-  return new Intl.DateTimeFormat("en-NZ", { ...options, timeZone: NZ_TIME_ZONE }).format(date);
+  return NZ_DATE_FORMATTERS[style].format(date);
 }
 
 export function formatFileSize(bytes: number): string {

@@ -35,7 +35,7 @@ from financial_authority import (
     promote_document_authority,
 )
 from ingestion import ingest_document
-from auth import auth_router, get_current_user, require_admin
+from auth import SECRET_KEY, auth_router, get_current_user, require_admin
 from payments import (
     checkout_config,
     construct_webhook_event,
@@ -81,9 +81,22 @@ from valuation_tables import attach_valuation_tables, build_valuation_tables
 # App setup
 # ---------------------------------------------------------------------------
 
+_UPLOAD_SUFFIXES = {".pdf", ".xlsx", ".xls", ".xlsm", ".docx"}
+
+
+def _validated_upload_suffix(file: UploadFile) -> str:
+    """Reject uploads with no filename or an unsupported extension; return the suffix."""
+    if not file.filename:
+        raise HTTPException(400, "Choose a file to upload.")
+    suffix = Path(file.filename).suffix.lower()
+    if suffix not in _UPLOAD_SUFFIXES:
+        raise HTTPException(400, f"Only PDF, Excel, and Word files are accepted. Got: {suffix}")
+    return suffix
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    if not os.environ.get("SECRET_KEY"):
+    if not SECRET_KEY:
         raise RuntimeError("SECRET_KEY is not set; refusing to start without a session signing key.")
     init_db()
     print("[STARTUP] AccountIQ Learning Agent ready.")
@@ -658,12 +671,7 @@ async def upload_document(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
-    if not file.filename:
-        raise HTTPException(400, "Choose a file to upload.")
-    suffix = Path(file.filename).suffix.lower()
-    allowed = {".pdf", ".xlsx", ".xls", ".xlsm", ".docx"}
-    if suffix not in allowed:
-        raise HTTPException(400, f"Only PDF, Excel, and Word files are accepted. Got: {suffix}")
+    suffix = _validated_upload_suffix(file)
 
     is_excel = suffix in {".xlsx", ".xls", ".xlsm"}
     exchange = "Private"
@@ -1409,12 +1417,7 @@ async def wizard_upload(
     if not name:
         raise HTTPException(400, "Business name is required")
 
-    if not file.filename:
-        raise HTTPException(400, "Choose a file to upload.")
-    suffix = Path(file.filename).suffix.lower()
-    allowed = {".pdf", ".xlsx", ".xls", ".xlsm", ".docx"}
-    if suffix not in allowed:
-        raise HTTPException(400, f"Only PDF, Excel, and Word files are accepted. Got: {suffix}")
+    suffix = _validated_upload_suffix(file)
 
     # Idempotent company creation — reuses existing helper (D-06)
     company_id, _ = await _resolve_or_create_company(db, name, current_user["id"])

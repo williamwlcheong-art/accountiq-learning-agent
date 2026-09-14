@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -23,6 +23,12 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired, onMis
   const [retrying, setRetrying] = useState(false);
   const [pollRestart, setPollRestart] = useState(0);
 
+  // Kept in a ref so a new callback identity from the parent does not restart polling.
+  const onMissingRef = useRef(onMissing);
+  useEffect(() => {
+    onMissingRef.current = onMissing;
+  }, [onMissing]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -42,7 +48,7 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired, onMis
         }
         if (err instanceof ApiError && err.status === 404) {
           window.clearInterval(interval);
-          onMissing?.();
+          onMissingRef.current?.();
         }
       }
     }
@@ -57,7 +63,7 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired, onMis
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [reportId, router, pollRestart, onMissing]);
+  }, [reportId, router, pollRestart]);
 
   async function retry() {
     setRetrying(true);

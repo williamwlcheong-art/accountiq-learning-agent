@@ -95,8 +95,7 @@ export function Wizard({ user }: WizardProps) {
             setReportType(saved.reportType ?? null);
             setIntakeAnswers(saved.intakeAnswers ?? null);
             setCheckoutIdempotencyKey(saved.checkoutIdempotencyKey ?? "");
-            // Readiness is re-checked live; everything else resumes where the customer left off.
-            setStep(saved.step === "readiness" ? "readiness" : saved.step);
+            setStep(saved.step);
           }
         }
       } catch {
