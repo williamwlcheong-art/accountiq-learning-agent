@@ -2,6 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 const port = process.env.PLAYWRIGHT_PORT ?? "3000";
 const frontendCommand = process.env.PLAYWRIGHT_FRONTEND_COMMAND ?? `pnpm dev --port ${port}`;
+// The backend port is overridable so the suite can run on a machine where 8765 is taken.
+const backendPort = process.env.PLAYWRIGHT_BACKEND_PORT ?? "8765";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -21,7 +23,8 @@ export default defineConfig({
   webServer: [
     {
       command: "../scripts/start-e2e-backend.sh",
-      url: "http://127.0.0.1:8765/health",
+      env: { PORT: backendPort },
+      url: `http://127.0.0.1:${backendPort}/health`,
       reuseExistingServer: false,
       timeout: 30_000,
     },

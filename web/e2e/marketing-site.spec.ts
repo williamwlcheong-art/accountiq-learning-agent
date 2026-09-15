@@ -26,6 +26,8 @@ test("the main navigation reaches every published page", async ({ page }) => {
   await expect(page).toHaveURL(/\/how-it-works$/);
   await expect(page.getByRole("heading", { level: 1, name: "How it works" })).toBeVisible();
   await expect(page.getByText("Your last two to three years of annual financial statements")).toBeVisible();
+  // YAML turns an unquoted `2026-09-16` into a Date, so this pins the front-matter date normalising.
+  await expect(page.getByText("Last reviewed 16 September 2026")).toBeVisible();
 
   await nav.getByRole("link", { name: "Valuation" }).click();
   await expect(page).toHaveURL(/\/valuation$/);

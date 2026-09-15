@@ -52,6 +52,27 @@ function requireString(value: unknown, field: string, where: string): string {
   return value.trim();
 }
 
+/**
+ * YAML parses an unquoted `2026-09-16` into a Date, so a date field arrives as
+ * either a Date or a string depending on how the author wrote it. Both are
+ * normalised to `YYYY-MM-DD`.
+ */
+function asDateString(value: unknown): string | undefined {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  if (typeof value === "string" && value.trim()) return value.trim();
+  return undefined;
+}
+
+function requireDate(value: unknown, field: string, where: string): string {
+  const date = asDateString(value);
+  if (!date) {
+    throw new Error(`Content file ${where} is missing a "${field}" value in its front matter.`);
+  }
+  return date;
+}
+
 function isDraft(data: Record<string, unknown>): boolean {
   return data.draft === true;
 }
@@ -71,7 +92,7 @@ function pageMeta(slug: string, data: Record<string, unknown>, where: string): P
     slug,
     title: requireString(data.title, "title", where),
     description: requireString(data.description, "description", where),
-    updated: typeof data.updated === "string" ? data.updated : undefined,
+    updated: asDateString(data.updated),
   };
 }
 
@@ -79,7 +100,7 @@ function postMeta(slug: string, data: Record<string, unknown>): PostMeta {
   const where = `posts/${slug}.md`;
   return {
     ...pageMeta(slug, data, where),
-    date: requireString(data.date, "date", where),
+    date: requireDate(data.date, "date", where),
     author: typeof data.author === "string" ? data.author : "William Cheong",
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
     image: typeof data.image === "string" ? data.image : undefined,
