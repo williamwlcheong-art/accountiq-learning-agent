@@ -17,6 +17,8 @@ findings:
   total: 11
 status: issues_found
 ---
+> Update 2026-09-14: CR-01 (empty `scores` list in `rule_extractor.py`) and CR-03 (`asyncio.get_event_loop()` in `ingestion.py`) are fixed, with a regression test for CR-01 in `tests/test_extraction.py`.
+
 
 # Phase 4: Code Review Report
 

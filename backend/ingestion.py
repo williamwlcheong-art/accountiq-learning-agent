@@ -376,7 +376,7 @@ Learned label patterns (use as hints for mapping raw labels to canonical keys):
 Financial statement text:
 {pdf_text}"""
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     response = await loop.run_in_executor(None, lambda: client.messages.create(
         model=model,
         max_tokens=4096,

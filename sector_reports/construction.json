@@ -1,0 +1,255 @@
+{
+  "schema_version": "1.0",
+  "sector_id": "construction",
+  "sector_name": "Construction",
+  "geography": "New Zealand",
+  "as_of_date": "2026-07-26",
+  "next_review_date": "2027-01-26",
+  "aliases": ["building and construction", "residential builder", "commercial construction", "civil construction", "trades contractor"],
+  "overview": {
+    "summary": "New Zealand construction includes residential and non-residential building, civil infrastructure, specialist trades, maintenance and fit-out. Demand is project-based and regionally uneven. A visible pipeline can support revenue, but profit and cash depend on bid discipline, contract terms, delivery performance, subcontractor capacity, variations, retentions and the timing mismatch between progress claims and project expenditure.",
+    "business_models": [
+      "Main contractors delivering fixed-price, cost-reimbursable, design-and-build or negotiated projects",
+      "Residential builders delivering contracted homes, developments or alterations",
+      "Civil contractors performing earthworks, roading, drainage, utilities and infrastructure maintenance",
+      "Specialist subcontractors supplying labour, materials and technical installation",
+      "Maintenance and facilities contractors earning recurring or schedule-of-rates revenue"
+    ],
+    "industry_structure": [
+      "The industry is fragmented, with a small group of larger contractors and many regional builders and specialist trades.",
+      "Projects often rely on multi-tier subcontracting, creating shared delivery and counterparty risk.",
+      "Public infrastructure, private development and housing cycles have different procurement and funding characteristics."
+    ],
+    "demand_drivers": [
+      "Residential consenting, household confidence, mortgage conditions and population growth",
+      "Commercial development economics, vacancy, rents and investor funding",
+      "Central and local government infrastructure programmes",
+      "Repair, maintenance, seismic, weather-resilience and compliance work"
+    ],
+    "margin_and_cost_drivers": [
+      "Tender discipline, contingency, escalation clauses and accuracy of labour and material estimates",
+      "Variation approval, delay damages, rework, defects and subcontractor performance",
+      "Site supervision, labour availability, productivity and plant utilisation",
+      "Material prices, procurement lead times, insurance, bonds and finance costs"
+    ],
+    "cyclicality_and_seasonality": [
+      "New-build activity is cyclical and responds to finance availability and client confidence.",
+      "Weather, holiday shutdowns and consent or design delays can shift revenue and working capital between periods.",
+      "Maintenance and public infrastructure may be more defensive but are still exposed to procurement cycles and budgets."
+    ],
+    "working_capital_profile": "Construction cash flow can diverge sharply from reported profit. Progress claims are paid after work is performed; retentions, uncertified variations, disputed claims and work in progress can lock up cash, while suppliers and wages fall due earlier. Advance payments and favourable terms can temporarily flatter liquidity and should be separated from sustainable working capital.",
+    "asset_intensity": "Main building contractors may own relatively little plant but require bonds, guarantees and working capital. Civil contractors can be plant-intensive. Specialist trades vary. Work in progress, retentions and receivables may be economically important but are less reliable collateral than cash or unencumbered equipment.",
+    "regulatory_and_compliance": [
+      "Building Act, Building Code, consenting, licensed building practitioner and trade-certification requirements",
+      "Construction Contracts Act payment, adjudication and retention-money obligations",
+      "Health and Safety at Work duties across overlapping PCBUs and sites",
+      "Resource, environmental, insurance, bonding and procurement conditions relevant to each project"
+    ]
+  },
+  "subsectors": [
+    {
+      "id": "residential_building",
+      "name": "Residential building",
+      "aliases": ["residential builder", "home builder", "housing construction", "renovation builder"],
+      "business_model": "Contract homes, alterations or developer-led housing are delivered through staged progress payments.",
+      "revenue_drivers": ["Signed contracts", "Starts and completions", "Average build value", "Variation income"],
+      "cost_base": ["Materials", "Subcontractors", "Site management", "Warranty and rework"],
+      "working_capital": "Deposits may help early cash flow, but stage-claim timing, client finance and defects can create sharp gaps.",
+      "asset_intensity": "Usually modest plant ownership but high working-capital and guarantee exposure.",
+      "credit_watchpoints": ["Pipeline conversion", "Client finance", "Fixed-price escalation", "Related developments"],
+      "valuation_watchpoints": ["Order-book quality", "Normalised cycle earnings", "Owner sales dependence", "Warranty provisions"]
+    },
+    {
+      "id": "commercial_main_contracting",
+      "name": "Commercial main contracting",
+      "aliases": ["commercial builder", "main contractor", "general contractor", "design and build"],
+      "business_model": "Larger projects are managed under tendered or negotiated contracts using extensive subcontracting.",
+      "revenue_drivers": ["Backlog", "Project milestones", "Tender win rate", "Approved variations"],
+      "cost_base": ["Subcontractors", "Site overhead", "Professional services", "Bonds and insurance"],
+      "working_capital": "Retentions, claims and variations can be material; one disputed project can dominate liquidity.",
+      "asset_intensity": "Low-to-moderate physical assets but material contingent liabilities and bonding capacity.",
+      "credit_watchpoints": ["Project-by-project forecast-to-complete", "Client quality", "Liquidated damages", "Bond headroom"],
+      "valuation_watchpoints": ["Backlog margin quality", "Claims not booked as maintainable earnings", "Project concentration", "Management depth"]
+    },
+    {
+      "id": "civil_infrastructure",
+      "name": "Civil and infrastructure contracting",
+      "aliases": ["civil contractor", "earthworks", "roading contractor", "infrastructure contractor", "drainage contractor"],
+      "business_model": "Roading, earthworks, utilities and maintenance are delivered under projects or longer-term framework contracts.",
+      "revenue_drivers": ["Awarded programme", "Plant hours", "Measured quantities", "Maintenance work orders"],
+      "cost_base": ["Operators", "Fuel", "Plant ownership or hire", "Subcontractors and materials"],
+      "working_capital": "Mobilisation and plant costs precede certified claims; public-sector clients can improve counterparty quality but not timing.",
+      "asset_intensity": "High where heavy plant is owned; replacement and utilisation are key.",
+      "credit_watchpoints": ["Plant utilisation", "Framework expiry", "Fuel recovery", "Project and council concentration"],
+      "valuation_watchpoints": ["Sustainable plant capex", "Framework transferability", "Fleet age", "Maintenance versus new-build mix"]
+    },
+    {
+      "id": "specialist_trades",
+      "name": "Specialist trades and building services",
+      "aliases": ["subcontractor", "electrical contractor", "plumbing contractor", "hvac contractor", "painting contractor"],
+      "business_model": "Specialist labour and materials are supplied to main contractors or directly to asset owners.",
+      "revenue_drivers": ["Labour hours", "Project awards", "Service calls", "Maintenance contracts"],
+      "cost_base": ["Skilled wages", "Materials", "Vehicles and tools", "Supervision"],
+      "working_capital": "Exposure to main-contractor payment, retentions and variation approval can be significant.",
+      "asset_intensity": "Usually lower than civil construction, with vehicles, tools and working capital.",
+      "credit_watchpoints": ["Main-contractor concentration", "Certification capacity", "Labour utilisation", "Retentions"],
+      "valuation_watchpoints": ["Recurring service mix", "Qualified staff retention", "Owner estimating role", "Customer diversity"]
+    }
+  ],
+  "credit_analysis": {
+    "primary_risks": [
+      {
+        "risk": "Project margin erosion",
+        "mechanism": "Under-pricing, escalation, delay, rework or subcontractor failure can turn a profitable contract into a cash loss.",
+        "financial_signals": ["Forecast cost to complete", "Gross margin by project", "Contingency usage", "Loss-making contracts"],
+        "mitigants": ["Independent project reviews", "Escalation and extension provisions", "Experienced delivery teams", "Early loss recognition"]
+      },
+      {
+        "risk": "Working-capital and claims concentration",
+        "mechanism": "Retentions, uncertified variations and slow certification consume liquidity and may be disputed.",
+        "financial_signals": ["Receivable and retention aging", "Unapproved variations", "WIP versus billings", "Operating cash flow"],
+        "mitigants": ["Strong claim controls", "Diversified projects", "Conservative recognition", "Adequate committed liquidity"]
+      },
+      {
+        "risk": "Pipeline and client funding",
+        "mechanism": "Backlog can be delayed, cancelled or unprofitable, especially if the client lacks committed funding.",
+        "financial_signals": ["Secured versus preferred-bid pipeline", "Client concentration", "Order conversion", "Tender margin"],
+        "mitigants": ["Evidence of client finance", "Balanced backlog", "Maintenance revenue", "Selective bidding"]
+      },
+      {
+        "risk": "Contingent and counterparty liabilities",
+        "mechanism": "Bonds, guarantees, defects, retention trusts and subcontractor insolvency can create calls beyond booked debt.",
+        "financial_signals": ["Bond utilisation", "Warranty provisions", "Disputes", "Related-party guarantees"],
+        "mitigants": ["Bond headroom", "Insurance", "Subcontractor due diligence", "Contract and legal review"]
+      }
+    ],
+    "cash_conversion_and_working_capital": [
+      "Reconcile project ledgers, WIP, billings, receivables, retentions and cash received.",
+      "Age certified and uncertified claims separately and exclude speculative claims from liquidity.",
+      "Stress a major project delay while wages, subcontractors and plant costs continue.",
+      "Identify whether current cash is protected retention money or customer advances rather than free liquidity."
+    ],
+    "collateral_considerations": [
+      "Plant needs ownership, prior-security and current forced-sale evidence; utilisation and specialisation affect value.",
+      "Receivables may be subject to set-off, defects, certification and counterclaims.",
+      "WIP and uncertified variations should receive conservative or nil collateral value.",
+      "Guarantees, bonds and retention obligations need to be included in the total contingent exposure."
+    ],
+    "downside_stresses": [
+      "Gross-margin reduction on the largest live project",
+      "Three-month delay in certification and collection",
+      "Cancellation or deferral of a material portion of unsecured pipeline",
+      "Subcontractor failure plus remediation and replacement cost"
+    ],
+    "monitoring_kpis": [
+      "Backlog by status, client, completion date and forecast margin",
+      "Project gross margin and cost-to-complete variance",
+      "WIP, retentions, claims and receivable aging",
+      "Tender win rate and bid margin",
+      "Liquidity, net leverage, DSCR and bonding headroom",
+      "Health and safety, defects and disputes"
+    ],
+    "covenant_considerations": [
+      "Minimum liquidity or working-capital headroom",
+      "Maximum leverage and minimum DSCR calculated after recognised project losses",
+      "Limits or reporting triggers for related developments, guarantees and major disputes",
+      "Monthly project, WIP, retention and pipeline reporting"
+    ],
+    "diligence_questions": [
+      "Which backlog is contracted, client-funded and supported by an approved budget and programme?",
+      "What are the latest forecast margin and cost-to-complete for each material project?",
+      "How much is tied up in retentions, uncertified variations, disputed claims and overdue receivables?",
+      "What bonds, guarantees, defects and retention-money obligations exist?",
+      "Which key estimators, project managers and qualified staff are required to deliver the plan?"
+    ]
+  },
+  "valuation_analysis": {
+    "value_drivers": [
+      "Quality, diversity and margin credibility of contracted backlog",
+      "Disciplined estimating, project controls and early recognition of losses",
+      "Recurring maintenance or framework revenue",
+      "Skilled management and delivery capability beyond the owner",
+      "Strong cash conversion and conservative claims accounting"
+    ],
+    "multiple_influences": [
+      "Maintenance-heavy, diversified contractors with repeat clients generally have more predictable earnings than project-concentrated new-build firms.",
+      "Backlog is valuable only where funding, terms, delivery capacity and forecast margin are credible.",
+      "Contingent liabilities, aggressive WIP recognition, plant catch-up and owner estimating dependence reduce transferability."
+    ],
+    "normalisation_focus": [
+      "Project losses and claims based on latest cost-to-complete rather than historic margin",
+      "Owner estimating, project management and sales remuneration at replacement cost",
+      "Sustainable plant replacement and lease treatment",
+      "Related-party property, plant or subcontract arrangements at market terms",
+      "One-off disputes only when exposure is resolved and non-recurring"
+    ],
+    "peer_selection": [
+      "Separate residential, commercial main contracting, civil and specialist trades.",
+      "Match project duration, maintenance mix, contract form, plant intensity, scale and geography.",
+      "Compare cash conversion, claims policy, concentration and bonding needs before relying on observed multiples."
+    ],
+    "preferred_metrics": ["EV/EBITDA on normalised through-cycle earnings", "EV/EBITA for plant-intensive civil contractors", "Price-to-earnings or DCF where debt and working-capital policy are aligned", "Free cash flow after working-capital and maintenance capex"],
+    "discount_and_premium_factors": [
+      "Premium indicators include recurring maintenance, diverse funded backlog, strong controls and management depth.",
+      "Discount indicators include disputed WIP, project concentration, thin liquidity, contingent claims and aggressive revenue recognition."
+    ],
+    "diligence_questions": [
+      "What portion of current EBITDA comes from favourable project timing or unapproved claims?",
+      "What losses emerge when every material project is reforecast independently?",
+      "How much working capital and bonding capacity must remain in the business after a sale?",
+      "Will client, subcontractor and qualified-staff relationships transfer?"
+    ]
+  },
+  "market_research_sections": {
+    "credit_paper": "Construction demand in New Zealand is spread across residential, non-residential and infrastructure work, with materially different regional and client cycles. MBIE's National Construction Pipeline provides a forward view of activity, but a favourable aggregate pipeline does not prove that a borrower's own backlog is contracted, funded or profitable. Lender analysis should distinguish secured work from preferred-bid and speculative pipeline, then test client quality, contract form, delivery capacity, concentration and the latest cost-to-complete.\n\nThe central credit issue is cash conversion. Progress claims follow expenditure, while retentions, uncertified variations, disputed claims and work in progress can absorb cash even where reported EBITDA is positive. Receivables may be subject to certification, set-off or defect claims, and protected retention money or customer advances are not necessarily available liquidity. Project-level margin, WIP and claim controls are therefore more informative than annual revenue alone. Bonds, guarantees, defects, related developments and subcontractor failure should be treated as contingent exposure.\n\nThe matched sub-sector changes the risk assessment: civil contractors may offer plant collateral but require replacement capex; main contractors may be physically asset-light but carry substantial project and guarantee exposure; specialist trades depend on qualified labour and main-contractor payment; residential builders are exposed to client finance and housing conditions. Conditions and covenants should address actual gaps in project reporting, liquidity and contingent exposure rather than assuming the sector pipeline is a mitigant.",
+    "valuation_report": "Construction businesses should be valued on sustainable, cash-converting earnings rather than headline revenue or an untested order-book total. MBIE's pipeline research is useful for framing national and regional demand, while Stats NZ building-consent data can indicate prospective activity. Neither establishes the subject company's win rate, contract quality or margin. Backlog has value only when work is contracted, client-funded, deliverable within capacity and supported by a credible cost-to-complete forecast.\n\nNormalisation requires a project-by-project view of margin, WIP, variations, retentions and claims. Favourable timing, front-loaded billings or unapproved claims can overstate maintainable profit; known losses should be recognised. Owner estimating and delivery roles require replacement remuneration, and plant-intensive contractors need sustainable replacement capex. Peer selection must distinguish residential building, commercial main contracting, civil infrastructure and specialist trades, then align maintenance mix, contract type, plant intensity, working-capital needs and concentration.\n\nTransferable value is stronger where the business has recurring maintenance or framework work, disciplined bidding and project controls, diversified funded backlog, conservative accounting and management depth. Aggressive WIP, one-project concentration, thin liquidity, unresolved disputes, contingent guarantees and dependence on an owner-estimator warrant caution in forecasts and risk assessment. This sector baseline informs diligence; it does not supply a current transaction multiple."
+  },
+  "sources": [
+    {
+      "id": "mbie-construction-pipeline",
+      "title": "National Construction Pipeline Report",
+      "publisher": "Ministry of Business, Innovation and Employment",
+      "url": "https://www.mbie.govt.nz/building-and-energy/building/supporting-a-skilled-and-productive-workforce/national-construction-pipeline-report",
+      "published_date": "2025-12-16",
+      "accessed_date": "2026-07-26",
+      "source_type": "government_forecast",
+      "supports": ["National and regional activity pipeline", "Residential, non-residential and infrastructure segmentation"]
+    },
+    {
+      "id": "stats-building-consents",
+      "title": "Building consents issued",
+      "publisher": "Stats NZ",
+      "url": "https://www.stats.govt.nz/topics/building-consents",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "official_statistics",
+      "supports": ["Prospective construction activity monitoring", "Regional and building-type context"]
+    },
+    {
+      "id": "mbie-construction-contracts",
+      "title": "Construction Contracts Act 2002",
+      "publisher": "Ministry of Business, Innovation and Employment",
+      "url": "https://www.building.govt.nz/projects-and-consents/why-contracts-are-valuable/construction-contracts-act-2002",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Payment and adjudication framework", "Retention-money context"]
+    },
+    {
+      "id": "worksafe-construction",
+      "title": "Construction",
+      "publisher": "WorkSafe New Zealand",
+      "url": "https://www.worksafe.govt.nz/topic-and-industry/construction/",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Health and safety risk", "Site and contractor-chain responsibilities"]
+    }
+  ],
+  "limitations": [
+    "National or regional pipeline forecasts do not establish the subject company's contracted backlog, funding, delivery capacity or profitability.",
+    "Project accounts, contracts, claims, retentions, bonds and latest cost-to-complete schedules are required for borrower-specific conclusions.",
+    "Construction conditions can change rapidly with finance availability, procurement and project delays; decision-date sources should be refreshed.",
+    "No current sector multiple is supplied and peer evidence must be matched to sub-sector, contract mix, capital intensity and cycle."
+  ]
+}

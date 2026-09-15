@@ -13,7 +13,6 @@ export function UploadReadinessCard({ readiness, onContinue, onReset }: UploadRe
   return (
     <section className="wizard-card readiness-card" aria-live="polite">
       <div className={`readiness-mark readiness-${state}`} aria-hidden="true" />
-      <p className="eyebrow">Financial source check</p>
       <h1>{state === "ready" ? "Your accounts are ready" : "Checking your financial statements"}</h1>
       <p>{readiness?.message ?? "We are extracting the figures and confirming which periods will be used."}</p>
 

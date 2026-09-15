@@ -1,3 +1,5 @@
+> Archived 2026-09-14. Report type names here differ from the API values (`valuation_advisory`, `bank_credit_paper`, `financial_forecast`). Only Valuation Advisory is self-serve today.
+
 # Features Research
 
 ## Report Type Specifications

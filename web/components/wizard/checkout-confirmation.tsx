@@ -36,7 +36,6 @@ export function CheckoutConfirmation({ businessName, readiness, answers, loading
   const operatingNwc = assumptionLabel("operating_nwc");
   return (
     <section className="wizard-card confirmation-card">
-      <p className="eyebrow">Final check before payment</p>
       <h1>Confirm your valuation order</h1>
       <p>Review the source coverage and assumptions that will be bound to this report.</p>
 

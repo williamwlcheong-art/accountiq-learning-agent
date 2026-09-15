@@ -1,0 +1,204 @@
+{
+  "schema_version": "1.0",
+  "sector_id": "retail",
+  "sector_name": "Retail",
+  "geography": "New Zealand",
+  "as_of_date": "2026-07-26",
+  "next_review_date": "2027-01-26",
+  "aliases": ["retail trade", "store retail", "ecommerce", "specialty retailer", "motor retail"],
+  "overview": {
+    "summary": "New Zealand retail ranges from essential grocery and fuel to discretionary specialty stores, motor vehicles and online-only sellers. Demand follows household income, confidence, prices, credit conditions and population, while performance varies greatly by category, location, channel and value proposition. Sales growth is not sufficient evidence of value or debt capacity unless gross margin, stock turns, occupancy costs and cash conversion also remain sound.",
+    "business_models": [
+      "Store-based retail earning product gross margin from owned or leased locations",
+      "Omnichannel retail combining stores, e-commerce, click-and-collect and fulfilment",
+      "Online-only retail with lower store occupancy but higher fulfilment, acquisition and returns costs",
+      "Franchise retail with brand, purchasing and royalty obligations",
+      "Dealership or big-ticket retail using floorplan or stock finance"
+    ],
+    "industry_structure": [
+      "Large chains benefit from purchasing, systems, brand and network scale, while independents compete through location, curation, service or community position.",
+      "Global e-commerce and direct-to-consumer brands increase price transparency and channel competition.",
+      "Landlords, marketplaces, franchisors and major suppliers can hold meaningful bargaining power."
+    ],
+    "demand_drivers": [
+      "Real household income, employment, confidence, population and consumer credit",
+      "Category necessity, replacement cycles, fashion and product innovation",
+      "Foot traffic, local demographics, tourism and online acquisition",
+      "Pricing, promotions, brand strength and availability"
+    ],
+    "margin_and_cost_drivers": [
+      "Product mix, buying terms, foreign exchange, freight, shrinkage and markdowns",
+      "Store rent, wages, merchant fees, digital advertising, fulfilment and returns",
+      "Promotional intensity and the ability to pass cost increases to consumers",
+      "Stock availability, obsolescence, private-label penetration and supplier rebates"
+    ],
+    "cyclicality_and_seasonality": [
+      "Discretionary categories are sensitive to confidence, rates and housing or vehicle cycles.",
+      "Christmas, holidays, weather and tourism can concentrate annual profit and working-capital need.",
+      "Essential retail may be more defensive but can operate on lower margins and face strong price competition."
+    ],
+    "working_capital_profile": "Retail often collects cash at sale but funds inventory in advance, so stock quality and turns drive cash conversion. Supplier terms, seasonal buys, markdowns, returns, gift-card liabilities, rebates and stock finance need separate analysis. A positive working-capital position is not automatically desirable if it reflects slow or obsolete inventory.",
+    "asset_intensity": "Physical stores are lease- and fit-out-intensive; online retail is systems, inventory and fulfilment-intensive. Stock can support borrowing only after discounts for aging, seasonality, title, supplier retention, returns and realisable value. Lease obligations and store closure costs can behave like debt.",
+    "regulatory_and_compliance": [
+      "Fair Trading Act, Consumer Guarantees Act, pricing and product representations",
+      "Product safety, recalls, warranties and sector-specific standards",
+      "Privacy, electronic marketing, payments and customer-data security",
+      "Employment, health and safety, lease and franchise obligations"
+    ]
+  },
+  "subsectors": [
+    {
+      "id": "specialty_store",
+      "name": "Specialty store retail",
+      "aliases": ["specialty retail", "fashion retail", "homewares store", "hardware store", "shop"],
+      "business_model": "Products are sold through one or more leased stores, often with an online channel.",
+      "revenue_drivers": ["Comparable-store sales", "Traffic and conversion", "Average transaction value", "New stores"],
+      "cost_base": ["Cost of goods", "Rent", "Store wages", "Markdowns and marketing"],
+      "working_capital": "Seasonal inventory purchases create peak funding; aged stock and promotions determine recovery.",
+      "asset_intensity": "Moderate through stock, fit-out and leases.",
+      "credit_watchpoints": ["Stock aging", "Occupancy ratio", "Store contribution", "Seasonal liquidity"],
+      "valuation_watchpoints": ["Comparable-store growth", "Lease portfolio", "Brand transferability", "Normalised markdowns"]
+    },
+    {
+      "id": "ecommerce",
+      "name": "E-commerce and omnichannel retail",
+      "aliases": ["ecommerce retailer", "online retailer", "online store", "omnichannel"],
+      "business_model": "Sales are generated online with in-house or outsourced fulfilment and digital customer acquisition.",
+      "revenue_drivers": ["Website traffic", "Conversion", "Repeat rate", "Average order value"],
+      "cost_base": ["Product", "Digital marketing", "Pick-pack freight", "Returns and platforms"],
+      "working_capital": "Stock remains important; cash collection can be fast but returns, chargebacks and advertising spend absorb cash.",
+      "asset_intensity": "Lower store assets but material inventory, systems and fulfilment capability.",
+      "credit_watchpoints": ["Customer acquisition cost", "Returns", "Platform dependence", "Inventory turns"],
+      "valuation_watchpoints": ["Cohort retention", "Organic traffic", "Contribution after fulfilment", "Data and brand ownership"]
+    },
+    {
+      "id": "essential_retail",
+      "name": "Essential and convenience retail",
+      "aliases": ["supermarket", "grocery store", "convenience store", "pharmacy retail", "petrol station"],
+      "business_model": "Frequent purchases and high stock turns are combined with typically tighter product margins.",
+      "revenue_drivers": ["Transactions", "Basket size", "Local catchment", "Category mix"],
+      "cost_base": ["Product purchases", "Labour", "Occupancy", "Utilities and shrinkage"],
+      "working_capital": "High turns and supplier terms can be favourable, but perishability and shrinkage require control.",
+      "asset_intensity": "Fit-out, refrigeration or forecourt assets may be significant, alongside leases.",
+      "credit_watchpoints": ["Gross-margin stability", "Supplier concentration", "Perishable loss", "Site economics"],
+      "valuation_watchpoints": ["Catchment durability", "Store-level EBITDA", "Franchise or supply terms", "Lease tenure"]
+    },
+    {
+      "id": "motor_big_ticket",
+      "name": "Motor vehicle and big-ticket retail",
+      "aliases": ["motor vehicle dealer", "car dealer", "appliance retailer", "furniture retailer"],
+      "business_model": "Higher-value items are sold less frequently, often with finance, warranty and service income.",
+      "revenue_drivers": ["Units sold", "Gross profit per unit", "Finance and insurance income", "After-sales service"],
+      "cost_base": ["Stock funding", "Sales staff", "Premises", "Reconditioning and warranty"],
+      "working_capital": "Stock days and floorplan finance are central; price changes can create rapid inventory losses.",
+      "asset_intensity": "High inventory value, leasehold premises and sometimes workshop equipment.",
+      "credit_watchpoints": ["Floorplan headroom", "Aged units", "Residual value", "Finance-provider concentration"],
+      "valuation_watchpoints": ["Gross profit by income stream", "Stock finance on completion", "Brand agency rights", "Cycle-normal earnings"]
+    }
+  ],
+  "credit_analysis": {
+    "primary_risks": [
+      {
+        "risk": "Demand and promotional pressure",
+        "mechanism": "Lower traffic or price competition reduces sales and can require markdowns that compress gross profit faster than fixed costs can fall.",
+        "financial_signals": ["Comparable sales", "Gross margin", "Conversion", "Average selling price"],
+        "mitigants": ["Defensive category", "Differentiated product", "Flexible marketing and labour", "Strong loyalty"]
+      },
+      {
+        "risk": "Inventory quality and funding",
+        "mechanism": "Slow, seasonal or obsolete stock ties up liquidity and may realise below cost.",
+        "financial_signals": ["Stock days", "Aging by SKU", "Markdown rate", "Sell-through", "Floorplan utilisation"],
+        "mitigants": ["Open-to-buy controls", "Supplier returns", "Frequent aging review", "Borrowing base with appropriate reserves"]
+      },
+      {
+        "risk": "Occupancy and channel economics",
+        "mechanism": "Long leases and store costs remain when sales migrate or a location underperforms.",
+        "financial_signals": ["Rent-to-sales", "Store contribution", "Lease maturity", "Online contribution margin"],
+        "mitigants": ["Profitable store portfolio", "Break or assignment rights", "Omnichannel capability", "Site diversity"]
+      },
+      {
+        "risk": "Supplier, brand or platform dependence",
+        "mechanism": "Loss of supply rights, marketplace access or key products can reduce traffic and margin.",
+        "financial_signals": ["Top suppliers", "Private-label mix", "Marketplace sales", "Agency expiry"],
+        "mitigants": ["Diverse sourcing", "Owned brand and customer data", "Transferable agreements", "Alternative channels"]
+      }
+    ],
+    "cash_conversion_and_working_capital": [
+      "Reconcile inventory by SKU, location, age and net realisable value.",
+      "Model the peak seasonal cash requirement and downside sell-through.",
+      "Separate trade payables from stock finance, gift cards, customer deposits and tax liabilities.",
+      "Review cash conversion after lease payments, store maintenance, returns and markdowns."
+    ],
+    "collateral_considerations": [
+      "Stock borrowing bases need eligibility rules, aging and category reserves, title confirmation and regular reporting.",
+      "Fit-out often has low recovery outside the existing site and use.",
+      "Receivables are usually limited but payment-provider balances, commercial accounts and chargebacks should be identified.",
+      "Lease, franchise, supplier and floorplan security can restrict lender priority."
+    ],
+    "downside_stresses": ["Sales decline with gross-margin markdown", "Seasonal stock sell-through below plan", "Supplier terms shorten or floorplan limit reduces", "Closure of an underperforming store with ongoing lease cost"],
+    "monitoring_kpis": ["Comparable-store and online sales", "Gross margin and markdown rate", "Inventory days, aging and sell-through", "Rent-to-sales and store contribution", "Cash conversion", "Liquidity, fixed-charge cover and leverage"],
+    "covenant_considerations": ["Minimum fixed-charge cover including rent", "Maximum leverage", "Minimum liquidity around seasonal peaks", "Inventory borrowing-base reporting and caps on new stores or distributions"],
+    "diligence_questions": [
+      "Which categories, stores and channels generate contribution after fulfilment, marketing and occupancy?",
+      "How much inventory is seasonal, aged, consigned, subject to supplier title or financed?",
+      "What is the peak cash requirement under a slower sell-through case?",
+      "Which leases, franchises, agencies or marketplace relationships are critical and transferable?",
+      "How are product safety, warranties, returns and customer data controlled?"
+    ]
+  },
+  "valuation_analysis": {
+    "value_drivers": ["Sustainable comparable-sales and gross-margin performance", "Fast, controlled stock turns", "Profitable store and channel portfolio", "Owned brand, customer data and repeat purchasing", "Transferable leases and supplier rights"],
+    "multiple_influences": [
+      "Defensive demand, strong cash conversion and a differentiated brand can improve predictability.",
+      "Store expansion should not be valued as growth where new sites have weak unit economics.",
+      "Aged stock, onerous leases, supplier dependence and paid-acquisition dependence reduce value."
+    ],
+    "normalisation_focus": ["Inventory write-downs and normal markdown experience", "Market owner-management remuneration", "Lease consistency and store closure costs", "Supplier rebates and one-off promotions", "Maintenance fit-out and systems spend"],
+    "peer_selection": ["Match category, channel, price point, store intensity and geography.", "Separate essential from discretionary and dealership from ordinary product retail.", "Compare stock turns, gross margin, occupancy, growth and online economics before using peers."],
+    "preferred_metrics": ["EV/EBITDA with consistent lease treatment", "EV/EBITA for fit-out-intensive portfolios", "EV/revenue only with closely comparable gross margins and channels", "DCF or free cash flow after lease and stock investment"],
+    "discount_and_premium_factors": ["Premium indicators include strong brand, repeat customers, high stock turns and profitable omnichannel capability.", "Discount indicators include aging stock, weak store contribution, short or onerous leases and key supplier dependence."],
+    "diligence_questions": ["What is maintainable gross profit after normal markdowns, returns and freight?", "Which stores and cohorts remain profitable after all direct and occupancy costs?", "What working capital must remain at completion?", "Do leases, brand rights, supplier arrangements and customer data transfer?"]
+  },
+  "market_research_sections": {
+    "credit_paper": "Stats NZ retail data measures sales and stock across categories and provides useful evidence of consumer-spending conditions, but aggregate movement does not determine an individual retailer's resilience. The credit paper should identify whether the borrower sells essential or discretionary products, through stores, online or both, and then analyse comparable sales, gross margin, stock turns, occupancy and channel contribution. Revenue growth funded by inventory accumulation or loss-making stores is not equivalent to stronger debt capacity.\n\nInventory is usually the central liquidity and collateral issue. Aging, seasonality, fashion or technology obsolescence, supplier title, returns and markdown requirements determine realisable value. Peak seasonal purchases, floorplan or supplier finance, leases, gift cards and customer deposits should be included in the cash analysis. Fixed-charge cover should include lease payments, and lender security must recognise that fit-out can have low alternative-use value.\n\nCompetitive risk includes price transparency, e-commerce, global suppliers, marketplaces and customer-acquisition cost, as well as the Fair Trading, consumer-guarantee, product-safety and privacy obligations attached to retail. A robust credit conclusion should link category and channel risks to borrower evidence: store-level contribution, stock aging, supplier agreements, lease maturities, online cohorts and downside sell-through. Missing evidence belongs in conditions or monitoring rather than an assumed sector mitigant.",
+    "valuation_report": "Retail value is created through sustainable gross profit, stock productivity, profitable customer acquisition and a store or digital footprint that can earn above its occupancy and fulfilment cost. Stats NZ sales and stock series can frame category and consumer conditions, but valuation must rest on the subject company's category, price point, channel and unit economics. Essential and discretionary retail, dealerships, specialty stores and online models should not be treated as one peer group.\n\nMaintainable earnings should reflect normal markdowns, returns, freight, shrinkage, owner-management remuneration, lease economics and ongoing fit-out and systems needs. Inventory requires a completion-date quality review because book cost may not equal recoverable value. Store openings should be separated from comparable performance, and digital sales should be assessed after marketing, fulfilment and returns. Lease liabilities, closure costs, gift cards and stock finance also affect the enterprise-to-equity bridge.\n\nValue tends to be more transferable where the retailer owns a differentiated brand and customer relationship, achieves fast stock turns, has profitable stores and cohorts, and holds transferable leases and supply arrangements. Dependence on paid traffic, a single supplier, short agency rights, aged inventory or uneconomic locations increases forecast and terminal-value risk. This pack supplies a diligence and interpretation framework, not a current market multiple."
+  },
+  "sources": [
+    {
+      "id": "stats-retail-wholesale",
+      "title": "Retail and wholesale trade",
+      "publisher": "Stats NZ",
+      "url": "https://www.stats.govt.nz/topics/retail-and-wholesale-trade",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "official_statistics",
+      "supports": ["Retail sales, volumes and stock", "Consumer-spending and category context"]
+    },
+    {
+      "id": "comcom-fair-trading",
+      "title": "Fair Trading Act",
+      "publisher": "Commerce Commission New Zealand",
+      "url": "https://comcom.govt.nz/business/your-obligations-as-a-business/fair-trading",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Pricing, claims and consumer representations"]
+    },
+    {
+      "id": "consumer-protection-products",
+      "title": "Product safety",
+      "publisher": "Consumer Protection New Zealand",
+      "url": "https://www.consumerprotection.govt.nz/general-help/product-safety",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "government_guidance",
+      "supports": ["Product safety and recall context", "Retail compliance risk"]
+    }
+  ],
+  "limitations": [
+    "Retail conditions vary materially by category, region, price point and channel; aggregate sales data must not be applied mechanically to the subject company.",
+    "Inventory quality, store economics, leases and supplier rights require borrower records and cannot be inferred from the sector pack.",
+    "Consumer conditions and regulation are time-sensitive and should be refreshed at the report date.",
+    "No current valuation multiple or inventory collateral value is supplied."
+  ]
+}

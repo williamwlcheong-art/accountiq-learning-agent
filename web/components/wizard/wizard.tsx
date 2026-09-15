@@ -1,16 +1,19 @@
 "use client";
 
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { CustomerHeader } from "@/components/customer-header";
+import { CustomerShell } from "@/components/customer-shell";
 import { CheckoutClarificationCard } from "@/components/wizard/checkout-clarification-card";
 import { CheckoutConfirmation } from "@/components/wizard/checkout-confirmation";
 import { IntakeForm } from "@/components/wizard/intake-form";
 import { ReportStatusCard } from "@/components/wizard/report-status-card";
 import { ReportTypePicker, type WizardReportType } from "@/components/wizard/report-type-picker";
 import { UploadReadinessCard } from "@/components/wizard/upload-readiness-card";
+import { WizardSteps } from "@/components/wizard/wizard-steps";
 import { ApiError, apiFetch, postForm, postJson } from "@/lib/api-client";
+import { formatFileSize } from "@/lib/presentation";
 import { FINANCIAL_FILE_ACCEPT, validateFinancialFile } from "@/lib/upload-files";
 import type { CheckoutClarification, CurrentUser, ReportStatus, WizardReadiness } from "@/types/domain";
 
@@ -40,6 +43,18 @@ type WizardProps = {
   user: CurrentUser;
 };
 
+type SavedProgress = {
+  step: WizardStep;
+  businessName: string;
+  upload: UploadResult | null;
+  readiness: WizardReadiness | null;
+  reportType: WizardReportType | null;
+  intakeAnswers: Record<string, unknown> | null;
+  checkoutIdempotencyKey: string;
+};
+
+const RESUMABLE_STEPS: WizardStep[] = ["readiness", "report-type", "intake", "confirm"];
+
 export function Wizard({ user }: WizardProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,6 +72,8 @@ export function Wizard({ user }: WizardProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const activeReportKey = `accountiq.activeReport.${user.id}`;
+  const progressKey = `accountiq.wizardProgress.${user.id}`;
+  const [restored, setRestored] = useState(false);
 
   useEffect(() => {
     const restore = window.setTimeout(() => {
@@ -64,10 +81,58 @@ export function Wizard({ user }: WizardProps) {
       if (Number.isInteger(savedReportId) && savedReportId > 0) {
         setReportId(savedReportId);
         setStep("status");
+        setRestored(true);
+        return;
       }
+      try {
+        const raw = window.sessionStorage.getItem(progressKey);
+        if (raw) {
+          const saved = JSON.parse(raw) as SavedProgress;
+          if (saved.upload && RESUMABLE_STEPS.includes(saved.step)) {
+            setBusinessName(saved.businessName ?? "");
+            setUpload(saved.upload);
+            setReadiness(saved.readiness ?? null);
+            setReportType(saved.reportType ?? null);
+            setIntakeAnswers(saved.intakeAnswers ?? null);
+            setCheckoutIdempotencyKey(saved.checkoutIdempotencyKey ?? "");
+            setStep(saved.step);
+          }
+        }
+      } catch {
+        window.sessionStorage.removeItem(progressKey);
+      }
+      setRestored(true);
     }, 0);
     return () => window.clearTimeout(restore);
-  }, [activeReportKey]);
+  }, [activeReportKey, progressKey]);
+
+  // Keep in-progress work across a refresh or an accidental navigation.
+  useEffect(() => {
+    if (!restored) return;
+    if (upload && RESUMABLE_STEPS.includes(step)) {
+      const saved: SavedProgress = {
+        step,
+        businessName,
+        upload,
+        readiness,
+        reportType,
+        intakeAnswers,
+        checkoutIdempotencyKey,
+      };
+      window.sessionStorage.setItem(progressKey, JSON.stringify(saved));
+    } else if (step === "upload" || step === "status" || step === "clarification") {
+      window.sessionStorage.removeItem(progressKey);
+    }
+  }, [restored, step, businessName, upload, readiness, reportType, intakeAnswers, checkoutIdempotencyKey, progressKey]);
+
+  useEffect(() => {
+    if (step !== "intake" && step !== "restart-intake") return;
+    function guard(event: BeforeUnloadEvent) {
+      event.preventDefault();
+    }
+    window.addEventListener("beforeunload", guard);
+    return () => window.removeEventListener("beforeunload", guard);
+  }, [step]);
 
   function handleAuthError(err: unknown) {
     if (err instanceof ApiError && err.status === 401) {
@@ -198,6 +263,16 @@ export function Wizard({ user }: WizardProps) {
           && err.detail
           && typeof err.detail === "object"
           && "state" in err.detail
+          && err.detail.state === "payment_retry_required"
+        ) {
+          setCheckoutIdempotencyKey(crypto.randomUUID());
+          setError(`${err.message} Click “Proceed to secure checkout” again to continue.`);
+        } else if (
+          err instanceof ApiError
+          && err.status === 409
+          && err.detail
+          && typeof err.detail === "object"
+          && "state" in err.detail
           && err.detail.state === "needs_clarification"
         ) {
           setClarification(err.detail);
@@ -209,6 +284,11 @@ export function Wizard({ user }: WizardProps) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleMissingReport() {
+    reset();
+    setError("That report is no longer available. You can start a new valuation below.");
   }
 
   function beginRestart(status: ReportStatus) {
@@ -242,6 +322,7 @@ export function Wizard({ user }: WizardProps) {
 
   function reset() {
     window.localStorage.removeItem(activeReportKey);
+    window.sessionStorage.removeItem(progressKey);
     setStep("upload");
     setBusinessName("");
     setFile(null);
@@ -257,7 +338,7 @@ export function Wizard({ user }: WizardProps) {
     setError("");
   }
 
-  const selectedFileLabel = file ? `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)` : "";
+  const selectedFileLabel = file ? `${file.name} (${formatFileSize(file.size)})` : "";
   const phaseLabels: Record<WizardStep, string> = {
     upload: "Financial statements",
     readiness: "Financial statements",
@@ -268,13 +349,22 @@ export function Wizard({ user }: WizardProps) {
     status: "Report delivery",
     "restart-intake": "Update valuation inputs",
   };
+  const stepIndex: Record<WizardStep, number> = {
+    upload: 0,
+    readiness: 0,
+    "report-type": 1,
+    intake: 1,
+    confirm: 2,
+    clarification: 2,
+    status: 3,
+    "restart-intake": 3,
+  };
 
   return (
-    <>
-      <CustomerHeader email={user.email} activePage="wizard" />
-
-      <main className="wizard-shell">
-        <p className="wizard-phase" aria-live="polite">{phaseLabels[step]}</p>
+    <CustomerShell user={user} activePage="wizard" narrow>
+      <div className="wizard-shell">
+        <WizardSteps current={stepIndex[step]} />
+        <p className="wizard-phase sr-only" aria-live="polite">{phaseLabels[step]}</p>
         {error ? (
           <div role="alert" className="alert alert-error">
             {error}
@@ -284,8 +374,14 @@ export function Wizard({ user }: WizardProps) {
         {step === "upload" ? (
           <section className="wizard-card">
             <h1>Upload your financial statements</h1>
-            <label htmlFor="business-name">
-              Business name <span className="required" aria-hidden="true">*</span>
+            <p className="wizard-intro">
+              PDF or Excel exports from your accounting software or accountant. The last two to three years of annual
+              accounts give the best result.
+            </p>
+            <div className="wizard-field">
+              <label htmlFor="business-name">
+                Business name <span className="required" aria-hidden="true">*</span>
+              </label>
               <input
                 id="business-name"
                 value={businessName}
@@ -293,8 +389,8 @@ export function Wizard({ user }: WizardProps) {
                 placeholder="e.g. Acme Holdings Ltd"
                 autoComplete="organization"
               />
-            </label>
-            <div className="wizard-upload-field">
+            </div>
+            <div className="wizard-field wizard-upload-field">
               <span className="field-label">
                 Financial statements <span className="required" aria-hidden="true">*</span>
               </span>
@@ -307,8 +403,8 @@ export function Wizard({ user }: WizardProps) {
                 <span className="drop-zone-icon" aria-hidden="true">
                   PDF
                 </span>
-                <strong>Click or drag file here</strong>
-                <span>PDF or Excel - last 2-3 years preferred</span>
+                <strong>{file ? "Choose a different file" : "Click or drag file here"}</strong>
+                <span>PDF or Excel, last two to three years preferred</span>
                 <input
                   ref={fileInputRef}
                   id="financial-file"
@@ -319,9 +415,11 @@ export function Wizard({ user }: WizardProps) {
               </label>
               {file ? <p className="wizard-note">{selectedFileLabel}</p> : null}
             </div>
-            <button className="button button-primary" onClick={submitUpload} disabled={loading}>
-              {loading ? "Uploading..." : "Continue"}
-            </button>
+            <div className="wizard-actions wizard-actions-end">
+              <button className="button button-primary" onClick={submitUpload} disabled={loading}>
+                {loading ? "Uploading..." : "Continue"}
+              </button>
+            </div>
           </section>
         ) : null}
 
@@ -399,13 +497,19 @@ export function Wizard({ user }: WizardProps) {
               reportId={reportId}
               userEmail={user.email}
               onRestartRequired={beginRestart}
+              onMissing={handleMissingReport}
             />
-            <button className="button button-secondary wizard-reset" onClick={reset}>
-              Start another valuation
-            </button>
+            <div className="wizard-actions wizard-after-status">
+              <Link className="button button-primary" href="/reports">
+                Back to your valuations
+              </Link>
+              <button className="button button-secondary" onClick={reset}>
+                Start another valuation
+              </button>
+            </div>
           </>
         ) : null}
-      </main>
-    </>
+      </div>
+    </CustomerShell>
   );
 }

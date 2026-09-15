@@ -36,6 +36,19 @@ PLACEHOLDER_REPORT_PATTERNS = (
     "lorem ipsum",
 )
 
+MARKET_STRUCTURED_KEYS = {
+    "narrative",
+    "table",
+    "sector_scale_table",
+    "market_sources_table",
+    "market_charts",
+    "market_snapshot",
+}
+MARKET_SECTION_NAMES = {
+    "market_position",
+    "industry_and_competitive_landscape",
+}
+
 
 def section_narrative(section_content) -> str:
     if isinstance(section_content, str):
@@ -251,11 +264,28 @@ def validate_generated_report(
             raise ValueError(f"placeholder content in section: {section_name}")
 
         if isinstance(section_content, dict):
-            unexpected_keys = set(section_content) - {"narrative", "table"}
+            allowed_keys = (
+                MARKET_STRUCTURED_KEYS
+                if section_name in MARKET_SECTION_NAMES
+                else {"narrative", "table"}
+            )
+            unexpected_keys = set(section_content) - allowed_keys
             if unexpected_keys:
                 raise ValueError(f"invalid structured section shape: {section_name}")
             if "table" in section_content:
                 validate_report_table(section_name, section_content["table"])
+            if "sector_scale_table" in section_content:
+                validate_report_table(section_name, section_content["sector_scale_table"])
+            if "market_sources_table" in section_content:
+                validate_report_table(section_name, section_content["market_sources_table"])
+            if "market_charts" in section_content and not isinstance(
+                section_content["market_charts"], list
+            ):
+                raise ValueError(f"invalid market charts in section '{section_name}'")
+            if "market_snapshot" in section_content and not isinstance(
+                section_content["market_snapshot"], dict
+            ):
+                raise ValueError(f"invalid market snapshot in section '{section_name}'")
         elif not isinstance(section_content, str):
             raise ValueError(f"invalid section shape: {section_name}")
 

@@ -16,6 +16,9 @@ const FINANCIAL_STATEMENT_LABELS: Record<string, string> = {
 
 const REPORT_STATUS_LABELS: Record<string, string> = {
   pending_payment: "Payment pending",
+  payment_failed: "Payment failed",
+  payment_expired: "Payment expired",
+  refunded: "Refunded",
   queued: "Preparing your report",
   researching: "Preparing your report",
   generating: "Preparing your report",
@@ -31,18 +34,23 @@ const PURCHASE_STATUS_LABELS: Record<string, string> = {
   pending: "Payment pending",
   pending_payment: "Payment pending",
   failed: "Payment needs attention",
+  expired: "Expired",
+  refunded: "Refunded",
 };
 
 export type StatusTone = "success" | "info" | "warning" | "danger" | "neutral";
 
 const REPORT_STATUS_TONES: Record<string, StatusTone> = {
   pending_payment: "warning",
+  payment_failed: "danger",
+  payment_expired: "warning",
+  refunded: "neutral",
   queued: "info",
   researching: "info",
   generating: "info",
   processing: "info",
   extracting: "info",
-  awaiting_review: "warning",
+  awaiting_review: "info",
   done: "success",
   failed: "danger",
 };
@@ -127,4 +135,38 @@ export function purchaseStatusLabel(value: string) {
 
 export function clarificationReasonLabel(value: string) {
   return CLARIFICATION_REASON_LABELS[value] ?? "Please upload a clearer or more complete set of financial statements.";
+}
+
+const NZ_TIME_ZONE = "Pacific/Auckland";
+
+/** Parse a backend timestamp. SQLite stores `datetime('now')` as UTC without a zone marker. */
+export function parseBackendDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(trimmed);
+  const isoLike = trimmed.includes("T") ? trimmed : trimmed.replace(" ", "T");
+  const date = new Date(hasZone ? isoLike : `${isoLike}Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+const NZ_DATE_FORMATTERS = {
+  short: new Intl.DateTimeFormat("en-NZ", { day: "numeric", month: "short", year: "numeric", timeZone: NZ_TIME_ZONE }),
+  long: new Intl.DateTimeFormat("en-NZ", { day: "numeric", month: "long", year: "numeric", timeZone: NZ_TIME_ZONE }),
+  datetime: new Intl.DateTimeFormat("en-NZ", {
+    day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: NZ_TIME_ZONE,
+  }),
+};
+
+export function formatNzDate(
+  value: string | null | undefined,
+  style: "short" | "long" | "datetime" = "short",
+): string {
+  const date = parseBackendDate(value);
+  if (!date) return "Unknown";
+  return NZ_DATE_FORMATTERS[style].format(date);
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }

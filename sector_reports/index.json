@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0",
+  "library_name": "AccountIQ New Zealand Sector Research Library",
+  "geography": "New Zealand",
+  "updated_date": "2026-07-26",
+  "sectors": [
+    {
+      "sector_id": "logistics",
+      "sector_name": "Logistics",
+      "file": "logistics.json",
+      "aliases": [
+        "logistics",
+        "transport and warehousing",
+        "freight",
+        "road transport",
+        "trucking",
+        "courier",
+        "towing and recovery",
+        "third party logistics",
+        "3pl",
+        "warehousing"
+      ]
+    },
+    {
+      "sector_id": "construction",
+      "sector_name": "Construction",
+      "file": "construction.json",
+      "aliases": [
+        "construction",
+        "building contractor",
+        "general contractor",
+        "main contractor",
+        "civil contractor",
+        "infrastructure contractor",
+        "residential builder",
+        "commercial builder",
+        "subcontractor",
+        "trades contractor"
+      ]
+    },
+    {
+      "sector_id": "retail",
+      "sector_name": "Retail",
+      "file": "retail.json",
+      "aliases": [
+        "retail",
+        "retailer",
+        "shop",
+        "store",
+        "ecommerce retailer",
+        "online retailer",
+        "supermarket",
+        "motor vehicle dealer",
+        "specialty retail"
+      ]
+    },
+    {
+      "sector_id": "hospitality",
+      "sector_name": "Hospitality",
+      "file": "hospitality.json",
+      "aliases": [
+        "hospitality",
+        "restaurant",
+        "cafe",
+        "bar",
+        "hotel",
+        "motel",
+        "accommodation",
+        "catering",
+        "food service",
+        "tourism accommodation"
+      ]
+    },
+    {
+      "sector_id": "manufacturing",
+      "sector_name": "Manufacturing",
+      "file": "manufacturing.json",
+      "aliases": [
+        "manufacturing",
+        "manufacturer",
+        "fabrication",
+        "factory",
+        "food manufacturing",
+        "engineering manufacturer",
+        "wood product manufacturing",
+        "industrial production",
+        "assembly plant"
+      ]
+    },
+    {
+      "sector_id": "professional_services",
+      "sector_name": "Professional Services",
+      "file": "professional_services.json",
+      "aliases": [
+        "professional services",
+        "consulting firm",
+        "accounting firm",
+        "law firm",
+        "legal practice",
+        "engineering consultancy",
+        "architecture practice",
+        "it consultancy",
+        "advisory firm"
+      ]
+    },
+    {
+      "sector_id": "early_childhood_education_and_care",
+      "sector_name": "Early Childhood Education and Care",
+      "file": "early_childhood_education_and_care.json",
+      "aliases": [
+        "early childhood education",
+        "early childhood care",
+        "ece",
+        "childcare centre",
+        "child care centre",
+        "daycare",
+        "kindergarten",
+        "home based childcare",
+        "early learning service"
+      ]
+    },
+    {
+      "sector_id": "import_distribution",
+      "sector_name": "Import Distribution",
+      "file": "import_distribution.json",
+      "aliases": [
+        "import distribution",
+        "importer and distributor",
+        "importer",
+        "wholesale distributor",
+        "wholesaler",
+        "distribution business",
+        "product distributor",
+        "consumer goods importer",
+        "industrial distributor"
+      ]
+    }
+  ]
+}

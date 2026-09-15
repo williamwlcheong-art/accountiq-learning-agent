@@ -1,3 +1,5 @@
+> Archived 2026-09-14. The refactor merged as PR #2 on 2026-07-02. File sizes and route counts quoted here are from that time.
+
 # AccountIQ Next.js Refactor Final Implementation Plan
 
 **Execution status:** Completed and merged. Keep this file as historical implementation context; use `AGENTS.md`, `README.md`, and the current `web/` code for operational instructions.

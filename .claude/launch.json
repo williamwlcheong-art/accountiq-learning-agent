@@ -4,9 +4,30 @@
     {
       "name": "accountiq-learning-agent",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "source ../venv/bin/activate && uvicorn main:app --reload --port ${PORT:-8765}"],
+      "runtimeArgs": [
+        "-c",
+        "source ../venv/bin/activate && export DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib && uvicorn main:app --reload --port ${PORT:-8765}"
+      ],
       "cwd": "${workspaceRoot}/backend",
       "port": 8765
+    },
+    {
+      "name": "accountiq-backend-e2e",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "scripts/start-e2e-backend.sh"
+      ],
+      "cwd": "${workspaceRoot}",
+      "port": 8765
+    },
+    {
+      "name": "accountiq-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "dev"
+      ],
+      "cwd": "${workspaceRoot}/web",
+      "port": 3000
     }
   ]
 }

@@ -1,3 +1,5 @@
+> Archived 2026-09-14. This six-page site was not built. What shipped is one page at `web/app/valuation/page.tsx`, described in `docs/superpowers/specs/2026-07-12-public-valuation-offer-design.md`.
+
 # Marketing Site / Offer Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

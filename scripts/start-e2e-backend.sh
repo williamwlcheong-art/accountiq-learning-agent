@@ -9,6 +9,7 @@ mkdir -p "$ROOT/data" "$ROOT/data/pdfs"
 
 export ACCOUNTIQ_DB_PATH="$DB"
 export ACCOUNTIQ_E2E_MODE=true
+export APP_BASE_URL="${APP_BASE_URL:-http://localhost:3000}"
 export SECRET_KEY="e2e-secret-key-not-for-production"
 export ANTHROPIC_API_KEY="sk-ant-e2e-placeholder"
 export CLAUDE_MODEL="claude-sonnet-4-6"
@@ -45,5 +46,10 @@ with sqlite3.connect(DB_PATH) as db:
 provision_admin(DB_PATH, "owner-e2e@example.com")
 PY
 
+# macOS: WeasyPrint needs the Homebrew glib/pango libraries on the fallback path.
+if [[ "$(uname -s)" == "Darwin" && -d /opt/homebrew/lib ]]; then
+  export DYLD_FALLBACK_LIBRARY_PATH="/opt/homebrew/lib${DYLD_FALLBACK_LIBRARY_PATH:+:$DYLD_FALLBACK_LIBRARY_PATH}"
+fi
+
 cd "$ROOT/backend"
-exec "$UVICORN" main:app --port 8765
+exec "$UVICORN" main:app --port "${PORT:-8765}"

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { apiFetch } from "@/lib/api-client";
 import type { WizardReportType } from "@/components/wizard/report-type-picker";
@@ -90,6 +90,11 @@ function percentageToRatio(value: unknown): number {
   return Number((Number(value) / 100).toFixed(10));
 }
 
+// Display only: confirmed calculated rates are submitted unrounded from fcffReadiness.
+function formatRatioPercent(rate: number) {
+  return String(Number((rate * 100).toFixed(2)));
+}
+
 function toAnswerValue(value: FormDataEntryValue): string | number {
   const text = String(value).trim();
   if (text === "") return "";
@@ -147,7 +152,14 @@ export function IntakeForm({
   const [fcffReadiness, setFcffReadiness] = useState<FcffAssumptionReadiness | null>(null);
   const [assumptionOverrides, setAssumptionOverrides] = useState<Record<string, boolean>>({});
   const [assumptionRatios, setAssumptionRatios] = useState<Record<string, string>>({});
+  const errorRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!error) return;
+    errorRef.current?.scrollIntoView({ block: "center" });
+    errorRef.current?.focus();
+  }, [error]);
 
   useEffect(() => {
     let cancelled = false;
@@ -231,7 +243,7 @@ export function IntakeForm({
 
   function setCalculatedAssumption(key: string, rate: number) {
     setAssumptionOverrides((current) => ({ ...current, [key]: false }));
-    setAssumptionRatios((current) => ({ ...current, [key]: String(rate * 100) }));
+    setAssumptionRatios((current) => ({ ...current, [key]: formatRatioPercent(rate) }));
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -295,6 +307,8 @@ export function IntakeForm({
         }
       }
       const forecastHorizon = Number(answers.forecast_horizon);
+      const depreciationOverride = answers.depreciation_confirmation === "override";
+      const nwcOverride = answers.operating_nwc_confirmation === "override";
       const fcffAssumptions: FcffAssumptionsInput = {
         forecast: {
           horizon_years: forecastHorizon,
@@ -303,14 +317,16 @@ export function IntakeForm({
           confirmed: true,
         },
         depreciation: {
-          rate: percentageToRatio(answers.depreciation_ratio),
+          rate: depreciationOverride
+            ? percentageToRatio(answers.depreciation_ratio)
+            : fcffReadiness?.depreciation.rate ?? percentageToRatio(answers.depreciation_ratio),
           confirmed: true,
-          rationale: answers.depreciation_confirmation === "override"
+          rationale: depreciationOverride
             ? String(answers.depreciation_override_rationale ?? "")
             : String(answers.depreciation_zero_rationale ?? ""),
-          confirmation_method: answers.depreciation_confirmation === "override" ? "override" : "calculated",
-          confirmation_source: answers.depreciation_confirmation === "override" ? "customer" : "financial_statements",
-          source_period: answers.depreciation_confirmation === "override" ? undefined : fcffReadiness?.depreciation.source_period ?? undefined,
+          confirmation_method: depreciationOverride ? "override" : "calculated",
+          confirmation_source: depreciationOverride ? "customer" : "financial_statements",
+          source_period: depreciationOverride ? undefined : fcffReadiness?.depreciation.source_period ?? undefined,
         },
         capex: {
           rate: percentageToRatio(answers.capex_ratio),
@@ -320,14 +336,16 @@ export function IntakeForm({
           confirmation_source: "customer",
         },
         operating_nwc: {
-          rate: percentageToRatio(answers.operating_nwc_ratio),
+          rate: nwcOverride
+            ? percentageToRatio(answers.operating_nwc_ratio)
+            : fcffReadiness?.operating_nwc.rate ?? percentageToRatio(answers.operating_nwc_ratio),
           confirmed: true,
-          rationale: answers.operating_nwc_confirmation === "override"
+          rationale: nwcOverride
             ? String(answers.operating_nwc_override_rationale ?? "")
             : String(answers.operating_nwc_zero_rationale ?? ""),
-          confirmation_method: answers.operating_nwc_confirmation === "override" ? "override" : "calculated",
-          confirmation_source: answers.operating_nwc_confirmation === "override" ? "customer" : "financial_statements",
-          source_period: answers.operating_nwc_confirmation === "override" ? undefined : fcffReadiness?.operating_nwc.source_period ?? undefined,
+          confirmation_method: nwcOverride ? "override" : "calculated",
+          confirmation_source: nwcOverride ? "customer" : "financial_statements",
+          source_period: nwcOverride ? undefined : fcffReadiness?.operating_nwc.source_period ?? undefined,
         },
       };
       answers.fcff_assumptions = fcffAssumptions;
@@ -354,16 +372,10 @@ export function IntakeForm({
   return (
     <form className="wizard-form" onSubmit={submit}>
       {error ? (
-        <div role="alert" className="alert alert-error">
+        <div role="alert" className="alert alert-error" tabIndex={-1} ref={errorRef}>
           {error}
         </div>
       ) : null}
-      {profileStatus && profileStatus.sections_complete < profileStatus.total ? (
-        <div className="alert alert-warning">
-          Some profile data is incomplete - your report may have gaps. You can still generate the report.
-        </div>
-      ) : null}
-
       {reportType === "valuation_advisory" ? (
         <>
           <fieldset>
@@ -433,11 +445,35 @@ export function IntakeForm({
             </label>
             <label htmlFor="revenue-growth-cagr">
               Revenue growth rate (CAGR %)
-              <input id="revenue-growth-cagr" name="revenue_growth_cagr" type="number" min="0" max="100" step="0.1" required />
+              <input
+                id="revenue-growth-cagr"
+                name="revenue_growth_cagr"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                required
+                aria-describedby="revenue-growth-cagr-hint"
+              />
+              <span className="field-hint" id="revenue-growth-cagr-hint">
+                The average yearly growth you expect over the forecast period. For example, 8 means revenue grows about 8% each year.
+              </span>
             </label>
             <label htmlFor="terminal-growth-rate">
               Terminal growth rate (%)
-              <input id="terminal-growth-rate" name="terminal_growth_rate" type="number" min="0" max="20" step="0.1" required />
+              <input
+                id="terminal-growth-rate"
+                name="terminal_growth_rate"
+                type="number"
+                min="0"
+                max="20"
+                step="0.1"
+                required
+                aria-describedby="terminal-growth-rate-hint"
+              />
+              <span className="field-hint" id="terminal-growth-rate-hint">
+                Long-run growth after the forecast period, usually close to inflation. Two to three is typical for a stable NZ business.
+              </span>
             </label>
           </fieldset>
 
@@ -498,7 +534,7 @@ export function IntakeForm({
                           setAssumptionOverrides((current) => ({ ...current, [key]: true }));
                           setAssumptionRatios((current) => ({
                             ...current,
-                            [key]: current[key] ?? (isAvailable ? String((derived.rate ?? 0) * 100) : ""),
+                            [key]: current[key] ?? (isAvailable ? formatRatioPercent(derived.rate ?? 0) : ""),
                           }));
                         }}
                       />
@@ -514,7 +550,7 @@ export function IntakeForm({
                       min="0"
                       max="100"
                       step="0.1"
-                      value={assumptionRatios[key] ?? (isAvailable ? String((derived.rate ?? 0) * 100) : "")}
+                      value={assumptionRatios[key] ?? (isAvailable ? formatRatioPercent(derived.rate ?? 0) : "")}
                       onChange={(event) => setAssumptionRatios((current) => ({ ...current, [key]: event.target.value }))}
                       readOnly={isAvailable && !assumptionOverrides[key]}
                       aria-readonly={isAvailable && !assumptionOverrides[key]}
@@ -577,6 +613,12 @@ export function IntakeForm({
           {simpleFields[reportType].map(renderField)}
         </fieldset>
       )}
+
+      {profileStatus && profileStatus.sections_complete < profileStatus.total ? (
+        <p className="wizard-note">
+          Some background profile details are still incomplete. You can continue; the report will note any gaps.
+        </p>
+      ) : null}
 
       <div className="wizard-actions">
         <button type="button" className="button button-secondary" onClick={onBack}>

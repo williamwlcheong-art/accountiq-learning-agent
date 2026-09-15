@@ -9,7 +9,8 @@ import asyncio
 import hashlib
 import uuid
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Optional
@@ -34,7 +35,7 @@ from financial_authority import (
     promote_document_authority,
 )
 from ingestion import ingest_document
-from auth import auth_router, get_current_user, require_admin
+from auth import SECRET_KEY, auth_router, get_current_user, require_admin
 from payments import (
     checkout_config,
     construct_webhook_event,
@@ -42,7 +43,7 @@ from payments import (
     stripe_enabled,
 )
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
-from report_rendering import render_report_html, report_pdf_path, write_pdf
+from report_rendering import render_report_html, report_pdf_path, section_heading, write_pdf
 from report_snapshots import (
     LegacySnapshotRestartRequired,
     SnapshotIntegrityError,
@@ -61,6 +62,12 @@ from report_prompts import (
     compute_bank_credit_figures,
 )
 from research_loop import run_valuation_research
+from sector_library import enrich_research_brief, match_sector_report
+from market_intelligence import (
+    MarketIntelligenceStaleError,
+    apply_market_intelligence_to_report_content,
+    load_current_market_intelligence,
+)
 from fcff_engine import calculate_fcff, report_prompt_payload
 from valuation import compute_multiples_crosscheck
 from valuation_inputs import (
@@ -74,8 +81,23 @@ from valuation_tables import attach_valuation_tables, build_valuation_tables
 # App setup
 # ---------------------------------------------------------------------------
 
+_UPLOAD_SUFFIXES = {".pdf", ".xlsx", ".xls", ".xlsm", ".docx"}
+
+
+def _validated_upload_suffix(file: UploadFile) -> str:
+    """Reject uploads with no filename or an unsupported extension; return the suffix."""
+    if not file.filename:
+        raise HTTPException(400, "Choose a file to upload.")
+    suffix = Path(file.filename).suffix.lower()
+    if suffix not in _UPLOAD_SUFFIXES:
+        raise HTTPException(400, f"Only PDF, Excel, and Word files are accepted. Got: {suffix}")
+    return suffix
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    if not SECRET_KEY:
+        raise RuntimeError("SECRET_KEY is not set; refusing to start without a session signing key.")
     init_db()
     print("[STARTUP] AccountIQ Learning Agent ready.")
     yield
@@ -128,7 +150,7 @@ def _e2e_report_content(report_type: str) -> dict:
     sections = SECTION_SCHEMAS.get(report_type, ["executive_summary", "disclaimer"])
     content = {}
     for section in sections:
-        title = section.replace("_", " ").title()
+        title = section_heading(section)
         if section == "disclaimer":
             content[section] = (
                 "This report is indicative only, is not financial advice, "
@@ -649,10 +671,7 @@ async def upload_document(
     db: aiosqlite.Connection = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
-    suffix = Path(file.filename).suffix.lower()
-    allowed = {".pdf", ".xlsx", ".xls", ".xlsm", ".docx"}
-    if suffix not in allowed:
-        raise HTTPException(400, f"Only PDF, Excel, and Word files are accepted. Got: {suffix}")
+    suffix = _validated_upload_suffix(file)
 
     is_excel = suffix in {".xlsx", ".xls", ".xlsm"}
     exchange = "Private"
@@ -1301,7 +1320,6 @@ async def get_settings(current_user: dict = Depends(require_admin)):
         "api_key_set": bool(key and not key.startswith("sk-ant-YOUR")),
         "api_key_preview": (key[:12] + "…" + key[-4:]) if len(key) > 20 else ("" if not key else "set"),
         "claude_model": os.environ.get("CLAUDE_MODEL") or ing.CLAUDE_MODEL,
-        "env_file": str(ENV_PATH),
     }
 
 
@@ -1399,10 +1417,7 @@ async def wizard_upload(
     if not name:
         raise HTTPException(400, "Business name is required")
 
-    suffix = Path(file.filename).suffix.lower()
-    allowed = {".pdf", ".xlsx", ".xls", ".xlsm", ".docx"}
-    if suffix not in allowed:
-        raise HTTPException(400, f"Only PDF, Excel, and Word files are accepted. Got: {suffix}")
+    suffix = _validated_upload_suffix(file)
 
     # Idempotent company creation — reuses existing helper (D-06)
     company_id, _ = await _resolve_or_create_company(db, name, current_user["id"])
@@ -1666,7 +1681,7 @@ async def wizard_report_generate(
     request: Request,
     background_tasks: BackgroundTasks,
     db: aiosqlite.Connection = Depends(get_db),
-    current_user: dict = Depends(get_current_user),   # non-admin users can generate
+    current_user: dict = Depends(require_admin),
 ):
     """
     Create a report job and immediately queue generation.
@@ -1678,7 +1693,7 @@ async def wizard_report_generate(
         "intake_answers": { ... }    // report-type-specific answers dict
       }
 
-    Non-valuation report generation remains available for internal/advisor flows.
+    Non-valuation report generation remains available for authenticated admin/advisor flows.
     Self-serve Valuation Advisory must use /wizard/report/checkout.
     """
     company_id, report_type, intake_answers = await _read_report_payload(request)
@@ -1760,20 +1775,10 @@ async def wizard_report_checkout(
 
     await db.execute("BEGIN IMMEDIATE")
     try:
-        # Reconfirm ownership and readiness while holding the short persistence transaction.
+        # Reconfirm ownership while holding the short persistence transaction. Resolve an
+        # idempotent retry before checking mutable readiness so a completed checkout can be
+        # recovered even when the source document has changed state since it was created.
         await _ensure_user_company(db, company_id, current_user["id"])
-        readiness = await _wizard_readiness(
-            db, company_id, document_id, current_user["id"]
-        )
-        if readiness["state"] != "ready":
-            raise HTTPException(
-                409,
-                {
-                    "state": readiness["state"],
-                    "code": readiness["code"],
-                    "message": readiness["message"],
-                },
-            )
         async with db.execute(
             """
             SELECT p.id AS purchase_id, p.report_id, p.status, p.stripe_checkout_session_id,
@@ -1824,7 +1829,48 @@ async def wizard_report_checkout(
             await db.commit()
             report_id = existing_order["report_id"]
             purchase_id = existing_order["purchase_id"]
+            if existing_order["status"] in {"failed", "expired"}:
+                raise HTTPException(
+                    409,
+                    {
+                        "state": "payment_retry_required",
+                        "code": "checkout_session_terminal",
+                        "message": "The previous payment session cannot be reused. Start a new checkout.",
+                    },
+                )
+            if existing_order["status"] == "refunded":
+                raise HTTPException(
+                    409,
+                    {
+                        "state": "payment_retry_required",
+                        "code": "purchase_refunded",
+                        "message": "This purchase was refunded. Start a new checkout if you need another report.",
+                    },
+                )
         else:
+            try:
+                load_current_market_intelligence()
+            except MarketIntelligenceStaleError as exc:
+                raise HTTPException(
+                    503,
+                    {
+                        "state": "service_unavailable",
+                        "code": "market_intelligence_refresh_required",
+                        "message": str(exc),
+                    },
+                ) from exc
+            readiness = await _wizard_readiness(
+                db, company_id, document_id, current_user["id"]
+            )
+            if readiness["state"] != "ready":
+                raise HTTPException(
+                    409,
+                    {
+                        "state": readiness["state"],
+                        "code": readiness["code"],
+                        "message": readiness["message"],
+                    },
+                )
             snapshot_candidate = await build_report_input_snapshot_candidate(
                 db,
                 company_id=company_id,
@@ -1892,7 +1938,11 @@ async def wizard_report_checkout(
         await db.rollback()
         raise
 
-    status = "pending_payment"
+    status = (
+        existing_order["report_status"]
+        if existing_order and existing_order["status"] == "paid"
+        else "pending_payment"
+    )
     checkout_url = None
 
     if E2E_MODE:
@@ -1910,7 +1960,9 @@ async def wizard_report_checkout(
         async with db.execute("SELECT status FROM reports WHERE id=?", (report_id,)) as cur:
             status = (await cur.fetchone())["status"]
     else:
-        if existing_order and existing_order["stripe_checkout_url"]:
+        if existing_order and existing_order["status"] == "paid":
+            checkout_url = None
+        elif existing_order and existing_order["stripe_checkout_url"]:
             checkout_url = existing_order["stripe_checkout_url"]
         else:
             session = create_checkout_session(
@@ -1955,74 +2007,111 @@ async def stripe_webhook(
         "checkout.session.completed",
         "checkout.session.async_payment_succeeded",
     }
-    if event_type not in payable_event_types:
+    failed_event_statuses = {
+        "checkout.session.async_payment_failed": ("failed", "payment_failed"),
+        "checkout.session.expired": ("expired", "payment_expired"),
+    }
+    supported_event_types = payable_event_types | set(failed_event_statuses) | {
+        "charge.refunded",
+    }
+    if event_type not in supported_event_types:
         return {"received": True, "ignored": True}
 
-    session = _object_get(_object_get(event, "data") or {}, "object") or {}
-    if _object_get(session, "payment_status") != "paid":
-        return {"received": True, "ignored": True}
-    session_id = _object_get(session, "id")
-    payment_intent_id = _object_get(session, "payment_intent")
-    if not session_id:
-        raise HTTPException(400, "Stripe checkout session id missing")
+    stripe_object = _object_get(_object_get(event, "data") or {}, "object") or {}
 
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         await db.execute("PRAGMA foreign_keys=ON")
-        async with db.execute("""
-            SELECT
-                p.id AS purchase_id,
-                p.report_id,
-                p.user_id,
-                p.status AS purchase_status,
-                r.company_id,
-                r.report_type,
-                r.status AS report_status,
-                ri.answers
-            FROM purchases p
-            JOIN reports r ON r.id = p.report_id
-            LEFT JOIN report_intake ri ON ri.report_id = r.id
-            WHERE p.stripe_checkout_session_id=?
-            ORDER BY ri.id DESC
-            LIMIT 1
-        """, (session_id,)) as cur:
-            row = await cur.fetchone()
-
-        if not row:
-            metadata = _object_get(session, "metadata") or {}
-            purchase_id = _object_get(metadata, "purchase_id")
-            if purchase_id and str(purchase_id).isdigit():
-                async with db.execute(
-                    """
-                    SELECT p.id AS purchase_id, p.report_id
-                    FROM purchases p
-                    JOIN reports r ON r.id=p.report_id
-                    WHERE p.id=? AND p.status='pending' AND r.status='pending_payment'
-                    """,
-                    (int(purchase_id),),
-                ) as cur:
-                    row = await cur.fetchone()
-                if row:
-                    cursor = await db.execute(
-                        """
-                        UPDATE purchases
-                        SET stripe_checkout_session_id=?
-                        WHERE id=? AND stripe_checkout_session_id IS NULL
-                        """,
-                        (session_id, row["purchase_id"]),
-                    )
-                    if cursor.rowcount != 1:
-                        await db.rollback()
-                        raise HTTPException(409, "Checkout session could not be reconciled")
+        if event_type == "charge.refunded":
+            payment_intent_id = _stripe_id(_object_get(stripe_object, "payment_intent"))
+            amount = _object_get(stripe_object, "amount")
+            amount_refunded = _object_get(stripe_object, "amount_refunded")
+            is_full_refund = _object_get(stripe_object, "refunded") is True or (
+                isinstance(amount, int)
+                and not isinstance(amount, bool)
+                and amount > 0
+                and isinstance(amount_refunded, int)
+                and not isinstance(amount_refunded, bool)
+                and amount_refunded >= amount
+            )
+            if not is_full_refund:
+                return {"received": True, "ignored": True}
+            if not payment_intent_id:
+                raise HTTPException(400, "Stripe payment intent id missing")
+            async with db.execute(
+                """
+                SELECT id AS purchase_id, report_id
+                FROM purchases
+                WHERE stripe_payment_intent_id=?
+                """,
+                (payment_intent_id,),
+            ) as cur:
+                row = await cur.fetchone()
             if not row:
                 raise HTTPException(404, "Purchase not found")
+            await db.execute(
+                "UPDATE purchases SET status='refunded' WHERE id=? AND status IN ('paid', 'refunded')",
+                (row["purchase_id"],),
+            )
+            await db.execute(
+                """
+                UPDATE reports
+                SET status='refunded', error_message='Payment was refunded.'
+                WHERE id=? AND status != 'refunded'
+                """,
+                (row["report_id"],),
+            )
+            await db.commit()
+            return {"received": True}
+
+        session = stripe_object
+        session_id = _object_get(session, "id")
+        if not session_id:
+            raise HTTPException(400, "Stripe checkout session id missing")
+        row = await _stripe_checkout_purchase(db, session_id, session)
+
+        metadata = _object_get(session, "metadata") or {}
+        metadata_purchase_id = _object_get(metadata, "purchase_id")
+        metadata_report_id = _object_get(metadata, "report_id")
+        if metadata_purchase_id is not None and str(metadata_purchase_id) != str(row["purchase_id"]):
+            raise HTTPException(409, "Stripe purchase metadata does not match checkout")
+        if metadata_report_id is not None and str(metadata_report_id) != str(row["report_id"]):
+            raise HTTPException(409, "Stripe report metadata does not match checkout")
+
+        if event_type in failed_event_statuses:
+            purchase_status, report_status = failed_event_statuses[event_type]
+            await db.execute(
+                "UPDATE purchases SET status=? WHERE id=? AND status='pending'",
+                (purchase_status, row["purchase_id"]),
+            )
+            await db.execute(
+                "UPDATE reports SET status=? WHERE id=? AND status='pending_payment'",
+                (report_status, row["report_id"]),
+            )
+            await db.commit()
+            return {"received": True}
+
+        if _object_get(session, "payment_status") != "paid":
+            return {"received": True, "ignored": True}
+        amount_total = _object_get(session, "amount_total")
+        currency = str(_object_get(session, "currency") or "").lower()
+        if (
+            not isinstance(amount_total, int)
+            or isinstance(amount_total, bool)
+            or amount_total != row["amount_cents"]
+            or currency != str(row["currency"]).lower()
+        ):
+            raise HTTPException(409, "Stripe payment amount or currency does not match purchase")
+        payment_intent_id = _stripe_id(_object_get(session, "payment_intent"))
+        if not payment_intent_id:
+            raise HTTPException(400, "Stripe payment intent id missing")
 
         await db.execute("""
             UPDATE purchases
             SET status='paid',
                 stripe_payment_intent_id=?,
                 paid_at=COALESCE(paid_at, datetime('now'))
-            WHERE id=?
+            WHERE id=? AND status IN ('pending', 'paid')
         """, (payment_intent_id, row["purchase_id"]))
 
         queue_cursor = await db.execute(
@@ -2042,6 +2131,62 @@ def _object_get(obj, key: str):
     if isinstance(obj, dict):
         return obj.get(key)
     return getattr(obj, key, None)
+
+
+def _stripe_id(value) -> str | None:
+    if isinstance(value, str):
+        return value or None
+    return _object_get(value, "id")
+
+
+async def _stripe_checkout_purchase(
+    db: aiosqlite.Connection,
+    session_id: str,
+    session,
+):
+    async with db.execute(
+        """
+        SELECT p.id AS purchase_id, p.report_id, p.status AS purchase_status,
+               p.amount_cents, p.currency, r.status AS report_status
+        FROM purchases p
+        JOIN reports r ON r.id=p.report_id
+        WHERE p.stripe_checkout_session_id=?
+        """,
+        (session_id,),
+    ) as cur:
+        row = await cur.fetchone()
+    if row:
+        return row
+
+    metadata = _object_get(session, "metadata") or {}
+    purchase_id = _object_get(metadata, "purchase_id")
+    if not purchase_id or not str(purchase_id).isdigit():
+        raise HTTPException(404, "Purchase not found")
+    async with db.execute(
+        """
+        SELECT p.id AS purchase_id, p.report_id, p.status AS purchase_status,
+               p.amount_cents, p.currency, r.status AS report_status
+        FROM purchases p
+        JOIN reports r ON r.id=p.report_id
+        WHERE p.id=? AND p.status='pending' AND r.status='pending_payment'
+        """,
+        (int(purchase_id),),
+    ) as cur:
+        row = await cur.fetchone()
+    if not row:
+        raise HTTPException(404, "Purchase not found")
+    cursor = await db.execute(
+        """
+        UPDATE purchases
+        SET stripe_checkout_session_id=?
+        WHERE id=? AND stripe_checkout_session_id IS NULL
+        """,
+        (session_id, row["purchase_id"]),
+    )
+    if cursor.rowcount != 1:
+        await db.rollback()
+        raise HTTPException(409, "Checkout session could not be reconciled")
+    return row
 
 
 _LEGACY_SNAPSHOT_RESTART_MESSAGE = (
@@ -2394,6 +2539,93 @@ def _narrative_to_html(text: str) -> str:
     return "".join(chunks)
 
 
+_MARKET_SOURCE_LABELS = {
+    "stats_nz_cpi": "Stats NZ",
+    "stats_nz_gdp": "Stats NZ",
+    "stats_nz_migration": "Stats NZ",
+    "stats_nz_bfd": "Stats NZ Business Financial Data",
+    "rbnz_ocr": "Reserve Bank of New Zealand",
+}
+
+
+def _report_table_html(table_data: dict | None, heading: str) -> str:
+    if not table_data:
+        return ""
+    headers = table_data.get("headers", []) or []
+    rows = table_data.get("rows", []) or []
+    if not isinstance(headers, list) or not isinstance(rows, list):
+        return ""
+    th_cells = "".join(f"<th>{_html_lib.escape(str(h))}</th>" for h in headers)
+    tr_rows = "".join(
+        "<tr>" + "".join(f"<td>{_html_lib.escape(str(c))}</td>" for c in row) + "</tr>"
+        for row in rows
+        if isinstance(row, list)
+    )
+    if not th_cells and not tr_rows:
+        return ""
+    return (
+        f"<div class='table-scroll' tabindex='0' role='region' "
+        f"aria-label='{_html_lib.escape(heading)} table'><table class='report-table'>"
+        f"<thead><tr>{th_cells}</tr></thead>"
+        f"<tbody>{tr_rows}</tbody>"
+        f"</table></div>"
+    )
+
+
+def _market_chart_html(chart: dict) -> str:
+    title = _html_lib.escape(str(chart.get("title") or "Market trend"))
+    subtitle = _html_lib.escape(str(chart.get("subtitle") or ""))
+    unit = _html_lib.escape(str(chart.get("unit") or ""))
+    note = _html_lib.escape(str(chart.get("note") or ""))
+    source_labels = list(
+        dict.fromkeys(
+            _MARKET_SOURCE_LABELS.get(str(source_id), str(source_id))
+            for source_id in chart.get("source_ids", [])
+        )
+    )
+    source_text = _html_lib.escape(", ".join(source_labels))
+    series_items = []
+    for series in chart.get("series", []) or []:
+        if not isinstance(series, dict):
+            continue
+        points = ", ".join(
+            f"{point.get('period')}: {point.get('value')}"
+            for point in series.get("values", []) or []
+            if isinstance(point, dict)
+        )
+        series_items.append(
+            f"<li><strong>{_html_lib.escape(str(series.get('name') or 'Series'))}</strong>: "
+            f"{_html_lib.escape(points)}</li>"
+        )
+    return (
+        '<figure class="market-line-chart">'
+        f"<figcaption><strong>{title}</strong><span>{subtitle}</span></figcaption>"
+        f"<ul>{''.join(series_items)}</ul>"
+        f"<p>Source: {source_text}. Unit: {unit}. {note}</p>"
+        "</figure>"
+    )
+
+
+def _market_payload_html(content: dict) -> str:
+    chunks = []
+    if isinstance(content.get("sector_scale_table"), dict):
+        chunks.append("<h3>Sector scale and boundary</h3>")
+        chunks.append(_report_table_html(content["sector_scale_table"], "Sector scale and boundary"))
+    charts = content.get("market_charts")
+    if isinstance(charts, list):
+        chunks.extend(_market_chart_html(chart) for chart in charts if isinstance(chart, dict))
+    if isinstance(content.get("market_sources_table"), dict):
+        chunks.append("<h3>Market data sources</h3>")
+        chunks.append(_report_table_html(content["market_sources_table"], "Market data sources"))
+    snapshot = content.get("market_snapshot")
+    if isinstance(snapshot, dict) and snapshot.get("usage_boundary"):
+        chunks.append(
+            f"<p><strong>Market evidence boundary:</strong> "
+            f"{_html_lib.escape(str(snapshot.get('usage_boundary')))}</p>"
+        )
+    return "".join(chunks)
+
+
 def _render_report_sections_html(sections: dict, section_order: list) -> str:
     """Render report sections as HTML, handling both plain-string and dict (narrative+table) sections.
 
@@ -2402,7 +2634,7 @@ def _render_report_sections_html(sections: dict, section_order: list) -> str:
     section_html = ""
     for key in section_order:
         content = sections.get(key, "")
-        heading = key.replace("_", " ").title()
+        heading = section_heading(key)
 
         if isinstance(content, dict):
             narrative = str(content.get("narrative", "") or "")
@@ -2413,26 +2645,8 @@ def _render_report_sections_html(sections: dict, section_order: list) -> str:
 
         paragraphs = _narrative_to_html(narrative)
 
-        table_html = ""
-        if table_data:
-            headers = table_data.get("headers", []) or []
-            rows = table_data.get("rows", []) or []
-            if isinstance(headers, list) and isinstance(rows, list):
-                th_cells = "".join(
-                    f"<th>{_html_lib.escape(str(h))}</th>" for h in headers
-                )
-                tr_rows = "".join(
-                    "<tr>" + "".join(f"<td>{_html_lib.escape(str(c))}</td>" for c in row) + "</tr>"
-                    for row in rows if isinstance(row, list)
-                )
-                if th_cells or tr_rows:
-                    table_html = (
-                        f"<div class='table-scroll' tabindex='0' role='region' "
-                        f"aria-label='{_html_lib.escape(heading)} table'><table class='report-table'>"
-                        f"<thead><tr>{th_cells}</tr></thead>"
-                        f"<tbody>{tr_rows}</tbody>"
-                        f"</table></div>"
-                    )
+        table_html = _report_table_html(table_data, heading)
+        market_html = _market_payload_html(content) if isinstance(content, dict) else ""
 
         section_class = " class='disclaimer'" if key == "disclaimer" else ""
         section_html += f"""
@@ -2440,9 +2654,25 @@ def _render_report_sections_html(sections: dict, section_order: list) -> str:
             <h2>{_html_lib.escape(heading)}</h2>
             {paragraphs}
             {table_html}
+            {market_html}
         </section>"""
 
     return section_html
+
+
+def _format_nz_datetime(value) -> str:
+    """Render a stored UTC timestamp as a readable New Zealand date and time."""
+    if not value:
+        return ""
+    text = str(value).strip()
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return text
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    local = parsed.astimezone(ZoneInfo("Pacific/Auckland"))
+    return local.strftime("%-d %b %Y, %-I:%M %p").replace("AM", "am").replace("PM", "pm")
 
 
 def _render_report_html(row, sections: dict, back_url: str) -> str:
@@ -2502,7 +2732,7 @@ def _render_report_html(row, sections: dict, back_url: str) -> str:
     <header>
       <h1>{_html_lib.escape(label)}</h1>
       <p>{_html_lib.escape(row['name'])}</p>
-      <p class="meta">Report #{row['id']} &middot; Generated {_html_lib.escape(str(generated_label))}</p>
+      <p class="meta">Report #{row['id']} &middot; Generated {_html_lib.escape(_format_nz_datetime(generated_label) or str(generated_label))}</p>
     </header>
     {section_html}
   </main>
@@ -2537,7 +2767,7 @@ async def wizard_report_view(
     except Exception:
         raise HTTPException(500, "Report content could not be parsed")
 
-    back_url = f"{os.getenv('APP_BASE_URL', 'http://localhost:3000').rstrip('/')}/wizard"
+    back_url = f"{os.getenv('APP_BASE_URL', 'http://localhost:3000').rstrip('/')}/reports"
     html = _render_report_html(row, sections, back_url)
     return HTMLResponse(content=html)
 
@@ -2578,12 +2808,20 @@ async def wizard_report_pdf(
             report["completed_at"],
             SECTION_SCHEMAS.get(report["report_type"]),
         )
-        await asyncio.get_running_loop().run_in_executor(
-            None,
-            write_pdf,
-            html_text,
-            output_path,
-        )
+        try:
+            await asyncio.get_running_loop().run_in_executor(
+                None,
+                write_pdf,
+                html_text,
+                output_path,
+            )
+        except Exception as exc:  # noqa: BLE001 - surface a readable failure to the customer
+            print(f"[pdf] report {report_id} render failed: {exc!r}")
+            raise HTTPException(
+                503,
+                "We could not build the PDF right now. You can still open the report online. "
+                "Reply to your confirmation email and we will send the PDF to you.",
+            )
 
     return FileResponse(
         path=output_path,
@@ -2804,10 +3042,22 @@ async def _generate_report(report_id: int) -> None:
             raw_fin_rows = snapshot["financial_rows"]
             intake_answers = snapshot["intake_answers"]
             report_type = snapshot["report_type"]
+            sector_match = None
+            if report_type in {"valuation_advisory", "bank_credit_paper"}:
+                try:
+                    sector_match = match_sector_report(company_sector, company_description)
+                except Exception as exc:
+                    print(f"[WARN] Sector library unavailable for report {report_id}: {exc}")
 
             if E2E_MODE:
                 await asyncio.sleep(0.05)
                 content_json = _e2e_report_content(report_type)
+                if report_type in {"valuation_advisory", "bank_credit_paper"}:
+                    content_json = apply_market_intelligence_to_report_content(
+                        content_json,
+                        sector_match,
+                        report_type,
+                    )
                 next_status = await _store_generated_report(
                     db,
                     report_id=report_id,
@@ -2842,13 +3092,18 @@ async def _generate_report(report_id: int) -> None:
             # --- 5. Run Python algorithm for Valuation Advisory (D-08) ---
             valuation_result = None
             bank_credit_figs = None
+            credit_research_brief = None
 
             if report_type == "valuation_advisory":
                 # 5a. Update status so the wizard can show 'researching' in real time
-                await db.execute(
-                    "UPDATE reports SET status='researching' WHERE id=?", (report_id,)
+                research_cursor = await db.execute(
+                    "UPDATE reports SET status='researching' WHERE id=? AND status='generating'",
+                    (report_id,),
                 )
                 await db.commit()
+                if research_cursor.rowcount == 0:
+                    print(f"[REPORT] Stopping report_id={report_id}; status changed during generation")
+                    return
 
                 # Frozen inputs and deterministic arithmetic are validated before
                 # research or report writing begins.
@@ -2865,6 +3120,11 @@ async def _generate_report(report_id: int) -> None:
                     company_name=company_name,
                     company_location=company_location,
                     industry_sector=industry_sector_for_research,
+                )
+                research_brief = enrich_research_brief(
+                    brief.model_dump(),
+                    sector_match,
+                    report_type,
                 )
 
                 normalised_ebitda = float(typed_inputs.normalised_ebitda.value)
@@ -2889,7 +3149,7 @@ async def _generate_report(report_id: int) -> None:
                 }
 
                 valuation_result = {
-                    "research_brief": brief.model_dump(),
+                    "research_brief": research_brief,
                     "deterministic_fcff": deterministic_fcff,
                     "normalised_ebitda": normalised_ebitda,
                     "normalisations": [
@@ -2913,6 +3173,17 @@ async def _generate_report(report_id: int) -> None:
                 bank_credit_figs = compute_bank_credit_figures(
                     financial_rows_for_prompt, intake_answers
                 )
+                credit_research_brief = enrich_research_brief(
+                    {
+                        "company_summary": company_description,
+                        "sector_summary": "",
+                        "sources": [],
+                        "evidence_sources": [],
+                        "limitations": [],
+                    },
+                    sector_match,
+                    report_type,
+                )
 
             # --- 6. Build Claude prompt via report_prompts.build_prompt() ---
             system_prompt, user_message = build_prompt(
@@ -2926,10 +3197,17 @@ async def _generate_report(report_id: int) -> None:
                 ebitda_adjustments=ebitda_adjustments,
                 valuation_result=valuation_result,
                 bank_credit_figures=bank_credit_figs,
+                credit_research_brief=credit_research_brief,
             )
 
             # --- 7. Call Claude API (non-tool-use, plain JSON response) ---
             content_json = await _call_claude_for_report(system_prompt, user_message)
+            if report_type in {"valuation_advisory", "bank_credit_paper"}:
+                content_json = apply_market_intelligence_to_report_content(
+                    content_json,
+                    sector_match,
+                    report_type,
+                )
 
             # --- 8. Store validated content; paid valuations wait for reviewer approval ---
             next_status = await _store_generated_report(
@@ -2967,7 +3245,7 @@ async def _generate_report(report_id: int) -> None:
                 await db.execute("""
                     UPDATE reports
                     SET status='failed', content=NULL, error_message=?
-                    WHERE id=?
+                    WHERE id=? AND status IN ('generating', 'researching')
                 """, (customer_error, report_id))
                 await db.commit()
             except Exception as db_exc:

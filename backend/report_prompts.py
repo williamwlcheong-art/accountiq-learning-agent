@@ -41,6 +41,7 @@ SECTION_SCHEMAS: dict[str, list[str]] = {
     "bank_credit_paper": [
         "executive_summary",
         "borrower_overview",
+        "industry_and_competitive_landscape",
         "financial_analysis",
         "dscr_analysis",
         "sensitivity_analysis",
@@ -225,6 +226,7 @@ def build_prompt(
     ebitda_adjustments: list[dict],
     valuation_result: Optional[dict] = None,
     bank_credit_figures: Optional[dict] = None,
+    credit_research_brief: Optional[dict] = None,
 ) -> tuple[str, str]:
     """
     Build the (system_prompt, user_message) tuple for Claude messages.create().
@@ -356,7 +358,7 @@ These tables are attached to your narratives after generation. Use them as narra
 ## Section-specific instructions
 - introduction: Engagement scope, basis of valuation, indicative nature, FMCA compliance. State that DCF is the primary method and comparable market multiples are a cross-check.
 - business_overview: Use research_brief.company_summary; do not invent facts.
-- market_position: Use research_brief.sector_summary; reference at least one NZ-specific competitor or regulator.
+- market_position: Use research_brief.sector_summary and research_brief.market_intelligence; reference credible NZ-specific competitors, regulators, macro indicators or market evidence where available. Preserve each statistic's period, unit and industry boundary. Describe private-industry monetary measures as sector turnover/scale proxies, not market capitalisation, and do not infer the subject company's market share.
 - financial_performance: Provide narrative interpreting the Python-owned historical financial table.
 - normalisations_schedule: Provide narrative explaining the Python-owned approved normalisation schedule.
 - balance_sheet_summary: Provide narrative on interest-bearing debt, unrestricted cash, net debt and approved surplus assets; explain the EV-to-equity bridge shown in the Python-owned tables.
@@ -372,6 +374,7 @@ All presentation values are Python-owned. Refer to them accurately in narrative,
     elif report_type == "bank_credit_paper":
         if bank_credit_figures is None:
             raise ValueError("bank_credit_figures is required for bank_credit_paper report type")
+        credit_research_brief_text = json.dumps(credit_research_brief or {}, indent=2)
         user_message = f"""Generate a Bank Credit Paper for {company_name}.
 
 ## Company Information
@@ -391,7 +394,22 @@ DSCR by year: {json.dumps(bank_credit_figures['dscr_table'])}
 DSCR sensitivity (-10% / -20% revenue): {json.dumps(bank_credit_figures['sensitivity'])}
 Annual principal repayment: ${bank_credit_figures['annual_principal']:,.0f}
 
+## Credit Research Brief
+Use this as borrower and sector context only. Do not treat generic sector characteristics as facts about the borrower.
+```json
+{credit_research_brief_text}
+```
+
 Write the Bank Credit Paper. The dscr_analysis section must include the DSCR table, the trend table, and the sensitivity table using the Python-computed figures verbatim. The sensitivity_analysis section must explain the stress scenarios. All figures are indicative only and do not constitute financial advice."""
+
+        user_message += (
+            "\n\nThe industry_and_competitive_landscape section must use any supplied public research "
+            "and deterministic quarterly market intelligence for business/sector context, macro "
+            "conditions, competitive position, regulatory or contract drivers, and cyclicality. "
+            "Preserve each statistic's period, unit and industry boundary. Describe private-industry "
+            "monetary measures as sector turnover/scale proxies, not market capitalisation, and keep "
+            "unsupported claims caveated."
+        )
 
     elif report_type == "financial_forecast":
         user_message = f"""Generate a Financial Forecast report for {company_name}.

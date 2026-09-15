@@ -2,20 +2,22 @@ import { expect, test } from "@playwright/test";
 
 import { login, register, regularEmail } from "./helpers";
 
-test("unauthenticated root redirects to login", async ({ page }) => {
+test("unauthenticated root shows the public valuation landing page", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByText("AccountIQ")).toBeVisible();
+  await expect(page).toHaveURL(/\/valuation$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Know what your business may be worth" })).toBeVisible();
 });
 
-test("regular user registers, lands on wizard, logs out, and can log in again", async ({ page }) => {
+test("regular user registers, lands on their valuations, logs out, and can log in again", async ({ page }) => {
   const email = regularEmail();
   await register(page, email);
-  await expect(page).toHaveURL(/\/wizard$/);
+  await expect(page).toHaveURL(/\/reports$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Your valuations" })).toBeVisible();
+  await page.getByRole("button", { name: /account menu/i }).click();
   await page.getByRole("button", { name: /sign out/i }).click();
   await expect(page).toHaveURL(/\/login$/);
   await login(page, email);
-  await expect(page).toHaveURL(/\/wizard$/);
+  await expect(page).toHaveURL(/\/reports$/);
 });
 
 test("short password is rejected in the browser", async ({ page }) => {

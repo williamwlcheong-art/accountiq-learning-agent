@@ -1,0 +1,18 @@
+{
+  "artifact_type": "generated_package",
+  "title": "AccountIQ New Zealand Sector Research Library",
+  "first_read": "README.md",
+  "entrypoint": "index.json",
+  "supporting_files": [
+    "logistics.json",
+    "construction.json",
+    "retail.json",
+    "hospitality.json",
+    "manufacturing.json",
+    "professional_services.json",
+    "early_childhood_education_and_care.json",
+    "import_distribution.json"
+  ],
+  "machine_readable_outputs_requested": true
+}
+

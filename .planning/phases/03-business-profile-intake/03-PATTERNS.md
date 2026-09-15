@@ -1,3 +1,5 @@
+> Archived 2026-09-14. Describes the legacy `frontend/index.html` UI; the profile intake now lives in `web/components/wizard/`.
+
 # Phase 3: Business Profile Intake - Pattern Map
 
 **Mapped:** 2026-05-08

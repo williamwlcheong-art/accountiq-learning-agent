@@ -1,16 +1,20 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
 
-import { approvePendingReport, completeValuationIntake, loginOrRegisterAdmin, register, regularEmail } from "./helpers";
+import { approvePendingReport, completeValuationIntake, loginOrRegisterAdmin, register, registerAndStartValuation, regularEmail } from "./helpers";
 
 test("regular user uploads, selects report type, generates report, and reaches reviewed release", async ({ page, browser }) => {
   const companyName = `E2E Holdings Ltd ${Date.now()}`;
   await register(page, regularEmail());
+  await expect(page).toHaveURL(/\/reports$/);
+  await expect(page.getByRole("heading", { name: /start your first valuation/i })).toBeVisible();
+  await page.getByRole("link", { name: /start a valuation/i }).click();
+  await expect(page).toHaveURL(/\/wizard$/);
   await expect(page.getByText("Click or drag file here")).toBeVisible();
-  await expect(page.getByText(/last 2-3 years preferred/i)).toBeVisible();
+  await expect(page.getByText(/last two to three years preferred/i)).toBeVisible();
   await expect(page.locator(".wizard-phase")).toHaveText("Financial statements");
-  await page.getByRole("link", { name: "Account", exact: true }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await page.getByLabel("Customer navigation").getByRole("link", { name: "Your valuations", exact: true }).click();
+  await expect(page).toHaveURL(/\/reports$/);
   await page.getByLabel("Customer navigation").getByRole("link", { name: "New valuation", exact: true }).click();
   await expect(page).toHaveURL(/\/wizard$/);
   await page.getByLabel(/business name/i).fill(companyName);
@@ -28,7 +32,7 @@ test("regular user uploads, selects report type, generates report, and reaches r
   await expect(page.getByText(/advisor pilot/i)).toHaveCount(0);
   await page.getByRole("button", { name: /valuation advisory/i }).click();
   await page.getByRole("button", { name: /continue/i }).click();
-  await expect(page.getByText(/some profile data is incomplete/i)).toBeVisible();
+  await expect(page.getByText(/profile details are still incomplete/i)).toBeVisible();
   await completeValuationIntake(page);
   const depreciationRatio = page.getByLabel(/depreciation and amortisation \(% of revenue\)/i);
   const operatingNwcRatio = page.getByLabel(/operating working capital \(% of revenue\)/i);
@@ -40,7 +44,7 @@ test("regular user uploads, selects report type, generates report, and reaches r
   await page.getByLabel(/why are you using this figure/i).first().fill("Updated asset register.");
   await page.locator('input[name="depreciation_confirmation"][value="confirm"]').check();
   await expect(depreciationRatio).toHaveAttribute("readonly", "");
-  await expect(depreciationRatio).toHaveValue("2.8000000000000003");
+  await expect(depreciationRatio).toHaveValue("2.8");
   await page.locator('input[name="operating_nwc_confirmation"][value="override"]').check();
   await operatingNwcRatio.fill("14.7");
   await page.locator('input[name="operating_nwc_confirmation"][value="confirm"]').check();
@@ -85,7 +89,7 @@ test("regular user uploads, selects report type, generates report, and reaches r
 });
 
 test("checkout clarification confirms no payment and allows restart", async ({ page }) => {
-  await register(page, regularEmail());
+  await registerAndStartValuation(page, regularEmail());
   await page.getByLabel(/business name/i).fill("Clarification E2E Ltd");
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await page.getByRole("button", { name: /continue/i }).click();
@@ -196,7 +200,7 @@ test("paid pre-Decimal report collects current inputs and restarts without check
     key: `accountiq.activeReport.${currentUser.id}`,
     value: String(reportId),
   });
-  await page.reload();
+  await page.goto("/wizard");
 
   await expect(page.getByRole("heading", { name: /your report needs attention/i })).toBeVisible();
   await expect(page.getByText(/existing payment will be reused/i)).toBeVisible();
@@ -214,7 +218,7 @@ test("paid pre-Decimal report collects current inputs and restarts without check
 
 
 test("regular user can complete valuation-specific intake", async ({ page }) => {
-  await register(page, regularEmail());
+  await registerAndStartValuation(page, regularEmail());
   await page.getByLabel(/business name/i).fill("Valuation E2E Ltd");
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await page.getByRole("button", { name: /continue/i }).click();

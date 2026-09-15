@@ -1,0 +1,258 @@
+{
+  "schema_version": "1.0",
+  "sector_id": "logistics",
+  "sector_name": "Logistics",
+  "geography": "New Zealand",
+  "as_of_date": "2026-07-26",
+  "next_review_date": "2027-07-26",
+  "aliases": [
+    "freight and logistics",
+    "transport and warehousing",
+    "road freight",
+    "courier",
+    "towing and recovery",
+    "3pl"
+  ],
+  "overview": {
+    "summary": "New Zealand logistics connects an import- and export-dependent economy across long domestic distances, two main islands and a small number of critical ports, roads, rail corridors and Cook Strait links. Operators range from asset-heavy carriers and towing fleets to freight forwarders, contract logistics providers, couriers and warehouse managers. The sector's essential role does not by itself protect an individual operator from price competition, under-utilised assets, customer concentration or disruption.",
+    "business_models": [
+      "Dedicated contract carriage priced by route, vehicle, hour, tonne, pallet or service-level agreement",
+      "Spot or transactional freight exposed to lane demand, backhaul availability and short-term pricing",
+      "Third-party logistics combining warehousing, inventory handling, fulfilment and transport management",
+      "Freight forwarding and customs coordination earning commissions or gross margin without owning all transport assets",
+      "Towing, roadside assistance and vehicle recovery paid by insurers, fleet managers, authorities or vehicle owners"
+    ],
+    "industry_structure": [
+      "Large integrated national networks coexist with regional fleets, owner-drivers and specialist operators.",
+      "Scale can improve network density, purchasing, systems and backhaul utilisation, while niche capability and service reliability can support smaller operators.",
+      "Ports, ferry links, rail terminals, depots and major road corridors create geographic dependencies and potential bottlenecks."
+    ],
+    "demand_drivers": [
+      "Domestic consumption, construction, manufacturing and primary-sector production",
+      "Import and export volumes and the location of ports and distribution centres",
+      "E-commerce fulfilment, service-time expectations and outsourced supply-chain management",
+      "Population growth, urban density and regional infrastructure investment"
+    ],
+    "margin_and_cost_drivers": [
+      "Fleet or subcontractor utilisation, empty kilometres, route density and backhaul quality",
+      "Fuel, road-user charges, tyres, repairs, insurance, labour and lease or finance costs",
+      "Contract indexation and the speed with which fuel and wage inflation can be passed through",
+      "Service failures, detention time, claims, damage, re-delivery and outsourced-carrier costs"
+    ],
+    "cyclicality_and_seasonality": [
+      "Freight volumes generally follow customer production and consumption, with exposure varying by cargo mix.",
+      "Retail, agricultural, construction and tourism-linked freight may have pronounced seasonal or project cycles.",
+      "Network disruption can create temporary demand and pricing opportunities but also significant cost and service penalties."
+    ],
+    "working_capital_profile": "Receivables commonly arise from business customers paying after delivery, while wages, fuel, repairs, subcontractors and finance costs are paid continuously. Fast growth can therefore consume cash even when accounting profit rises. Fuel-card terms, customer billing accuracy, proof-of-delivery disputes and subcontractor payment timing materially influence conversion.",
+    "asset_intensity": "Road carriers, towing fleets and warehouse operators can be asset- and lease-intensive. Freight forwarders may be less asset-heavy but carry counterparty, credit and shipment-liability exposure. Fleet age, maintenance history, utilisation, residual values and whether vehicles are owned, leased or subject to prior security are central to both valuation and lending.",
+    "regulatory_and_compliance": [
+      "Transport licensing, driver hours, vehicle safety, weight and dimension rules and road-user charges",
+      "Health and safety duties for depots, load restraint, fatigue, mobile plant and roadside recovery",
+      "Customs, dangerous-goods, food-safety or biosecurity requirements where relevant to cargo",
+      "Emissions transition, resilience planning and customer sustainability requirements"
+    ]
+  },
+  "subsectors": [
+    {
+      "id": "road_freight",
+      "name": "Road freight and linehaul",
+      "aliases": ["road freight", "linehaul", "trucking", "haulage", "transport operator"],
+      "business_model": "Owned or leased trucks move full or partial loads under contracts or spot jobs.",
+      "revenue_drivers": ["Loaded kilometres", "Tonnes or pallets moved", "Contract rates", "Fuel surcharge recovery"],
+      "cost_base": ["Drivers", "Fuel and road-user charges", "Fleet finance", "Repairs, tyres and insurance"],
+      "working_capital": "Receivables can extend beyond the weekly fuel and wage cycle; rapid fleet growth may widen the funding gap.",
+      "asset_intensity": "High where fleet is owned; moderate where capacity is subcontracted, with higher supplier dependency.",
+      "credit_watchpoints": ["Fleet utilisation and age", "Fuel pass-through lag", "Customer and route concentration", "Maintenance capex"],
+      "valuation_watchpoints": ["Sustainable fleet replacement spend", "Contract tenure", "Owner-driver dependence", "Normalised lease treatment"]
+    },
+    {
+      "id": "warehousing_3pl",
+      "name": "Warehousing and third-party logistics",
+      "aliases": ["warehousing", "third party logistics", "3pl", "contract logistics", "fulfilment"],
+      "business_model": "Storage, handling, pick-and-pack and fulfilment services are charged by space, pallet, order or activity.",
+      "revenue_drivers": ["Occupied capacity", "Inventory turns", "Orders and lines handled", "Value-added services"],
+      "cost_base": ["Warehouse rent", "Labour", "Material-handling equipment", "Warehouse-management systems"],
+      "working_capital": "Recurring monthly billing can be attractive, but disputes over stock accuracy and service levels can delay collection.",
+      "asset_intensity": "Lease-intensive with equipment and fit-out; customer-specific automation can create stranded-cost risk.",
+      "credit_watchpoints": ["Site concentration", "Lease maturity", "Customer-specific fit-out", "Stock-loss claims"],
+      "valuation_watchpoints": ["Contracted recurring revenue", "Capacity headroom", "Systems integration", "Change-of-control clauses"]
+    },
+    {
+      "id": "freight_forwarding",
+      "name": "Freight forwarding and customs coordination",
+      "aliases": ["freight forwarding", "freight forwarder", "customs broker", "shipping agent"],
+      "business_model": "The operator arranges international or domestic transport and earns a commission or spread between customer billing and carrier cost.",
+      "revenue_drivers": ["Shipments", "Gross profit per shipment", "Trade lanes", "Ancillary customs and insurance services"],
+      "cost_base": ["Carrier purchases", "Skilled staff", "Systems", "Credit insurance and claims"],
+      "working_capital": "Potentially material because carriers may require payment before customers settle; gross billings can overstate economic revenue.",
+      "asset_intensity": "Usually lower than fleet ownership, but systems, relationships and working capital are important.",
+      "credit_watchpoints": ["Gross versus net revenue presentation", "Carrier prepayments", "Foreign-exchange exposure", "Customer credit"],
+      "valuation_watchpoints": ["Gross profit rather than pass-through billings", "Staff relationships", "Trade-lane diversity", "Recurring accounts"]
+    },
+    {
+      "id": "towing_recovery",
+      "name": "Towing and vehicle recovery",
+      "aliases": ["towing", "vehicle recovery", "roadside assistance", "tow truck"],
+      "business_model": "Dispatch-based towing, roadside recovery, storage and salvage support for insurers, authorities, fleets and private customers.",
+      "revenue_drivers": ["Dispatch volume", "Panel or insurer contracts", "Call-out and distance charges", "Storage days"],
+      "cost_base": ["Specialised fleet", "On-call labour", "Fuel", "Yard rent", "Insurance and maintenance"],
+      "working_capital": "Insurer or commercial-account terms may be slower than cash jobs; storage and disputed recoveries can defer collection.",
+      "asset_intensity": "High because specialised trucks and secure yards are operationally critical.",
+      "credit_watchpoints": ["Contract concentration", "Fleet availability", "24/7 staffing", "Vehicle and property security value"],
+      "valuation_watchpoints": ["Dispatch relationships", "Normalised owner shifts", "Fleet replacement", "Yard tenure and local coverage"]
+    }
+  ],
+  "credit_analysis": {
+    "primary_risks": [
+      {
+        "risk": "Customer or contract concentration",
+        "mechanism": "Loss, repricing or rebid of a major account can reduce route density and leave vehicles, people or warehouse space under-utilised.",
+        "financial_signals": ["Top-customer revenue and gross profit", "Contract expiry profile", "Revenue per vehicle or occupied square metre"],
+        "mitigants": ["Diversified accounts and sectors", "Notice periods and minimum-volume commitments", "Assets deployable to alternative work"]
+      },
+      {
+        "risk": "Cost pass-through and margin compression",
+        "mechanism": "Fuel, wages, road charges and maintenance may rise before customer rates reset.",
+        "financial_signals": ["Gross margin by customer", "Fuel surcharge recovery", "Maintenance cost per kilometre", "EBITDA margin"],
+        "mitigants": ["Automatic indexation", "Frequent repricing", "Route and job profitability controls", "Purchasing agreements"]
+      },
+      {
+        "risk": "Fleet reliability, safety and replacement",
+        "mechanism": "Breakdowns or safety incidents interrupt service, generate claims and require capital expenditure; deferred replacement can overstate free cash flow.",
+        "financial_signals": ["Average fleet age", "Repairs trend", "Downtime", "Capital expenditure versus depreciation"],
+        "mitigants": ["Documented replacement plan", "Preventive maintenance", "Spare capacity", "Appropriate insurance"]
+      },
+      {
+        "risk": "Working-capital and counterparty exposure",
+        "mechanism": "The business pays operating costs before customers settle and may also prepay carriers or duties.",
+        "financial_signals": ["Receivable days", "Overdue accounts", "Unbilled jobs", "Carrier payable timing", "Operating cash conversion"],
+        "mitigants": ["Credit limits", "Prompt proof-of-delivery billing", "Direct debit or deposits", "Working-capital facility sized to peak need"]
+      }
+    ],
+    "cash_conversion_and_working_capital": [
+      "Reconcile billed revenue to jobs, proof of delivery and customer remittances.",
+      "Test receivable aging and disputes separately for insurers, major contracts and spot customers.",
+      "Measure cash conversion after fleet replacement capex, not only EBITDA.",
+      "Identify seasonal peak funding and any carrier, duty or fuel prepayment."
+    ],
+    "collateral_considerations": [
+      "Vehicles and material-handling equipment require current valuations, ownership evidence, serial details and prior-security searches.",
+      "Forced-sale values can be materially below book value, particularly for specialised or heavily used assets.",
+      "Warehouse inventory often belongs to customers and should not be treated as borrower collateral.",
+      "A general security agreement may capture receivables but collectability depends on contract set-off and customer quality."
+    ],
+    "downside_stresses": [
+      "Loss of the largest customer with only partial variable-cost removal",
+      "Fuel or wage increase not recovered for one pricing cycle",
+      "Lower fleet utilisation plus a maintenance-capex catch-up",
+      "Receivable-days extension and simultaneous reduction in supplier terms"
+    ],
+    "monitoring_kpis": [
+      "Revenue and gross profit by customer and service line",
+      "Fleet utilisation, loaded kilometres and empty-running percentage",
+      "Fuel cost and surcharge recovery",
+      "On-time delivery, claims and downtime",
+      "Receivable days and overdue debt",
+      "Maintenance and replacement capex versus plan",
+      "Net leverage, DSCR and fixed-charge cover"
+    ],
+    "covenant_considerations": [
+      "Minimum DSCR or fixed-charge cover tested after scheduled fleet replacement spend",
+      "Maximum net leverage with consistent lease treatment",
+      "Minimum liquidity or borrowing-base headroom during seasonal peaks",
+      "Reporting trigger for major contract loss, safety event or unplanned fleet disposal"
+    ],
+    "diligence_questions": [
+      "What proportion of gross profit comes from the five largest customers and when do contracts expire?",
+      "Which costs are automatically indexed and what is the lag before recovery?",
+      "What fleet is owned, leased or financed, and what replacement capex is required over the debt term?",
+      "How are job profitability, driver utilisation, claims and proof-of-delivery billing controlled?",
+      "What assets are available for security and what are their current orderly and forced-sale values?"
+    ]
+  },
+  "valuation_analysis": {
+    "value_drivers": [
+      "Durable contracts with balanced indexation and change-of-control provisions",
+      "Customer, cargo, geography and service-line diversification",
+      "Network density, utilisation, service reliability and scalable systems",
+      "Modern, appropriately maintained fleet and realistic replacement funding",
+      "Management depth beyond dispatch relationships held by the owner"
+    ],
+    "multiple_influences": [
+      "A contract-led, diversified, capital-disciplined operator generally has lower cash-flow risk than a spot-market fleet with concentrated customers.",
+      "Asset-light forwarding should be compared on gross profit economics, not gross pass-through revenue.",
+      "Deferred fleet capex, short leases, customer concentration and owner dependence normally reduce transferability and value."
+    ],
+    "normalisation_focus": [
+      "Replacement-market remuneration for owner driving, dispatch and sales roles",
+      "Recurring fleet replacement and maintenance rather than unusually low recent capex",
+      "Related-party depot rent at market terms",
+      "One-off accident, claim, relocation or major repair costs only where genuinely non-recurring",
+      "Lease classification and any pass-through carrier revenue"
+    ],
+    "peer_selection": [
+      "Match asset ownership model, cargo and route economics, contract versus spot mix and geography.",
+      "Separate freight forwarding, warehousing, road carriage and towing unless the subject has genuinely comparable blended economics.",
+      "Compare scale, customer concentration, fleet age, margins and capital intensity before using a peer as evidence."
+    ],
+    "preferred_metrics": [
+      "EV/EBITDA after consistent lease and owner-remuneration adjustments",
+      "EV/EBITA where depreciation reflects a meaningful economic asset charge",
+      "EV/gross profit for forwarding only when pass-through revenue makes sales comparisons misleading",
+      "Free cash flow after maintenance and replacement capex"
+    ],
+    "discount_and_premium_factors": [
+      "Premium indicators include diversified recurring contracts, network density, strong systems and management depth.",
+      "Discount indicators include fleet catch-up capex, customer concentration, low backhaul utilisation, claims history and reliance on owner relationships."
+    ],
+    "diligence_questions": [
+      "Does reported EBITDA fully provide for sustainable fleet replacement and market management costs?",
+      "How much revenue and gross profit will transfer on a change of control?",
+      "Which customers or routes create economic profit after all direct fleet costs?",
+      "Can the fleet and depot footprint support growth without disproportionate new capital?"
+    ]
+  },
+  "market_research_sections": {
+    "credit_paper": "Logistics is essential to New Zealand's dispersed, trade-dependent economy, but sector importance should not be confused with borrower resilience. Typical operators face a combination of volume cyclicality, labour availability, fuel and road-cost volatility, network disruption and customer bargaining power. The Ministry of Transport's freight and supply-chain work highlights resilience, productivity, safety and lower-emissions transition as enduring system priorities. For a lender, the relevant question is how those system characteristics flow through the borrower's contracts, lanes, fleet, depots and cash conversion.\n\nCredit analysis should therefore test customer and contract concentration, pricing indexation, route density, empty running, fleet age, maintenance and replacement capex, insurance and safety performance. EBITDA can overstate debt-service capacity if vehicles are being aged rather than replaced. Receivables should be assessed against the faster payment cycle for fuel, wages, road charges and subcontractors, with particular attention to disputed proof-of-delivery, insurer accounts and carrier prepayments. Vehicles may support security, but current ownership, prior liens, condition, specialisation and forced-sale value matter more than accounting book value.\n\nThis generic baseline must be reconciled to the subject company. A contracted warehouse operator, asset-light freight forwarder, road carrier and towing business have different working-capital, collateral and margin profiles. The credit paper should name the matched sub-sector, identify where borrower evidence confirms or contradicts the baseline, and convert unresolved matters into diligence requirements, monitoring metrics or conditions rather than assumed mitigants.",
+    "valuation_report": "New Zealand logistics spans asset-heavy road transport and towing, lease-intensive warehousing, third-party logistics and comparatively asset-light freight forwarding. Value is driven less by headline industry demand than by the subject company's ability to retain contracts, price cost inflation, maintain network density, convert earnings to cash and fund the assets needed to sustain service. The Ministry of Transport identifies resilience, efficiency, safety and emissions transition as long-term system priorities, while its freight data resources provide context for cargo and trade flows.\n\nFor valuation, reported revenue and EBITDA require close interpretation. Forwarders may report large pass-through carrier billings, while fleet operators can report attractive EBITDA during a period of deferred replacement. Normalisation should address owner labour, market depot rent, lease consistency and sustainable fleet maintenance and replacement. Peer selection should distinguish road carriage, warehousing, forwarding and towing, then align contract mix, scale, geography, asset intensity, fleet age, concentration and margins. A generic sector pack does not support a current multiple by itself.\n\nTransferable value is normally stronger where contracts survive change of control, customers and cargo types are diversified, pricing has effective indexation, systems are embedded and management relationships extend beyond the owner. Concentration, short-term spot work, fleet catch-up capital expenditure, claims or safety issues, weak route economics and dependence on an owner-dispatcher should be reflected in forecasts, risk assessment and the selected valuation range only after company-specific evidence is reviewed."
+  },
+  "sources": [
+    {
+      "id": "mot-freight-strategy",
+      "title": "New Zealand freight and supply chain strategy",
+      "publisher": "Te Manatū Waka Ministry of Transport",
+      "url": "https://www.transport.govt.nz/area-of-interest/freight-and-logistics/new-zealand-freight-and-supply-chain-strategy",
+      "published_date": "2023-08-18",
+      "accessed_date": "2026-07-26",
+      "source_type": "government_strategy",
+      "supports": ["System structure", "Resilience and disruption", "Productivity, safety and emissions transition"]
+    },
+    {
+      "id": "mot-freight-data",
+      "title": "Freight and logistics statistics and insights",
+      "publisher": "Te Manatū Waka Ministry of Transport",
+      "url": "https://www.transport.govt.nz/statistics-and-insights/freight-and-logistics/sheet/trade-trends",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "official_statistics",
+      "supports": ["Freight movement and trade-flow research", "Ongoing market monitoring"]
+    },
+    {
+      "id": "customs-import",
+      "title": "Import requirements",
+      "publisher": "New Zealand Customs Service",
+      "url": "https://www.customs.govt.nz/business/import",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["International freight documentation", "Clearance, duty and importer requirements"]
+    }
+  ],
+  "limitations": [
+    "This pack describes typical New Zealand sector characteristics and does not establish the subject company's contracts, fleet condition, customers, safety record or profitability.",
+    "Freight demand, fuel costs, infrastructure disruption and regulation are time-sensitive and should be refreshed for a decision-date report.",
+    "No current public-company or transaction multiple is supplied; comparable evidence must be separately sourced and adjusted for sub-sector and asset intensity.",
+    "Vehicle and equipment book values are not collateral values and require ownership checks and current valuation evidence."
+  ]
+}

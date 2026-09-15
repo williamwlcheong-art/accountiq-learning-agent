@@ -1,3 +1,5 @@
+> Archived 2026-09-14. Superseded by `2026-07-12-public-valuation-offer-design.md`. The shipped page publishes no price and links to `/login?mode=register`.
+
 # AccountIQ Marketing Site / Offer Spec
 
 **Date:** 2026-07-01

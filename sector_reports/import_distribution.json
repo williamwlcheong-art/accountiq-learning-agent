@@ -1,0 +1,210 @@
+{
+  "schema_version": "1.0",
+  "sector_id": "import_distribution",
+  "sector_name": "Import Distribution",
+  "geography": "New Zealand",
+  "as_of_date": "2026-07-26",
+  "next_review_date": "2027-01-26",
+  "aliases": ["importing and wholesaling", "wholesale distribution", "product importing", "industrial distribution"],
+  "overview": {
+    "summary": "Import distributors source goods offshore, manage freight, Customs and product compliance, hold inventory and sell through business, retail, dealer or direct channels. New Zealand's distance from suppliers and relatively small market can require long lead times and meaningful safety stock. Economic value comes from supplier rights, product knowledge, local inventory availability, channel access and after-sales support, while credit risk centres on foreign exchange, landed cost, stock quality, concentration and working-capital funding.",
+    "business_models": [
+      "Exclusive or authorised distribution of overseas brands",
+      "Non-exclusive wholesale of consumer, trade or industrial products",
+      "Private-label importing with local brand ownership",
+      "Industrial distribution combining stock, technical sales, installation, parts and service",
+      "Direct-to-consumer import retail alongside dealer or wholesale channels"
+    ],
+    "industry_structure": [
+      "Global suppliers, local distributors, wholesalers, retailers and direct e-commerce can compete in the same product chain.",
+      "Local scale, stock availability, technical support and established channels can offset limited purchasing volume.",
+      "Supplier and customer concentration are common, and exclusivity may be territory-, performance- or change-of-control dependent."
+    ],
+    "demand_drivers": [
+      "Domestic consumption, construction, agriculture, manufacturing and maintenance",
+      "Product replacement, installed base and after-sales parts",
+      "Price, exchange rates, brand, availability, service and channel coverage",
+      "Population, business investment and product regulation"
+    ],
+    "margin_and_cost_drivers": [
+      "Supplier pricing, foreign exchange, freight, duty, GST, port and storage cost",
+      "Sales mix, rebates, exclusivity, channel discounts and price pass-through",
+      "Inventory turns, obsolescence, damage, warranty and returns",
+      "Warehouse, sales, technical support and last-mile fulfilment"
+    ],
+    "cyclicality_and_seasonality": [
+      "Exposure follows end markets and may include consumer, construction or capital-equipment cycles.",
+      "Shipping schedules, supplier shutdowns, peak retail periods and agricultural seasons can concentrate stock purchases.",
+      "Currency and freight shocks may move landed cost faster than local prices."
+    ],
+    "working_capital_profile": "The model is commonly working-capital intensive. Deposits or supplier payment, sea transit, Customs clearance and warehousing occur before customer collection, and long lead times encourage safety stock. Growth can therefore increase profit and borrowing simultaneously. Inventory must be assessed by SKU, age, demand, ownership, location and net realisable value, while landed-cost accounting and foreign-currency payables require reconciliation.",
+    "asset_intensity": "Physical fixed assets may be moderate, but inventory, warehouse systems, racking, vehicles, technical equipment and working capital are central. Stock can support a borrowing base only after eligibility and concentration reserves. Supplier rights, local brand, channel relationships and product expertise can be valuable but are not reliable standalone collateral.",
+    "regulatory_and_compliance": [
+      "Customs import entries, valuation, tariff, duty, GST, prohibited and restricted goods",
+      "Biosecurity, food, hazardous substance, electrical, building or other product approvals",
+      "Fair Trading, Consumer Guarantees, product safety, labelling, warranty and recalls",
+      "Health and safety duties applying to importers and suppliers of workplace plant or substances"
+    ]
+  },
+  "subsectors": [
+    {
+      "id": "consumer_goods",
+      "name": "Consumer-goods import distribution",
+      "aliases": ["consumer goods importer", "retail distributor", "brand distributor", "fmcg importer"],
+      "business_model": "Branded or private-label products are imported and supplied to retailers, dealers or consumers.",
+      "revenue_drivers": ["Sell-in and sell-through", "Retail ranging", "Brand demand", "Price and promotions"],
+      "cost_base": ["Product and freight", "Marketing", "Warehouse", "Sales and rebates"],
+      "working_capital": "Seasonal buys, retailer terms and SKU breadth create stock and receivable funding needs.",
+      "asset_intensity": "Inventory and brand-building are more important than plant.",
+      "credit_watchpoints": ["Retailer concentration", "Stock aging", "Supplier rights", "Promotional rebates"],
+      "valuation_watchpoints": ["Brand ownership", "Exclusive term", "Sell-through data", "Normal inventory"]
+    },
+    {
+      "id": "industrial_technical",
+      "name": "Industrial and technical distribution",
+      "aliases": ["industrial distributor", "technical distributor", "machinery importer", "parts distributor"],
+      "business_model": "Equipment, components, consumables or parts are sold with technical advice, installation and service.",
+      "revenue_drivers": ["Installed base", "Capital equipment", "Parts and consumables", "Service contracts"],
+      "cost_base": ["Imported product", "Technical staff", "Stock", "Service and warranty"],
+      "working_capital": "Slow-moving critical parts may be strategically necessary despite low turns; capital equipment can be high value.",
+      "asset_intensity": "Inventory, demonstration units, service equipment and technical systems.",
+      "credit_watchpoints": ["Large equipment stock", "Customer deposits", "Warranty", "Supplier technical support"],
+      "valuation_watchpoints": ["Recurring aftermarket", "Installed base", "Technical team", "Supplier change-of-control"]
+    },
+    {
+      "id": "food_beverage_import",
+      "name": "Food and beverage importing",
+      "aliases": ["food importer", "beverage importer", "grocery importer", "wine importer"],
+      "business_model": "Food or beverage products are imported under registered, traceable supply arrangements and sold wholesale or retail.",
+      "revenue_drivers": ["Distribution", "Volume", "Brand", "Category and price"],
+      "cost_base": ["Product", "Freight and cold chain", "Duty where relevant", "Marketing and spoilage"],
+      "working_capital": "Shelf life, temperature, batch traceability and seasonal inventory determine recovery.",
+      "asset_intensity": "Inventory and temperature-controlled storage may be significant.",
+      "credit_watchpoints": ["Importer registration", "Shelf life", "Recall", "Cold chain and supplier concentration"],
+      "valuation_watchpoints": ["Brand rights", "Distribution", "Normal spoilage", "Regulatory continuity"]
+    },
+    {
+      "id": "building_trade_products",
+      "name": "Building and trade-product distribution",
+      "aliases": ["building products importer", "trade distributor", "construction supply distributor", "hardware wholesaler"],
+      "business_model": "Products are imported and sold to merchants, contractors, fabricators or projects.",
+      "revenue_drivers": ["Construction activity", "Specifications", "Merchant network", "Project pipeline"],
+      "cost_base": ["Product and freight", "Warehouse", "Sales", "Testing and warranty"],
+      "working_capital": "Bulk buys and project orders create stock peaks; certification changes can impair inventory.",
+      "asset_intensity": "Warehouse and inventory intensive.",
+      "credit_watchpoints": ["Construction cycle", "Certification", "Project and merchant concentration", "Aged stock"],
+      "valuation_watchpoints": ["Specified position", "Supplier tenure", "Channel access", "Cycle-normal earnings"]
+    }
+  ],
+  "credit_analysis": {
+    "primary_risks": [
+      {
+        "risk": "Foreign exchange, freight and landed-cost volatility",
+        "mechanism": "Supplier currency and freight move before local prices reset, compressing gross margin and increasing funding.",
+        "financial_signals": ["Hedged and unhedged exposure", "Landed margin", "Price-recovery lag", "Freight cost"],
+        "mitigants": ["Hedging policy", "Frequent pricing", "Forward orders matched to sales", "Supplier and route diversity"]
+      },
+      {
+        "risk": "Inventory quality and lead time",
+        "mechanism": "Long lead times create high safety stock and exposure to obsolescence, expiry, specification change or demand error.",
+        "financial_signals": ["Stock days and aging", "SKU turns", "Write-downs", "Forecast accuracy"],
+        "mitigants": ["SKU governance", "Deposits", "Supplier returns", "Borrowing-base reserves"]
+      },
+      {
+        "risk": "Supplier, customer and channel concentration",
+        "mechanism": "Loss of an overseas supplier, exclusive right, major retailer or dealer channel can impair sales and leave stock stranded.",
+        "financial_signals": ["Gross profit by supplier and customer", "Agreement expiry", "Minimum purchase commitments", "Channel mix"],
+        "mitigants": ["Long transferable agreements", "Owned brands", "Diverse channels", "Alternative supply"]
+      },
+      {
+        "risk": "Product compliance, warranty and recall",
+        "mechanism": "Customs, biosecurity, safety or product failure can delay clearance, stop sales and create remediation cost.",
+        "financial_signals": ["Clearance delays", "Claims", "Returns", "Certification expiry", "Recall provision"],
+        "mitigants": ["Pre-import verification", "Traceability", "Insurance", "Recall and supplier indemnity"]
+      }
+    ],
+    "cash_conversion_and_working_capital": [
+      "Build the cash cycle from supplier deposit through transit, clearance, stock holding, sale and customer collection.",
+      "Reconcile inventory to SKU-level aging, title, location, demand and net realisable value.",
+      "Separate trade creditors, foreign-currency payables, Customs and GST, customer deposits and stock finance.",
+      "Stress growth, supplier-term tightening, exchange rates and slower stock turns together."
+    ],
+    "collateral_considerations": [
+      "Inventory borrowing bases require eligible categories, aging, concentration, title and realisable-value reserves.",
+      "Stock in transit, consigned goods, food near expiry, unsupported products and customer-specific items need conservative treatment.",
+      "Receivables should be adjusted for rebates, returns, warranties, disputes and customer concentration.",
+      "Supplier retention, Customs claims, floorplan financiers and other security interests can affect priority."
+    ],
+    "downside_stresses": ["Currency depreciation and freight increase with delayed repricing", "Loss of a major supplier or customer", "Slower stock turns plus inventory write-down", "Product recall or clearance delay"],
+    "monitoring_kpis": ["Sales and gross profit by supplier, product and customer", "Landed margin and FX hedge position", "Inventory days, aging, sell-through and write-downs", "Receivable and payable days", "Supplier agreement and minimum-purchase compliance", "Liquidity, borrowing-base headroom, leverage and DSCR"],
+    "covenant_considerations": ["Borrowing-base reporting with stock and debtor eligibility", "Minimum liquidity or headroom", "Maximum leverage and minimum DSCR", "Notice of supplier termination, recall, clearance issue or material inventory write-down"],
+    "diligence_questions": [
+      "What is the complete landed cost and how quickly can exchange rate or freight changes be repriced?",
+      "Which stock is aged, slow, seasonal, expiring, consigned, in transit or tied to one customer or standard?",
+      "Are supplier and exclusivity agreements current, transferable and subject to minimum purchases?",
+      "Which Customs, MPI, safety, labelling and product certifications apply?",
+      "What security interests, supplier title or stock-finance claims rank against inventory and receivables?"
+    ]
+  },
+  "valuation_analysis": {
+    "value_drivers": ["Durable transferable supplier rights and owned brands", "Diversified customers and channels", "Strong stock turns and landed-margin control", "Installed base, technical support and recurring aftermarket", "Effective sourcing, compliance and management systems"],
+    "multiple_influences": ["Exclusive distribution and recurring aftermarket can improve predictability where agreements transfer.", "Headline revenue is less meaningful without comparable gross margin and working-capital intensity.", "Supplier concentration, aged stock, currency exposure and minimum-purchase commitments reduce value."],
+    "normalisation_focus": ["Normal FX, freight and landed margin", "Inventory write-downs and warranty or recall cost", "Market owner sales and product-management remuneration", "Supplier rebates and one-off stock gains", "Sustainable working capital and warehouse cost"],
+    "peer_selection": ["Match consumer versus industrial, wholesale versus direct, exclusive versus non-exclusive and product end market.", "Compare gross margin, stock turns, customer and supplier concentration, working capital and aftermarket.", "Separate owned-brand economics from agency-only distribution."],
+    "preferred_metrics": ["EV/EBITDA with normal working capital", "EV/gross profit for carefully aligned distributor economics", "EV/revenue only where gross margin and mix are genuinely comparable", "DCF or free cash flow after inventory investment"],
+    "discount_and_premium_factors": ["Premium indicators include transferable exclusivity, owned brand, diverse channels, strong turns and recurring parts or consumables.", "Discount indicators include supplier termination risk, obsolete stock, thin margin, FX exposure and key-person product relationships."],
+    "diligence_questions": ["Will supplier, brand and customer arrangements transfer on completion?", "What inventory and working capital must remain for normal service?", "What is maintainable margin after currency, freight, rebates, warranty and obsolescence?", "How dependent are sourcing, pricing and channel relationships on the owner?"]
+  },
+  "market_research_sections": {
+    "credit_paper": "Import distribution is an important link in New Zealand's trade-dependent supply chain. Customs requires commercial goods to be cleared and appropriate entries, duties, GST and restricted-goods documentation to be addressed, while Stats NZ merchandise-trade and wholesale data provide market context. These aggregate sources do not prove the borrower's demand or stock quality. Credit analysis should map the entire cash cycle from foreign supplier deposit and transit through clearance, warehousing, sale and customer collection.\n\nForeign exchange, freight and supplier-price changes can increase landed cost before customer pricing resets. Long lead times and a small market often require safety stock, so growth may consume borrowing headroom. Inventory must be assessed by SKU, age, title, location, demand, expiry or specification and net realisable value; stock in transit, consigned, unsupported or customer-specific goods deserve additional reserves. Customer receivables should be adjusted for rebates, returns, warranty and concentration.\n\nSupplier and exclusivity terms, minimum purchases, change of control, channel concentration and product compliance can determine continuity. Food, plant, electrical, building or hazardous products may have additional MPI, WorkSafe or product-safety duties. The credit paper should stress currency and freight, slower turns, supplier or customer loss and recall, then set security and monitoring around an evidence-based borrowing base rather than book inventory.",
+    "valuation_report": "An import distributor creates value by combining supplier access, product and regulatory knowledge, local stock availability, channel relationships, brand and after-sales support. Stats NZ trade and wholesale series can frame import and sector activity, but maintainable value depends on the subject's landed margin, supplier and customer concentration, stock turns, agreement transferability and working-capital intensity. Consumer, industrial, food and building-product distributors require different peers.\n\nNormalised earnings should reflect representative foreign exchange and freight, rebates, warranty, obsolescence, owner sales and product-management remuneration and the warehouse and working capital needed to support service. Inventory should be reviewed at completion because book cost may include slow, expired, unsupported or customer-specific items. An exclusive agreement is not automatically valuable if it is short, non-transferable, subject to onerous minimum purchases or easily replaced by direct supply.\n\nTransferable value is stronger where supplier rights are durable, brands or data are owned, customers and channels are diverse, stock turns are controlled and the business has recurring parts, consumables or service income. Key-supplier dependence, thin margins, currency exposure, aged stock, recall risk and owner-held sourcing relationships reduce forecast confidence. This pack supports diligence and peer selection; it does not provide a current distributor multiple or inventory appraisal."
+  },
+  "sources": [
+    {
+      "id": "customs-start-importing",
+      "title": "Start importing",
+      "publisher": "New Zealand Customs Service",
+      "url": "https://www.customs.govt.nz/business/import/start-importing",
+      "published_date": "2023-02-28",
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Commercial import clearance", "Entries, duty, GST and restricted-goods documentation"]
+    },
+    {
+      "id": "stats-merchandise-trade",
+      "title": "Overseas merchandise trade: June 2026",
+      "publisher": "Stats NZ",
+      "url": "https://www.stats.govt.nz/information-releases/overseas-merchandise-trade-june-2026/",
+      "published_date": "2026-07-20",
+      "accessed_date": "2026-07-26",
+      "source_type": "official_statistics",
+      "supports": ["Import and export market context", "Country and product trade movements"]
+    },
+    {
+      "id": "stats-retail-wholesale",
+      "title": "Retail and wholesale trade",
+      "publisher": "Stats NZ",
+      "url": "https://www.stats.govt.nz/topics/retail-and-wholesale-trade",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "official_statistics",
+      "supports": ["Wholesale sales and stock monitoring", "Downstream retail context"]
+    },
+    {
+      "id": "worksafe-importers-suppliers",
+      "title": "Designers, manufacturers, importers and suppliers",
+      "publisher": "WorkSafe New Zealand",
+      "url": "https://www.worksafe.govt.nz/laws-and-regulations/operational-policy-framework/worksafe-positions/designers-manufacturers-importers-and-suppliers/",
+      "published_date": null,
+      "accessed_date": "2026-07-26",
+      "source_type": "regulator_guidance",
+      "supports": ["Importer and supplier health-and-safety duties for workplace products"]
+    }
+  ],
+  "limitations": [
+    "Import economics vary by product, supplier country, regulation, channel and foreign currency.",
+    "Supplier agreements, stock aging, title, compliance and customer demand require subject-specific evidence.",
+    "Trade, exchange-rate, freight and regulatory conditions are time-sensitive and should be refreshed at the report date.",
+    "No current valuation multiple, currency forecast, borrowing-base advance rate or inventory recovery value is supplied."
+  ]
+}

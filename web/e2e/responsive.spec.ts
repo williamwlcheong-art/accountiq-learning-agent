@@ -6,7 +6,7 @@ import {
   continueFromUploadWhenReady,
   expectNoHorizontalOverflow,
   loginOrRegisterAdmin,
-  register,
+  registerAndStartValuation,
   regularEmail,
   submitValuationCheckout,
 } from "./helpers";
@@ -15,7 +15,7 @@ test("wizard intake and account purchase history are usable on a narrow screen",
   if (testInfo.project.name === "chromium") {
     await page.setViewportSize({ width: 320, height: 720 });
   }
-  await register(page, regularEmail());
+  await registerAndStartValuation(page, regularEmail());
   await expect(page).toHaveURL(/\/wizard$/);
   await expectNoHorizontalOverflow(page);
 
@@ -31,7 +31,7 @@ test("wizard intake and account purchase history are usable on a narrow screen",
   await completeValuationIntake(page);
   await submitValuationCheckout(page);
 
-  await page.getByRole("link", { name: "Account", exact: true }).click();
+  await page.getByRole("link", { name: "Your valuations", exact: true }).click();
   const purchaseRow = page.locator(".purchase-table tr").filter({ hasText: "Mobile History E2E Ltd" });
   await expect(purchaseRow).toBeVisible({ timeout: 15_000 });
   await expect(purchaseRow.locator('td[data-label="Company"]')).toContainText("Mobile History E2E Ltd");
