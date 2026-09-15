@@ -87,37 +87,11 @@ const faqs = [
 
 export default function ValuationPage() {
   return (
-    <div className="marketing-page">
-      <a className="marketing-skip-link" href="#main-content">
-        Skip to main content
-      </a>
-
-      <header className="marketing-header">
-        <div className="marketing-container marketing-header-inner">
-          <Link className="marketing-wordmark" href="/valuation" aria-label="AccountIQ valuation home">
-            AccountIQ
-          </Link>
-          <nav className="marketing-nav" aria-label="Valuation page sections">
-            <a href="#inclusions">What you get</a>
-            <a href="#process">How it works</a>
-            <a href="#faq">FAQ</a>
-          </nav>
-          <div className="marketing-header-actions">
-            <Link className="marketing-text-link" href="/login">
-              Sign in
-            </Link>
-            <Link className="marketing-cta marketing-cta-small" href="/login?mode=register">
-              Get a business valuation
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main id="main-content">
+    <>
         <section className="marketing-hero">
           <div className="marketing-container marketing-hero-grid">
             <div>
-                      <h1>Know what your business may be worth</h1>
+              <h1>Know what your business may be worth</h1>
               <p className="marketing-hero-copy">
                 Upload recent financial statements and receive an indicative valuation report for one fixed fee,
                 reviewed before delivery.
@@ -250,14 +224,6 @@ export default function ValuationPage() {
             </p>
           </div>
         </section>
-      </main>
-
-      <footer className="marketing-footer">
-        <div className="marketing-container">
-          <strong>AccountIQ</strong>
-          <p>Indicative only. Not financial advice.</p>
-        </div>
-      </footer>
-    </div>
+    </>
   );
 }
