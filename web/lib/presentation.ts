@@ -29,15 +29,6 @@ const REPORT_STATUS_LABELS: Record<string, string> = {
   failed: "Needs attention",
 };
 
-const PURCHASE_STATUS_LABELS: Record<string, string> = {
-  paid: "Paid",
-  pending: "Payment pending",
-  pending_payment: "Payment pending",
-  failed: "Payment needs attention",
-  expired: "Expired",
-  refunded: "Refunded",
-};
-
 export type StatusTone = "success" | "info" | "warning" | "danger" | "neutral";
 
 const REPORT_STATUS_TONES: Record<string, StatusTone> = {
@@ -127,10 +118,6 @@ export function reportStatusLabel(value: string) {
 
 export function reportStatusTone(value: string): StatusTone {
   return REPORT_STATUS_TONES[value] ?? "neutral";
-}
-
-export function purchaseStatusLabel(value: string) {
-  return PURCHASE_STATUS_LABELS[value] ?? readableFallback(value);
 }
 
 export function clarificationReasonLabel(value: string) {
