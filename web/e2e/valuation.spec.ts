@@ -59,7 +59,7 @@ test("public valuation page remains usable at 320px", async ({ page }) => {
 
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   const mobileHeader = page.getByRole("banner");
-  await expect(mobileHeader.getByRole("link", { name: "Get a business valuation" })).toBeVisible();
+  await expect(mobileHeader.getByRole("link", { name: "Start your valuation" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Get a business valuation" }).first()).toBeVisible();
 
   // The inline nav collapses into a disclosure at this width.

@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { Arrow } from "@/components/marketing/arrow";
+import { MenuDisclosure } from "@/components/marketing/menu-disclosure";
+import { Wordmark } from "@/components/marketing/wordmark";
 import { listPageSlugs } from "@/lib/content";
 import { MAIN_NAV, REGISTER_PATH, SIGN_IN_PATH, appUrl } from "@/lib/site";
 
@@ -16,8 +19,9 @@ export function visibleLinks<T extends { href: string }>(links: readonly T[]): T
 }
 
 /**
- * One header for every marketing page. The narrow-screen menu is a native
- * disclosure so the nav needs no client-side JavaScript.
+ * One header for every marketing page. It stays at the top of the window as
+ * the page scrolls. The narrow-screen menu is a native disclosure so the nav
+ * needs no client-side JavaScript.
  */
 export function SiteHeader() {
   const nav = visibleLinks(MAIN_NAV);
@@ -26,7 +30,7 @@ export function SiteHeader() {
     <header className="marketing-header">
       <div className="marketing-container marketing-header-inner">
         <Link className="marketing-wordmark" href="/" aria-label="AccountIQ home">
-          AccountIQ
+          <Wordmark />
         </Link>
 
         <nav className="marketing-nav" aria-label="Main">
@@ -42,11 +46,12 @@ export function SiteHeader() {
             Sign in
           </Link>
           <Link className="marketing-cta marketing-cta-small" href={appUrl(REGISTER_PATH)}>
-            Get a business valuation
+            Start your valuation
+            <Arrow />
           </Link>
         </div>
 
-        <details className="marketing-menu">
+        <MenuDisclosure>
           <summary aria-label="Menu">
             <span aria-hidden="true" />
             Menu
@@ -59,7 +64,7 @@ export function SiteHeader() {
             ))}
             <Link href={appUrl(SIGN_IN_PATH)}>Sign in</Link>
           </nav>
-        </details>
+        </MenuDisclosure>
       </div>
     </header>
   );

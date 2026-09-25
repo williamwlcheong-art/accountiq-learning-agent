@@ -30,6 +30,8 @@ export default defineConfig({
     },
     {
       command: frontendCommand,
+      // Point the Next proxy at the backend this run started, not the default port.
+      env: { FASTAPI_ORIGIN: `http://127.0.0.1:${backendPort}` },
       url: `http://localhost:${port}`,
       reuseExistingServer: false,
       timeout: 60_000,

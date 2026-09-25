@@ -16,6 +16,15 @@ export const SITE_NAME = "AccountIQ";
 /** Confirm with William before launch. */
 export const CONTACT_EMAIL = "hello@accountiq.co.nz";
 
+/**
+ * Placeholders for design, agreed 2026-09-23 and not yet signed off by William.
+ * Launch Gates 2, 5 and 6 decide the real values: what the review claim may
+ * say, the fee and its GST treatment, and a turnaround reviewers can keep.
+ */
+export const FEE = { amount: 1200, display: "$1,200" };
+export const TURNAROUND = "3 working days";
+export const REVIEWER = { name: "William Cheong", credential: "CA", initials: "WC" };
+
 export const REGISTER_PATH = "/login?mode=register";
 export const SIGN_IN_PATH = "/login";
 

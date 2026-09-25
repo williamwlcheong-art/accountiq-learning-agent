@@ -7,14 +7,18 @@ test("signed-out visitors land on the home page rather than the offer page", asy
 
   await expect(page).toHaveURL(/\/$/);
   await expect(
-    page.getByRole("heading", { level: 1, name: "Business valuation reports for New Zealand owners" }),
+    page.getByRole("heading", { level: 1, name: "Know what your business is worth before you talk to a buyer." }),
   ).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
 
-  const primaryCta = page.getByRole("link", { name: "Get a business valuation" }).first();
+  const primaryCta = page.getByRole("main").getByRole("link", { name: "Start your valuation" }).first();
   await expect(primaryCta).toHaveAttribute("href", "/login?mode=register");
 
-  await expect(page.getByText("Indicative only. Not financial advice.").first()).toBeVisible();
+  await expect(page.getByText("Indicative only. Not financial advice or a certified valuation.")).toBeVisible();
+
+  // The sample report is real text, so it reads the same without the visuals.
+  const sample = page.getByRole("figure", { name: "Sample valuation report for a made-up business" });
+  await expect(sample.getByText("$692,000 to $848,000", { exact: true })).toBeVisible();
   await expect(page.getByRole("contentinfo")).toBeVisible();
 });
 

@@ -6,7 +6,7 @@ test("unauthenticated root shows the marketing home page", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/$/);
   await expect(
-    page.getByRole("heading", { level: 1, name: "Business valuation reports for New Zealand owners" }),
+    page.getByRole("heading", { level: 1, name: "Know what your business is worth before you talk to a buyer." }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "See what is in the report" })).toHaveAttribute("href", "/valuation");
 });
