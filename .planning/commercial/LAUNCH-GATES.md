@@ -1,6 +1,6 @@
 # Commercial MVP Launch Gates
 
-**Last updated:** 2026-07-20
+**Last updated:** 2026-09-26
 **Status:** All eight gates are open. This is not legal, accounting, tax, or financial advice.
 
 ## Rule
@@ -11,9 +11,9 @@ AccountIQ must not accept public users or public Stripe payments while any Launc
 
 The current implementation has a checkout-gated valuation flow. A valuation report is created as `pending_payment`, and its purchase is created as `pending`. A confirmed payment moves the purchase to `paid` and the report to `queued`. Generation uses `queued`, `generating`, and `researching`, then moves a valuation report to `awaiting_review`. Reviewer approval changes the report to `done` and the review to `approved`; the PDF route only permits a `done` report.
 
-The checkout endpoint can return `needs_clarification` when valuation inputs are incomplete, but this is a response state, not a persisted report or purchase status. Reports can also be `failed`. The database has no implemented `cancelled`, `refund_needed`, or `refunded` purchase or report path. There is no cancellation or refund workflow, and no GST or other tax calculation, recording, invoice, or tax-treatment path. These are implementation gaps and do not satisfy Gate 5.
+The checkout endpoint can return `needs_clarification` when valuation inputs are incomplete, but this is a response state, not a persisted report or purchase status. Reports can also be `failed`. Since PR #26 the Stripe webhook records failed, expired and refunded payments, but there is no `cancelled` or `refund_needed` path and no customer cancellation or refund workflow, and no GST or other tax calculation, recording, invoice, or tax-treatment path. These are implementation gaps and do not satisfy Gate 5.
 
-The unmerged `feature/fcff-assumptions` branch proposes an active approved WACC set and complete FCFF assumptions as checkout requirements. No PR exists yet. These controls cannot be treated as current merged implementation or gate evidence until a PR is opened, reviewed, merged, and freshly verified.
+PR #19 made an active approved WACC set and complete FCFF assumptions checkout requirements, and PR #20 replaced the original `valuation.py` DCF with the Decimal FCFF engine. PR #20 changed the valuation method (capex, working capital, tax on EBIT, a true WACC, and the DLOM base and inputs) and was merged without William's review. On sample businesses it gives values 17% to 40% lower than the original. William's sign-off on the method is outstanding and is part of Gate 2.
 
 ## Gate 1: Security and user isolation
 
@@ -216,7 +216,7 @@ A restricted private pilot may proceed only under a written, time-bounded waiver
 
 ## First-sale blockers
 
-Public first sale remains blocked because all eight gates are open. In particular, public Stripe must remain disabled until serviceability validation, cancellation/refund paths, GST/tax treatment, production durability, privacy/consent, security evidence, qualified reviewer capacity, and professional boundary decisions are complete and signed off. Valuation readiness also requires reviewing and merging PR #21 Python-owned deterministic tables; implementing the paid-report restart flow and synthetic runner updates; completing a synthetic service rehearsal; and separately approving live UAT.
+Public first sale remains blocked because all eight gates are open. In particular, public Stripe must remain disabled until serviceability validation, cancellation/refund paths, GST/tax treatment, production durability, privacy/consent, security evidence, qualified reviewer capacity, and professional boundary decisions are complete and signed off. PR #21 (Python-owned tables), PR #22 (paid-report restart) and PR #24 (synthetic rehearsal) are merged. Valuation readiness now requires William's sign-off on the PR #20 method and separately approved live UAT.
 
 ## Reference notes
 

@@ -6,7 +6,7 @@ import { Arrow } from "@/components/marketing/arrow";
 import { getCurrentUser } from "@/lib/auth";
 import { listPosts } from "@/lib/content";
 import { formatNzDate } from "@/lib/presentation";
-import { FEE, REGISTER_PATH, REVIEWER, SITE_URL, TURNAROUND, appUrl } from "@/lib/site";
+import { FEE, PRIVACY_LINES, REGISTER_PATH, REVIEWER, SITE_URL, TURNAROUND, appUrl } from "@/lib/site";
 
 const reviewer = `${REVIEWER.name} ${REVIEWER.credential}`;
 
@@ -102,20 +102,6 @@ const steps = [
   { title: "Pay the fixed fee", words: `${FEE.display}, through Stripe. The fee does not change after you upload.` },
   { title: `${REVIEWER.name} checks it`, words: "Every adjustment and the range, against your own statements." },
   { title: "Open your report", words: `Online and as a PDF, ${TURNAROUND} later.` },
-];
-
-/*
- * What happens to an owner's accounts. Each line is true of the code today:
- * documents and reports are checked against the signed-in user (backend/main.py),
- * the draft is prepared with an AI model, and nothing contacts third parties.
- * Launch Gate 3 (privacy) must sign these off, and add storage and deletion
- * terms, before public launch.
- */
-const privacy = [
-  "Your statements are used for one thing: preparing your report.",
-  `They sit in your own account. Other customers cannot open them, and ${REVIEWER.name} sees them only to check your report.`,
-  "Software, including an AI model, reads them to prepare the first draft.",
-  "We never contact a buyer, your bank or anyone else about your business. The report is yours to share, or not.",
 ];
 
 const money = (value: number) => `$${value.toLocaleString("en-NZ")}`;
@@ -269,7 +255,7 @@ export default async function HomePage() {
             </ol>
             <p className="home-intro home-after-list">
               From the normalised profit we project the cash the business should produce and work out what it is
-              worth today, in a low, base and high case. What similar businesses sell for is the cross-check.
+              worth today, in a low, mid and high case. What similar businesses sell for is the cross-check.
             </p>
           </div>
         </div>
@@ -365,7 +351,7 @@ export default async function HomePage() {
             <div className="home-assurance">
               <h3>What happens to your accounts</h3>
               <ul>
-                {privacy.map((line) => (
+                {PRIVACY_LINES.map((line) => (
                   <li key={line}>{line}</li>
                 ))}
               </ul>

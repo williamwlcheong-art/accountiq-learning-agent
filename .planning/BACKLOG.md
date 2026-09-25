@@ -1,6 +1,6 @@
 # AccountIQ Backlog
 
-Last updated: 2026-09-16
+Last updated: 2026-09-26
 
 This is the lightweight working backlog for the paid Valuation Advisory MVP. Keep the detailed implementation instructions in `docs/superpowers/plans/2026-07-01-paid-valuation-mvp.md`; keep this file as the current source of truth for what is done, in progress, next, and waiting on domain review.
 
@@ -34,12 +34,15 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-09 | Quarterly NZ market intelligence, payment failure/refund handling, and auth conversion fixes | Done | #26 | Technical | Checkout fails closed on a stale quarterly snapshot; webhook handles failed/expired/refunded payments with amount and metadata verification; acquisition CTAs land on registration; auth surface shares the marketing brand; unauthenticated `/` shows the public offer page. Pricing copy and footer identity remain with William. |
 | PVM-10 | Customer portal home, profile menu, and wizard delivery fixes | Done | #26 | Technical + William | Signed-in customers land on `/reports` with status, viewer, and PDF download; one shell with profile menu; wizard stepper, refresh-safe progress, exact derived ratios on confirm, NZ dates, readable PDF failures. Open for William: drop or collapse the report type picker, intake split into sub-steps, admin approve confirmation. |
 | PVM-11 | Marketing site: home page, Markdown pages and blog | In review | #27 open | Technical + William | Signed-out visitors land on a real home page. Shared marketing shell, Markdown content system in `web/content`, blog routes, sitemap and robots. How it works, contact and for advisors are published; pricing, about, terms and privacy ship as drafts. Open for William: the fee and GST treatment, a turnaround time, his own words for the about page, legal review of terms and privacy, and the domain. |
+| PVM-12 | Valuation page in the new design, dead code removal, planning docs refresh | In review | Next PR | Technical + William | `/valuation` explains each report section in plain words, shows the fee and names the reviewer, and drops the Australia claim. Removes unused generated API types, old marketing and shell CSS, `tabulate`, and unused helpers. William's logic files are untouched. William to check the section descriptions. |
+| PVM-13 | William signs off the valuation method from PR #20 | Waiting on William | #20 merged | William | PR #20 changed capex, working capital, tax on EBIT, WACC and DLOM against his `valuation.py`. Side-by-side comparison sent to William on 2026-09-26: values 17% to 40% lower on sample businesses, mostly from deducting capex. Live UAT waits on this. |
 
-## Next Three PRs
+## Next Steps
 
-1. Obtain separate explicit approval for one live Anthropic UAT.
-2. Run the approved live UAT and record William's domain disposition.
-3. Close or explicitly waive the remaining launch gates for a private pilot.
+1. William signs off the PR #20 valuation method (PVM-13).
+2. Obtain separate explicit approval for one live Anthropic UAT.
+3. Run the approved live UAT and record William's domain disposition.
+4. Close or explicitly waive the remaining launch gates for a private pilot.
 
 ## Follow-on Sequence
 

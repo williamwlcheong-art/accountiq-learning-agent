@@ -71,6 +71,14 @@ Playwright starts FastAPI through `scripts/start-e2e-backend.sh`, resets `data/a
 
 Read `.planning/codebase/CONVENTIONS.md` before larger backend/frontend changes.
 
+## Who Owns The Logic
+
+William Cheong (chartered accountant, broker, banker) owns every valuation, accounting and credit rule: formulas, rates, discounts, assumptions, rubrics, scoring, report wording and approval criteria. Dave owns the code, delivery and business side, and does not judge that logic.
+
+- Do not change a formula, rate, discount, threshold or rubric unless William has asked for it. Moving his logic to new code is fine only if it gives the same answer; add a test that proves it.
+- If a technical change would alter a number in a customer report, stop and flag it as "needs William", with the old rule, the new rule and a worked example.
+- Files that hold his logic: `backend/valuation.py`, `fcff_engine.py`, `valuation_tables.py`, `valuation_inputs.py`, `report_prompts.py`, `report_validation.py`, `sector_library.py`, `market_intelligence.py`.
+
 ## Important Conventions
 
 - Keep FastAPI as the backend of record for auth cookies, SQLite writes, uploads, extraction, valuation, report generation, and email.
