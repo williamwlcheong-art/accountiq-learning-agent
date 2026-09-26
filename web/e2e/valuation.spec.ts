@@ -15,11 +15,10 @@ test("public valuation page explains the bounded early-access offer", async ({ p
   await expect(page.getByRole("contentinfo")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
 
-  const sectionNavigation = page.getByRole("navigation", { name: "Valuation page sections" });
-  await expect(sectionNavigation).toBeVisible();
-  await expect(sectionNavigation.getByRole("link", { name: "What you get" })).toHaveAttribute("href", "#inclusions");
-  await expect(sectionNavigation.getByRole("link", { name: "How it works" })).toHaveAttribute("href", "#process");
-  await expect(sectionNavigation.getByRole("link", { name: "FAQ" })).toHaveAttribute("href", "#faq");
+  const mainNavigation = page.getByRole("navigation", { name: "Main", exact: true });
+  await expect(mainNavigation).toBeVisible();
+  await expect(mainNavigation.getByRole("link", { name: "How it works" })).toHaveAttribute("href", "/how-it-works");
+  await expect(mainNavigation.getByRole("link", { name: "Blog" })).toHaveAttribute("href", "/blog");
 
   const headingLevels = await page.getByRole("heading").evaluateAll((headings) =>
     headings.map((heading) => Number(heading.tagName.slice(1))),
@@ -60,8 +59,15 @@ test("public valuation page remains usable at 320px", async ({ page }) => {
 
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   const mobileHeader = page.getByRole("banner");
-  await expect(mobileHeader.getByRole("link", { name: "Sign in" })).toBeVisible();
-  await expect(mobileHeader.getByRole("link", { name: "Get a business valuation" })).toBeVisible();
+  await expect(mobileHeader.getByRole("link", { name: "Start your valuation" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Get a business valuation" }).first()).toBeVisible();
+
+  // The inline nav collapses into a disclosure at this width.
+  const menuToggle = page.locator(".marketing-menu > summary");
+  await expect(menuToggle).toBeVisible();
+  await menuToggle.click();
+  await expect(mobileHeader.getByRole("link", { name: "Sign in" })).toBeVisible();
+  await expect(mobileHeader.getByRole("link", { name: "How it works" })).toBeVisible();
+
   await expectNoHorizontalOverflow(page);
 });

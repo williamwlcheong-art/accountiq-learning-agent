@@ -1,0 +1,351 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-24T00:22:12+12:00",
+  "title": "Design System: AccountIQ marketing site",
+  "extensions": {
+    "colorMeta": {
+      "desk-navy": {
+        "role": "primary",
+        "displayName": "Desk Navy",
+        "canonical": "#1b1464",
+        "tonalRamp": [
+          "#110d40",
+          "#1e166e",
+          "#2a1f9d",
+          "#3729cc",
+          "#5d51dc",
+          "#887fe6",
+          "#b8b2f0",
+          "#ebeafb"
+        ]
+      },
+      "tape-paper": {
+        "role": "primary",
+        "displayName": "Tape Paper",
+        "canonical": "#fbfbf8",
+        "tonalRamp": [
+          "#31311c",
+          "#545430",
+          "#787845",
+          "#9c9c59",
+          "#b3b37a",
+          "#c7c79e",
+          "#dedec5",
+          "#f6f6ef"
+        ]
+      },
+      "red-ink": {
+        "role": "secondary",
+        "displayName": "Red Ink",
+        "canonical": "#c8102e",
+        "tonalRamp": [
+          "#470610",
+          "#7b0a1c",
+          "#af0e28",
+          "#e31234",
+          "#f03d5a",
+          "#f47187",
+          "#f8aab7",
+          "#fde7eb"
+        ]
+      },
+      "desk-navy-deep": {
+        "role": "neutral",
+        "displayName": "Deep Navy",
+        "canonical": "#110c45",
+        "tonalRamp": [
+          "#100b41",
+          "#1c1471",
+          "#281ca1",
+          "#3324d1",
+          "#5a4de0",
+          "#867de8",
+          "#b6b1f1",
+          "#ebe9fb"
+        ]
+      },
+      "on-navy": {
+        "role": "neutral",
+        "displayName": "White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#969696",
+          "#b2b2b2",
+          "#d1d1d1",
+          "#f2f2f2"
+        ]
+      },
+      "on-navy-soft": {
+        "role": "neutral",
+        "displayName": "Soft Lilac",
+        "canonical": "#c9c6ee",
+        "tonalRamp": [
+          "#15123b",
+          "#241e66",
+          "#332b91",
+          "#4238bd",
+          "#665ecf",
+          "#8f89dc",
+          "#bcb8ea",
+          "#ecebf9"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#16142b",
+        "tonalRamp": [
+          "#1b1834",
+          "#2e2a5b",
+          "#423c81",
+          "#554ea7",
+          "#7770bd",
+          "#9b97ce",
+          "#c3c0e2",
+          "#eeeef7"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "#4a4862",
+        "tonalRamp": [
+          "#21202c",
+          "#3a384c",
+          "#52506d",
+          "#6b688d",
+          "#8986a6",
+          "#a9a7be",
+          "#cbcad8",
+          "#f1f0f4"
+        ]
+      },
+      "desk-rule": {
+        "role": "neutral",
+        "displayName": "Desk Rule",
+        "canonical": "rgba(201, 198, 238, 0.22)",
+        "tonalRamp": [
+          "#15123b",
+          "#241e66",
+          "#332b91",
+          "#4238bd",
+          "#665ecf",
+          "#8f89dc",
+          "#bcb8ea",
+          "#ecebf9"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero question and closing heading. Archivo at 62 percent width."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings on navy. Archivo at 72 percent width."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Comparison names, post titles, wordmark. Archivo at 80 percent width."
+      },
+      "subhead": {
+        "displayName": "Subhead",
+        "purpose": "Step titles and small h3s at normal width."
+      },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "Hero lead at 34ch."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running copy on navy, in soft lilac."
+      },
+      "note": {
+        "displayName": "Note",
+        "purpose": "Captions under a tape print, in soft ink."
+      },
+      "tape": {
+        "displayName": "Tape",
+        "purpose": "Every printed line on the tape and stub. Uppercase, tabular."
+      },
+      "tape-heading": {
+        "displayName": "Tape heading",
+        "purpose": "The header line a calculator prints above a sum, over a dashed rule."
+      }
+    },
+    "shadows": [
+      {
+        "name": "roll-edge",
+        "value": "14px 0 26px -16px rgba(5, 4, 32, 0.7), -14px 0 26px -16px rgba(5, 4, 32, 0.7)",
+        "purpose": "Both long sides of the tape."
+      },
+      {
+        "name": "loose-paper",
+        "value": "0 16px 26px -14px rgba(5, 4, 32, 0.7)",
+        "purpose": "The stub, rotated -1.2deg."
+      },
+      {
+        "name": "button-lift",
+        "value": "0 10px 22px -8px rgba(5, 4, 32, 0.6)",
+        "purpose": "Paper button hover, with translateY(-2px)."
+      },
+      {
+        "name": "printer-slot",
+        "value": "drop-shadow(0 8px 10px rgba(5, 4, 32, 0.55))",
+        "purpose": "Filter on the printer slot over the fed paper."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Button lift and tick drawing."
+      },
+      {
+        "name": "tape-feed",
+        "value": "1.9s steps(12, end) 0.25s",
+        "purpose": "Hero paper feeds out of the slot a line at a time. Reduced motion: off."
+      },
+      {
+        "name": "tape-sign",
+        "value": "0.7s cubic-bezier(0.16, 1, 0.3, 1) 2.3s (initials 2.7s)",
+        "purpose": "Tick and initials draw after the feed. Reduced motion: off."
+      },
+      {
+        "name": "button-lift",
+        "value": "0.2s",
+        "purpose": "Hover on paper buttons."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "roll",
+        "value": "960px",
+        "purpose": "At or below: one column, the roll breaks into torn strips, no sticky prints."
+      },
+      {
+        "name": "phone",
+        "value": "480px",
+        "purpose": "At or below: full-width buttons, 0.9rem tape lines, smaller header CTA."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Paper button on the navy desk; the main action.",
+      "html": "<div class=\"ds-desk\"><a class=\"ds-btn\" href=\"#\">Start your valuation</a></div>",
+      "css": ".ds-desk{background:#1b1464;padding:24px}.ds-btn{display:inline-flex;min-height:54px;align-items:center;padding:14px 26px;border:2px solid #fbfbf8;border-radius:3px;background:#fbfbf8;color:#1b1464;font-family:Archivo,system-ui,sans-serif;font-size:1.05rem;font-weight:700;text-decoration:none;transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s cubic-bezier(.16,1,.3,1)}.ds-btn:hover{transform:translateY(-2px);box-shadow:0 10px 22px -8px rgba(5,4,32,.6)}.ds-btn:focus-visible{outline:3px solid #fbfbf8;outline-offset:3px}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Second action beside a primary, outlined in white on navy.",
+      "html": "<div class=\"ds-desk\"><a class=\"ds-btn-ghost\" href=\"#\">See what is in the report</a></div>",
+      "css": ".ds-desk{background:#1b1464;padding:24px}.ds-btn-ghost{display:inline-flex;min-height:54px;align-items:center;padding:14px 26px;border:2px solid rgba(255,255,255,.55);border-radius:3px;background:transparent;color:#fff;font-family:Archivo,system-ui,sans-serif;font-size:1.05rem;font-weight:700;text-decoration:none;transition:transform .2s cubic-bezier(.16,1,.3,1)}.ds-btn-ghost:hover{border-color:#fbfbf8;transform:translateY(-2px)}.ds-btn-ghost:focus-visible{outline:3px solid #fbfbf8;outline-offset:3px}"
+    },
+    {
+      "name": "Site Header",
+      "kind": "nav",
+      "refersTo": "header-cta",
+      "description": "Navy header: compressed wordmark, white links, paper CTA.",
+      "html": "<header class=\"ds-head\"><span class=\"ds-mark\">AccountIQ</span><nav class=\"ds-nav\"><a href=\"#\">Valuation</a><a href=\"#\">Pricing</a><a href=\"#\">About</a></nav><a class=\"ds-cta\" href=\"#\">Start your valuation</a></header>",
+      "css": ".ds-head{display:flex;align-items:center;gap:28px;padding:14px 24px;background:#1b1464;border-bottom:1px solid rgba(201,198,238,.22);font-family:Archivo,system-ui,sans-serif}.ds-mark{color:#fff;font-size:1.5rem;font-weight:800;font-stretch:80%;letter-spacing:-.01em}.ds-nav{display:flex;gap:22px;margin-right:auto}.ds-nav a{color:#fff;font-weight:600;text-decoration:none;text-underline-offset:6px}.ds-nav a:hover{text-decoration:underline}.ds-cta{min-height:40px;padding:9px 14px;border-radius:3px;background:#fbfbf8;color:#1b1464;font-weight:800;text-decoration:none}"
+    },
+    {
+      "name": "Tape Lines",
+      "kind": "custom",
+      "refersTo": "tape-paper",
+      "description": "Printed working: plain, adjust, total and final tones.",
+      "html": "<div class=\"ds-desk\"><div class=\"ds-tape\"><p class=\"ds-tape-h\">Sample</p><dl class=\"ds-lines\"><div><dt>Reported profit</dt><dd>182,400</dd></div><div class=\"ds-adj\"><dt>+ Owner salary adj</dt><dd>38,000</dd></div><div class=\"ds-adj\"><dt>− Rent to market</dt><dd>9,800</dd></div><div class=\"ds-tot\"><dt>= Adjusted profit</dt><dd>210,600</dd></div><div><dt>× Multiple</dt><dd>3.1 to 3.8</dd></div><div class=\"ds-fin\"><dt>Indicative value</dt><dd>653,000 to 800,000</dd></div></dl></div></div>",
+      "css": ".ds-desk{background:#1b1464;padding:24px}.ds-tape{width:340px;padding:28px 30px;background:linear-gradient(90deg,rgba(22,20,43,.07),transparent 6%,transparent 94%,rgba(22,20,43,.08)),#fbfbf8;box-shadow:14px 0 26px -16px rgba(5,4,32,.7),-14px 0 26px -16px rgba(5,4,32,.7);color:#16142b;font-family:'Courier Prime','Courier New',monospace}.ds-tape-h{margin:0 0 14px;padding-bottom:12px;border-bottom:1px dashed #16142b;font-size:.88rem;letter-spacing:.08em;text-transform:uppercase}.ds-lines{display:grid;gap:10px;margin:0}.ds-lines div{display:flex;justify-content:space-between;gap:16px;text-transform:uppercase}.ds-lines dd{margin:0;font-variant-numeric:tabular-nums;white-space:nowrap}.ds-adj{color:#c8102e}.ds-tot,.ds-fin{margin-top:6px;padding-top:12px;border-top:1px dashed #16142b;font-weight:700}.ds-tot dd::after{content:' \\25C7'}.ds-fin dd::after{content:' *'}.ds-fin dd{padding-bottom:5px;border-bottom:4px double #16142b}"
+    },
+    {
+      "name": "Stub",
+      "kind": "card",
+      "refersTo": "tape-stub",
+      "description": "A torn-off piece of tape under the hero actions: fee, turnaround, reviewer.",
+      "html": "<div class=\"ds-desk\"><dl class=\"ds-stub\"><div><dt>Fixed fee</dt><dd class=\"ds-red\">$1,200</dd></div><div><dt>Back in</dt><dd>3 working days</dd></div><div><dt>Checked by</dt><dd>William Cheong CA</dd></div></dl></div>",
+      "css": ".ds-desk{background:#1b1464;padding:32px}.ds-stub{display:grid;gap:6px;width:400px;margin:0;padding:16px 20px 18px;background:#fbfbf8;color:#16142b;font-family:'Courier Prime','Courier New',monospace;text-transform:uppercase;transform:rotate(-1.2deg);box-shadow:0 16px 26px -14px rgba(5,4,32,.7)}.ds-stub div{display:flex;justify-content:space-between;gap:16px}.ds-stub dt{letter-spacing:.04em}.ds-stub dd{margin:0;font-weight:700}.ds-red{color:#c8102e}"
+    },
+    {
+      "name": "Comparison List",
+      "kind": "custom",
+      "refersTo": "compare-row-ours",
+      "description": "Rows on navy; our row becomes a strip of paper.",
+      "html": "<div class=\"ds-desk\"><dl class=\"ds-cmp\"><div><dt>A broker's appraisal</dt><dd>Free, from someone hoping for your listing.</dd></div><div class=\"ds-ours\"><dt>AccountIQ</dt><dd>Reads your own statements and is checked by a chartered accountant.</dd></div><div><dt>A certified valuation</dt><dd>The one a court will accept. Three to eight weeks.</dd></div></dl></div>",
+      "css": ".ds-desk{background:#1b1464;padding:24px 40px}.ds-cmp{margin:0;border-top:1px solid rgba(201,198,238,.22);font-family:Archivo,system-ui,sans-serif}.ds-cmp div{padding-block:18px;border-bottom:1px solid rgba(201,198,238,.22)}.ds-cmp dt{color:#fff;font-size:1.45rem;font-weight:750;font-stretch:80%}.ds-cmp dd{margin:6px 0 0;color:#c9c6ee;line-height:1.55}.ds-ours{margin-inline:-20px;padding-inline:20px;background:#fbfbf8}.ds-ours dt{color:#1b1464}.ds-ours dd{color:#16142b}"
+    },
+    {
+      "name": "Review Mark",
+      "kind": "custom",
+      "refersTo": "tape-row-adjust",
+      "description": "Red hand tick and initials drawn under a print.",
+      "html": "<div class=\"ds-paper\"><svg class=\"ds-tick\" viewBox=\"0 0 120 40\"><path d=\"M4 21 C8 25 11 30 14 35 C20 22 29 11 42 3\"/><path class=\"ds-ini\" d=\"M54 11 L59 33 L65 17 L71 33 L77 9 M104 13 C99 7 86 8 85 21 C84 32 97 35 104 29\"/></svg></div>",
+      "css": ".ds-paper{display:flex;justify-content:flex-end;width:300px;padding:24px 30px;background:#fbfbf8}.ds-tick{width:116px;overflow:visible}.ds-tick path{fill:none;stroke:#c8102e;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}.ds-tick .ds-ini{stroke-width:2.4}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Printed Working",
+    "overview": "**Creative North Star: \"The Printed Working\"**\n\nThe page is a deep navy desk with one roll of white printing-calculator tape running down it. The words sit on the navy and make the argument; the tape prints the arithmetic beside them in black ink, with adjustments in red, and a reviewer initials the result with a red hand tick. A valuation is a sum the owner can check, so the page shows the sum being done rather than a product screenshot.\n\nThis record covers the public marketing site only: `web/app/(marketing)/*` and `web/components/marketing/*`. The home page (`web/app/(marketing)/page.tsx`) is the first full expression of the tape world, and the shared header and footer are already in it. The other marketing routes (`/valuation`, `/blog`, the Markdown pages) sit inside the same shell but their page bodies still use the older `marketing-*` classes in `web/app/globals.css`. The signed-in product (`/reports`, `/wizard`, `/admin` and the rest) still uses the older styles in `web/app/globals.css` and is not part of this world yet. Do not apply these rules there until someone decides to move it.\n\nEvery token below is scoped to `.marketing-page` in `web/components/marketing/marketing.css`, so the product app is untouched. The direction contract that set this world is kept as the `DESIGN_CONTRACT` comment in `web/app/layout.tsx`. Where that contract and the build differ, this file follows the build.",
+    "keyCharacteristics": [
+      "Two materials only: navy desk and white tape. Nothing else has a surface.",
+      "Compressed heavy Archivo for headings, a typewriter face for anything the machine prints.",
+      "Red is ink on paper: adjustments, the fee, the reviewer's name and tick.",
+      "One roll runs the full length of the page on desktop and tears into strips on a phone.",
+      "One animated moment: the tape feeds out of the printer and gets initialled."
+    ],
+    "rules": [
+      {
+        "name": "The Red Ink Rule",
+        "body": "Red appears only on paper, as ink. Never set red text, red icons or red fills on the navy. If a figure needs to stand out on navy, it goes on a piece of tape.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Surfaces Rule",
+        "body": "A surface is either navy desk or white paper. There are no grey cards, tinted panels or gradients on the desk. Anything that should stand out from the navy becomes paper (the stub, the \"ours\" comparison row, the primary button).",
+        "section": "colors"
+      },
+      {
+        "name": "The Machine Voice Rule",
+        "body": "Courier Prime is only for what the calculator would print: figures and labels on the tape and the stub, and on the navy only where the words repeat or count the way the tape does (the gloss lines that quote tape labels, the step numerals, post dates). Never use it for headings, paragraphs, buttons or navigation.",
+        "section": "typography"
+      },
+      {
+        "name": "The Width Axis Rule",
+        "body": "Headings are compressed with `font-stretch`, never with a second condensed family. Stay between 62 percent (hero) and 80 percent (small titles and wordmark). Body copy stays at normal width.",
+        "section": "typography"
+      },
+      {
+        "name": "The Paper On Desk Rule",
+        "body": "Only paper casts a shadow. Text, rules and the navy itself stay flat.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** put any number the reader should check on the tape, in Courier Prime, with the working that produces it.",
+      "**Do** use the `adjust` tone for every line that changes the figure, and close each print with one `total` or `final`.",
+      "**Do** keep each band's tape cell in the right-hand 400px column so the roll stays continuous on desktop.",
+      "**Do** tear the roll into separate strips at 960px and below, each under the copy it belongs to, each with a torn edge.",
+      "**Do** write figures and arithmetic that actually add up; a comment in `page.tsx` shows the sums for the sample.",
+      "**Do** keep the tape and stub as real text (definition lists), never an image of text.",
+      "**Do** keep any new motion inside `prefers-reduced-motion: no-preference`."
+    ],
+    "donts": [
+      "**Don't** set red text, red icons or red backgrounds on the navy. Red is ink on paper.",
+      "**Don't** use Courier Prime for headings, paragraphs, buttons or navigation.",
+      "**Don't** add a third surface colour, grey cards or gradient panels to the desk.",
+      "**Don't** add a second animated moment. The feed and the tick are the one.",
+      "**Don't** add a product screenshot or a row of icon cards to a hero; the direction contract rejects the navy-and-white SaaS hero by name.",
+      "**Don't** carry these tokens into the signed-in product by hand. It is outside this world until it is moved deliberately."
+    ]
+  }
+}
