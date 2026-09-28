@@ -24,7 +24,7 @@ test("regular user uploads, selects report type, generates report, and reaches r
   await expect(page.getByText(/ready for valuation intake/i)).toBeVisible({ timeout: 15_000 });
   await expect(page.locator(".wizard-phase")).toHaveText("Financial statements");
   await expect(page.getByText(/sample\.pdf/i).first()).toBeVisible();
-  await expect(page.getByText(/\$495\.00/i)).toBeVisible();
+  await expect(page.getByText(/\$1,200\.00/i)).toBeVisible();
   await page.getByRole("button", { name: /continue to report/i }).click();
   await expect(page.getByRole("button", { name: /bank credit paper/i })).toBeDisabled();
   await expect(page.locator(".wizard-phase")).toHaveText("Business details");

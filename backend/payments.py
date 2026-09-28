@@ -18,9 +18,14 @@ class CheckoutSession:
     url: str
 
 
+# Placeholder fee until the real price and its GST treatment are decided (Launch
+# Gate 5). The marketing site shows the same default: FEE in web/lib/site.ts.
+DEFAULT_PRICE_CENTS = 120000
+
+
 def checkout_config() -> CheckoutConfig:
     return CheckoutConfig(
-        price_cents=int(os.getenv("ACCOUNTIQ_VALUATION_PRICE_CENTS", "49500")),
+        price_cents=int(os.getenv("ACCOUNTIQ_VALUATION_PRICE_CENTS", str(DEFAULT_PRICE_CENTS))),
         currency=os.getenv("ACCOUNTIQ_CURRENCY", "nzd").lower(),
         success_url=os.getenv(
             "ACCOUNTIQ_PAYMENT_SUCCESS_URL",

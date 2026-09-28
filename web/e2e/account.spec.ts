@@ -27,7 +27,7 @@ test("customer account shows purchase delivery status and released report action
   await page.goto("/reports");
   const purchase = page.locator("tr").filter({ hasText: companyName });
   await expect(purchase).toBeVisible();
-  await expect(purchase).toContainText("$495.00");
+  await expect(purchase).toContainText("$1,200.00");
   await expect(purchase).toContainText("Under review");
   await expect(purchase.getByRole("link", { name: /open report/i })).toHaveCount(0);
 
