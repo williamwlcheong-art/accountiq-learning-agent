@@ -19,7 +19,9 @@ export const CONTACT_EMAIL = "hello@accountiq.co.nz";
  * Launch Gates 2, 5 and 6 decide the real values: what the review claim may
  * say, the fee and its GST treatment, and a turnaround reviewers can keep.
  */
-export const FEE = { amount: 1200, display: "$1,200" };
+const feeCents = Number(process.env.ACCOUNTIQ_VALUATION_PRICE_CENTS || 120000);
+/* Same default and variable as checkout (backend/payments.py), so the page and Stripe agree. */
+export const FEE = { amount: feeCents / 100, display: `$${(feeCents / 100).toLocaleString("en-NZ")}` };
 export const TURNAROUND = "3 working days";
 export const REVIEWER = { name: "William Cheong", credential: "CA" };
 

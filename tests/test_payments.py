@@ -55,7 +55,7 @@ def test_checkout_config_defaults(monkeypatch):
 
     config = checkout_config()
 
-    assert config.price_cents == 49500
+    assert config.price_cents == 120000
     assert config.currency == "nzd"
     assert config.success_url == "http://localhost:3000/wizard?payment=success"
     assert config.cancel_url == "http://localhost:3000/wizard?payment=cancelled"
@@ -839,7 +839,7 @@ async def test_duplicate_webhook_schedules_generation_once(
             "id": "cs_webhook_once",
             "payment_intent": "pi_once",
             "payment_status": "paid",
-            "amount_total": 49500,
+            "amount_total": 120000,
             "currency": "nzd",
         }},
     }
@@ -936,7 +936,7 @@ async def test_paid_webhook_reconciles_missing_local_session_mapping(
             "id": "cs_reconciled",
             "payment_intent": "pi_reconciled",
             "payment_status": "paid",
-            "amount_total": 49500,
+            "amount_total": 120000,
             "currency": "nzd",
             "metadata": {
                 "purchase_id": str(purchase_id),
@@ -1094,7 +1094,7 @@ async def test_full_refund_revokes_report_access_state(
             "id": session_id,
             "payment_intent": "pi_refunded",
             "payment_status": "paid",
-            "amount_total": 49500,
+            "amount_total": 120000,
             "currency": "nzd",
         }},
     }
@@ -1127,8 +1127,8 @@ async def test_full_refund_revokes_report_access_state(
         "type": "charge.refunded",
         "data": {"object": {
             "payment_intent": "pi_refunded",
-            "amount": 49500,
-            "amount_refunded": 49500,
+            "amount": 120000,
+            "amount_refunded": 120000,
             "refunded": True,
         }},
     }
@@ -1242,7 +1242,7 @@ async def test_wizard_readiness_reports_authoritative_sources(client, fresh_all_
     }
     assert body["checkout"] == {
         "report_type": "valuation_advisory",
-        "amount_cents": 49500,
+        "amount_cents": 120000,
         "currency": "nzd",
     }
 
@@ -1487,3 +1487,15 @@ async def test_valuation_generate_requires_checkout(client, fresh_all_db, monkey
 
     assert res.status_code == 409, res.text
     assert "checkout" in res.text.lower()
+
+
+def test_site_shows_the_checkout_default_price():
+    """The marketing site's fee default must match what checkout charges."""
+    from pathlib import Path
+    import re
+
+    from payments import DEFAULT_PRICE_CENTS
+
+    site = (Path(__file__).resolve().parents[1] / "web" / "lib" / "site.ts").read_text()
+    match = re.search(r"ACCOUNTIQ_VALUATION_PRICE_CENTS \|\| (\d+)", site)
+    assert match and int(match.group(1)) == DEFAULT_PRICE_CENTS
