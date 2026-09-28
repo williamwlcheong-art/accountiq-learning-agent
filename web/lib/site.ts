@@ -11,8 +11,6 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://accountiq.
 /** Where the signed-in product lives. Empty string means "same host as the site". */
 export const APP_ORIGIN = (process.env.NEXT_PUBLIC_APP_ORIGIN || "").replace(/\/$/, "");
 
-export const SITE_NAME = "AccountIQ";
-
 /** Confirm with William before launch. */
 export const CONTACT_EMAIL = "hello@accountiq.co.nz";
 
@@ -23,7 +21,21 @@ export const CONTACT_EMAIL = "hello@accountiq.co.nz";
  */
 export const FEE = { amount: 1200, display: "$1,200" };
 export const TURNAROUND = "3 working days";
-export const REVIEWER = { name: "William Cheong", credential: "CA", initials: "WC" };
+export const REVIEWER = { name: "William Cheong", credential: "CA" };
+
+/*
+ * What happens to an owner's accounts. Each line is true of the code today:
+ * documents and reports are checked against the signed-in user (backend/main.py),
+ * the draft is prepared with an AI model, and nothing contacts third parties.
+ * Launch Gate 3 (privacy) must sign these off, and add storage and deletion
+ * terms, before public launch.
+ */
+export const PRIVACY_LINES = [
+  "Your statements are used for one thing: preparing your report.",
+  `They sit in your own account. Other customers cannot open them, and ${REVIEWER.name} sees them only to check your report.`,
+  "Software, including an AI model, reads them to prepare the first draft.",
+  "We never contact a buyer, your bank or anyone else about your business. The report is yours to share, or not.",
+];
 
 export const REGISTER_PATH = "/login?mode=register";
 export const SIGN_IN_PATH = "/login";

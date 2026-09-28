@@ -1,74 +1,83 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { Arrow } from "@/components/marketing/arrow";
+import { FEE, PRIVACY_LINES, REGISTER_PATH, REVIEWER, SIGN_IN_PATH, SITE_URL, TURNAROUND, appUrl } from "@/lib/site";
+
+const reviewer = `${REVIEWER.name} ${REVIEWER.credential}`;
+
 export const metadata: Metadata = {
-  title: "Indicative Business Valuation Reports | AccountIQ",
-  description:
-    "Understand what your business may be worth with a fixed-fee indicative valuation report reviewed before delivery.",
+  title: "What is in your valuation report | AccountIQ",
+  description: `Every section of an AccountIQ business valuation report, in plain words. Built from your own statements, checked by ${reviewer}, ${FEE.display}.`,
+  alternates: { canonical: `${SITE_URL}/valuation` },
 };
 
-const trustPoints = [
-  "Fixed fee confirmed before payment",
-  "Reviewed before delivery",
-  "Web report and PDF access",
-  "Built for New Zealand and Australian SMEs",
-];
-
-const useCases = [
+/*
+ * The valuation report's sections, in order (backend/report_prompts.py). The
+ * wording describes William's method, so he signs off any change to it.
+ */
+const sections = [
   {
-    title: "Prepare for a possible sale",
-    body: "Establish a practical valuation reference point before speaking with buyers or beginning a full advisory engagement.",
+    name: "Introduction",
+    words:
+      "What the report is for, what it is based on, and its limits. It says up front that a discounted cash flow is the main method and market multiples are the check.",
+  },
+  { name: "Business overview", words: "What your business does, written from your answers and our research." },
+  {
+    name: "Market position",
+    words: "Where your business sits in its New Zealand industry, with the market figures we used and where they came from.",
+  },
+  { name: "Financial performance", words: "Your results for the years you uploaded, in a table, and what they show." },
+  {
+    name: "Normalisations",
+    words:
+      "Each adjustment a buyer would make to your profit, such as your own salary or a one-off cost, and the normalised profit that results.",
   },
   {
-    title: "Plan a funding conversation",
-    body: "Understand the assumptions and business factors likely to shape an early debt or capital discussion.",
+    name: "Balance sheet",
+    words: "Your debt, your cash and any assets the business does not need, and how they get you from the value of the business to the value of your shares.",
+  },
+  { name: "Method", words: "Why the discounted cash flow is the main method, and how the market multiples check it." },
+  {
+    name: "Discount rate",
+    words: "The rate that turns future cash into today's dollars, with every part of it shown, in a low, mid and high case.",
   },
   {
-    title: "Support shareholder planning",
-    body: "Give shareholders or successors a shared starting point for a structured conversation about value.",
+    name: "Discounted cash flow",
+    words: "The forecast year by year, the cash the business should produce, and what that cash is worth today.",
+  },
+  { name: "Valuation summary", words: "The value of your shares in the low, mid and high cases. This is the answer." },
+  {
+    name: "Market multiples",
+    words: "What similar businesses sell for, as a multiple of profit, set against your range. It is a check, not a second answer.",
+  },
+  {
+    name: "Disclaimer",
+    words: "What the report is not. It is indicative, it is not financial advice, and it is not a certified valuation.",
   },
 ];
 
-const inclusions = [
-  "Business overview based on the information you provide",
-  "Historical financial performance summary",
-  "Normalised earnings adjustments where provided",
-  "Indicative valuation range and key assumptions",
-  "Key risks and matters to consider",
-  "Review before release",
-  "Web report and PDF delivery",
+const readyList = [
+  "Your last two to three years of annual accounts, profit and loss and balance sheet, as PDF or Excel.",
+  "What you pay yourself, and anything that happened once, like a legal bill or an insurance payout.",
+  "A rough idea of how much of your revenue comes from your biggest customers.",
 ];
 
-const reportSections = [
-  "Business overview",
-  "Market position",
-  "Financial performance",
-  "Normalisations schedule",
-  "Balance sheet summary",
-  "Valuation methodology",
-  "WACC assumptions",
-  "DCF analysis",
-  "Valuation summary",
-  "Multiples cross-check",
-];
-
-const steps = [
-  "Create your account and upload recent financial statements",
-  "Complete the valuation questions",
-  "See the fixed fee and pay securely",
-  "AccountIQ prepares the report and a reviewer checks it before release",
-  "Open the reviewed report from your account",
+const usefulFor = [
+  "Deciding whether to talk to a buyer, and what to expect.",
+  "Going into a conversation with your bank or an investor.",
+  "Giving shareholders or family a shared starting point on succession.",
 ];
 
 const faqs = [
   {
     question: "Is this financial advice?",
-    answer: "No. The report is an indicative decision-support document and is not financial advice.",
+    answer: "No. The report is an indicative valuation to help you plan. It is not financial advice.",
   },
   {
     question: "Is this a certified valuation?",
     answer:
-      "No. It is not a certified, official, or court-standard valuation. Those needs require a separate professional engagement.",
+      "No. It is not a certified, official, or court-standard valuation. If you need one of those, you need a registered valuer.",
   },
   {
     question: "What documents do I need?",
@@ -76,154 +85,122 @@ const faqs = [
   },
   {
     question: "When do I pay?",
-    answer: "Your fixed fee is shown before payment, after you create an account and complete the valuation information.",
+    answer: `After you have uploaded your statements and answered the questions. The fee is ${FEE.display} and does not change with what you upload.`,
   },
   {
-    question: "Who reviews the report?",
-    answer:
-      "Software prepares the first draft, and a human reviewer checks the report before it is released to your account.",
+    question: "Who checks the report?",
+    answer: `Software prepares the first draft, and ${reviewer}, a chartered accountant, checks it before it is released to your account.`,
   },
+  {
+    question: "How long does it take?",
+    answer: `${TURNAROUND} from payment. You can open the report online and download it as a PDF.`,
+  },
+  { question: "What happens to my statements?", answer: PRIVACY_LINES.join(" ") },
 ];
 
 export default function ValuationPage() {
   return (
-    <>
-        <section className="marketing-hero">
-          <div className="marketing-container marketing-hero-grid">
-            <div>
-              <h1>Know what your business may be worth</h1>
-              <p className="marketing-hero-copy">
-                Upload recent financial statements and receive an indicative valuation report for one fixed fee,
-                reviewed before delivery.
-              </p>
-              <div className="marketing-actions">
-                <Link className="marketing-cta" href="/login?mode=register">
-                  Get a business valuation
-                </Link>
-                <Link className="marketing-secondary-cta" href="/login">
-                  Sign in
-                </Link>
-              </div>
-              <p className="marketing-boundary">Indicative only. Not financial advice. Reviewed before delivery.</p>
-            </div>
-
-            <aside className="marketing-report-contents" aria-labelledby="report-contents-heading">
-              <h2 id="report-contents-heading">Inside the report</h2>
-              <ol>
-                {reportSections.map((section) => (
-                  <li key={section}>{section}</li>
-                ))}
-              </ol>
-            </aside>
+    <div className="home">
+      <section className="home-hero valuation-hero" aria-labelledby="valuation-title">
+        <div className="marketing-container">
+          <h1 id="valuation-title">What is in your valuation report</h1>
+          <p className="home-lead">
+            Twelve sections, built from your own statements and checked by {reviewer}. {FEE.display}, back in{" "}
+            {TURNAROUND}.
+          </p>
+          <div className="home-actions">
+            <Link className="home-button" href={appUrl(REGISTER_PATH)}>
+              Start your valuation
+              <Arrow />
+            </Link>
+            <Link className="home-button home-button-quiet" href={appUrl(SIGN_IN_PATH)}>
+              Sign in
+            </Link>
           </div>
-        </section>
+          <p className="home-boundary">Indicative only. Not financial advice or a certified valuation.</p>
+        </div>
+      </section>
 
-        <section className="marketing-trust" aria-label="Offer commitments">
-          <div className="marketing-container marketing-trust-grid">
-            {trustPoints.map((point) => (
-              <p key={point}>{point}</p>
+      <section className="home-section home-section-white" aria-labelledby="valuation-sections-title">
+        <div className="marketing-container home-split">
+          <div className="home-split-head">
+            <h2 id="valuation-sections-title">The report, section by section</h2>
+            <p className="home-intro">In the order you will read them. Every figure comes from your statements and your answers.</p>
+          </div>
+          <ol className="home-glosses valuation-sections">
+            {sections.map((section) => (
+              <li key={section.name}>
+                <h3>{section.name}</h3>
+                <p>{section.words}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="home-section" aria-labelledby="valuation-ready-title">
+        <div className="marketing-container">
+          <div className="home-section-head">
+            <h2 id="valuation-ready-title">Before you start</h2>
+          </div>
+          <div className="home-assurances valuation-assurances">
+            <div className="home-assurance">
+              <h3>What to have ready</h3>
+              <ul>
+                {readyList.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="home-assurance">
+              <h3>What it is useful for</h3>
+              <ul>
+                {usefulFor.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="home-assurance">
+              <h3>Who this is not for</h3>
+              <p>
+                If the number has to satisfy a court, the Family Court, the IRD or a formal dispute, you need a
+                registered valuer.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="home-section home-section-white" aria-labelledby="valuation-faq-title">
+        <div className="marketing-container home-split">
+          <div className="home-split-head">
+            <h2 id="valuation-faq-title">Questions before you begin</h2>
+          </div>
+          <div className="valuation-faq">
+            {faqs.map((faq) => (
+              <details key={faq.question}>
+                <summary>{faq.question}</summary>
+                <p>{faq.answer}</p>
+              </details>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="marketing-section">
-          <div className="marketing-container">
-            <h2>Valuation clarity before the bigger decision</h2>
-            <div className="marketing-use-cases">
-              {useCases.map((useCase) => (
-                <div key={useCase.title}>
-                  <h3>{useCase.title}</h3>
-                  <p>{useCase.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="marketing-section marketing-section-muted" id="inclusions">
-          <div className="marketing-container marketing-two-column">
-            <div>
-              <h2>A clear report, with its assumptions visible</h2>
-              <p>
-                Use the report as an indicative reference point for planning and decide whether deeper professional
-                advice is needed.
-              </p>
-            </div>
-            <ul className="marketing-check-list">
-              {inclusions.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        <section className="marketing-section" id="process">
-          <div className="marketing-container">
-            <h2>From financial statements to reviewed report</h2>
-            <ol className="marketing-steps">
-              {steps.map((step, index) => (
-                <li key={step}>
-                  <span aria-hidden="true">{index + 1}</span>
-                  <p>{step}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
-        <section className="marketing-section marketing-review-section">
-          <div className="marketing-container marketing-review-copy">
-            <h2>Software speed, with a review checkpoint</h2>
-            <div>
-              <p>
-                AccountIQ prepares the first draft from the information supplied. A human reviewer checks the report
-                before it is released to your account.
-              </p>
-              <p>
-                The report is indicative only and is not financial advice. It is not a certified, official, or
-                court-standard valuation, and it is not a substitute for a regulated professional engagement.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="marketing-section">
-          <div className="marketing-container marketing-pricing-panel">
-            <div>
-              <h2>Early-access fixed-fee offer</h2>
-              <p>Your fixed fee is shown before payment.</p>
-            </div>
-            <Link className="marketing-cta" href="/login?mode=register">
-              Get a business valuation
-            </Link>
-          </div>
-        </section>
-
-        <section className="marketing-section marketing-section-muted" id="faq">
-          <div className="marketing-container marketing-faq-layout">
-            <h2>Important questions before you begin</h2>
-            <div className="marketing-faq-list">
-              {faqs.map((faq) => (
-                <details key={faq.question}>
-                  <summary>{faq.question}</summary>
-                  <p>{faq.answer}</p>
-                </details>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="marketing-final-cta">
-          <div className="marketing-container">
-            <h2>Understand what your business may be worth</h2>
-            <Link className="marketing-cta" href="/login?mode=register">
-              Get a business valuation
-            </Link>
+      <section className="home-close" aria-labelledby="valuation-close-title">
+        <div className="marketing-container home-close-inner">
+          <div>
+            <h2 id="valuation-close-title">Find out what your business is worth</h2>
             <p>
-              Already have an account? <Link href="/login">Sign in</Link>
+              {FEE.display}, checked by {reviewer}, back in {TURNAROUND}.
             </p>
           </div>
-        </section>
-    </>
+          <Link className="home-button home-button-light" href={appUrl(REGISTER_PATH)}>
+            Start your valuation
+            <Arrow />
+          </Link>
+        </div>
+      </section>
+    </div>
   );
 }

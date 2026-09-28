@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: PRs #15 to #24 merged; synthetic Decimal FCFF rehearsal passed
-stopped_at: Live Anthropic UAT requires separate explicit approval
-last_updated: "2026-07-22T10:45:00+12:00"
+status: PRs #15 to #26 merged; PR #27 marketing site open; PR #20 valuation method awaiting William
+stopped_at: William to sign off the PR #20 valuation method before live Anthropic UAT
+last_updated: "2026-09-26T12:00:00+12:00"
 progress:
   total_phases: 9
   completed_phases: 5

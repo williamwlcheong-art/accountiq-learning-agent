@@ -38,8 +38,6 @@ pnpm lint
 pnpm build
 pnpm test:e2e
 pnpm test:e2e:prod
-pnpm openapi:fetch
-pnpm openapi:types
 ```
 
 ## E2E
