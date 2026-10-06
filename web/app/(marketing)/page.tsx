@@ -3,9 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Arrow } from "@/components/marketing/arrow";
+import { PostCards } from "@/components/marketing/post-cards";
 import { getCurrentUser } from "@/lib/auth";
 import { listPosts } from "@/lib/content";
-import { formatNzDate } from "@/lib/presentation";
 import { FEE, PRIVACY_LINES, REGISTER_PATH, REVIEWER, SITE_URL, TURNAROUND, appUrl } from "@/lib/site";
 
 const reviewer = `${REVIEWER.name} ${REVIEWER.credential}`;
@@ -374,17 +374,7 @@ export default async function HomePage() {
             <div className="home-section-head">
               <h2 id="home-writing-title">Writing for business owners</h2>
             </div>
-            <ul className="home-posts">
-              {posts.map((post) => (
-                <li key={post.slug}>
-                  <Link href={`/blog/${post.slug}`}>
-                    <time dateTime={post.date}>{formatNzDate(post.date, "long")}</time>
-                    <h3>{post.title}</h3>
-                    <p>{post.description}</p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <PostCards posts={posts} headingLevel={3} />
           </div>
         </section>
       ) : null}

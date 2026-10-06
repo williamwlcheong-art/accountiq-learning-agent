@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Arrow } from "@/components/marketing/arrow";
 import { getPost, listPosts, tagSlug } from "@/lib/content";
 import { formatNzDate } from "@/lib/presentation";
-import { REGISTER_PATH, SITE_URL, appUrl } from "@/lib/site";
+import { FEE, REGISTER_PATH, REVIEWER, SITE_URL, appUrl } from "@/lib/site";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -61,29 +62,31 @@ export default async function BlogPostPage({ params }: Props) {
   };
 
   return (
-    <article className="marketing-section">
+    <article className="article">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify([articleSchema, breadcrumbSchema]) }}
       />
-      <div className="marketing-container marketing-article">
-        <nav className="marketing-breadcrumb" aria-label="Breadcrumb">
-          <Link href="/blog">Blog</Link>
-        </nav>
-        <h1>{meta.title}</h1>
-        <p className="marketing-article-meta">
-          {meta.author}. <time dateTime={meta.date}>{formatNzDate(meta.date, "long")}</time>
-          {meta.updated ? (
-            <>
-              {". Last reviewed "}
-              <time dateTime={meta.updated}>{formatNzDate(meta.updated, "long")}</time>
-            </>
-          ) : null}
-        </p>
+      <div className="marketing-container article-column">
+        <header className="article-head">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link href="/blog">Blog</Link>
+          </nav>
+          <h1>{meta.title}</h1>
+          <p className="article-meta">
+            {meta.author}. <time dateTime={meta.date}>{formatNzDate(meta.date, "long")}</time>
+            {meta.updated ? (
+              <>
+                {". Last reviewed "}
+                <time dateTime={meta.updated}>{formatNzDate(meta.updated, "long")}</time>
+              </>
+            ) : null}
+          </p>
+        </header>
         <div className="prose" dangerouslySetInnerHTML={{ __html: post.html }} />
 
         {meta.tags.length ? (
-          <nav className="marketing-tag-list" aria-label="Tags">
+          <nav className="tag-list" aria-label="Tags">
             {meta.tags.map((tag) => (
               <Link key={tag} href={`/blog/tag/${tagSlug(tag)}`}>
                 {tag}
@@ -92,14 +95,15 @@ export default async function BlogPostPage({ params }: Props) {
           </nav>
         ) : null}
 
-        <aside className="marketing-post-cta">
-          <h2>Wondering what your own business is worth?</h2>
+        <aside className="article-cta" aria-labelledby="article-cta-title">
+          <h2 id="article-cta-title">Wondering what your own business is worth?</h2>
           <p>
-            AccountIQ prepares an indicative valuation report from your financial statements for one fixed fee, and a
-            reviewer checks it before it reaches you.
+            AccountIQ works out an indicative valuation from your own financial statements. {FEE.display}, checked by{" "}
+            {REVIEWER.name} {REVIEWER.credential}.
           </p>
-          <Link className="marketing-cta" href={appUrl(REGISTER_PATH)}>
-            Get a business valuation
+          <Link className="home-button" href={appUrl(REGISTER_PATH)}>
+            Start your valuation
+            <Arrow />
           </Link>
         </aside>
       </div>

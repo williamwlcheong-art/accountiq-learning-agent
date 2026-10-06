@@ -38,7 +38,7 @@ test("the main navigation reaches every published page", async ({ page }) => {
 
   await nav.getByRole("link", { name: "Blog" }).click();
   await expect(page).toHaveURL(/\/blog$/);
-  await expect(page.getByRole("heading", { level: 1, name: "Blog" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Writing for business owners" })).toBeVisible();
 
   await page.getByRole("contentinfo").getByRole("link", { name: "For advisors" }).click();
   await expect(page).toHaveURL(/\/for-advisors$/);
