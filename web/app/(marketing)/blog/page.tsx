@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PostCards } from "@/components/marketing/post-cards";
 import { listPosts, listTags, tagSlug } from "@/lib/content";
-import { formatNzDate } from "@/lib/presentation";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -16,38 +16,23 @@ export default function BlogIndexPage() {
   const tags = listTags();
 
   return (
-    <section className="marketing-section">
+    <section className="home-section" aria-labelledby="blog-title">
       <div className="marketing-container">
-        <h1>Blog</h1>
-        <p className="marketing-article-lede">
-          What a business is worth, and how buyers, lenders and shareholders look at one.
-        </p>
-
-        {tags.length ? (
-          <nav className="marketing-tag-list" aria-label="Post tags">
-            {tags.map((tag) => (
-              <Link key={tag} href={`/blog/tag/${tagSlug(tag)}`}>
-                {tag}
-              </Link>
-            ))}
-          </nav>
-        ) : null}
-
-        {posts.length ? (
-          <ul className="marketing-post-list">
-            {posts.map((post) => (
-              <li key={post.slug}>
-                <Link href={`/blog/${post.slug}`}>
-                  <h2>{post.title}</h2>
-                  <p>{post.description}</p>
-                  <time dateTime={post.date}>{formatNzDate(post.date, "long")}</time>
+        <header className="article-head blog-head">
+          <h1 id="blog-title">Writing for business owners</h1>
+          <p className="article-lede">What a business is worth, and how buyers, lenders and shareholders look at one.</p>
+          {tags.length ? (
+            <nav className="tag-list" aria-label="Post tags">
+              {tags.map((tag) => (
+                <Link key={tag} href={`/blog/tag/${tagSlug(tag)}`}>
+                  {tag}
                 </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>The first posts are being written. Check back shortly.</p>
-        )}
+              ))}
+            </nav>
+          ) : null}
+        </header>
+
+        {posts.length ? <PostCards posts={posts} /> : <p className="blog-empty">The first posts are being written. Check back shortly.</p>}
       </div>
     </section>
   );

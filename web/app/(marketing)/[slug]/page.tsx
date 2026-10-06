@@ -34,15 +34,17 @@ export default async function ContentPage({ params }: Props) {
   if (!page) notFound();
 
   return (
-    <article className="marketing-section">
-      <div className="marketing-container marketing-article">
-        <h1>{page.meta.title}</h1>
-        <p className="marketing-article-lede">{page.meta.description}</p>
-        {page.meta.updated ? (
-          <p className="marketing-article-meta">
-            Last reviewed <time dateTime={page.meta.updated}>{formatNzDate(page.meta.updated, "long")}</time>
-          </p>
-        ) : null}
+    <article className="article">
+      <div className="marketing-container article-column">
+        <header className="article-head">
+          <h1>{page.meta.title}</h1>
+          <p className="article-lede">{page.meta.description}</p>
+          {page.meta.updated ? (
+            <p className="article-meta">
+              Last reviewed <time dateTime={page.meta.updated}>{formatNzDate(page.meta.updated, "long")}</time>
+            </p>
+          ) : null}
+        </header>
         <div className="prose" dangerouslySetInnerHTML={{ __html: page.html }} />
       </div>
     </article>
