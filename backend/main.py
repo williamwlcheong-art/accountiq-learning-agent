@@ -26,7 +26,7 @@ from dotenv import load_dotenv, set_key
 ENV_PATH = Path(__file__).parent.parent / ".env"
 load_dotenv(ENV_PATH, override=False)
 
-from db import init_db, get_db, get_pattern_library, DB_PATH
+from db import init_db, fail_interrupted_reports, get_db, get_pattern_library, DB_PATH
 from financial_authority import (
     AuthorityConflictError,
     authoritative_financial_rows,
@@ -35,7 +35,7 @@ from financial_authority import (
     promote_document_authority,
 )
 from ingestion import ingest_document
-from auth import SECRET_KEY, auth_router, get_current_user, require_admin
+from auth import SECRET_KEY, auth_router, get_current_user, require_admin, secret_key_problem
 from payments import (
     checkout_config,
     construct_webhook_event,
@@ -84,21 +84,38 @@ from valuation_tables import attach_valuation_tables, build_valuation_tables
 _UPLOAD_SUFFIXES = {".pdf", ".xlsx", ".xls", ".xlsm", ".docx"}
 
 
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+_UPLOAD_TOO_LARGE = "Files can be up to 25 MB. Try a smaller export or split the file."
+
+
 def _validated_upload_suffix(file: UploadFile) -> str:
-    """Reject uploads with no filename or an unsupported extension; return the suffix."""
+    """Reject uploads with no filename, an unsupported extension or over the size cap; return the suffix."""
     if not file.filename:
         raise HTTPException(400, "Choose a file to upload.")
+    if file.size is not None and file.size > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, _UPLOAD_TOO_LARGE)
     suffix = Path(file.filename).suffix.lower()
     if suffix not in _UPLOAD_SUFFIXES:
         raise HTTPException(400, f"Only PDF, Excel, and Word files are accepted. Got: {suffix}")
     return suffix
 
 
+def check_startup_config(secret_key: str, e2e_mode: bool, stripe_secret_key: str) -> None:
+    """Refuse to start with settings that would let someone forge sessions or skip payment."""
+    problem = secret_key_problem(secret_key)
+    if problem:
+        raise RuntimeError(f"{problem}; refusing to start. Generate one with: openssl rand -hex 32")
+    if e2e_mode and stripe_secret_key.startswith(("sk_live", "rk_live")):
+        raise RuntimeError("ACCOUNTIQ_E2E_MODE skips payment and must never run with a live Stripe key.")
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    if not SECRET_KEY:
-        raise RuntimeError("SECRET_KEY is not set; refusing to start without a session signing key.")
+    check_startup_config(SECRET_KEY, E2E_MODE, os.environ.get("STRIPE_SECRET_KEY", ""))
     init_db()
+    interrupted = fail_interrupted_reports()
+    if interrupted:
+        print(f"[STARTUP] Marked {interrupted} interrupted report(s) as failed.")
     print("[STARTUP] AccountIQ Learning Agent ready.")
     yield
 
@@ -650,13 +667,26 @@ async def _previous_revision(db, company_id: int, filename: str):
         return await cur.fetchone()
 
 
-def _write_upload_revision(file, destination: Path) -> str:
+def _write_upload_revision_sync(file, destination: Path) -> str:
     digest = hashlib.sha256()
+    written = 0
     with open(destination, "xb") as output:
         while chunk := file.read(1024 * 1024):
+            written += len(chunk)
+            if written > MAX_UPLOAD_BYTES:
+                break
             digest.update(chunk)
             output.write(chunk)
+    if written > MAX_UPLOAD_BYTES:
+        destination.unlink(missing_ok=True)
+        raise HTTPException(413, _UPLOAD_TOO_LARGE)
     return digest.hexdigest()
+
+
+async def _write_upload_revision(file, destination: Path) -> str:
+    """Stream an upload to disk off the event loop; returns its SHA-256."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, _write_upload_revision_sync, file, destination)
 
 
 @app.post("/documents/upload")
@@ -726,7 +756,7 @@ async def upload_document(
         shutil.move(str(tmp_path), str(dest))
         file_hash = hashlib.sha256(contents).hexdigest()
     else:
-        file_hash = _write_upload_revision(file.file, dest)
+        file_hash = await _write_upload_revision(file.file, dest)
 
     async with db.execute("""
         INSERT INTO documents
@@ -1428,7 +1458,7 @@ async def wizard_upload(
     safe_name = Path(file.filename).name
     previous = await _previous_revision(db, company_id, safe_name)
     dest = _revision_path(company_dir, safe_name)
-    file_hash = _write_upload_revision(file.file, dest)
+    file_hash = await _write_upload_revision(file.file, dest)
 
     async with db.execute("""
         INSERT INTO documents
@@ -1965,11 +1995,15 @@ async def wizard_report_checkout(
         elif existing_order and existing_order["stripe_checkout_url"]:
             checkout_url = existing_order["stripe_checkout_url"]
         else:
-            session = create_checkout_session(
-                report_id=report_id,
-                purchase_id=purchase_id,
-                user_email=current_user["email"],
-                config=config,
+            loop = asyncio.get_running_loop()
+            session = await loop.run_in_executor(
+                None,
+                lambda: create_checkout_session(
+                    report_id=report_id,
+                    purchase_id=purchase_id,
+                    user_email=current_user["email"],
+                    config=config,
+                ),
             )
             await db.execute("""
                 UPDATE purchases
@@ -2048,7 +2082,8 @@ async def stripe_webhook(
             ) as cur:
                 row = await cur.fetchone()
             if not row:
-                raise HTTPException(404, "Purchase not found")
+                print(f"[STRIPE] Refund for unknown payment intent {payment_intent_id}; ignored")
+                return {"received": True, "ignored": True}
             await db.execute(
                 "UPDATE purchases SET status='refunded' WHERE id=? AND status IN ('paid', 'refunded')",
                 (row["purchase_id"],),
@@ -2231,6 +2266,10 @@ async def wizard_report_status(
     return result
 
 
+MAX_REPORT_RETRIES = 3
+_RETRY_LIMIT_MESSAGE = "This report has been retried 3 times. Contact support and we will sort it out."
+
+
 @app.post("/wizard/report/{report_id}/retry")
 async def wizard_report_retry(
     report_id: int,
@@ -2243,7 +2282,7 @@ async def wizard_report_retry(
     Only callable when status is 'failed'.
     """
     async with db.execute("""
-        SELECT id, company_id, report_type, status
+        SELECT id, company_id, report_type, status, retry_count
         FROM reports WHERE id=? AND user_id=?
     """, (report_id, current_user["id"])) as cur:
         report = await cur.fetchone()
@@ -2251,6 +2290,8 @@ async def wizard_report_retry(
         raise HTTPException(404, "Report not found")
     if report["status"] != "failed":
         raise HTTPException(409, f"Report is not in failed state (current: {report['status']})")
+    if report["retry_count"] >= MAX_REPORT_RETRIES:
+        raise HTTPException(429, _RETRY_LIMIT_MESSAGE)
 
     # Verify the original immutable snapshot before requeueing.
     try:
@@ -2269,9 +2310,9 @@ async def wizard_report_retry(
     # Reset status conditionally so duplicate retries cannot queue twice.
     cursor = await db.execute("""
         UPDATE reports
-        SET status='queued', error_message=NULL, completed_at=NULL
-        WHERE id=? AND user_id=? AND status='failed'
-    """, (report_id, current_user["id"]))
+        SET status='queued', error_message=NULL, completed_at=NULL, retry_count=retry_count + 1
+        WHERE id=? AND user_id=? AND status='failed' AND retry_count < ?
+    """, (report_id, current_user["id"], MAX_REPORT_RETRIES))
     await db.commit()
     if cursor.rowcount != 1:
         raise HTTPException(409, "Report retry was already claimed")
@@ -2303,7 +2344,7 @@ async def wizard_report_restart(
     try:
         async with db.execute(
             """
-            SELECT r.id, r.company_id, r.report_type, r.status,
+            SELECT r.id, r.company_id, r.report_type, r.status, r.retry_count,
                    p.id AS purchase_id, p.status AS purchase_status,
                    ris.schema_version, ris.valuation_engine_version
             FROM reports r
@@ -2326,6 +2367,8 @@ async def wizard_report_restart(
                 409,
                 f"Report is not in failed state (current: {report['status']})",
             )
+        if report["retry_count"] >= MAX_REPORT_RETRIES:
+            raise HTTPException(429, _RETRY_LIMIT_MESSAGE)
         if report["purchase_id"] is None:
             raise HTTPException(409, "A paid purchase is required to restart this report")
         if not report["schema_version"] or not report["valuation_engine_version"]:
@@ -2359,7 +2402,8 @@ async def wizard_report_restart(
         cursor = await db.execute(
             """
             UPDATE reports
-            SET status='queued', content=NULL, error_message=NULL, completed_at=NULL
+            SET status='queued', content=NULL, error_message=NULL, completed_at=NULL,
+                retry_count=retry_count + 1
             WHERE id=? AND user_id=? AND status='failed'
             """,
             (report_id, current_user["id"]),

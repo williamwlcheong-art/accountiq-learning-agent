@@ -6,6 +6,8 @@ Uses PyJWT (HS256) for tokens and pwdlib (Argon2) for password hashing.
 Tokens are stored in HTTP-only cookies named 'accountiq_session'.
 """
 import os
+import time
+from collections import defaultdict, deque
 from datetime import datetime, timedelta, UTC
 
 from fastapi import APIRouter, Cookie, Depends, Form, HTTPException, Response
@@ -25,10 +27,38 @@ ALGORITHM = "HS256"
 TOKEN_EXPIRE_DAYS = 7
 COOKIE_NAME = "accountiq_session"
 COOKIE_MAX_AGE = TOKEN_EXPIRE_DAYS * 24 * 60 * 60  # 604800
-COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
+# Secure by default; set COOKIE_SECURE=false only for local http development.
+COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "true").lower() != "false"
 PASSWORD_MIN_LEN = 8
+SECRET_KEY_MIN_LEN = 32
+SECRET_KEY_PLACEHOLDER = "replace-me-with-output-of-openssl-rand-hex-32"
+LOGIN_MAX_FAILURES = 5
+LOGIN_WINDOW_SECONDS = 15 * 60
 
 _password_hash = PasswordHash.recommended()
+# Verified against when the email is unknown, so a miss takes as long as a wrong password.
+_DUMMY_HASH = _password_hash.hash("not-a-real-password")
+# ponytail: in-memory, per process. Move to the database or Redis if we run more than one worker.
+_login_failures: dict[str, deque] = defaultdict(deque)
+
+
+def secret_key_problem(key: str) -> str | None:
+    """Why this signing key is unsafe to run with, or None when it is fine."""
+    if not key:
+        return "SECRET_KEY is not set"
+    if key == SECRET_KEY_PLACEHOLDER:
+        return "SECRET_KEY is still the .env.example placeholder"
+    if len(key) < SECRET_KEY_MIN_LEN:
+        return f"SECRET_KEY must be at least {SECRET_KEY_MIN_LEN} characters"
+    return None
+
+
+def _recent_failures(email: str) -> deque:
+    failures = _login_failures[email]
+    cutoff = time.monotonic() - LOGIN_WINDOW_SECONDS
+    while failures and failures[0] < cutoff:
+        failures.popleft()
+    return failures
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -135,7 +165,8 @@ async def register(
     except Exception as e:
         if "UNIQUE constraint" in str(e):
             raise HTTPException(409, "Email already registered")
-        raise HTTPException(500, str(e))
+        print(f"[AUTH] Register failed for {email}: {e}")
+        raise HTTPException(500, "Could not create the account. Please try again.")
 
     token = create_access_token({"sub": str(user_id), "email": email})
     _set_session_cookie(response, token)
@@ -151,13 +182,19 @@ async def login(
     db: aiosqlite.Connection = Depends(get_db),
 ):
     email = email.strip().lower()
+    failures = _recent_failures(email)
+    if len(failures) >= LOGIN_MAX_FAILURES:
+        raise HTTPException(429, "Too many failed sign-in attempts. Try again in 15 minutes.")
     async with db.execute(
         "SELECT id, email, hashed_pw FROM users WHERE email=?", (email,)
     ) as cur:
         row = await cur.fetchone()
-    if not row or not verify_password(password, row["hashed_pw"]):
+    password_ok = verify_password(password, row["hashed_pw"] if row else _DUMMY_HASH)
+    if not row or not password_ok:
+        failures.append(time.monotonic())
         print(f"[AUTH] Login failed for: {email}")
         raise HTTPException(401, "Invalid email or password")
+    _login_failures.pop(email, None)
     token = create_access_token({"sub": str(row["id"]), "email": row["email"]})
     _set_session_cookie(response, token)
     print(f"[AUTH] Login OK: {email}")
