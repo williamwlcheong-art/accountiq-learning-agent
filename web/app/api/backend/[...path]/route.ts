@@ -7,6 +7,7 @@ type ProxyContext = {
   params: Promise<{ path: string[] }>;
 };
 
+const MAX_BODY_BYTES = 26 * 1024 * 1024;
 const FASTAPI_ORIGIN = process.env.FASTAPI_ORIGIN ?? "http://127.0.0.1:8765";
 const HOP_BY_HOP_HEADERS = [
   "connection",
@@ -36,6 +37,10 @@ async function proxy(request: NextRequest, context: ProxyContext) {
   target.search = request.nextUrl.search;
 
   const method = request.method.toUpperCase();
+  // FastAPI caps each file at 25 MB; refuse anything far bigger before buffering it here.
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) {
+    return Response.json({ detail: "Files can be up to 25 MB. Try a smaller export or split the file." }, { status: 413 });
+  }
   const body = method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer();
   const response = await fetch(target, {
     method,

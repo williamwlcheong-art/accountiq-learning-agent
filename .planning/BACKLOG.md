@@ -37,6 +37,7 @@ Customer uploads financials, completes valuation intake, pays, generation starts
 | PVM-12 | Valuation page in the new design, dead code removal, planning docs refresh | Done | #28 | Technical + William | `/valuation` explains each report section in plain words, shows the fee and names the reviewer, and drops the Australia claim. Removes unused generated API types, old marketing and shell CSS, `tabulate`, and unused helpers. William's logic files are untouched. William to check the section descriptions. |
 | PVM-13 | William signs off the valuation method from PR #20 | Waiting on William | #20 merged | William | PR #20 changed capex, working capital, tax on EBIT, WACC and DLOM against his `valuation.py`. Side-by-side comparison sent to William on 2026-09-26: values 17% to 40% lower on sample businesses, mostly from deducting capex. Live UAT waits on this. |
 | PVM-14 | Blog and Markdown pages in the new design | Done | #30 | Technical | Blog index, tag pages, posts and Markdown pages use the marketing design; old article CSS removed. The only post is still a draft. |
+| PVM-15 | Fix the October code review findings | In review | #31 | Technical | Refuses to start with a weak or placeholder `SECRET_KEY`, or with E2E mode and a live Stripe key. Secure cookies by default. Fails reports a restart left half done so they can be retried. 25 MB upload cap, sign-in lockout after 5 failures, 3 retries per report, Stripe call off the event loop, generic register error, unknown refunds acknowledged. No valuation logic touched. |
 
 ## Next Steps
 
