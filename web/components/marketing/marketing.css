@@ -517,6 +517,34 @@
   margin-top: 24px;
 }
 
+/* The profit bars: each starts where the one above it ended, on one scale. */
+.home-bridge-track {
+  position: relative;
+  display: block;
+  height: 12px;
+  margin: 6px 0 12px;
+  border-radius: 2px;
+  background: #f1f1f5;
+}
+
+.home-bridge-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+  background: var(--aq-navy);
+}
+
+.home-bridge-plus {
+  background: #8580c9;
+}
+
+/* A subtraction is hatched, so it does not rely on colour. */
+.home-bridge-minus {
+  background: repeating-linear-gradient(135deg, #8580c9 0 2px, #ffffff 2px 5px);
+  box-shadow: inset 0 0 0 1px #8580c9;
+}
+
 /* The steps are a sequence, so they keep their numbers. */
 .home-steps {
   counter-reset: step;

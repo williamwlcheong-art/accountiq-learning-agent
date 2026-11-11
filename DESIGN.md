@@ -93,9 +93,10 @@ At 960px the two columns stack and the header nav folds into the menu; the hero 
 
 - **Header:** sticky, white, with a hairline under it.
 - **Buttons:** 8px corners, 48px tall on the page and 44px in the header, no icon. Primary is navy, quiet is white with a grey border.
-- **Sample report:** one flat page with a hairline border. The figures are for a made-up business and match how the real report works: each normalisation on its own line, normalised profit, a discounted cash flow in low, mid and high cases, and market multiples as a cross-check. Keep it in step with `backend/report_prompts.py` and `valuation_tables.py`. The "Where the number comes from" list repeats the same lines with the same figures, so the reader can match them.
+- **Sample report:** one flat page with a hairline border. The figures are for a made-up business and match how the real report works: a low, mid and high value, each normalisation on its own line, then normalised profit. Keep it in step with `backend/report_prompts.py` and `valuation_tables.py`. The "Where the number comes from" list repeats the same lines with the same figures, so the reader can match them.
 - **Rows:** `.home-glosses`. A label on the left and the explanation on the right, with a hairline between rows. The steps use the same rows with a number in front, because their order matters.
-- **Price list:** name, price and a one-line note. Ours is in bold.
+- **Profit bars:** in "Where the number comes from", each row has a bar on one shared scale that starts where the bar above it ended. Totals are navy, additions a lighter navy, a subtraction is hatched. The bars and the total are worked out from the same signed amounts in `page.tsx`, so they cannot disagree.
+- **Price list:** name, price and a one-line note. Ours is in bold. Under it, the two sentences on when a registered valuer is needed.
 - **Reviewer:** the review described in plain words. William's photo, where he practises and years in practice go here once we have them.
 - **What happens to your accounts:** four plain lines. Each is true of the code today and must be signed off under Launch Gate 3 before launch.
 - **Post cards:** the one place a box is used, because each is a link.
