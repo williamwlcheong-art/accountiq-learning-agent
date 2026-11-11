@@ -2,7 +2,7 @@ export const WIZARD_REPORT_TYPES = [
   {
     key: "valuation_advisory",
     name: "Valuation Advisory",
-    desc: "Indicative SME valuation using researched WACC inputs, DCF scenarios, market multiples, and normalised EBITDA.",
+    desc: "An indicative value for your business, based on its forecast cash flows and checked against market multiples.",
     selfServe: true,
     badge: "Available now",
   },

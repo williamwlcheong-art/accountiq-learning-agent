@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import math
 import os
 import re
 import tempfile
@@ -10,6 +11,15 @@ from pathlib import Path
 
 BRAND_NAVY = "#1B1464"
 DISCLAIMER = "Indicative Only - Not Financial Advice"
+MARKET_CHART_CSS = """
+  .market-line-chart { margin: 1.4rem 0 1.6rem; page-break-inside: avoid; }
+  .market-line-chart figcaption strong, .market-line-chart figcaption span { display: block; }
+  .market-line-chart figcaption span, .market-line-chart .chart-source { color: #5d6472; font-size: .86em; }
+  .market-line-chart svg { display: block; width: 100%; max-width: 560px; height: auto; margin: .5rem 0; }
+  .market-line-chart .chart-legend { margin: .4rem 0 0; font-size: .86em; }
+  .market-line-chart .chart-legend span { margin-right: 1.2em; white-space: nowrap; }
+  .market-line-chart .chart-legend i { display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; }
+"""
 
 
 def report_pdf_path(export_dir: Path, report_id: int) -> Path:
@@ -78,7 +88,85 @@ def _table_html(table_data: dict | None) -> str:
     )
 
 
-def _market_chart_html(chart: dict) -> str:
+_CHART_COLOURS = ("#1B1464", "#c2410c", "#0f766e", "#6b7280")
+
+
+def _nice_ticks(low: float, high: float, count: int = 4) -> list[float]:
+    """Round axis ticks (steps of 1, 2 or 5 times a power of ten) covering low to high."""
+    raw = ((high - low) or 1) / count
+    magnitude = 10 ** math.floor(math.log10(raw))
+    step = next(m * magnitude for m in (1, 2, 5, 10) if m * magnitude >= raw)
+    first = math.floor(low / step)
+    last = math.ceil(high / step)
+    return [index * step for index in range(first, last + 1)]
+
+
+def _chart_series(chart: dict) -> list[tuple[str, list[tuple[str, float]]]]:
+    series_list = []
+    for series in chart.get("series", []) or []:
+        if not isinstance(series, dict):
+            continue
+        points = []
+        for point in series.get("values", []) or []:
+            if not isinstance(point, dict):
+                continue
+            try:
+                points.append((str(point.get("period")), float(point.get("value"))))
+            except (TypeError, ValueError):
+                continue
+        series_list.append((str(series.get("name") or "Series"), points))
+    return series_list
+
+
+def _chart_svg(series_list: list[tuple[str, list[tuple[str, float]]]], label: str) -> str:
+    values = [value for _, points in series_list for _, value in points]
+    longest = max((points for _, points in series_list), key=len, default=[])
+    if len(longest) < 2:
+        return ""
+    width, height, left, right, top, bottom = 440, 220, 48, 52, 14, 28
+    ticks = _nice_ticks(min(0.0, *values), max(0.0, *values))
+    low, high = ticks[0], ticks[-1]
+    plot_w, plot_h = width - left - right, height - top - bottom
+
+    def x_at(index: int) -> float:
+        return left + plot_w * index / (len(longest) - 1)
+
+    def y_at(value: float) -> float:
+        return top + plot_h * (high - value) / (high - low)
+
+    parts = []
+    for tick in ticks:
+        y = y_at(tick)
+        colour = "#9aa3b2" if tick == 0 else "#e0e4ea"
+        parts.append(f'<line x1="{left}" y1="{y:.1f}" x2="{width - right}" y2="{y:.1f}" stroke="{colour}"/>')
+        parts.append(f'<text x="{left - 8}" y="{y + 4:.1f}" text-anchor="end">{tick:,.10g}</text>')
+    every = math.ceil(len(longest) / 6)
+    for index, (period, _) in enumerate(longest):
+        if (len(longest) - 1 - index) % every == 0:
+            parts.append(
+                f'<text x="{x_at(index):.1f}" y="{height - 8}" text-anchor="middle">{html.escape(period)}</text>'
+            )
+    for number, (_, points) in enumerate(series_list):
+        if not points:
+            continue
+        colour = _CHART_COLOURS[number % len(_CHART_COLOURS)]
+        dash = ' stroke-dasharray="6 4"' if number % 2 else ""
+        line = " ".join(f"{x_at(i):.1f},{y_at(value):.1f}" for i, (_, value) in enumerate(points))
+        parts.append(f'<polyline points="{line}" fill="none" stroke="{colour}" stroke-width="2"{dash}/>')
+        end_x, end_y = x_at(len(points) - 1), y_at(points[-1][1])
+        parts.append(f'<circle cx="{end_x:.1f}" cy="{end_y:.1f}" r="3" fill="{colour}"/>')
+        parts.append(
+            f'<text x="{end_x + 7:.1f}" y="{end_y + 4:.1f}" fill="{colour}" font-weight="700">'
+            f"{points[-1][1]:,.10g}</text>"
+        )
+    return (
+        f'<svg viewBox="0 0 {width} {height}" role="img" aria-label="{label}" '
+        'font-family="Arial, sans-serif" font-size="12" fill="#5d6472">' + "".join(parts) + "</svg>"
+    )
+
+
+def market_chart_html(chart: dict) -> str:
+    """One market chart as a figure: title, subtitle, legend, line chart and source line."""
     title = html.escape(str(chart.get("title") or "Market trend"))
     subtitle = html.escape(str(chart.get("subtitle") or ""))
     unit = html.escape(str(chart.get("unit") or ""))
@@ -90,24 +178,25 @@ def _market_chart_html(chart: dict) -> str:
         )
     )
     source_text = html.escape(", ".join(source_labels))
-    series_items = []
-    for series in chart.get("series", []) or []:
-        if not isinstance(series, dict):
-            continue
-        points = ", ".join(
-            f"{point.get('period')}: {point.get('value')}"
-            for point in series.get("values", []) or []
-            if isinstance(point, dict)
-        )
-        series_items.append(
-            f"<li><strong>{html.escape(str(series.get('name') or 'Series'))}</strong>: "
-            f"{html.escape(points)}</li>"
-        )
+    series_list = _chart_series(chart)
+    # The same figures the chart draws, read out for anyone who cannot see it.
+    spoken = html.escape(
+        "; ".join(
+            f"{name}: " + ", ".join(f"{period} {value:,.10g}" for period, value in points)
+            for name, points in series_list
+        ),
+        quote=True,
+    )
+    legend = "".join(
+        f'<span><i style="background:{_CHART_COLOURS[number % len(_CHART_COLOURS)]}"></i>{html.escape(name)}</span>'
+        for number, (name, _) in enumerate(series_list)
+    )
     return (
         '<figure class="market-line-chart">'
         f"<figcaption><strong>{title}</strong><span>{subtitle}</span></figcaption>"
-        f"<ul>{''.join(series_items)}</ul>"
-        f"<p>Source: {source_text}. Unit: {unit}. {note}</p>"
+        f'<p class="chart-legend">{legend}</p>'
+        f"{_chart_svg(series_list, f'{title}. {spoken}')}"
+        f'<p class="chart-source">Source: {source_text}. Unit: {unit}. {note}</p>'
         "</figure>"
     )
 
@@ -119,7 +208,7 @@ def _market_payload_html(content: dict) -> str:
         chunks.append(_table_html(content["sector_scale_table"]))
     charts = content.get("market_charts")
     if isinstance(charts, list):
-        chunks.extend(_market_chart_html(chart) for chart in charts if isinstance(chart, dict))
+        chunks.extend(market_chart_html(chart) for chart in charts if isinstance(chart, dict))
     if isinstance(content.get("market_sources_table"), dict):
         chunks.append("<h3>Market data sources</h3>")
         chunks.append(_table_html(content["market_sources_table"]))
@@ -221,6 +310,7 @@ def render_report_html(
   tbody tr:nth-child(even) {{ background: #f7f7fa; }}
   .disclaimer {{ background: #f7f7fa; border: 1px solid #d9dce5; margin-top: 10mm; padding: 5mm; }}
   .disclaimer h2 {{ margin-top: 0; }}
+  {MARKET_CHART_CSS}
 </style>
 </head>
 <body>

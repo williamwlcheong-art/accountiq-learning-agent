@@ -2,6 +2,8 @@
 
 import { MouseEvent, useState } from "react";
 
+import { CONTACT_EMAIL } from "@/lib/site";
+
 type PdfDownloadLinkProps = {
   reportId: number;
   companyName?: string;
@@ -9,7 +11,7 @@ type PdfDownloadLinkProps = {
 };
 
 const FALLBACK_MESSAGE =
-  "We could not build the PDF right now. You can still open the report online. Reply to your confirmation email and we will send the PDF to you.";
+  `We could not build the PDF right now. You can still open the report online. Email ${CONTACT_EMAIL} and we will send the PDF to you.`;
 
 function safeFilename(companyName: string | undefined, reportId: number) {
   const base = (companyName || `report-${reportId}`).replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase();

@@ -2729,3 +2729,80 @@ button,
 .alert[tabindex="-1"]:focus {
   outline: none;
 }
+
+/* Customer screen fixes from the November 2026 UI check */
+.wizard-form label.choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  margin-bottom: 0;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.wizard-form .choice input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--blue);
+}
+
+.rating-option {
+  min-height: 48px;
+}
+
+.rating-question + .rating-question {
+  margin-top: 8px;
+}
+
+.rating-scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--marketing-muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.rating-scale span:last-child {
+  text-align: right;
+}
+
+.portal-footer a,
+.auth-reset-note a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+@media (max-width: 720px) {
+  .rating-options {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .rating-option:last-child {
+    grid-column: auto;
+  }
+
+  /* iPhones zoom the page when a focused field's text is under 16px. */
+  .auth-form input,
+  .wizard-card input,
+  .wizard-card select,
+  .wizard-card textarea,
+  .wizard-form input,
+  .wizard-form select,
+  .wizard-form textarea {
+    font-size: 16px;
+  }
+}
+
+/* The sign-in column may not grow past the screen when something inside the card will not shrink. */
+.auth-page {
+  grid-template-columns: minmax(0, 1fr);
+}

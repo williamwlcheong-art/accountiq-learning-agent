@@ -37,7 +37,7 @@ export function CheckoutConfirmation({ businessName, readiness, answers, loading
   return (
     <section className="wizard-card confirmation-card">
       <h1>Confirm your valuation order</h1>
-      <p>Review the source coverage and assumptions that will be bound to this report.</p>
+      <p>Check the statements and assumptions this report will use.</p>
 
       <dl className="confirmation-grid">
         <div><dt>Company</dt><dd>{businessName}</dd></div>
@@ -47,7 +47,7 @@ export function CheckoutConfirmation({ businessName, readiness, answers, loading
       </dl>
 
       <div className="confirmation-section">
-        <h2>Selected financial coverage</h2>
+        <h2>Statements used</h2>
         <FinancialSourceList
           sources={readiness.source_periods}
           className="confirmation-list"
@@ -56,7 +56,7 @@ export function CheckoutConfirmation({ businessName, readiness, answers, loading
       </div>
 
       <div className="confirmation-section">
-        <h2>Assumptions and normalisations</h2>
+        <h2>Assumptions and one-off items</h2>
         <dl className="confirmation-grid">
           <div><dt>Forecast period</dt><dd>{String(forecast.horizon_years ?? "Not supplied")} years</dd></div>
           <div><dt>Revenue growth</dt><dd>{Number.isFinite(Number(forecast.revenue_growth_rate)) ? `${(Number(forecast.revenue_growth_rate) * 100).toFixed(1)}% each year` : "Not supplied"}</dd></div>
@@ -74,7 +74,7 @@ export function CheckoutConfirmation({ businessName, readiness, answers, loading
               </li>
             ))}
           </ul>
-        ) : <p className="wizard-note">No normalisation adjustments supplied.</p>}
+        ) : <p className="wizard-note">No one-off items supplied.</p>}
       </div>
 
       <div className="alert alert-info frozen-notice">

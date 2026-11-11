@@ -86,6 +86,42 @@ const riskQuestions = [
   ["rq_management_depth", "Management depth", ["1 - owner does everything", "2", "3", "4", "5 - deep bench"]],
 ] as const;
 
+const DRAFT_PREFIX = "accountiq-intake-draft:";
+
+type IntakeDraft = {
+  fields?: Record<string, string>;
+  normalisations?: NormalisationRow[];
+  assumptionOverrides?: Record<string, boolean>;
+  assumptionRatios?: Record<string, string>;
+};
+
+function readDraft(key: string): IntakeDraft {
+  try {
+    return JSON.parse(window.sessionStorage.getItem(key) ?? "{}") as IntakeDraft;
+  } catch {
+    return {};
+  }
+}
+
+function saveDraft(key: string, patch: IntakeDraft) {
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify({ ...readDraft(key), ...patch }));
+  } catch {
+    // Storage is full or blocked: the form still works, it just will not survive a refresh.
+  }
+}
+
+/** Forget unfinished answers once the order is placed or the customer starts again. */
+export function clearIntakeDrafts() {
+  try {
+    for (const key of Object.keys(window.sessionStorage)) {
+      if (key.startsWith(DRAFT_PREFIX)) window.sessionStorage.removeItem(key);
+    }
+  } catch {
+    // Nothing to clear.
+  }
+}
+
 function percentageToRatio(value: unknown): number {
   return Number((Number(value) / 100).toFixed(10));
 }
@@ -100,6 +136,10 @@ function toAnswerValue(value: FormDataEntryValue): string | number {
   if (text === "") return "";
   const numberValue = Number(text);
   return Number.isFinite(numberValue) && /^-?\d+(\.\d+)?$/.test(text) ? numberValue : text;
+}
+
+function isZero(value: string) {
+  return value.trim() !== "" && Number(value) === 0;
 }
 
 function ratingDescription(option: string) {
@@ -147,11 +187,14 @@ export function IntakeForm({
   loading,
   submitLabel = "Review and continue",
 }: IntakeFormProps) {
-  const [normalisations, setNormalisations] = useState<NormalisationRow[]>([]);
+  const draftKey = `${DRAFT_PREFIX}${companyId}:${reportType}`;
+  const [draft] = useState<IntakeDraft>(() => readDraft(draftKey));
+  const [normalisations, setNormalisations] = useState<NormalisationRow[]>(draft.normalisations ?? []);
   const [profileStatus, setProfileStatus] = useState<ProfileStatus | null>(null);
   const [fcffReadiness, setFcffReadiness] = useState<FcffAssumptionReadiness | null>(null);
-  const [assumptionOverrides, setAssumptionOverrides] = useState<Record<string, boolean>>({});
-  const [assumptionRatios, setAssumptionRatios] = useState<Record<string, string>>({});
+  const [assumptionOverrides, setAssumptionOverrides] = useState<Record<string, boolean>>(draft.assumptionOverrides ?? {});
+  const [assumptionRatios, setAssumptionRatios] = useState<Record<string, string>>(draft.assumptionRatios ?? {});
+  const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
 
@@ -160,6 +203,29 @@ export function IntakeForm({
     errorRef.current?.scrollIntoView({ block: "center" });
     errorRef.current?.focus();
   }, [error]);
+
+  useEffect(() => {
+    saveDraft(draftKey, { assumptionOverrides, assumptionRatios });
+  }, [draftKey, assumptionOverrides, assumptionRatios]);
+
+  // Put saved answers back into the plain inputs. Runs again once the calculated figures load,
+  // because that is when the "why is this zero" boxes can first appear.
+  useEffect(() => {
+    const fields = readDraft(draftKey).fields;
+    if (!fields || !formRef.current) return;
+    for (const element of Array.from(formRef.current.elements)) {
+      if (
+        !(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) ||
+        !element.name
+      ) continue;
+      if (element instanceof HTMLInputElement && element.type === "radio") {
+        if (fields[element.name] === element.value) element.checked = true;
+      } else if (element.name in fields && !element.name.endsWith("_ratio")) {
+        // The ratio inputs are filled from saved state instead.
+        element.value = fields[element.name];
+      }
+    }
+  }, [draftKey, fcffReadiness]);
 
   useEffect(() => {
     let cancelled = false;
@@ -183,7 +249,7 @@ export function IntakeForm({
 
     apiFetch<EbitdaAdjustment[]>(`/wizard/company/${companyId}/ebitda-adjustments`)
       .then((rows) => {
-        if (cancelled) return;
+        if (cancelled || draft.normalisations) return;
         setNormalisations(
           rows.map((row) => ({
             id: String(row.id),
@@ -200,7 +266,7 @@ export function IntakeForm({
     return () => {
       cancelled = true;
     };
-  }, [companyId, reportType]);
+  }, [companyId, reportType, draft.normalisations]);
 
   useEffect(() => {
     let cancelled = false;
@@ -226,19 +292,21 @@ export function IntakeForm({
     };
   }, [companyId, reportType]);
 
+  function changeNormalisations(rows: NormalisationRow[]) {
+    setNormalisations(rows);
+    saveDraft(draftKey, { normalisations: rows });
+  }
+
   function addNormalisation() {
-    setNormalisations((rows) => [
-      ...rows,
-      { id: `new-${Date.now()}`, label: "", amount: "", rationale: "" },
-    ]);
+    changeNormalisations([...normalisations, { id: `new-${Date.now()}`, label: "", amount: "", rationale: "" }]);
   }
 
   function updateNormalisation(id: string, key: keyof NormalisationRow, value: string) {
-    setNormalisations((rows) => rows.map((row) => (row.id === id ? { ...row, [key]: value } : row)));
+    changeNormalisations(normalisations.map((row) => (row.id === id ? { ...row, [key]: value } : row)));
   }
 
   function removeNormalisation(id: string) {
-    setNormalisations((rows) => rows.filter((row) => row.id !== id));
+    changeNormalisations(normalisations.filter((row) => row.id !== id));
   }
 
   function setCalculatedAssumption(key: string, rate: number) {
@@ -370,7 +438,18 @@ export function IntakeForm({
   }
 
   return (
-    <form className="wizard-form" onSubmit={submit}>
+    <form
+      className="wizard-form"
+      ref={formRef}
+      onSubmit={submit}
+      onChange={(event) =>
+        saveDraft(draftKey, {
+          fields: Object.fromEntries(
+            Array.from(new FormData(event.currentTarget).entries(), ([name, value]) => [name, String(value)]),
+          ),
+        })
+      }
+    >
       {error ? (
         <div role="alert" className="alert alert-error" tabIndex={-1} ref={errorRef}>
           {error}
@@ -379,7 +458,7 @@ export function IntakeForm({
       {reportType === "valuation_advisory" ? (
         <>
           <fieldset>
-            <legend>Narrative risk assessment</legend>
+            <legend>About the business</legend>
             <label htmlFor="owner-key-person-dependency">
               Owner / key-person dependency
               <textarea id="owner-key-person-dependency" name="owner_key_person_dependency" rows={3} />
@@ -399,7 +478,11 @@ export function IntakeForm({
           </fieldset>
 
           <fieldset>
-            <legend>Normalisation schedule</legend>
+            <legend>One-off items to adjust for</legend>
+            <p className="field-hint">
+              Costs or income that would not continue under a new owner, such as a one-off legal bill. Accountants call
+              these normalisations.
+            </p>
             {normalisations.map((row) => (
               <div className="normalisation-row" key={row.id}>
                 <label>
@@ -410,13 +493,15 @@ export function IntakeForm({
                   Amount ($)
                   <input
                     type="number"
+                    required={Boolean(row.label.trim())}
                     value={row.amount}
                     onChange={(event) => updateNormalisation(row.id, "amount", event.target.value)}
                   />
                 </label>
                 <label>
-                  Rationale
+                  Reason
                   <input
+                    required={Boolean(row.label.trim())}
                     value={row.rationale}
                     onChange={(event) => updateNormalisation(row.id, "rationale", event.target.value)}
                   />
@@ -427,7 +512,7 @@ export function IntakeForm({
               </div>
             ))}
             <button type="button" className="button button-secondary" onClick={addNormalisation}>
-              Add normalisation item
+              Add an item
             </button>
           </fieldset>
 
@@ -501,6 +586,7 @@ export function IntakeForm({
             ] as const).map(([key, label, derived]) => {
               const ratioName = `${key}_ratio`;
               const isAvailable = derived?.status === "available" && derived.rate != null;
+              const ratioValue = assumptionRatios[key] ?? (isAvailable ? formatRatioPercent(derived.rate ?? 0) : "");
               return (
                 <section className="panel" key={key}>
                   <h3>{label}</h3>
@@ -513,7 +599,7 @@ export function IntakeForm({
                   )}
                   <fieldset>
                     <legend>Use this figure?</legend>
-                    <label>
+                    <label className="choice">
                       <input
                         type="radio"
                         name={`${key}_confirmation`}
@@ -524,7 +610,7 @@ export function IntakeForm({
                       />
                       Yes, use the calculated figure
                     </label>
-                    <label>
+                    <label className="choice">
                       <input
                         type="radio"
                         name={`${key}_confirmation`}
@@ -550,21 +636,25 @@ export function IntakeForm({
                       min="0"
                       max="100"
                       step="0.1"
-                      value={assumptionRatios[key] ?? (isAvailable ? formatRatioPercent(derived.rate ?? 0) : "")}
+                      value={ratioValue}
                       onChange={(event) => setAssumptionRatios((current) => ({ ...current, [key]: event.target.value }))}
                       readOnly={isAvailable && !assumptionOverrides[key]}
                       aria-readonly={isAvailable && !assumptionOverrides[key]}
                       required
                     />
                   </label>
-                  <label htmlFor={`${key}-override-rationale`}>
-                    Why are you using this figure?
-                    <textarea id={`${key}-override-rationale`} name={`${key}_override_rationale`} rows={2} />
-                  </label>
-                  <label htmlFor={`${key}-zero-rationale`}>
-                    If this is zero, why?
-                    <textarea id={`${key}-zero-rationale`} name={`${key}_zero_rationale`} rows={2} />
-                  </label>
+                  {assumptionOverrides[key] ? (
+                    <label htmlFor={`${key}-override-rationale`}>
+                      Why are you using this figure?
+                      <textarea id={`${key}-override-rationale`} name={`${key}_override_rationale`} rows={2} />
+                    </label>
+                  ) : null}
+                  {isZero(ratioValue) ? (
+                    <label htmlFor={`${key}-zero-rationale`}>
+                      Why is this zero?
+                      <textarea id={`${key}-zero-rationale`} name={`${key}_zero_rationale`} rows={2} />
+                    </label>
+                  ) : null}
                 </section>
               );
             })}
@@ -573,35 +663,54 @@ export function IntakeForm({
               <p>Enter the annual capital investment you expect as a percentage of revenue. We cannot safely derive this from your statements.</p>
               <label htmlFor="capex-ratio">
                 Capital investment (% of revenue)
-                <input id="capex-ratio" name="capex_ratio" type="number" min="0" max="100" step="0.1" required />
+                <input
+                  id="capex-ratio"
+                  name="capex_ratio"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={assumptionRatios.capex ?? ""}
+                  onChange={(event) => setAssumptionRatios((current) => ({ ...current, capex: event.target.value }))}
+                  required
+                />
               </label>
-              <label htmlFor="capex-zero-rationale">
-                If this is zero, why?
-                <textarea id="capex-zero-rationale" name="capex_zero_rationale" rows={2} />
-              </label>
+              {isZero(assumptionRatios.capex ?? "") ? (
+                <label htmlFor="capex-zero-rationale">
+                  Why is this zero?
+                  <textarea id="capex-zero-rationale" name="capex_zero_rationale" rows={2} />
+                </label>
+              ) : null}
             </section>
           </fieldset>
 
           <fieldset>
-            <legend>Business risk assessment</legend>
+            <legend>Rate the business from 1 to 5</legend>
             {riskQuestions.map(([name, label, options]) => (
               <div className="rating-question" key={name}>
                 <span className="field-label" id={`${name}-label`}>
                   {label} rating
                 </span>
-                <div className="rating-options" role="radiogroup" aria-labelledby={`${name}-label`}>
+                <div
+                  className="rating-options"
+                  role="radiogroup"
+                  aria-labelledby={`${name}-label`}
+                  aria-describedby={`${name}-scale`}
+                >
                   {options.map((option, index) => {
                     const value = String(index + 1);
                     const id = `${name}-${value}`;
-                    const description = ratingDescription(option);
                     return (
                       <label className="rating-option" key={option} htmlFor={id}>
                         <input id={id} type="radio" name={name} value={value} required />
                         <span className="rating-score">{value}</span>
-                        {description ? <span className="rating-description">{description}</span> : null}
                       </label>
                     );
                   })}
+                </div>
+                <div className="rating-scale" id={`${name}-scale`}>
+                  <span>1: {ratingDescription(options[0])}</span>
+                  <span>5: {ratingDescription(options[4])}</span>
                 </div>
               </div>
             ))}

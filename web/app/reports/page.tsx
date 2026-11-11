@@ -7,6 +7,7 @@ import { StatusPill } from "@/components/status-pill";
 import { formatMoney, formatNzDate } from "@/lib/presentation";
 import { requireUser } from "@/lib/auth";
 import { serverApiFetch } from "@/lib/server-api";
+import { CONTACT_EMAIL } from "@/lib/site";
 import type { PurchaseHistoryItem } from "@/types/domain";
 
 export const metadata: Metadata = {
@@ -28,7 +29,7 @@ function deliveryNote(status: string) {
   if (status === "pending_payment") return "Waiting for payment confirmation.";
   if (status === "payment_failed" || status === "payment_expired") return "No payment was taken. Start a new valuation when ready.";
   if (status === "refunded") return "This payment was refunded.";
-  if (status === "failed") return "Something went wrong on our side. We are looking into it. Reply to your confirmation email if you have questions.";
+  if (status === "failed") return `Something went wrong on our side. We are looking into it. Email ${CONTACT_EMAIL} if you have questions.`;
   return "Being prepared. This usually takes a few minutes.";
 }
 

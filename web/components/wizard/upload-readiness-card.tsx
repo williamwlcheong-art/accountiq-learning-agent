@@ -10,15 +10,20 @@ type UploadReadinessCardProps = {
 
 export function UploadReadinessCard({ readiness, onContinue, onReset }: UploadReadinessCardProps) {
   const state = readiness?.state ?? "processing";
+  const heading =
+    state === "ready" ? "Your accounts are ready"
+    : state === "failed" ? "We could not use this file"
+    : state === "conflict" ? "We need to check your statements"
+    : "Checking your financial statements";
   return (
     <section className="wizard-card readiness-card" aria-live="polite">
       <div className={`readiness-mark readiness-${state}`} aria-hidden="true" />
-      <h1>{state === "ready" ? "Your accounts are ready" : "Checking your financial statements"}</h1>
+      <h1>{heading}</h1>
       <p>{readiness?.message ?? "We are extracting the figures and confirming which periods will be used."}</p>
 
       {readiness?.source_periods.length ? (
         <div className="source-summary">
-          <h2>Authoritative sources</h2>
+          <h2>Statements we will use</h2>
           <FinancialSourceList sources={readiness.source_periods} />
           <p className="wizard-note">
             Valuation Advisory · {formatMoney(readiness.checkout.amount_cents, readiness.checkout.currency)}
