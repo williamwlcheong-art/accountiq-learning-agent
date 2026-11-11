@@ -19,6 +19,9 @@ test("signed-out visitors land on the home page rather than the offer page", asy
   // The sample report is real text, so it reads the same without the visuals.
   const sample = page.getByRole("figure", { name: "Sample valuation report for a made-up business" });
   await expect(sample.getByText("$692,000 to $848,000", { exact: true })).toBeVisible();
+  // The profit rows add up to the same normalised profit the sample report shows.
+  const working = page.getByRole("region", { name: "Where the number comes from" });
+  await expect(working.getByText("$223,100", { exact: true })).toBeVisible();
   await expect(page.getByRole("contentinfo")).toBeVisible();
 });
 

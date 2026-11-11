@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Arrow } from "@/components/marketing/arrow";
 import { getPost, listPosts, tagSlug } from "@/lib/content";
 import { formatNzDate } from "@/lib/presentation";
 import { FEE, REGISTER_PATH, REVIEWER, SITE_URL, appUrl } from "@/lib/site";
@@ -103,7 +102,6 @@ export default async function BlogPostPage({ params }: Props) {
           </p>
           <Link className="home-button" href={appUrl(REGISTER_PATH)}>
             Start your valuation
-            <Arrow />
           </Link>
         </aside>
       </div>

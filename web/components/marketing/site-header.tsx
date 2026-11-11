@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { Arrow } from "@/components/marketing/arrow";
 import { MenuDisclosure } from "@/components/marketing/menu-disclosure";
 import { Wordmark } from "@/components/marketing/wordmark";
 import { listPageSlugs } from "@/lib/content";
@@ -47,7 +46,6 @@ export function SiteHeader() {
           </Link>
           <Link className="marketing-cta marketing-cta-small" href={appUrl(REGISTER_PATH)}>
             Start your valuation
-            <Arrow />
           </Link>
         </div>
 
