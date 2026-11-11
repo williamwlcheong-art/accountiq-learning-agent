@@ -50,6 +50,17 @@
   box-shadow: none;
 }
 
+.marketing-page ::selection {
+  background: var(--aq-navy);
+  color: var(--aq-on-navy);
+}
+
+.marketing-page .marketing-footer ::selection,
+.marketing-page .home-close ::selection {
+  background: var(--aq-on-navy-soft);
+  color: var(--aq-navy-deep);
+}
+
 .marketing-page .marketing-footer :focus-visible,
 .marketing-page .home-close a:focus-visible {
   outline-color: var(--aq-on-navy);
@@ -185,6 +196,9 @@ a:hover > .arrow {
 }
 
 .marketing-page .marketing-menu-panel a {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
   color: var(--aq-ink);
   font-weight: 500;
 }
@@ -338,6 +352,7 @@ a:hover > .arrow {
 }
 
 .home-boundary {
+  max-width: 60ch;
   margin: 22px 0 0;
   color: var(--aq-muted);
   font-size: 1rem;
@@ -592,7 +607,7 @@ a:hover > .arrow {
 /* ---------- Home: sections ---------- */
 
 .home-statement {
-  padding: clamp(80px, 10vw, 140px) 0;
+  padding: clamp(80px, 10vw, 140px) 0 clamp(8px, 2vw, 20px);
   border-top: 1px solid var(--aq-line);
 }
 
@@ -640,6 +655,7 @@ a:hover > .arrow {
 }
 
 .home-note {
+  max-width: 60ch;
   margin-top: 16px;
   color: var(--aq-muted);
   font-size: 1rem;
@@ -682,6 +698,7 @@ a:hover > .arrow {
 .home-glosses h3 {
   display: flex;
   flex-wrap: wrap;
+  align-content: start;
   justify-content: space-between;
   gap: 2px 12px;
   font-size: 1.0625rem;
@@ -871,7 +888,7 @@ a:hover > .arrow {
 
 .home-assurances {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
   gap: 20px;
   margin-top: clamp(48px, 6vw, 72px);
 }
@@ -888,6 +905,10 @@ a:hover > .arrow {
   font-family: var(--aq-display);
   font-size: 1.45rem;
   font-weight: 400;
+}
+
+.home-assurance :is(p, li) {
+  max-width: 62ch;
 }
 
 .home-assurance ul {
@@ -1219,7 +1240,6 @@ a:hover > .arrow {
 }
 
 @media (max-width: 960px) {
-  .home-hero-grid,
   .home-split,
   .home-assurances,
   .valuation-assurances {
@@ -1236,9 +1256,17 @@ a:hover > .arrow {
     display: block;
   }
 
-  .home-report {
-    justify-items: start;
-    padding: 12px 12px 12px 0;
+  /* With the nav folded away, the button sits beside the menu instead of floating mid-header. */
+  .marketing-page .marketing-header-actions {
+    margin-left: auto;
+  }
+
+  .home-facts div {
+    padding-inline: 20px;
+  }
+
+  .home-facts dt {
+    font-size: 1.8rem;
   }
 
   .home-parts {
@@ -1255,9 +1283,42 @@ a:hover > .arrow {
   }
 }
 
+/* Tablet: the report keeps its place beside the copy instead of leaving half the row empty. */
+@media (min-width: 721px) and (max-width: 960px) {
+  .home-hero-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+    /* Wide enough that the fanned back pages do not reach the copy. */
+    gap: 64px;
+  }
+
+  .home-actions .home-button {
+    flex: 1 1 auto;
+  }
+}
+
 @media (max-width: 720px) {
   .marketing-page .marketing-container {
     width: min(1120px, calc(100% - 40px));
+  }
+
+  .home-hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-report {
+    justify-items: start;
+    padding: 12px 12px 12px 0;
+  }
+
+  /* Footer links are a full touch target on a phone. */
+  .marketing-footer-column {
+    gap: 0;
+  }
+
+  .marketing-footer-column a {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
   }
 
   .home-facts {
@@ -1269,6 +1330,10 @@ a:hover > .arrow {
     padding: 22px 0;
     border-left: 0;
     border-bottom: 1px solid var(--aq-line);
+  }
+
+  .home-facts dt {
+    font-size: 2rem;
   }
 
   .home-parts,
@@ -1297,8 +1362,12 @@ a:hover > .arrow {
     font-size: 1.3rem;
   }
 
+  .marketing-page .marketing-header .marketing-wordmark {
+    min-height: 44px;
+    align-items: center;
+  }
+
   .marketing-page .marketing-header .marketing-cta {
-    min-height: 40px;
     padding: 0 12px 0 14px;
     font-size: 0.85rem;
   }
@@ -1312,7 +1381,8 @@ a:hover > .arrow {
     font-size: 0;
   }
 
-  .home-actions .home-button {
+  .home-actions .home-button,
+  .home-close-inner .home-button {
     flex: 1 1 100%;
   }
 
@@ -1337,7 +1407,8 @@ a:hover > .arrow {
   }
 }
 
-@media (max-width: 400px) {
+/* Only the narrowest phones need the header squeezed; 375px and up keep the larger button text. */
+@media (max-width: 374px) {
   .marketing-page .marketing-header-inner,
   .marketing-page .marketing-header-actions {
     gap: 8px;

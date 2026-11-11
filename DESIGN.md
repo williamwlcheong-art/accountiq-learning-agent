@@ -97,7 +97,7 @@ A 1120px container. Sections are `clamp(72px, 9vw, 120px)` tall at the top and b
 - **Split:** heading and intro on the left (5 parts), content on the right (7 parts). On desktop the left side stays in view while the right scrolls.
 - **Head and grid:** heading with intro on one line, then a grid of cards (report parts, steps, posts).
 
-At 960px the hero and splits go to one column and the header nav folds into the menu. At 720px the grids go to one column and the side margins are 20px. At 400px the header tightens so the wordmark, the button and the menu still fit at 320px. The menu closes itself after a link is followed and on Escape (`menu-disclosure.tsx`).
+At 960px the splits go to one column and the header nav folds into the menu; the hero keeps the report beside the copy down to 720px. At 720px the hero and the grids go to one column and the side margins are 20px. Below 375px the header tightens so the wordmark, the button and the menu still fit at 320px. The menu closes itself after a link is followed and on Escape (`menu-disclosure.tsx`).
 
 ## Components
 
