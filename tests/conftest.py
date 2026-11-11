@@ -34,6 +34,9 @@ for _candidate in [
         _load_dotenv(_candidate, override=False)  # override=False: env vars already set by CI take precedence
         break
 
+# The test client talks plain http, which never sends back a Secure cookie.
+os.environ.setdefault("COOKIE_SECURE", "false")
+
 # CRITICAL: override DB_PATH BEFORE importing main (which imports db at module level)
 _TMP_DB_FD, _TMP_DB_PATH = tempfile.mkstemp(suffix="_test.db")
 os.close(_TMP_DB_FD)

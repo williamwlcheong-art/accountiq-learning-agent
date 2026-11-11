@@ -11,6 +11,7 @@ export ACCOUNTIQ_DB_PATH="$DB"
 export ACCOUNTIQ_E2E_MODE=true
 export APP_BASE_URL="${APP_BASE_URL:-http://localhost:3000}"
 export SECRET_KEY="e2e-secret-key-not-for-production"
+export COOKIE_SECURE=false
 export ANTHROPIC_API_KEY="sk-ant-e2e-placeholder"
 export CLAUDE_MODEL="claude-sonnet-4-6"
 

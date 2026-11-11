@@ -158,6 +158,7 @@ def _migrate_db(conn: sqlite3.Connection):
         "ALTER TABLE purchases ADD COLUMN checkout_idempotency_key TEXT",
         "ALTER TABLE purchases ADD COLUMN stripe_checkout_url TEXT",
         "ALTER TABLE purchases ADD COLUMN checkout_request_digest TEXT",
+        "ALTER TABLE reports ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0",
     ]:
         try:
             conn.execute(sql)
@@ -335,7 +336,8 @@ def _migrate_db(conn: sqlite3.Connection):
             content         TEXT,
             error_message   TEXT,
             created_at      TEXT    DEFAULT (datetime('now')),
-            completed_at    TEXT
+            completed_at    TEXT,
+            retry_count     INTEGER NOT NULL DEFAULT 0
         )
     """)
     conn.execute("""
@@ -434,6 +436,28 @@ def init_db():
         conn.commit()
         _migrate_db(conn)
         print(f"[DB] Initialised at {DB_PATH}")
+    finally:
+        conn.close()
+
+
+INTERRUPTED_REPORT_MESSAGE = "Interrupted by a server restart. Retry to generate it again."
+
+
+def fail_interrupted_reports() -> int:
+    """Mark reports left mid-generation by a restart as failed, so the customer can retry.
+
+    ponytail: assumes one server process. With several workers, a restart of one
+    would fail reports another is still generating; track a worker id then.
+    """
+    conn = get_sync_conn()
+    try:
+        cur = conn.execute(
+            "UPDATE reports SET status='failed', error_message=? "
+            "WHERE status IN ('queued', 'generating', 'researching')",
+            (INTERRUPTED_REPORT_MESSAGE,),
+        )
+        conn.commit()
+        return cur.rowcount
     finally:
         conn.close()
 
