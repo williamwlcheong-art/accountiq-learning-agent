@@ -43,7 +43,9 @@ from payments import (
     stripe_enabled,
 )
 from report_email import send_report_ready_email, REPORT_TYPE_LABELS
-from report_rendering import render_report_html, report_pdf_path, section_heading, write_pdf
+from report_rendering import (
+    MARKET_CHART_CSS, market_chart_html, render_report_html, report_pdf_path, section_heading, write_pdf,
+)
 from report_snapshots import (
     LegacySnapshotRestartRequired,
     SnapshotIntegrityError,
@@ -1525,11 +1527,11 @@ async def _wizard_readiness(
             if rows and any(row["document_id"] == document["id"] for row in rows):
                 state = "ready"
                 code = "ready"
-                message = "Your financial statements are ready for valuation intake."
+                message = "Your financial statements are ready. Next, tell us about the business."
             elif rows:
                 state = "failed"
                 code = "document_not_selected"
-                message = "This upload did not contribute usable authoritative financial rows."
+                message = "We could not find usable figures in this upload."
             else:
                 state = "failed"
                 code = "no_financial_rows"
@@ -2592,6 +2594,14 @@ _MARKET_SOURCE_LABELS = {
 }
 
 
+def _report_cell_html(cell, label) -> str:
+    # A cell with no word in it (figures, "+0.8% q/q", "n/a") is a number: one line, right-aligned.
+    # data-label repeats the column heading, shown beside the value when rows stack on a phone.
+    text = str(cell)
+    css = "" if _re.search(r"[A-Za-z]{3,}", text) else " class='num'"
+    return f"<td data-label='{_html_lib.escape(str(label), quote=True)}'{css}>{_html_lib.escape(text)}</td>"
+
+
 def _report_table_html(table_data: dict | None, heading: str) -> str:
     if not table_data:
         return ""
@@ -2601,7 +2611,9 @@ def _report_table_html(table_data: dict | None, heading: str) -> str:
         return ""
     th_cells = "".join(f"<th>{_html_lib.escape(str(h))}</th>" for h in headers)
     tr_rows = "".join(
-        "<tr>" + "".join(f"<td>{_html_lib.escape(str(c))}</td>" for c in row) + "</tr>"
+        "<tr>" + "".join(
+            _report_cell_html(c, headers[i] if i < len(headers) else "") for i, c in enumerate(row)
+        ) + "</tr>"
         for row in rows
         if isinstance(row, list)
     )
@@ -2616,40 +2628,6 @@ def _report_table_html(table_data: dict | None, heading: str) -> str:
     )
 
 
-def _market_chart_html(chart: dict) -> str:
-    title = _html_lib.escape(str(chart.get("title") or "Market trend"))
-    subtitle = _html_lib.escape(str(chart.get("subtitle") or ""))
-    unit = _html_lib.escape(str(chart.get("unit") or ""))
-    note = _html_lib.escape(str(chart.get("note") or ""))
-    source_labels = list(
-        dict.fromkeys(
-            _MARKET_SOURCE_LABELS.get(str(source_id), str(source_id))
-            for source_id in chart.get("source_ids", [])
-        )
-    )
-    source_text = _html_lib.escape(", ".join(source_labels))
-    series_items = []
-    for series in chart.get("series", []) or []:
-        if not isinstance(series, dict):
-            continue
-        points = ", ".join(
-            f"{point.get('period')}: {point.get('value')}"
-            for point in series.get("values", []) or []
-            if isinstance(point, dict)
-        )
-        series_items.append(
-            f"<li><strong>{_html_lib.escape(str(series.get('name') or 'Series'))}</strong>: "
-            f"{_html_lib.escape(points)}</li>"
-        )
-    return (
-        '<figure class="market-line-chart">'
-        f"<figcaption><strong>{title}</strong><span>{subtitle}</span></figcaption>"
-        f"<ul>{''.join(series_items)}</ul>"
-        f"<p>Source: {source_text}. Unit: {unit}. {note}</p>"
-        "</figure>"
-    )
-
-
 def _market_payload_html(content: dict) -> str:
     chunks = []
     if isinstance(content.get("sector_scale_table"), dict):
@@ -2657,7 +2635,7 @@ def _market_payload_html(content: dict) -> str:
         chunks.append(_report_table_html(content["sector_scale_table"], "Sector scale and boundary"))
     charts = content.get("market_charts")
     if isinstance(charts, list):
-        chunks.extend(_market_chart_html(chart) for chart in charts if isinstance(chart, dict))
+        chunks.extend(market_chart_html(chart) for chart in charts if isinstance(chart, dict))
     if isinstance(content.get("market_sources_table"), dict):
         chunks.append("<h3>Market data sources</h3>")
         chunks.append(_report_table_html(content["market_sources_table"], "Market data sources"))
@@ -2757,13 +2735,25 @@ def _render_report_html(row, sections: dict, back_url: str) -> str:
   .disclaimer p, .disclaimer li {{ color: #92400e; font-size: .86rem; }}
   .table-scroll {{ width: 100%; margin: 12px 0 24px; overflow-x: auto; border: 1px solid #e0e4ea; border-radius: 8px; }}
   .table-scroll:focus-visible {{ outline: 3px solid #2196f3; outline-offset: 3px; }}
-  table.report-table {{ width: 100%; min-width: 620px; border-collapse: collapse; font-size: .88rem; }}
-  table.report-table th, table.report-table td {{ padding: 10px 12px; border-bottom: 1px solid #e0e4ea; text-align: left; white-space: nowrap; }}
+  table.report-table {{ width: 100%; border-collapse: collapse; font-size: .88rem; }}
+  table.report-table th, table.report-table td {{ padding: 10px 12px; border-bottom: 1px solid #e0e4ea; text-align: left; vertical-align: top; overflow-wrap: break-word; }}
   table.report-table thead th {{ background: #f0f4f8; color: #607080; font-size: .75rem; font-weight: 700; }}
   table.report-table tbody tr:nth-child(even) {{ background: #fafbfc; }}
-  table.report-table td:not(:first-child) {{ text-align: right; }}
-  @media (max-width: 560px) {{ .report-shell {{ width: min(100% - 24px, 980px); padding-top: 20px; }} .report-topbar {{ align-items: flex-start; flex-direction: column-reverse; gap: 8px; }} .report-card {{ padding: 22px 18px; }} }}
-  @media print {{ body {{ background: #fff; }} .report-shell {{ width: 100%; padding: 0; }} .report-topbar {{ display: none; }} .report-card {{ border: 0; border-radius: 0; box-shadow: none; padding: 0; }} .table-scroll {{ overflow: visible; }} table.report-table {{ min-width: 0; }} }}
+  table.report-table td.num {{ text-align: right; white-space: nowrap; }}
+  table.report-table td:first-child {{ text-align: left; }}
+  {MARKET_CHART_CSS}
+  @media (max-width: 560px) {{ .report-shell {{ width: min(100% - 24px, 980px); padding-top: 20px; }} .report-card {{ padding: 22px 18px; }}
+    /* On a phone each table row becomes a block: the row name, then "heading: value" lines. */
+    table.report-table thead {{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }}
+    table.report-table, table.report-table tbody, table.report-table tr, table.report-table td {{ display: block; }}
+    table.report-table tr {{ padding: 10px 12px; border-bottom: 1px solid #e0e4ea; }}
+    table.report-table tbody tr:last-child {{ border-bottom: 0; }}
+    table.report-table td, table.report-table td.num {{ padding: 2px 0; border: 0; text-align: left; white-space: normal; }}
+    table.report-table td:first-child {{ margin-bottom: 4px; font-weight: 700; }}
+    table.report-table td:not(:first-child) {{ display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 10px; }}
+    table.report-table td:not(:first-child)::before {{ content: attr(data-label); color: #607080; font-size: .78rem; font-weight: 700; }}
+  }}
+  @media print {{ body {{ background: #fff; }} .report-shell {{ width: 100%; padding: 0; }} .report-topbar {{ display: none; }} .report-card {{ border: 0; border-radius: 0; box-shadow: none; padding: 0; }} .table-scroll {{ overflow: visible; }} }}
 </style>
 </head>
 <body>

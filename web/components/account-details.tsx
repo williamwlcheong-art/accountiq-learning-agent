@@ -1,4 +1,5 @@
 import { formatNzDate } from "@/lib/presentation";
+import { CONTACT_EMAIL } from "@/lib/site";
 import type { CurrentUser } from "@/types/domain";
 
 type AccountDetailsProps = {
@@ -21,8 +22,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
         <div>
           <dt>Password</dt>
           <dd>
-            During early access our team changes passwords for you. Reply to any AccountIQ email and we will sort it
-            out.
+            During early access our team changes passwords for you. Email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and we will sort it out.
           </dd>
         </div>
       </dl>

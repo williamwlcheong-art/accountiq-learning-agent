@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { PdfDownloadLink } from "@/components/pdf-download-link";
 import { StatusPill } from "@/components/status-pill";
 import { ApiError, apiFetch } from "@/lib/api-client";
+import { TURNAROUND } from "@/lib/site";
 import type { ReportStatus } from "@/types/domain";
 
 type ReportStatusCardProps = {
@@ -91,6 +92,7 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired, onMis
   const isRefunded = currentStatus === "refunded";
   const isPaymentTerminal = isPaymentFailed || isPaymentExpired || isRefunded;
   const isAwaitingReview = currentStatus === "awaiting_review";
+  const isPaid = ["queued", "researching", "generating", "awaiting_review"].includes(currentStatus);
   let heading = "Your report is being prepared";
   if (currentStatus === "pending_payment") heading = "Complete payment to start your report";
   if (isPaymentFailed) heading = "Your payment was not completed";
@@ -108,6 +110,12 @@ export function ReportStatusCard({ reportId, userEmail, onRestartRequired, onMis
         <div role="alert" className="alert alert-error">
           {error}
         </div>
+      ) : null}
+
+      {status && isPaid ? (
+        <p className="wizard-note">
+          Payment received. Reports are usually ready within {TURNAROUND}.
+        </p>
       ) : null}
 
       {!isFailed && !isPaymentTerminal && !isDone ? (

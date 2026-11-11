@@ -21,7 +21,7 @@ test("regular user uploads, selects report type, generates report, and reaches r
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await expect(page.getByText(/sample\.pdf/i)).toBeVisible();
   await page.getByRole("button", { name: /continue/i }).click();
-  await expect(page.getByText(/ready for valuation intake/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/statements are ready/i)).toBeVisible({ timeout: 15_000 });
   await expect(page.locator(".wizard-phase")).toHaveText("Financial statements");
   await expect(page.getByText(/sample\.pdf/i).first()).toBeVisible();
   await expect(page.getByText(/\$1,200\.00/i)).toBeVisible();
@@ -93,7 +93,7 @@ test("checkout clarification confirms no payment and allows restart", async ({ p
   await page.getByLabel(/business name/i).fill("Clarification E2E Ltd");
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await page.getByRole("button", { name: /continue/i }).click();
-  await expect(page.getByText(/ready for valuation intake/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/statements are ready/i)).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /continue to report/i }).click();
   await page.getByText("Valuation Advisory").click();
   await page.getByRole("button", { name: /continue/i }).click();
@@ -222,7 +222,7 @@ test("regular user can complete valuation-specific intake", async ({ page }) => 
   await page.getByLabel(/business name/i).fill("Valuation E2E Ltd");
   await page.setInputFiles('input[type="file"]', path.join(process.cwd(), "e2e/fixtures/sample.pdf"));
   await page.getByRole("button", { name: /continue/i }).click();
-  await expect(page.getByText(/ready for valuation intake/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/statements are ready/i)).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /continue to report/i }).click();
   await page.getByText("Valuation Advisory").click();
   await page.getByRole("button", { name: /continue/i }).click();

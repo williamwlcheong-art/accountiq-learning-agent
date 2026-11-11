@@ -35,16 +35,11 @@ test("completed report viewer escapes script payloads", async ({ page, context, 
   await expect(tableScrollRegion).toHaveAttribute("role", "region");
   await expect(tableScrollRegion).toHaveAttribute("aria-label", /table$/i);
   await expect(tableScrollRegion).toBeVisible();
-  await tableScrollRegion.focus();
-  await expect(tableScrollRegion).toBeFocused();
-  const scrollMetrics = await tableScrollRegion.evaluate((element) => ({
-    clientWidth: element.clientWidth,
-    scrollLeft: element.scrollLeft,
-    scrollWidth: element.scrollWidth,
-  }));
-  expect(scrollMetrics.scrollWidth).toBeGreaterThan(scrollMetrics.clientWidth);
-  await tableScrollRegion.press("ArrowRight");
-  await expect.poll(() => tableScrollRegion.evaluate((element) => element.scrollLeft)).toBeGreaterThan(scrollMetrics.scrollLeft);
+  // On a phone the rows stack, so no table needs sideways scrolling.
+  const tablesWiderThanTheirBox = await viewer
+    .locator(".table-scroll")
+    .evaluateAll((regions) => regions.filter((region) => region.scrollWidth > region.clientWidth + 1).length);
+  expect(tablesWiderThanTheirBox).toBe(0);
   const reportFitsViewport = await viewer.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
   expect(reportFitsViewport).toBe(true);
 });

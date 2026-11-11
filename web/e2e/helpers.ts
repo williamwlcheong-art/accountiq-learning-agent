@@ -33,7 +33,7 @@ export async function loginOrRegisterAdmin(page: Page) {
 }
 
 export async function continueFromUploadWhenReady(page: Page) {
-  await expect(page.getByText(/ready for valuation intake/i)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/statements are ready/i)).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /continue to report/i }).click();
 }
 

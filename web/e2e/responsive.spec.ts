@@ -26,10 +26,11 @@ test("wizard intake and account purchase history are usable on a narrow screen",
   await page.getByRole("button", { name: /valuation advisory/i }).click();
   await page.getByRole("button", { name: /continue/i }).click();
   await expect(page.locator(".wizard-phase")).toHaveText("Business details");
-  await page.getByRole("button", { name: /add normalisation item/i }).click();
+  await page.getByRole("button", { name: /add an item/i }).click();
   await expectNoHorizontalOverflow(page);
   await completeValuationIntake(page);
   await submitValuationCheckout(page);
+  await expect(page.getByText(/payment received/i)).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole("link", { name: "Your valuations", exact: true }).click();
   const purchaseRow = page.locator(".purchase-table tr").filter({ hasText: "Mobile History E2E Ltd" });

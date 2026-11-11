@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { CustomerShell } from "@/components/customer-shell";
 import { CheckoutClarificationCard } from "@/components/wizard/checkout-clarification-card";
 import { CheckoutConfirmation } from "@/components/wizard/checkout-confirmation";
-import { IntakeForm } from "@/components/wizard/intake-form";
+import { clearIntakeDrafts, IntakeForm } from "@/components/wizard/intake-form";
 import { ReportStatusCard } from "@/components/wizard/report-status-card";
 import { ReportTypePicker, type WizardReportType } from "@/components/wizard/report-type-picker";
 import { UploadReadinessCard } from "@/components/wizard/upload-readiness-card";
@@ -122,6 +122,7 @@ export function Wizard({ user }: WizardProps) {
       window.sessionStorage.setItem(progressKey, JSON.stringify(saved));
     } else if (step === "upload" || step === "status" || step === "clarification") {
       window.sessionStorage.removeItem(progressKey);
+      clearIntakeDrafts();
     }
   }, [restored, step, businessName, upload, readiness, reportType, intakeAnswers, checkoutIdempotencyKey, progressKey]);
 

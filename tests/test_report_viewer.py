@@ -35,8 +35,8 @@ def test_renders_dict_section_with_table():
     assert "class='table-scroll' tabindex='0' role='region' aria-label='WACC Assumptions table'" in html
     assert "<th>Component</th>" in html
     assert "<th>High</th>" in html
-    assert "<td>Risk-free rate</td>" in html
-    assert "<td>11.1%</td>" in html
+    assert "<td data-label='Component'>Risk-free rate</td>" in html
+    assert "<td data-label='Mid' class='num'>11.1%</td>" in html
     assert "WACC inputs were derived from research." in html
 
 
@@ -52,7 +52,8 @@ def test_escapes_html_in_table_cells():
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
     assert "<th>A<x></th>" not in html
     assert "&lt;x&gt;" in html
-    assert "<td><b>bold</b></td>" not in html
+    assert "<b>bold</b>" not in html
+    assert "data-label='A&lt;x&gt;'" in html
     assert "&lt;b&gt;bold&lt;/b&gt;" in html
 
 
@@ -141,3 +142,29 @@ def test_non_disclaimer_section_no_class():
         ["introduction"],
     )
     assert "class='disclaimer'" not in html
+
+
+def test_market_chart_is_drawn_and_keeps_its_figures():
+    from report_rendering import market_chart_html
+
+    html = market_chart_html({
+        "title": "Quarterly real GDP growth",
+        "subtitle": "Uneven <recovery>",
+        "unit": "% q/q",
+        "source_ids": ["stats_nz_gdp"],
+        "series": [{"name": "Real GDP growth", "values": [
+            {"period": "Dec 25", "value": -1.2}, {"period": "Mar 26", "value": 0.8},
+        ]}],
+    })
+    assert html.count("<polyline") == 1
+    assert "Real GDP growth: Dec 25 -1.2, Mar 26 0.8" in html  # read out for screen readers
+    assert "Uneven &lt;recovery&gt;" in html
+    assert "Source: Stats NZ. Unit: % q/q." in html
+
+
+def test_market_chart_without_enough_points_has_no_drawing():
+    from report_rendering import market_chart_html
+
+    html = market_chart_html({"title": "Empty", "series": [{"name": "A", "values": [{"period": "x", "value": "n/a"}]}]})
+    assert "<svg" not in html
+    assert "Empty" in html

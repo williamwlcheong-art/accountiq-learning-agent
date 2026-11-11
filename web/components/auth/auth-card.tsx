@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { ApiError, postForm } from "@/lib/api-client";
+import { CONTACT_EMAIL } from "@/lib/site";
 
 type Mode = "login" | "register";
 
@@ -135,8 +136,8 @@ export function AuthCard({ initialMode = "login" }: AuthCardProps) {
         ) : null}
         {showResetHelp ? (
           <p className="auth-reset-note">
-            During early access our team resets passwords manually. Reply to any AccountIQ email you have received and
-            we will sort it out for you.
+            During early access our team resets passwords manually. Email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and we will sort it out for
+            you.
           </p>
         ) : null}
 
