@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Arrow } from "@/components/marketing/arrow";
 import { PostCards } from "@/components/marketing/post-cards";
 import { getCurrentUser } from "@/lib/auth";
 import { listPosts } from "@/lib/content";
@@ -80,18 +79,12 @@ const reportParts = [
 
 /* Competitor fees are the lowest each publishes, NZD excluding GST, read on 16 September 2026. */
 const prices = [
-  { name: "Broker appraisal", price: "Free", amount: 0, note: "They are also hoping for your listing." },
-  { name: "Comparable sales report", price: "from $60", amount: 60, note: "Never opens your accounts." },
-  {
-    name: "AccountIQ",
-    price: FEE.display,
-    amount: FEE.amount,
-    note: `Reads your statements. Checked by ${reviewer}.`,
-  },
-  { name: "Accountant-prepared report", price: "from $2,250", amount: 2250, note: "Seven to twenty-one working days." },
-  { name: "Certified valuation", price: "from $4,900", amount: 4900, note: "Three to eight weeks." },
+  { name: "Broker appraisal", price: "Free", note: "They are also hoping for your listing." },
+  { name: "Comparable sales report", price: "from $60", note: "Never opens your accounts." },
+  { name: "AccountIQ", price: FEE.display, note: `Reads your statements. Checked by ${reviewer}.` },
+  { name: "Accountant-prepared report", price: "from $2,250", note: "Seven to twenty-one working days." },
+  { name: "Certified valuation", price: "from $4,900", note: "Three to eight weeks." },
 ];
-const dearest = Math.max(...prices.map((item) => item.amount));
 
 const steps = [
   {
@@ -118,9 +111,7 @@ export default async function HomePage() {
       <section className="home-hero" aria-labelledby="home-title">
         <div className="marketing-container home-hero-grid">
           <div className="home-hero-copy">
-            <h1 id="home-title">
-              Know what your business is worth <em>before you talk to a buyer.</em>
-            </h1>
+            <h1 id="home-title">Know what your business is worth before you talk to a buyer.</h1>
             <p className="home-lead">
               Upload your financial statements and answer some questions. {reviewer} checks the numbers, and your
               report is back in {TURNAROUND}. One fixed fee of {FEE.display}.
@@ -128,7 +119,6 @@ export default async function HomePage() {
             <div className="home-actions">
               <Link className="home-button" href={appUrl(REGISTER_PATH)}>
                 Start your valuation
-                <Arrow />
               </Link>
               <Link className="home-button home-button-quiet" href="/valuation">
                 See what is in the report
@@ -142,9 +132,7 @@ export default async function HomePage() {
           </div>
 
           <figure className="home-report">
-            <div className="home-report-sheet home-report-back" aria-hidden="true" />
-            <div className="home-report-sheet home-report-middle" aria-hidden="true" />
-            <div className="home-report-sheet home-report-front">
+            <div className="home-report-sheet">
               <p className="home-report-kicker">Indicative valuation report</p>
               <p className="home-report-name">Harbour Joinery Ltd</p>
               <p className="home-report-meta">Sample report for a made-up business</p>
@@ -204,38 +192,16 @@ export default async function HomePage() {
             <figcaption className="sr-only">Sample valuation report for a made-up business</figcaption>
           </figure>
         </div>
-
-        <div className="marketing-container">
-          <dl className="home-facts">
-            <div>
-              <dt>{FEE.display}</dt>
-              <dd>Fixed fee, whatever you upload</dd>
-            </div>
-            <div>
-              <dt>{TURNAROUND}</dt>
-              <dd>From payment to your report</dd>
-            </div>
-            <div>
-              <dt>Every report</dt>
-              <dd>Read by {REVIEWER.name}, chartered accountant, before you see it</dd>
-            </div>
-          </dl>
-        </div>
       </section>
-
-      <div className="home-statement">
-        <div className="marketing-container">
-          <p>
-            <em>The profit in your accounts is the profit of the business as you run it.</em> A buyer wants to know
-            what it earns for whoever owns it.
-          </p>
-        </div>
-      </div>
 
       <section className="home-section" aria-labelledby="home-working-title">
         <div className="marketing-container home-split">
-          <div className="home-split-head">
+          <div>
             <h2 id="home-working-title">Where the number comes from</h2>
+            <p className="home-intro">
+              The profit in your accounts is the profit of the business as you run it. A buyer wants to know what it
+              earns for whoever owns it.
+            </p>
             <p className="home-intro">
               Getting from reported profit to normalised profit is called normalising. These are the lines on the
               sample report above. Free calculators skip them.
@@ -253,7 +219,7 @@ export default async function HomePage() {
                 </li>
               ))}
             </ol>
-            <p className="home-intro home-after-list">
+            <p className="home-words home-after-list">
               From the normalised profit we project the cash the business should produce and work out what it is
               worth today, in a low, mid and high case. What similar businesses sell for is the cross-check.
             </p>
@@ -261,29 +227,28 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="home-section home-section-white" aria-labelledby="home-report-title">
-        <div className="marketing-container">
-          <div className="home-section-head">
+      <section className="home-section" aria-labelledby="home-report-title">
+        <div className="marketing-container home-split">
+          <div>
             <h2 id="home-report-title">What is in your report</h2>
             <p className="home-intro">
               Built from your own statements, then read by an accountant before you see it.
             </p>
           </div>
-          <ol className="home-parts">
-            {reportParts.map((part, index) => (
+          <ul className="home-glosses">
+            {reportParts.map((part) => (
               <li key={part.title}>
-                <span className="home-part-number">{String(index + 1).padStart(2, "0")}</span>
                 <h3>{part.title}</h3>
                 <p>{part.words}</p>
               </li>
             ))}
-          </ol>
+          </ul>
         </div>
       </section>
 
       <section className="home-section" aria-labelledby="home-cost-title">
         <div className="marketing-container home-split">
-          <div className="home-split-head">
+          <div>
             <h2 id="home-cost-title">What a valuation costs in New Zealand</h2>
             <p className="home-intro">
               The lowest published price for each kind of valuation. Ours is {FEE.display}, whatever you upload.
@@ -295,13 +260,8 @@ export default async function HomePage() {
           <ul className="home-prices">
             {prices.map((item) => (
               <li key={item.name} className={item.name === "AccountIQ" ? "home-price-ours" : undefined}>
-                <div className="home-price-line">
-                  <span>{item.name}</span>
-                  <span className="home-price-figure">{item.price}</span>
-                </div>
-                <span className="home-price-bar" aria-hidden="true">
-                  <span style={{ width: `${Math.max((item.amount / dearest) * 100, 1.5)}%` }} />
-                </span>
+                <span>{item.name}</span>
+                <span className="home-price-figure">{item.price}</span>
                 <p>{item.note}</p>
               </li>
             ))}
@@ -309,37 +269,21 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="home-section home-section-white" aria-labelledby="home-reviewer-title">
+      <section className="home-section" aria-labelledby="home-reviewer-title">
         <div className="marketing-container home-split">
-          <div className="home-split-head">
-            <h2 id="home-reviewer-title">
-              A chartered accountant <em>reads every report</em>
-            </h2>
-          </div>
-          <div className="home-reviewer">
-            <p className="home-reviewer-words">
-              Software prepares the first draft from your statements and your answers. {REVIEWER.name} then reads it
-              against the statements, checks each adjustment and the range, and holds it back if something does not
-              add up.
-            </p>
-            <p className="home-reviewer-sign">
-              <span>
-                Checked by <strong>{reviewer}</strong>
-              </span>
-              <svg viewBox="0 0 48 22" aria-hidden="true" focusable="false">
-                <path d="M3 12 C6 15 8 18 10 21 C15 12 24 5 37 1" />
-              </svg>
-            </p>
-          </div>
+          <h2 id="home-reviewer-title">A chartered accountant reads every report</h2>
+          <p className="home-words">
+            Software prepares the first draft from your statements and your answers. {REVIEWER.name} then reads it
+            against the statements, checks each adjustment and the range, and holds it back if something does not
+            add up.
+          </p>
         </div>
       </section>
 
       <section className="home-section" aria-labelledby="home-steps-title">
-        <div className="marketing-container">
-          <div className="home-section-head">
-            <h2 id="home-steps-title">How it works</h2>
-          </div>
-          <ol className="home-steps">
+        <div className="marketing-container home-split">
+          <h2 id="home-steps-title">How it works</h2>
+          <ol className="home-glosses home-steps">
             {steps.map((step) => (
               <li key={step.title}>
                 <h3>{step.title}</h3>
@@ -347,29 +291,33 @@ export default async function HomePage() {
               </li>
             ))}
           </ol>
-          <div className="home-assurances">
-            <div className="home-assurance">
-              <h3>What happens to your accounts</h3>
-              <ul>
-                {PRIVACY_LINES.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-            </div>
-            <div className="home-assurance">
-              <h3>Who this is not for</h3>
-              <p>
-                If the number has to satisfy a court, the Family Court, the IRD or a formal dispute, you need a
-                registered valuer. For deciding whether to talk to a buyer, and on what terms, this is usually enough.
-              </p>
-            </div>
-          </div>
+        </div>
+      </section>
+
+      <section className="home-section" aria-labelledby="home-accounts-title">
+        <div className="marketing-container home-split">
+          <h2 id="home-accounts-title">What happens to your accounts</h2>
+          <ul className="home-list">
+            {PRIVACY_LINES.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="home-section" aria-labelledby="home-not-for-title">
+        <div className="marketing-container home-split">
+          <h2 id="home-not-for-title">Who this is not for</h2>
+          <p className="home-words">
+            If the number has to satisfy a court, the Family Court, the IRD or a formal dispute, you need a
+            registered valuer. For deciding whether to talk to a buyer, and on what terms, this is usually enough.
+          </p>
         </div>
       </section>
 
       {/* One post on its own reads as an empty shelf, so the section waits for a second. */}
       {posts.length > 1 ? (
-        <section className="home-section home-section-white" aria-labelledby="home-writing-title">
+        <section className="home-section" aria-labelledby="home-writing-title">
           <div className="marketing-container">
             <div className="home-section-head">
               <h2 id="home-writing-title">Writing for business owners</h2>
@@ -387,9 +335,8 @@ export default async function HomePage() {
               {FEE.display}, checked by {reviewer}, back in {TURNAROUND}.
             </p>
           </div>
-          <Link className="home-button home-button-light" href={appUrl(REGISTER_PATH)}>
+          <Link className="home-button" href={appUrl(REGISTER_PATH)}>
             Start your valuation
-            <Arrow />
           </Link>
         </div>
       </section>

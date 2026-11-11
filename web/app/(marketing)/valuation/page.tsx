@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Arrow } from "@/components/marketing/arrow";
 import { FEE, PRIVACY_LINES, REGISTER_PATH, REVIEWER, SIGN_IN_PATH, SITE_URL, TURNAROUND, appUrl } from "@/lib/site";
 
 const reviewer = `${REVIEWER.name} ${REVIEWER.credential}`;
@@ -111,7 +110,6 @@ export default function ValuationPage() {
           <div className="home-actions">
             <Link className="home-button" href={appUrl(REGISTER_PATH)}>
               Start your valuation
-              <Arrow />
             </Link>
             <Link className="home-button home-button-quiet" href={appUrl(SIGN_IN_PATH)}>
               Sign in
@@ -121,9 +119,9 @@ export default function ValuationPage() {
         </div>
       </section>
 
-      <section className="home-section home-section-white" aria-labelledby="valuation-sections-title">
+      <section className="home-section" aria-labelledby="valuation-sections-title">
         <div className="marketing-container home-split">
-          <div className="home-split-head">
+          <div>
             <h2 id="valuation-sections-title">The report, section by section</h2>
             <p className="home-intro">In the order you will read them. Every figure comes from your statements and your answers.</p>
           </div>
@@ -171,9 +169,9 @@ export default function ValuationPage() {
         </div>
       </section>
 
-      <section className="home-section home-section-white" aria-labelledby="valuation-faq-title">
+      <section className="home-section" aria-labelledby="valuation-faq-title">
         <div className="marketing-container home-split">
-          <div className="home-split-head">
+          <div>
             <h2 id="valuation-faq-title">Questions before you begin</h2>
           </div>
           <div className="valuation-faq">
@@ -195,9 +193,8 @@ export default function ValuationPage() {
               {FEE.display}, checked by {reviewer}, back in {TURNAROUND}.
             </p>
           </div>
-          <Link className="home-button home-button-light" href={appUrl(REGISTER_PATH)}>
+          <Link className="home-button" href={appUrl(REGISTER_PATH)}>
             Start your valuation
-            <Arrow />
           </Link>
         </div>
       </section>
